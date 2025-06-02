@@ -29,18 +29,40 @@ export const headerAds = [
   { image: "/ads/header3.png" }
 ];
 
-// 🔹 Vasen mainospaikka
+// src/utils/adsData.js
+
 export const leftAds = [
-  { image: "/ads/ad-left1.png" },
-  { image: "/ads/ad-left2.png" },
-  { image: "/ads/ad-left3.png" }
+  {
+    src: "/ads/ad-left1.png",
+    link: "https://example.com/left1",
+    alt: "Left Ad 1",
+  },
+  {
+    src: "/ads/ad-left2.png",
+    link: "https://example.com/left2",
+    alt: "Left Ad 2",
+  },
+  {
+    src: "/ads/ad-left3.png",
+    link: "https://example.com/left3",
+    alt: "Left Ad 3",
+  },
 ];
 
-// 🔹 Oikea mainospaikka
 export const rightAds = [
-  { image: "/ads/ad-right1.png" },
-  { image: "/ads/ad-right2.png" },
-  { image: "/ads/ad-right3.png" }
+  {
+    src: "/ads/ad-right1.png",
+    link: "https://example.com/right1",
+    alt: "Right Ad 1",
+  },
+  {
+    src: "/ads/ad-right2.png",
+    link: "https://example.com/right2",
+    alt: "Right Ad 2",
+  },
+  {
+    src: "/ads/ad-right3.png",
+    link: "https://example.com/right3",
+    alt: "Right Ad 3",
+  },
 ];
-
-

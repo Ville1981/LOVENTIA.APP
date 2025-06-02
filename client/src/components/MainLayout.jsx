@@ -1,3 +1,4 @@
+// src/layouts/MainLayout.jsx
 import React from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import Navbar from "./Navbar";
@@ -15,34 +16,35 @@ const MainLayout = () => {
     <div className="min-h-screen flex flex-col bg-[#f9f9f9]">
       <Navbar />
 
-      <div className="w-full bg-white pt-0 pb-4 shadow">
-        {/* HeaderAd näkyy vain Discover- ja Etusivuilla */}
-        {isHome || isDiscover ? (
+      {/* HEADER MAINOS */}
+      {(isHome || isDiscover) && (
+        <div className="w-full bg-white py-3 shadow">
           <img
             src="/ads/header1.png"
-            alt="Header Ad"
+            alt="Main Header Ad"
             className="ad-header"
           />
-        ) : null}
-      </div>
+        </div>
+      )}
 
-      <div className="w-full flex justify-center px-4 py-6">
-        <div className="flex w-full max-w-[1440px] gap-4 items-start">
-          {/* VASEN MAINOS */}
-          <div className="hidden lg:flex flex-col w-[200px]">
+      {/* 3-SARAKKEINEN RAKENNE */}
+      <div className="w-full flex justify-center">
+        <div className="w-full max-w-[1400px] grid grid-cols-12 gap-4 px-2 py-6">
+          {/* VASEN MAINOSPALKKI */}
+          <aside className="hidden lg:flex col-span-2 ad-column left">
             <AdColumn side="left" />
-          </div>
+          </aside>
 
           {/* KESKISISÄLTÖ */}
-          <main className="flex-1 flex flex-col items-center gap-6">
+          <main className="col-span-12 lg:col-span-8 flex flex-col items-center">
             {isHome && <HeroSection />}
             <Outlet />
           </main>
 
-          {/* OIKEA MAINOS */}
-          <div className="hidden lg:flex flex-col w-[200px]">
+          {/* OIKEA MAINOSPALKKI */}
+          <aside className="hidden lg:flex col-span-2 ad-column right">
             <AdColumn side="right" />
-          </div>
+          </aside>
         </div>
       </div>
 
