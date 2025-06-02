@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* --- Mukautetut lisätyylit Tailwindin jälkeen --- */
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f4;
+  padding: 1rem;
+}
+
+form input,
+form button,
+form textarea {
+  width: 100%;
+  max-width: 500px;
+  padding: 0.5rem;
+  margin-top: 0.5rem;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .container {
+    max-width: 700px;
+    margin: 0 auto;
+  }
+}

@@ -1,0 +1,218 @@
+{
+  "site": {
+    "title": "DateSite"
+  },
+  "Home": "Etusivu",
+  "Discover": "Löydä",
+  "Login": "Kirjaudu",
+  "Register": "Rekisteröidy",
+  "Profile": "Profiili",
+  "Matches": "Osumat",
+  "Likes": "Tykkääjät",
+  "Map": "Kartta",
+  "Admin": "Ylläpito",
+  "Logout": "Kirjaudu ulos",
+  "Privacy": "Tietosuoja",
+
+  "about": "Tietoa meistä",
+  "careers": "Urat",
+  "press": "Lehdistö",
+  "terms": "Käyttöehdot",
+  "cookies": "Evästeet",
+  "community": "Yhteisö",
+  "health": "Terveyskäytäntö",
+  "coInfo": "Colorado-tiedot",
+  "contact": "Yhteystiedot",
+  "support": "Tuki",
+  "security": "Turvallisuus",
+  "safety": "Turvavinkit",
+  "impressum": "Julkaisija",
+  "follow": "Seuraa meitä",
+  "blog": "Blogi",
+  "special": "Erikoiset",
+  "download": "Lataa",
+  "rights": "Kaikki oikeudet pidätetään.",
+  "tagline": "Match better. Love smarter. 💘",
+  "company": "Yritys",
+  "conditions": "Ehdot",
+
+  "etusivu": {
+    "heroOtsikko": "Tervetuloa DateSiteen",
+    "heroTeksti": "Löydä merkityksellisiä yhteyksiä helposti ja turvallisesti.",
+    "heroTekstit": [
+      "Löydä kestävä rakkaus.",
+      "Tapaa samanhenkisiä ihmisiä.",
+      "Seuraava mätsisi on vain klikkauksen päässä."
+    ],
+    "tervetuloa": "Tervetuloa DateSiteen!",
+    "kuvaus": "Löydä seuraa, ystäviä tai rakkautta helposti ja turvallisesti.",
+    "aloita": "Aloita nyt",
+    "lue_lisaa": "Lue lisää",
+    "katso_kayttajat": "Katso käyttäjiä"
+  },
+
+  
+  "profile": {
+    "username": "Käyttäjänimi",
+    "email": "Sähköposti",
+    "age": "Ikä",
+    "gender": "Sukupuoli",
+    "orientation": "Seksuaalinen suuntautuminen",
+    "location": "Sijainti",
+    "country": "Maa",
+    "region": "Alue / lääni",
+    "city": "Kaupunki",
+    "manualCountry": "Kirjoita maa (jos ei listassa)",
+    "manualRegion": "Kirjoita alue (jos ei listassa)",
+    "manualCity": "Kirjoita kaupunki (jos ei listassa)",
+    "height": "Pituus (cm)",
+    "weight": "Paino (kg)",
+    "status": "Suhdetilanne",
+    "education": "Koulutus",
+    "profession": "Ammatti",
+    "religion": "Uskonto",
+    "religionImportance": "Uskonnon merkitys",
+    "children": "Lapsia",
+    "pets": "Lemmikit",
+    "interests": "Kiinnostuksen kohteet",
+    "images": "Lisäkuvat",
+    "mainImage": "Profiilikuva",
+    "updateProfile": "Päivitä profiili",
+    "deleteAccount": "Poista tili",
+    "saveSuccess": "Profiili tallennettu onnistuneesti!",
+    "saveError": "Tallennus epäonnistui. Tarkista kentät.",
+    "required": "Tämä kenttä on pakollinen",
+    "name": "Nimi",
+    "lookingFor": "Mitä etsit?",
+    "summary": "Itsestäni",
+    "goal": "Tavoitteet / aspirations",
+    "profilePicture": "Pääprofiilikuva",
+    "extraImages": "Lisäkuvat (max 6)",
+    "save": "Tallenna muutokset",
+    "delete": "Poista tili"
+    
+  },
+  "hero": {
+  "0": "Löydä kestävä rakkaus.",
+  "1": "Tapaa samanhenkisiä ihmisiä.",
+  "2": "Seuraava mätsisi on vain klikkauksen päässä."
+},
+
+
+  "buttons": {
+    "submit": "Lähetä",
+    "cancel": "Peruuta",
+    "delete": "Poista",
+    "edit": "Muokkaa",
+    "back": "Takaisin"
+  },
+
+  "messages": {
+    "loading": "Ladataan...",
+    "error": "Tapahtui virhe",
+    "notFound": "Sivua ei löytynyt",
+    "success": "Toiminto onnistui"
+  },
+
+  "discover": {
+  "title": "Löydä käyttäjiä",
+  "nearYou": "lähelläsi",
+  "searchPlaceholder": "🔍 Hae nimellä tai kiinnostuksella...",
+  "geolocationNotSupported": "Selaimesi ei tue sijaintitietoja.",
+  "cityNotFound": "Sijaintiasi ei voitu tunnistaa kaupungin tasolla.",
+  "fetchError": "Virhe käyttäjien haussa.",
+  "liked": "Tykkäys lähetetty!",
+  "likeFailed": "Tykkäys epäonnistui.",
+  "superliked": "Superlike lähetetty!",
+  "superlikeFailed": "Superlike epäonnistui.",
+  "superlikeLimit": "❌ Superlike-raja (3/48h) saavutettu.",
+  "loading": "🔄 Ladataan käyttäjiä...",
+  "adAlt": "Mainostila – mainoksesi tähän",
+  "like": "Tykkää",
+  "superlike": "Superlike",
+  "viewProfile": "Näytä profiili",
+  "premium": "Premium-käyttäjä",
+
+  
+  "premiumText": "Näet kuka on tykännyt sinusta, käytä Superlike ja saa enemmän osumia.",
+  "upgradeNow": "Päivitä nyt"
+  
+    
+    
+    
+    },
+
+
+
+
+"chat": {
+  "title": "Keskustelu",
+  "placeholder": "Kirjoita viesti...",
+  "send": "Lähetä"
+},
+
+"admin": {
+  "title": "Admin-paneeli: Käyttäjien hallinta",
+  "name": "Nimi",
+  "location": "Sijainti",
+  "hidden": "Piilotettu?",
+  "actions": "Toiminnot",
+  "yes": "✅ Kyllä",
+  "no": "❌ Ei",
+  "hide": "Piilota",
+  "unhide": "Näytä",
+  "delete": "Poista",
+  "confirmDelete": "Haluatko varmasti poistaa käyttäjän?"
+},
+
+"map": {
+  "title": "Käyttäjät kartalla",
+  "cityNotFound": "Sijaintiasi ei voitu tunnistaa kaupungin tasolla.",
+  "locationError": "Sijaintia ei voitu hakea.",
+  "fetchError": "Virhe käyttäjien haussa.",
+  "youAreHere": "Sinä olet tässä",
+  "loadingLocation": "Haetaan sijaintia..."
+},
+
+"matches": {
+  "title": "Osumasi",
+  "noMatches": "Ei osumia vielä.",
+  "openChat": "Avaa chat",
+  "score": "Yhteensopivuus"
+},
+
+"premium": {
+  "successTitle": "Premium-tilaus onnistui",
+  "successMessage": "✅ Premium aktivoitu! Kiitos ostoksesta.",
+  "cancelTitle": "Maksu peruutettu",
+  "cancelMessage": "Et suorittanut maksua. Voit yrittää uudelleen milloin tahansa.",
+  "updating": "Päivitetään tilaa...",
+  "errorMessage": "❌ Premium-päivitys epäonnistui."
+},
+
+"country": "Maa",
+"region": "Alue / lääni",
+"city": "Kaupunki",
+"countries": {
+  "Suomi": "Suomi",
+  "Ruotsi": "Ruotsi",
+  "Norja": "Norja",
+  "Saksa": "Saksa",
+  "Ranska": "Ranska",
+  "Yhdysvallat": "Yhdysvallat",
+  "Kanada": "Kanada",
+  "Iso-Britannia": "Iso-Britannia",
+  "Japani": "Japani",
+  "Kiina": "Kiina",
+  "Intia": "Intia",
+  "Venäjä": "Venäjä",
+  "Espanja": "Espanja",
+  "Brasilia": "Brasilia",
+  "Argentiina": "Argentiina",
+  "Chile": "Chile",
+  "Ukraina": "Ukraina",
+  "Kazakstan": "Kazakstan",
+  "Portugali": "Portugali",
+  "Italia": "Italia"
+  }
+}

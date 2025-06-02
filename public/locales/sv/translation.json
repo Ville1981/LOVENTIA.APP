@@ -1,0 +1,225 @@
+{
+  "site": {
+    "title": "DateSite"
+  },
+  "Home": "Hem",
+  "Discover": "Upptäck",
+  "Login": "Logga in",
+  "Register": "Registrera",
+  "Profile": "Profil",
+  "Matches": "Matchningar",
+  "Likes": "Gilla",
+  "Map": "Karta",
+  "Admin": "Admin",
+  "Logout": "Logga ut",
+  "Privacy": "Integritet",
+  "about": "Om oss",
+  "careers": "Karriär",
+  "press": "Press",
+  "terms": "Villkor",
+  "cookies": "Cookies",
+  "community": "Gemenskap",
+  "health": "Hälsopolicy",
+  "coInfo": "Colorado-info",
+  "contact": "Kontakt",
+  "support": "Support",
+  "security": "Säkerhet",
+  "safety": "Säkerhetstips",
+  "impressum": "Impressum",
+  "follow": "Följ",
+  "blog": "Blogg",
+  "special": "Special",
+  "download": "Ladda ner",
+  "rights": "Alla rättigheter förbehållna.",
+  "tagline": "Bättre matchningar. Älska smartare. 💘",
+  "company": "Företag",
+  "conditions": "Villkor",
+
+  "etusivu": {
+    "heroOtsikko": "Välkommen till DateSite!",
+    "heroTeksti": "Hitta meningsfulla kontakter enkelt och säkert.",
+    "heroTekstit": [
+      "Hitta kärlek som varar.",
+      "Träffa människor som delar dina värderingar.",
+      "Ditt nästa match är bara ett klick bort."
+    ],
+    "tervetuloa": "Välkommen till DateSite!",
+    "kuvaus": "Hitta sällskap, vänner eller kärlek på ett säkert sätt.",
+    "aloita": "Kom igång",
+    "lue_lisaa": "Läs mer",
+    "katso_kayttajat": "Se användare"
+  },
+
+  "profile": {
+    "title": "Profil",
+    "name": "Namn",
+    "email": "E-post",
+    "age": "Ålder",
+    "height": "Längd (cm)",
+    "weight": "Vikt (kg)",
+    "status": "Relationsstatus",
+    "religion": "Religion eller värderingar",
+    "children": "Har du barn?",
+    "pets": "Har du husdjur?",
+    "lookingFor": "Vad söker du?",
+    "summary": "Om mig",
+    "goal": "Mål / ambitioner",
+    "profilePicture": "Profilbild",
+    "save": "Spara ändringar",
+    "delete": "Radera konto",
+    "saveSuccess": "✅ Profilen har uppdaterats!",
+        "gender": "Kön",
+    "male": "Man",
+    "female": "Kvinna",
+    "other": "Annat",
+    "orientation": "Sexuell läggning",
+    "hetero": "Heterosexuell",
+    "homo": "Homosexuell",
+    "bi": "Bisexuell",
+    "country": "Land",
+    "region": "Region / Län",
+    "city": "Stad",
+    "selectCountry": "Välj land",
+    "manualCountry": "Eller ange land manuellt",
+    "selectRegion": "Välj region",
+    "manualRegion": "Eller ange region manuellt",
+    "selectCity": "Välj stad",
+    "manualCity": "Eller ange stad manuellt",
+    "education": "Utbildning",
+    "basicEducation": "Grundskola",
+    "secondary": "Gymnasieexamen",
+    "lowerUni": "Lägre högskoleexamen",
+    "upperUni": "Högre högskoleexamen",
+    "phd": "Doktorsexamen",
+    "profession": "Yrke",
+    "religionImportance": "Hur viktig är din religion?",
+    "notImportant": "Inte viktig",
+    "somewhatImportant": "Ganska viktig",
+    "veryImportant": "Mycket viktig",
+    "about": "Om mig",
+    "goals": "Mål / önskemål",
+    "searchingFor": "Vad letar du efter?",
+    "mainImage": "Huvudprofilbild",
+    "extraImages": "Extra bilder (max 6)",
+    "saveChanges": "Spara ändringar",
+    "deleteAccount": "Ta bort konto",
+    "saved": "✅ Profilen har uppdaterats!",
+    "fetchError": "❌ Kunde inte ladda profilen.",
+    "updateError": "❌ Kunde inte uppdatera profilen.",
+    "confirmDelete": "Är du säker på att du vill ta bort ditt konto permanent?",
+    "premiumMember": "Du är en premiumanvändare 🎉"
+
+  },
+  "hero": {
+  "0": "Hitta äkta kärlek.",
+  "1": "Träffa människor som delar dina värderingar.",
+  "2": "Ditt nästa match är bara ett klick bort."
+},
+
+
+  "buttons": {
+    "submit": "Skicka",
+    "cancel": "Avbryt",
+    "delete": "Radera",
+    "edit": "Redigera",
+    "back": "Tillbaka"
+  },
+
+  "messages": {
+    "loading": "Laddar...",
+    "error": "Ett fel inträffade",
+    "notFound": "Sidan kunde inte hittas",
+    "success": "Åtgärd lyckades"
+  },
+
+  "discover": {
+    "title": "Upptäck användare",
+    "nearYou": "nära dig",
+    "searchPlaceholder": "🔍 Sök efter namn eller intressen...",
+    "geolocationNotSupported": "Din webbläsare stöder inte geolokalisering.",
+    "cityNotFound": "Kunde inte identifiera din stad.",
+    "fetchError": "Kunde inte hämta användare.",
+    "liked": "Användare gillad!",
+    "likeFailed": "Kunde inte gilla.",
+    "superliked": "Superlike!",
+    "superlikeFailed": "Superlike misslyckades.",
+    "superlikeLimit": "❌ Superlike-gräns uppnådd (3/48h).",
+    "loading": "🔄 Laddar användare...",
+    "adAlt": "Annonsutrymme – din annons här",
+    "like": "Gilla",
+    "superlike": "Superlike",
+    "viewProfile": "Visa profil",
+    "premium": "Premiumanvändare"
+  },
+
+  "chat": {
+    "title": "Chatt",
+    "placeholder": "Skriv ett meddelande...",
+    "send": "Skicka"
+  },
+
+  "admin": {
+    "title": "Adminpanel: Hantera användare",
+    "name": "Namn",
+    "location": "Plats",
+    "hidden": "Dold?",
+    "actions": "Åtgärder",
+    "yes": "✅ Ja",
+    "no": "❌ Nej",
+    "hide": "Dölj",
+    "unhide": "Visa",
+    "delete": "Radera",
+    "confirmDelete": "Är du säker på att du vill radera den här användaren?"
+  },
+
+  "map": {
+    "title": "Användare på kartan",
+    "cityNotFound": "Kunde inte identifiera stad.",
+    "locationError": "Kunde inte hämta plats.",
+    "fetchError": "Fel vid hämtning av användare.",
+    "youAreHere": "Du är här",
+    "loadingLocation": "Hämtar plats..."
+  },
+
+  "matches": {
+    "title": "Dina matchningar",
+    "noMatches": "Inga matchningar ännu.",
+    "openChat": "Öppna chatt",
+    "score": "Matchningspoäng"
+  },
+
+  "premium": {
+    "successTitle": "Premium aktiverad",
+    "successMessage": "✅ Premium aktiverad! Tack för ditt köp.",
+    "cancelTitle": "Betalning avbruten",
+    "cancelMessage": "Du slutförde inte betalningen. Försök igen när som helst.",
+    "updating": "Uppdaterar status...",
+    "errorMessage": "❌ Kunde inte uppdatera premium."
+  },
+
+  "country": "Land",
+  "region": "Region / län",
+  "city": "Stad",
+  "countries": {
+    "Suomi": "Finland",
+    "Ruotsi": "Sverige",
+    "Norja": "Norge",
+    "Saksa": "Tyskland",
+    "Ranska": "Frankrike",
+    "Yhdysvallat": "USA",
+    "Kanada": "Kanada",
+    "Iso-Britannia": "Storbritannien",
+    "Japani": "Japan",
+    "Kiina": "Kina",
+    "Intia": "Indien",
+    "Venäjä": "Ryssland",
+    "Espanja": "Spanien",
+    "Brasilia": "Brasilien",
+    "Argentiina": "Argentina",
+    "Chile": "Chile",
+    "Ukraina": "Ukraina",
+    "Kazakstan": "Kazakstan",
+    "Portugali": "Portugal",
+    "Italia": "Italien"
+  }
+}

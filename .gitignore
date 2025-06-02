@@ -1,0 +1,16 @@
+# Node
+node_modules/
+.env
+dist/
+.vscode/
+*.log
+.DS_Store
+
+# Build artifacts
+client/dist/
+server/node_modules/
+client/node_modules/
+
+# IDE
+.idea/
+*.iml

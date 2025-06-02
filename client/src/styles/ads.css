@@ -1,0 +1,62 @@
+/* 📁 src/styles/ads.css */
+.ad-header {
+  width: 100%;
+  max-width: 960px;
+  max-height: 300px;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+  border-radius: 8px;
+  margin: 0 auto;
+  transition: opacity 0.5s ease-in-out;
+}
+
+.ad-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.ad-side {
+  width: 100%;
+  max-width: 200px;
+  max-height: 300px;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+.ad-column {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 20px;
+  align-self: flex-start;
+}
+
+.ad-column.left {
+  align-items: flex-start;
+}
+
+.ad-column.right {
+  align-items: flex-end;
+}
+
+.form-container {
+  max-width: 800px;
+  margin: 0 auto;
+  background-color: white;
+  padding: 2rem 1.5rem;
+  border-radius: 1rem;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 1024px) {
+  .ad-side,
+  .ad-column.left,
+  .ad-column.right {
+    display: none;
+  }
+}
