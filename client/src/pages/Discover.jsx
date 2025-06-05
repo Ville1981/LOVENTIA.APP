@@ -11,6 +11,7 @@ import SubNav from "../components/SubNav";
 const Discover = () => {
   const { t } = useTranslation();
   const [users, setUsers] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const [username, setUsername] = useState("");
   const [age, setAge] = useState("");
@@ -29,13 +30,14 @@ const Discover = () => {
   const [children, setChildren] = useState("");
   const [pets, setPets] = useState("");
   const [summary, setSummary] = useState("");
-  const [goal, setGoal] = useState("");
+  const [goals, setGoals] = useState("");
   const [lookingFor, setLookingFor] = useState("");
 
   const handleFilter = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
+
     try {
-      // Haetaan mock-data serveristä /api/users
       const res = await axios.get("/api/users", {
         params: {
           username,
@@ -46,19 +48,23 @@ const Discover = () => {
           religionImportance,
           education,
           profession,
-          country,
-          region,
-          city,
+          country: customCountry || country,
+          region: customRegion || region,
+          city: customCity || city,
           children,
           pets,
           summary,
-          goal,
+          goals,
           lookingFor,
         },
       });
-      setUsers(res.data);
+
+      // Backend should return { users: [...] }
+      setUsers(res.data.users || []);
     } catch (error) {
       console.error("Error filtering users:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -80,7 +86,7 @@ const Discover = () => {
     children,
     pets,
     summary,
-    goal,
+    goals,
     lookingFor,
   };
 
@@ -102,14 +108,14 @@ const Discover = () => {
     setChildren,
     setPets,
     setSummary,
-    setGoal,
+    setGoals,
     setLookingFor,
   };
 
   return (
     <div className="w-full flex flex-col items-center bg-gray-100 min-h-screen">
       {/* --- SubNav (OKCupid-tyyliset välilehdet) --- */}
-      <div className="w-full bg-[#111]">
+      <div className="w-full bg-[#000]">
         <SubNav
           tabs={[
             {
@@ -145,7 +151,7 @@ const Discover = () => {
       {/* --- Kolmisarakeasettelu: Vasen | Keskiosa | Oikea --- */}
       <div className="w-full max-w-[1400px] flex flex-row justify-between px-4 mt-6">
         {/* Vasemman sarakkeen mainos (200px leveä, sticky) */}
-        <div className="hidden lg:block w-[200px] sticky top-[160px] space-y-6">
+        <aside className="hidden lg:block w-[200px] sticky top-[160px] space-y-6">
           {/* Mainos 1 */}
           <div className="bg-white border border-gray-200 rounded-lg shadow-md overflow-hidden">
             <img
@@ -178,10 +184,10 @@ const Discover = () => {
               </a>
             </div>
           </div>
-        </div>
+        </aside>
 
         {/* Keskimmäinen sarake (hakulomake + profiilit) */}
-        <div className="flex-1 px-4">
+        <main className="flex-1 px-4">
           {/* Hakulomake-kortti */}
           <div className="bg-white border border-gray-200 rounded-lg shadow-md p-6">
             <DiscoverFilters
@@ -194,17 +200,25 @@ const Discover = () => {
 
           {/* Profiilikorttilista */}
           <div className="mt-6 w-full">
-            <UserCardList users={users} />
-            {users.length === 0 && (
+            {isLoading ? (
               <div className="mt-12 text-center text-gray-500">
-                🔍 {t("discover.noResults")}
+                {t("discover.loading")}…
               </div>
+            ) : (
+              <>
+                <UserCardList users={users} />
+                {users.length === 0 && (
+                  <div className="mt-12 text-center text-gray-500">
+                    🔍 {t("discover.noResults")}
+                  </div>
+                )}
+              </>
             )}
           </div>
-        </div>
+        </main>
 
         {/* Oikean sarakkeen mainos (200px leveä, sticky) */}
-        <div className="hidden lg:block w-[200px] sticky top-[160px] space-y-6">
+        <aside className="hidden lg:block w-[200px] sticky top-[160px] space-y-6">
           {/* Mainos 1 */}
           <div className="bg-white border border-gray-200 rounded-lg shadow-md overflow-hidden">
             <img
@@ -237,7 +251,7 @@ const Discover = () => {
               </a>
             </div>
           </div>
-        </div>
+        </aside>
       </div>
     </div>
   );
