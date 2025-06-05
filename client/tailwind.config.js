@@ -1,18 +1,20 @@
 // tailwind.config.js
 
-/** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    "./index.html",
     "./src/**/*.{js,jsx,ts,tsx}",
+    "./public/index.html",
   ],
   theme: {
     extend: {
       colors: {
-        primary: '#2563eb',     // sinertävä pääväri (käytössä painikkeissa)
-        secondary: '#f97316'    // oranssi vaihtoehto (varalla tulevaan käyttöön)
-      }
+        primary: "#FF4081",      // pinkki korostus
+        secondary: "#005FFF",    // sininen korostus
+      },
     },
   },
-  plugins: [],
+  plugins: [
+    require("@tailwindcss/line-clamp"),
+    // Lisää tarvittaessa muita Tailwind-laajennuksia
+  ],
 };

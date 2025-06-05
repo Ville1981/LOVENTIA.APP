@@ -169,7 +169,8 @@
   "like": "Like",
   "superlike": "Superlike",
   "viewProfile": "View profile",
-  "premium": "Premium user"
+  "premium": "Premium user",
+   "noResults": "Ei hakutuloksia"
 },
 
 
@@ -242,5 +243,18 @@
     "Kazakstan": "Kazakhstan",
     "Portugali": "Portugal",
     "Italia": "Italy"
+  },
+
+  
+  "subnav": {
+    "recommended": "Recommended",
+    "superlikes": "SuperLikes",
+    "cupidsPicks": "Cupid’s Picks",
+    "matchPercentage": "Match %",
+    "passport": "Passport"
   }
+  
+
 }
+
+
