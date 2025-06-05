@@ -10,7 +10,8 @@ const path = require("path");
 dotenv.config();
 
 // 🔌 Reitit
-const userRoutes = require("./routes/user");      // ✅ pysyy ennallaan
+const userRoutes = require("./routes/user");              // sis. mm. register, login, profiilin poisto yms.
+const userRoutesUpload = require("./routes/userRoutes");  // sis. upload-avatar yms.
 const messageRoutes = require("./routes/messageRoutes");
 const paymentRoutes = require("./routes/payment");
 
@@ -29,8 +30,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // 📸 Staattinen kuvasisältö (uploads-kansio)
-// Tässä polku ohjaa esim. public/uploads/profiles/ -kansioon.
-// Voit kopioida placeholder-kuvat kansioon public/uploads/profiles/
+// Tällöin front voi hakea tallennetut kuvat esimerkiksi osoitteesta:
+// http://localhost:5000/uploads/<tiedostonimi>.jpg
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // -------------------------------------------------------------
@@ -79,8 +80,15 @@ app.get("/api/users", (req, res) => {
 // -------------------------------------------------------------
 
 // 🛠 API-reitit
+
+// 1) Säilytämme alkuperäisen “user” -tiedoston reitit (/api/user ja /api/auth)
 app.use("/api/user", userRoutes);
 app.use("/api/auth", userRoutes);
+
+// 2) UUSI: liitämme “userRoutes.js” –tiedoston, jossa on upload-avatar ja muut
+//    Näin POST-requests osoitteeseen /api/users/:userId/upload-avatar toimivat
+app.use("/api/users", userRoutesUpload);
+
 app.use("/api/messages", messageRoutes);
 app.use("/api/payment", paymentRoutes);
 

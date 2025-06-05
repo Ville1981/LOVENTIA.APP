@@ -47,13 +47,13 @@ const UserProfile = () => {
   const t = (key) => {
     const translations = {
       "profile.saved": "Profiili tallennettu",
-      "profile.saveChanges": "Tallenna muutokset"
+      "profile.saveChanges": "Tallenna muutokset",
     };
     return translations[key] || key;
   };
 
   // CSS‐luokan nimi kehystetyille avatar‐kuville
-  const avatarContainerClass = 
+  const avatarContainerClass =
     "w-32 h-32 rounded-full overflow-hidden border-2 border-gray-400 bg-gray-100";
 
   // 1) Haetaan joko oman profiilin tiedot tai toisen käyttäjän profiili
@@ -144,7 +144,8 @@ const UserProfile = () => {
         lookingFor,
       };
 
-      await axios.put(`${BACKEND_BASE_URL}/api/user/profile`, payload, {
+      // Korjattu polku: '/api/users/profile'
+      await axios.put(`${BACKEND_BASE_URL}/api/users/profile`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -197,16 +198,19 @@ const UserProfile = () => {
 
   // 4) getAvatarUrl: backendin profiilikuva tai sukupuolen perusteella oikea placeholder
   const getAvatarUrl = () => {
-    if (user && user.profilePhoto) {
-      const photo = user.profilePhoto;
+    if (user && user.profilePicture) {
+      const photo = user.profilePicture;
       if (photo.startsWith("http://") || photo.startsWith("https://")) {
         return photo;
       }
-      return `${BACKEND_BASE_URL}${photo}`;
+      // Muodostetaan URL staattisesta upload-kansiosta
+      return `${BACKEND_BASE_URL}/${photo}`;
     }
+
     if (user?.gender && user.gender.toLowerCase().startsWith("f")) {
       return "/placeholder-avatar-female.png";
     }
+
     return "/placeholder-avatar-male.png";
   };
 
@@ -365,15 +369,14 @@ const UserProfile = () => {
               )}
 
               {/* Profiilitiedot (muokattava lomake) */}
-<ProfileForm
-  values={values}
-  setters={setters}
-  handleSubmit={handleSubmit}
-  message={message}
-  success={success}
-  t={t}  // lisätty prop t
-/>
-
+              <ProfileForm
+                values={values}
+                setters={setters}
+                handleSubmit={handleSubmit}
+                message={message}
+                success={success}
+                t={t} // lisätty prop t
+              />
             </>
           )}
         </>
