@@ -5,6 +5,7 @@ import axios from "axios";
 import { useParams } from "react-router-dom";
 import "../styles/ads.css";
 import ProfileForm from "../components/profileFields/ProfileForm";
+import ExtraPhotosFields from "../components/profileFields/ExtraPhotosFields";  // 🔄 lisätty
 
 // Tämä BACKEND_BASE_URL pitää vastata backendisi osoitetta (portti 5000 oletuksena)
 const BACKEND_BASE_URL = "http://localhost:5000";
@@ -106,8 +107,7 @@ const UserProfile = () => {
         console.error("❌ Profiilin haku epäonnistui", err);
         setMessage("Profiilin lataus epäonnistui.");
 
-        // Dummy‐fallback: asetetaan selkeästi username ja gender,
-        // niin näytetään musta placeholder‐teksti ja harmaa siluetti.
+        // Dummy‐fallback
         setUser({
           username: "Tuntematon käyttäjä",
           gender: "male",
@@ -144,7 +144,6 @@ const UserProfile = () => {
         lookingFor,
       };
 
-      // Korjattu polku: '/api/users/profile'
       await axios.put(`${BACKEND_BASE_URL}/api/users/profile`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -196,14 +195,13 @@ const UserProfile = () => {
     }
   };
 
-  // 4) getAvatarUrl: backendin profiilikuva tai sukupuolen perusteella oikea placeholder
+  // 4) getAvatarUrl
   const getAvatarUrl = () => {
     if (user && user.profilePicture) {
       const photo = user.profilePicture;
       if (photo.startsWith("http://") || photo.startsWith("https://")) {
         return photo;
       }
-      // Muodostetaan URL staattisesta upload-kansiosta
       return `${BACKEND_BASE_URL}/${photo}`;
     }
 
@@ -214,7 +212,6 @@ const UserProfile = () => {
     return "/placeholder-avatar-male.png";
   };
 
-  // Lomaketiedot (vain oma profiili)
   const values = {
     username,
     email,
@@ -268,13 +265,11 @@ const UserProfile = () => {
       </h2>
 
       {!user ? (
-        // Jos user on null, odotetaan fetchiä
         <div className="text-center py-8">
           <span className="text-gray-600">Ladataan…</span>
         </div>
       ) : (
         <>
-          {/* -- Kehystetty avatar + käyttäjänimi */}
           <div className="flex flex-col items-center mb-6">
             <div className={avatarContainerClass}>
               <img
@@ -282,7 +277,6 @@ const UserProfile = () => {
                 alt={`${user.username} profiilikuva`}
                 className="object-cover w-full h-full"
                 onError={(e) => {
-                  // Jos mikään ei lataudu, näytetään aina mies‐placeholder
                   e.currentTarget.src = "/placeholder-avatar-male.png";
                 }}
               />
@@ -293,7 +287,6 @@ const UserProfile = () => {
           </div>
 
           {userIdParam ? (
-            // --- Toisen käyttäjän profiili (vain luku)
             <div className="bg-white shadow rounded-lg p-6">
               <h3 className="text-lg font-semibold mb-2">Tietoja käyttäjästä</h3>
               <div className="space-y-2 text-gray-800">
@@ -322,11 +315,9 @@ const UserProfile = () => {
                 <p>
                   <span className="font-semibold">Etsin:</span> {user.lookingFor}
                 </p>
-                {/* Lisää kenttiä halutessasi */}
               </div>
             </div>
           ) : (
-            // --- Oma profiili (muokkaus + upload)
             <>
               {/* Kuvan latauslomake */}
               <div className="bg-white shadow rounded-lg p-4 mb-6">
@@ -356,6 +347,22 @@ const UserProfile = () => {
                   </button>
                 </form>
               </div>
+
+              {/* 🔄 Uusi lisäkuvat-lomake */}
+              <ExtraPhotosFields
+                user={user}
+                token={token}
+                onSuccess={(updatedUser) => {
+                  setUser(updatedUser);
+                  setMessage("Lisäkuvat päivitetty onnistuneesti.");
+                  setSuccess(true);
+                }}
+                onError={(err) => {
+                  console.error("Lisäkuvien tallennus epäonnistui", err);
+                  setMessage("Lisäkuvien tallennus epäonnistui.");
+                  setSuccess(false);
+                }}
+              />
 
               {/* Virheilmoitukset / onnistumisilmoitukset */}
               {message && (
