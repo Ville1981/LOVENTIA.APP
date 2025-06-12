@@ -1,40 +1,46 @@
-// src/components/profileFields/ExtraPhotosFields.jsx
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+// client/src/components/profileFields/ExtraPhotosFields.jsx
 
-// Props:
-// - user: objekti, sisältää extraImages[] ja isPremium
-// - token: autentikointitoken
-// - onSuccess: callback päivityksen onnistuttua
-// - onError: callback virhetilanteessa
-const ExtraPhotosFields = ({ user, token, onSuccess, onError }) => {
-  const BACKEND_BASE_URL = 'http://localhost:5000';
-  const maxSlots = user.isPremium ? 20 : 6;
+import React, { useState, useEffect } from "react";
+import { uploadPhotos } from "../../api/images";
+import { BACKEND_BASE_URL } from "../../config";
 
-  // Tiedostot ja esikatselut tilassa
+const ExtraPhotosFields = ({
+  userId,
+  isPremium,
+  extraImages = [],
+  onSuccess,
+  onError,
+}) => {
+  const maxSlots = isPremium ? 12 : 3;
+
+  // Tiedostot ja esikatselut
   const [files, setFiles] = useState(Array(maxSlots).fill(null));
   const [previews, setPreviews] = useState(
-    Array.from({ length: maxSlots }, (_, i) =>
-      user.extraImages && user.extraImages[i]
-        ? user.extraImages[i].startsWith('http')
-          ? user.extraImages[i]
-          : `${BACKEND_BASE_URL}/${user.extraImages[i]}`
-        : null
-    )
+    Array.from({ length: maxSlots }, (_, i) => {
+      const img = extraImages[i];
+      if (img) {
+        return img.startsWith("http")
+          ? img
+          : `${BACKEND_BASE_URL}/${img}`;
+      }
+      return null;
+    })
   );
 
-  // Päivittää esikatselut, kun user.extraImages muuttuu
+  // Kun palvelimen kuvat muuttuvat
   useEffect(() => {
     setPreviews(
-      Array.from({ length: maxSlots }, (_, i) =>
-        user.extraImages && user.extraImages[i]
-          ? user.extraImages[i].startsWith('http')
-            ? user.extraImages[i]
-            : `${BACKEND_BASE_URL}/${user.extraImages[i]}`
-          : null
-      )
+      Array.from({ length: maxSlots }, (_, i) => {
+        const img = extraImages[i];
+        if (img) {
+          return img.startsWith("http")
+            ? img
+            : `${BACKEND_BASE_URL}/${img}`;
+        }
+        return null;
+      })
     );
-  }, [user.extraImages, maxSlots]);
+  }, [extraImages, maxSlots]);
 
   const handleFileChange = (e, idx) => {
     const file = e.target.files[0] || null;
@@ -57,46 +63,31 @@ const ExtraPhotosFields = ({ user, token, onSuccess, onError }) => {
     e.preventDefault();
     const formData = new FormData();
     files.forEach((file) => {
-      if (file) formData.append('extraImages', file);
+      if (file) formData.append("extraPhotos", file);
     });
 
     try {
-      const res = await axios.put(
-        `${BACKEND_BASE_URL}/api/users/profile`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data',
-          },
-        }
-      );
-      onSuccess(res.data);
+      const updatedUser = await uploadPhotos(userId, formData);
+      onSuccess(updatedUser);
     } catch (err) {
       onError(err);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <h3 className="text-lg font-semibold">
-        {user.isPremium ? 'Lisäkuvat (max 20)' : 'Lisäkuvat (max 6)'}
-      </h3>
-      <div className="grid grid-cols-3 gap-4">
-        {Array.from({ length: maxSlots }).map((_, idx) => (
-          <div
-            key={idx}
-            className="border rounded overflow-hidden relative bg-gray-100 h-32"
-          >
-            <img
-              loading="lazy"
-              src={previews[idx] || '/images/placeholder.png'}
-              alt={`Lisäkuva ${idx + 1}`}
-              className="absolute inset-0 w-full h-full object-cover"
-              onError={(e) => {
-                e.currentTarget.src = '/images/placeholder.png';
-              }}
-            />
+    <form onSubmit={handleSubmit} className="bg-white shadow rounded-lg p-6 mb-6">
+      <h3 className="text-lg font-semibold mb-4">Lisäkuvat</h3>
+      <div className="grid grid-cols-3 gap-4 mb-4">
+        {previews.map((src, idx) => (
+          <div key={idx} className="w-full h-24 bg-gray-100 relative">
+            {src && (
+              <img
+                src={src}
+                alt={`Lisäkuva ${idx + 1}`}
+                className="object-cover w-full h-full"
+                onError={(e) => { e.currentTarget.src = "/placeholder.png"; }}
+              />
+            )}
             <input
               type="file"
               accept="image/*"
@@ -106,14 +97,12 @@ const ExtraPhotosFields = ({ user, token, onSuccess, onError }) => {
           </div>
         ))}
       </div>
-      <div className="pt-6 flex justify-center">
-        <button
-          type="submit"
-          className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700"
-        >
-          💾 Tallenna lisäkuvat
-        </button>
-      </div>
+      <button
+        type="submit"
+        className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700"
+      >
+        💾 Tallenna lisäkuvat
+      </button>
     </form>
   );
 };

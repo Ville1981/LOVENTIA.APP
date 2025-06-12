@@ -53,34 +53,33 @@ const UserProfile = () => {
     return translations[key] || key;
   };
 
-  // CSS‐luokan nimi kehystetyille avatar‐kuville
+  // CSS-luokka avatar-kehystettyihin kuviin
   const avatarContainerClass =
     "w-32 h-32 rounded-full overflow-hidden border-2 border-gray-400 bg-gray-100";
 
-  // 1) Haetaan joko oman profiilin tiedot tai toisen käyttäjän profiili
+  // 1) Haetaan joko oma profiili tai toisen käyttäjän profiili
   useEffect(() => {
     const fetchUser = async () => {
       try {
         let res;
-
         if (userIdParam) {
           // Hae toisen käyttäjän profiili
           res = await axios.get(
             `${BACKEND_BASE_URL}/api/users/${userIdParam}`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
+            { headers: { Authorization: `Bearer ${token}` } }
           );
         } else {
           // Hae oma profiili
-          res = await axios.get(`${BACKEND_BASE_URL}/api/auth/me`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
+          res = await axios.get(
+            `${BACKEND_BASE_URL}/api/auth/me`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
         }
 
         const u = res.data.user || res.data;
         setUser(u);
 
+        // Jos oma profiili, esitä nykyiset arvot lomakkeessa
         if (!userIdParam) {
           setUsername(u.username || "");
           setEmail(u.email || "");
@@ -106,22 +105,17 @@ const UserProfile = () => {
       } catch (err) {
         console.error("❌ Profiilin haku epäonnistui", err);
         setMessage("Profiilin lataus epäonnistui.");
-
-        // Dummy‐fallback
-        setUser({
-          username: "Tuntematon käyttäjä",
-          gender: "male",
-        });
+        setUser({ username: "Tuntematon käyttäjä", gender: "male" });
       }
     };
 
     fetchUser();
   }, [token, userIdParam]);
 
-  // 2) Oma profiili päivitys (vain oma profiili)
+  // 2) Oma profiili päivitys
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (userIdParam) return;
+    if (userIdParam) return; // älä tarjoa edit-nappia toisen profiilissa
 
     try {
       const payload = {
@@ -144,9 +138,11 @@ const UserProfile = () => {
         lookingFor,
       };
 
-      await axios.put(`${BACKEND_BASE_URL}/api/users/profile`, payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.put(
+        `${BACKEND_BASE_URL}/api/users/profile`,
+        payload,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
       setSuccess(true);
       setMessage("Profiilitiedot päivitetty onnistuneesti.");
@@ -157,7 +153,7 @@ const UserProfile = () => {
     }
   };
 
-  // 3) Kuvan upload (vain oma profiili)
+  // 3) Profiilikuvan upload
   const handleImageUpload = async (e) => {
     e.preventDefault();
     if (!newImageFile || !user || userIdParam) return;
@@ -180,10 +176,8 @@ const UserProfile = () => {
           },
         }
       );
-
       const updatedUser = res.data.user || res.data;
       setUser(updatedUser);
-
       setSuccess(true);
       setMessage("Kuva ladattu onnistuneesti.");
     } catch (err) {
@@ -195,7 +189,7 @@ const UserProfile = () => {
     }
   };
 
-  // 4) getAvatarUrl
+  // 4) Avatar-kuvan URL
   const getAvatarUrl = () => {
     if (user && user.profilePicture) {
       const photo = user.profilePicture;
@@ -204,58 +198,31 @@ const UserProfile = () => {
       }
       return `${BACKEND_BASE_URL}/${photo}`;
     }
-
-    if (user?.gender && user.gender.toLowerCase().startsWith("f")) {
+    // placeholder sukupuolen mukaan
+    if (user?.gender?.toLowerCase().startsWith("f")) {
       return "/placeholder-avatar-female.png";
     }
-
     return "/placeholder-avatar-male.png";
   };
 
+  // Propsit ProfileForm-komponentille
   const values = {
-    username,
-    email,
-    age,
-    gender,
-    orientation,
-    country,
-    region,
-    city,
-    customCountry,
-    customRegion,
-    customCity,
-    education,
-    profession,
-    religion,
-    religionImportance,
-    children,
-    pets,
-    summary,
-    goal,
-    lookingFor,
+    username, email, age, gender, orientation,
+    country, region, city,
+    customCountry, customRegion, customCity,
+    education, profession,
+    religion, religionImportance,
+    children, pets,
+    summary, goal, lookingFor,
   };
-
   const setters = {
-    setUsername,
-    setEmail,
-    setAge,
-    setGender,
-    setOrientation,
-    setCountry,
-    setRegion,
-    setCity,
-    setCustomCountry,
-    setCustomRegion,
-    setCustomCity,
-    setEducation,
-    setProfession,
-    setReligion,
-    setReligionImportance,
-    setChildren,
-    setPets,
-    setSummary,
-    setGoal,
-    setLookingFor,
+    setUsername, setEmail, setAge, setGender, setOrientation,
+    setCountry, setRegion, setCity,
+    setCustomCountry, setCustomRegion, setCustomCity,
+    setEducation, setProfession,
+    setReligion, setReligionImportance,
+    setChildren, setPets,
+    setSummary, setGoal, setLookingFor,
   };
 
   return (
@@ -276,9 +243,7 @@ const UserProfile = () => {
                 src={getAvatarUrl()}
                 alt={`${user.username} profiilikuva`}
                 className="object-cover w-full h-full"
-                onError={(e) => {
-                  e.currentTarget.src = "/placeholder-avatar-male.png";
-                }}
+                onError={(e) => { e.currentTarget.src = "/placeholder-avatar-male.png"; }}
               />
             </div>
             <span className="mt-2 text-gray-700">
@@ -287,43 +252,25 @@ const UserProfile = () => {
           </div>
 
           {userIdParam ? (
+            // Näytetään vieraan profiili read-only-tilassa
             <div className="bg-white shadow rounded-lg p-6">
               <h3 className="text-lg font-semibold mb-2">Tietoja käyttäjästä</h3>
               <div className="space-y-2 text-gray-800">
-                <p>
-                  <span className="font-semibold">Sähköposti:</span> {user.email}
-                </p>
-                <p>
-                  <span className="font-semibold">Ikä:</span> {user.age}
-                </p>
-                <p>
-                  <span className="font-semibold">Sukupuoli:</span> {user.gender}
-                </p>
-                <p>
-                  <span className="font-semibold">Suuntautuminen:</span> {user.orientation}
-                </p>
-                <p>
-                  <span className="font-semibold">Sijainti:</span> {user.city}, {user.region},{" "}
-                  {user.country}
-                </p>
-                <p>
-                  <span className="font-semibold">Esittely:</span> {user.summary}
-                </p>
-                <p>
-                  <span className="font-semibold">Tavoitteet:</span> {user.goal}
-                </p>
-                <p>
-                  <span className="font-semibold">Etsin:</span> {user.lookingFor}
-                </p>
+                <p><strong>Sähköposti:</strong> {user.email}</p>
+                <p><strong>Ikä:</strong> {user.age}</p>
+                <p><strong>Sukupuoli:</strong> {user.gender}</p>
+                <p><strong>Suuntautuminen:</strong> {user.orientation}</p>
+                <p><strong>Sijainti:</strong> {user.city}, {user.region}, {user.country}</p>
+                <p><strong>Esittely:</strong> {user.summary}</p>
+                <p><strong>Tavoitteet:</strong> {user.goal}</p>
+                <p><strong>Etsin:</strong> {user.lookingFor}</p>
               </div>
             </div>
           ) : (
+            // Oma profiili: upload + extra photos + muokattava lomake
             <>
-              {/* Kuvan latauslomake */}
               <div className="bg-white shadow rounded-lg p-4 mb-6">
-                <h3 className="text-lg font-semibold mb-2">
-                  Päivitä profiilikuva
-                </h3>
+                <h3 className="text-lg font-semibold mb-2">Päivitä profiilikuva</h3>
                 <form
                   onSubmit={handleImageUpload}
                   className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4"
@@ -336,7 +283,6 @@ const UserProfile = () => {
                       setMessage("");
                       setSuccess(false);
                     }}
-                    className="block w-full sm:w-auto text-gray-700"
                   />
                   <button
                     type="submit"
@@ -348,7 +294,6 @@ const UserProfile = () => {
                 </form>
               </div>
 
-              {/* 🔄 Uusi lisäkuvat-lomake */}
               <ExtraPhotosFields
                 user={user}
                 token={token}
@@ -364,25 +309,22 @@ const UserProfile = () => {
                 }}
               />
 
-              {/* Virheilmoitukset / onnistumisilmoitukset */}
               {message && (
-                <div
-                  className={`mb-4 text-center ${
-                    success ? "text-green-600" : "text-red-600"
-                  }`}
-                >
+                <div className={`mb-4 text-center ${success ? "text-green-600" : "text-red-600"}`}>
                   {message}
                 </div>
               )}
 
-              {/* Profiilitiedot (muokattava lomake) */}
               <ProfileForm
+                user={user}
+                onUserUpdate={(u) => setUser(u)}
+                isPremium={user.isPremium}
                 values={values}
                 setters={setters}
                 handleSubmit={handleSubmit}
                 message={message}
                 success={success}
-                t={t} // lisätty prop t
+                t={t}
               />
             </>
           )}

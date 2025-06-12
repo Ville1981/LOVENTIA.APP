@@ -79,7 +79,8 @@ app.get("/api/users", (req, res) => {
 // Mount API routes
 app.use("/api/user", userRoutes);
 app.use("/api/auth", authRoutes);
-app.use("/api/images", imageRoutes);
+// Tässä: profiilikuva ja lisäkuvat -> /api/users/:userId/…
+app.use("/api/users", imageRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/payment", paymentRoutes);
 

@@ -16,6 +16,8 @@ A full-stack dating application API and front-end. This repo includes both the *
   * [Client](#client)
 * [Docker Setup (Optional)](#docker-setup-optional)
 * [API Documentation](#api-documentation)
+* [Image Upload API](#image-upload-api)
+* [Client API Abstraction](#client-api-abstraction)
 * [Testing & CI/CD](#testing--cicd)
 
 ---
@@ -165,6 +167,84 @@ OpenAPI spec is located at `server/swagger.yaml`. Integrate with Swagger UI or R
 npm install swagger-ui-express
 # then mount in your Express app
 ```
+
+---
+
+## Image Upload API
+
+The backend provides two endpoints for handling image uploads. Both expect a `POST` request with `multipart/form-data`:
+
+### 1. Upload Profile Avatar
+
+```
+POST /api/images/:userId/upload-avatar
+```
+
+* **Headers**: `Authorization: Bearer <token>`
+* **Form Data**:
+
+  * `avatar` — Single image file (JPEG, PNG, etc.)
+
+**Example with cURL**:
+
+```bash
+curl -X POST "http://localhost:5000/api/images/USER_ID/upload-avatar" \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "avatar=@/path/to/avatar.jpg"
+```
+
+### 2. Upload Extra Photos
+
+```
+POST /api/images/:userId/upload-photos
+```
+
+* **Headers**: `Authorization: Bearer <token>`
+* **Form Data**:
+
+  * `photos` — One or more image files. Use the same field name for each file.
+
+**Example with cURL**:
+
+```bash
+curl -X POST "http://localhost:5000/api/images/USER_ID/upload-photos" \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "photos=@/path/to/photo1.png" \
+  -F "photos=@/path/to/photo2.jpg"
+```
+
+---
+
+## Client API Abstraction
+
+The client code includes wrapper functions in `client/src/api/images.js` for easy integration:
+
+```js
+import axios from 'axios';
+
+export const uploadAvatar = (userId, file) => {
+  const formData = new FormData();
+  formData.append('avatar', file);
+  return axios.post(
+    `/api/images/${userId}/upload-avatar`,
+    formData,
+    { headers: { 'Content-Type': 'multipart/form-data' } }
+  );
+};
+
+export const uploadPhotos = (userId, files) => {
+  const formData = new FormData();
+  files.forEach((file) => formData.append('photos', file));
+  return axios.post(
+    `/api/images/${userId}/upload-photos`,
+    formData,
+    { headers: { 'Content-Type': 'multipart/form-data' } }
+  );
+};
+```
+
+* **Location**: `client/src/api/images.js`
+* **Usage**: import and call these functions in your React components, passing `userId` and file(s).
 
 ---
 
