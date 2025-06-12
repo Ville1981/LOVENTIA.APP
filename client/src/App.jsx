@@ -18,7 +18,13 @@ const AppContent = () => {
       <Route path="/" element={<MainLayout />}>
         <Route index element={<Etusivu />} />
         <Route path="discover" element={<Discover />} />
+
+        {/* Oma profiili */}
         <Route path="profile" element={<UserProfile />} />
+
+        {/* Toisen käyttäjän profiili */}
+        <Route path="profile/:userId" element={<UserProfile />} />
+
         <Route path="matches" element={<MatchPage />} />
         <Route path="cancel" element={<PremiumCancel />} />
         <Route path="chat/:userId" element={<ChatPage />} />
@@ -26,15 +32,11 @@ const AppContent = () => {
         <Route path="login" element={<Login />} />
         <Route path="register" element={<Register />} />
       </Route>
+
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
 };
-
-<div className="bg-primary text-white p-4 rounded-lg shadow-md">
-  ✅ Tämä on testiväri bg-primary
-</div>
-
 
 const App = () => (
   <Router>

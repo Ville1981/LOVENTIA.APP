@@ -1,9 +1,21 @@
-// src/components/SubNav.jsx
+import React, { useState, useEffect, memo } from "react";
+import PropTypes from "prop-types";
 
-import React, { useState } from "react";
+const SubNav = ({ tabs, activeKey, onChange }) => {
+  const [active, setActive] = useState(activeKey || (tabs.length > 0 ? tabs[0].key : ""));
 
-const SubNav = ({ tabs, activeKey }) => {
-  const [active, setActive] = useState(activeKey || tabs[0].key);
+  useEffect(() => {
+    if (activeKey && activeKey !== active) {
+      setActive(activeKey);
+    }
+  }, [activeKey]);
+
+  const handleClick = (key) => {
+    setActive(key);
+    if (typeof onChange === "function") {
+      onChange(key);
+    }
+  };
 
   return (
     <div className="w-full bg-[#111]">
@@ -12,7 +24,7 @@ const SubNav = ({ tabs, activeKey }) => {
           <li
             key={item.key}
             className="flex flex-col items-center cursor-pointer"
-            onClick={() => setActive(item.key)}
+            onClick={() => handleClick(item.key)}
           >
             <div
               className={`w-12 h-12 rounded-full flex items-center justify-center border-2 ${
@@ -39,4 +51,21 @@ const SubNav = ({ tabs, activeKey }) => {
   );
 };
 
-export default SubNav;
+SubNav.propTypes = {
+  tabs: PropTypes.arrayOf(
+    PropTypes.shape({
+      key: PropTypes.string.isRequired,
+      label: PropTypes.string.isRequired,
+      icon: PropTypes.string.isRequired,
+    })
+  ).isRequired,
+  activeKey: PropTypes.string,
+  onChange: PropTypes.func,
+};
+
+SubNav.defaultProps = {
+  activeKey: undefined,
+  onChange: undefined,
+};
+
+export default memo(SubNav);

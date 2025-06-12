@@ -1,29 +1,39 @@
+// server/routes/userRoutes.js
+
 const express = require("express");
 const router = express.Router();
-const jwt = require("jsonwebtoken");
 const User = require("../models/User");
-const multer = require("multer");
+const Subscription = require("../models/Subscription");
+// 🆕 Fix: import the new Image model
+const Image = require("../models/Image");
+// 🆕 Import the external auth middleware
+const authenticateToken = require("../middleware/auth");
+// 🆕 Import Multer-config
+const { upload } = require("../config/multer");
 const path = require("path");
+const fs = require("fs");
 const {
   registerUser,
   loginUser,
   getMatchesWithScore,
   upgradeToPremium,
 } = require("../controllers/userController");
-const authMiddleware = require("../middleware/authMiddleware");
+require("dotenv").config();
 
-// 🔧 Multer tallennus
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, "uploads/"),
-  filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname),
-});
-const upload = multer({ storage });
-
+// =====================
+// ✅ Rekisteröi käyttäjä
+// =====================
 router.post("/register", registerUser);
-router.post("/login", loginUser);
-router.post("/upgrade-premium", authMiddleware, upgradeToPremium);
 
-router.get("/me", authMiddleware, async (req, res) => {
+// =====================
+// ✅ Kirjaudu sisään
+// =====================
+router.post("/login", loginUser);
+
+// =====================
+// ✅ Hae nykyisen käyttäjän tiedot
+// =====================
+router.get("/me", authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.userId).select("-password");
     res.json(user);
@@ -32,92 +42,300 @@ router.get("/me", authMiddleware, async (req, res) => {
   }
 });
 
-// ✅ Profiilin päivitys
+// =====================
+// ✅ Päivitä profiili (kaikki kentät, profiilikuva ja lisäkuvat)
+// =====================
 router.put(
   "/profile",
-  authMiddleware,
-  upload.any(),
+  authenticateToken,
+  upload.fields([
+    { name: "image", maxCount: 1 },        // profiilikuva
+    { name: "extraImages", maxCount: 20 }, // 🔄 maksimi nostettu 20:een
+  ]),
   async (req, res) => {
     try {
-      console.log("🟡 PUT /profile saapui");
       const user = await User.findById(req.userId);
       if (!user) return res.status(404).json({ error: "Käyttäjää ei löydy" });
 
-      if (!req.body.username || req.body.username.trim() === "") {
-        return res.status(400).json({ error: "Käyttäjänimi on pakollinen" });
-      }
-
+      // 📝 Päivitä tekstikentät dynaamisesti
       const fields = [
-        "username", "name", "email", "age", "gender", "height", "weight",
-        "status", "religion", "religionImportance", "children", "pets", "summary", "goal",
-        "lookingFor", "location", "latitude", "longitude",
-        "education", "profession", "country", "region", "city",
-        "preferredGender", "preferredMinAge", "preferredMaxAge"
+        "username",
+        "email",
+        "age",
+        "gender",
+        "orientation",
+        "education",
+        "height",
+        "weight",
+        "status",
+        "religion",
+        "religionImportance",
+        "children",
+        "pets",
+        "summary",
+        "goal",
+        "lookingFor",
+        "profession",
+        "location",
+        "country",
+        "region",
+        "city",
+        "interests",
+        "preferredGender",
+        "preferredMinAge",
+        "preferredMaxAge",
+        "preferredInterests",
+        "preferredCountry",
+        "preferredReligion",
+        "preferredReligionImportance",
+        "preferredEducation",
+        "preferredProfession",
       ];
-
       fields.forEach((field) => {
-        if (req.body[field] !== undefined && req.body[field] !== "") {
-          user[field] = req.body[field];
+        if (req.body[field] !== undefined) {
+          if (["interests", "preferredInterests"].includes(field)) {
+            user[field] =
+              typeof req.body[field] === "string"
+                ? req.body[field].split(",").map((s) => s.trim())
+                : req.body[field];
+          } else {
+            user[field] = req.body[field];
+          }
         }
       });
 
-      if (req.body.preferredInterests) {
-        const prefs = Array.isArray(req.body.preferredInterests)
-          ? req.body.preferredInterests
-          : req.body.preferredInterests.split(",");
-        user.preferredInterests = prefs.map((s) => s.trim());
+      // 📸 Profiilikuva
+      if (req.files["image"]) {
+        // Poista vanha kuva tarvittaessa: fs.unlinkSync(user.profilePicture)
+        user.profilePicture = req.files["image"][0].path;
       }
 
-      if (req.body.interests) {
-        const ints = Array.isArray(req.body.interests)
-          ? req.body.interests
-          : req.body.interests.split(",");
-        user.interests = ints.map((s) => s.trim());
+      // 🖼️ Lisäkuvat (max 6 ilmais-, max 20 Premium-käyttäjille)
+      if (req.files["extraImages"]) {
+        const files = req.files["extraImages"];
+        const maxAllowed = user.isPremium ? 20 : 6;
+        if (files.length > maxAllowed) {
+          return res
+            .status(400)
+            .json({ error: `Enintään ${maxAllowed} lisäkuvaa sallittu` });
+        }
+        user.extraImages = files.map((f) => f.path);
       }
 
-      const mainImage = req.files.find(f => f.fieldname === "image");
-      const extraImages = req.files.filter(f => f.fieldname === "extraImages");
-
-      if (mainImage) {
-        user.profilePicture = mainImage.path;
-      }
-
-      if (extraImages.length > 0) {
-        user.extraImages = extraImages.map(f => f.path);
-      }
-
-      const updated = await user.save();
-      res.json(updated);
+      // 🌟 Tallenna ja palauta päivitetty olio
+      const updatedUser = await user.save();
+      res.json(updatedUser);
     } catch (err) {
-      console.error("❌ Profiilin tallennusvirhe:", err);
-      res.status(500).json({ error: "Profiilin tallennus epäonnistui" });
+      console.error("Profiilin päivitysvirhe:", err);
+      res.status(500).json({ error: "Profiilin päivitys epäonnistui" });
     }
   }
 );
 
-// ✅ Tilin poisto
-router.delete("/delete", authMiddleware, async (req, res) => {
+// =====================
+// ✅ Haetaan Discover-sivun käyttäjät
+// =====================
+router.get("/all", authenticateToken, async (req, res) => {
   try {
-    await User.findByIdAndDelete(req.userId);
-    res.json({ message: "Tili poistettu onnistuneesti" });
+    const users = await User.find({ _id: { $ne: req.userId } }).select(
+      "name email profilePicture extraImages"
+    );
+    res.json(users);
   } catch (err) {
-    res.status(500).json({ error: "Tilin poisto epäonnistui" });
+    console.error("Discover-haku epäonnistui:", err);
+    res.status(500).json({ error: "Palvelinvirhe" });
   }
 });
 
-// ✅ Matchit
-router.get("/matches", authMiddleware, getMatchesWithScore);
+// =====================
+// ✅ Who liked me (Premium)
+// =====================
+router.get("/who-liked-me", authenticateToken, async (req, res) => {
+  try {
+    const currentUser = await User.findById(req.userId);
+    if (!currentUser.isPremium) {
+      return res.status(403).json({ error: "Vain Premium-käyttäjille." });
+    }
+    const users = await User.find({ likes: req.userId }).select(
+      "name email profilePicture"
+    );
+    res.json(users);
+  } catch (err) {
+    console.error("Who-liked-me virhe:", err);
+    res.status(500).json({ error: "Palvelinvirhe." });
+  }
+});
 
-// ✅ Julkinen profiili
+// =====================
+// 🔍 Sijaintihaku
+// =====================
+router.get("/nearby", async (req, res) => {
+  try {
+    const city = req.query.city;
+    if (!city) return res.status(400).json({ error: "City is required" });
+    const users = await User.find({ location: city }).select("-password");
+    res.json(users);
+  } catch (err) {
+    console.error("Nearby-haku epäonnistui:", err);
+    res.status(500).json({ error: "Failed to fetch nearby users" });
+  }
+});
+
+// =====================
+// ✅ ADMIN: Hae kaikki käyttäjät
+// =====================
+router.get("/admin/users", authenticateToken, async (req, res) => {
+  try {
+    const users = await User.find().select("-password");
+    res.json(users);
+  } catch (err) {
+    console.error("Admin users haku epäonnistui:", err);
+    res.status(500).json({ error: "Failed to fetch users" });
+  }
+});
+
+// =====================
+// ✅ Julkinen profiili (id-parametri)
+// =====================
 router.get("/:id", async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select(
-      "-password -email -likes -superLikes -blockedUsers"
+      "-password -email -likes -superLikes -blockedUsers -extraImages"
     );
     if (!user) return res.status(404).json({ error: "Käyttäjää ei löydy" });
     res.json(user);
   } catch (err) {
+    console.error("Julkinen profiili epäonnistui:", err);
     res.status(500).json({ error: "Palvelinvirhe" });
+  }
+});
+
+// =====================
+// ✅ Like
+// =====================
+router.post("/like/:id", authenticateToken, async (req, res) => {
+  try {
+    const currentUser = await User.findById(req.userId);
+    const targetId = req.params.id;
+    if (!currentUser.likes.includes(targetId)) {
+      currentUser.likes.push(targetId);
+      await currentUser.save();
+    }
+    res.json({ message: "Liked successfully" });
+  } catch (err) {
+    console.error("Like-virhe:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// =====================
+// ✅ Superlike
+// =====================
+router.post("/superlike/:id", authenticateToken, async (req, res) => {
+  try {
+    const currentUser = await User.findById(req.userId);
+    const targetId = req.params.id;
+    const now = new Date();
+
+    if (!currentUser.superLikeTimestamps) currentUser.superLikeTimestamps = [];
+    currentUser.superLikeTimestamps = currentUser.superLikeTimestamps.filter(
+      (ts) => now - new Date(ts) < 48 * 60 * 60 * 1000
+    );
+
+    const limit = currentUser.isPremium ? 3 : 1;
+    if (currentUser.superLikeTimestamps.length >= limit) {
+      return res.status(403).json({ error: `Superlike-raja saavutettu (${limit}/48h).` });
+    }
+
+    if (!currentUser.superLikes.includes(targetId)) {
+      currentUser.superLikes.push(targetId);
+      currentUser.superLikeTimestamps.push(now);
+      await currentUser.save();
+    }
+
+    res.json({ message: "Superliked successfully!" });
+  } catch (err) {
+    console.error("Superlike-virhe:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// =====================
+// ✅ Estä toinen käyttäjä
+// =====================
+router.post("/block/:id", authenticateToken, async (req, res) => {
+  try {
+    const blocker = await User.findById(req.userId);
+    const blockedId = req.params.id;
+    if (!blocker || blocker._id.equals(blockedId)) {
+      return res.status(400).json({ message: "Et voi estää itseäsi." });
+    }
+    if (!blockedUsers.includes(blockedId)) {
+      blocker.blockedUsers.push(blockedId);
+      await blocker.save();
+    }
+    res.json({ message: "Käyttäjä estetty onnistuneesti." });
+  } catch (err) {
+    console.error("Block-virhe:", err);
+    res.status(500).json({ message: "Virhe estossa." });
+  }
+});
+
+// =====================
+// ✅ Premium-upgrade
+// =====================
+router.post("/upgrade-premium", authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: "Käyttäjää ei löydetty" });
+    user.isPremium = true;
+    await user.save();
+    res.json({ message: "Premium-tila päivitetty onnistuneesti" });
+  } catch (err) {
+    console.error("Premium-upgrade virhe:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// =====================
+// ✅ ADMIN: Piilota/näytä käyttäjä
+// =====================
+router.put("/admin/hide/:id", authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ error: "Käyttäjää ei löydetty" });
+    user.hidden = !user.hidden;
+    await user.save();
+    res.json({ message: `Käyttäjä ${user.hidden ? "piilotettu" : "näkyväksi muutettu"}` });
+  } catch (err) {
+    console.error("Hide-virhe:", err);
+    res.status(500).json({ error: "Failed to update user visibility" });
+  }
+});
+
+// =====================
+// ✅ ADMIN: Poista käyttäjä
+// =====================
+router.delete("/admin/:id", authenticateToken, async (req, res) => {
+  try {
+    await User.findByIdAndDelete(req.params.id);
+    res.json({ message: "Käyttäjä poistettu" });
+  } catch (err) {
+    console.error("Admin-delete virhe:", err);
+    res.status(500).json({ error: "Failed to delete user" });
+  }
+});
+
+// =====================
+// ✅ Poista oma käyttäjätili
+// =====================
+router.delete("/profile", authenticateToken, async (req, res) => {
+  try {
+    await User.findByIdAndDelete(req.userId);
+    res.json({ message: "Käyttäjätili poistettu onnistuneesti" });
+  } catch (err) {
+    console.error("Tilin poisto epäonnistui:", err);
+    res.status(500).json({ error: "Tilin poisto epäonnistui" });
   }
 });
 

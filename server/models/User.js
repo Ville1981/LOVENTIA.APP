@@ -6,8 +6,8 @@ const userSchema = new mongoose.Schema(
     username: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    profilePicture: { type: String },
-    extraImages: [String], // max 6 kuvaa
+    profilePicture: { type: String },    // Profiilikuvan polku tallennetaan tähän
+    extraImages: [String],                // Lisäkuvat (max 6)
 
     // 🧍 Perustiedot
     name: String,
