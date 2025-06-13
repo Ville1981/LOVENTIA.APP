@@ -2,7 +2,7 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Etusivu from "./pages/Etusivu";
 import Discover from "./pages/Discover";
-import UserProfile from "./pages/UserProfile";
+import ProfileHub from "./pages/ProfileHub";
 import MatchPage from "./pages/MatchPage";
 import PremiumCancel from "./pages/PremiumCancel";
 import ChatPage from "./pages/ChatPage";
@@ -15,15 +15,15 @@ import MainLayout from "./components/MainLayout";
 const AppContent = () => {
   return (
     <Routes>
-      <Route path="/" element={<MainLayout />}>
+      <Route path="/" element={<MainLayout />}>        
         <Route index element={<Etusivu />} />
         <Route path="discover" element={<Discover />} />
 
         {/* Oma profiili */}
-        <Route path="profile" element={<UserProfile />} />
+        <Route path="profile" element={<ProfileHub />} />
 
         {/* Toisen käyttäjän profiili */}
-        <Route path="profile/:userId" element={<UserProfile />} />
+        <Route path="profile/:userId" element={<ProfileHub />} />
 
         <Route path="matches" element={<MatchPage />} />
         <Route path="cancel" element={<PremiumCancel />} />

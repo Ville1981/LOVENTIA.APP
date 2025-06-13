@@ -11,6 +11,19 @@ import ExtraPhotosFields from "./ExtraPhotosFields";
 import { uploadAvatar } from "../../api/images";
 import { BACKEND_BASE_URL } from "../../config";
 
+/**
+ * ProfileForm
+ * @param {object} props
+ * @param {object} props.user             - Käyttäjädata
+ * @param {boolean} props.isPremium       - Premium-oikeudet kuvien määrä
+ * @param {object} props.values           - Lomakekenttien arvot
+ * @param {object} props.setters          - Lomakekenttien setteri-funktiot
+ * @param {function} props.t              - Käännösfunktio
+ * @param {string} props.message         - Status-viesti
+ * @param {boolean} props.success        - Status-viestin tyyli (onnistuiko)
+ * @param {function} props.onUserUpdate  - Callback päivitetyn käyttäjädatan käsittelyyn
+ * @param {boolean} [props.hideAvatarSection=false] - Piilottaa avatar-latausosion
+ */
 const ProfileForm = ({
   user,
   isPremium,
@@ -20,6 +33,7 @@ const ProfileForm = ({
   message,
   success,
   onUserUpdate,
+  hideAvatarSection = false,
 }) => {
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(
@@ -31,6 +45,7 @@ const ProfileForm = ({
   );
   const [avatarError, setAvatarError] = useState(null);
 
+  // Avatar-muutos
   const handleAvatarChange = (e) => {
     const file = e.target.files[0] || null;
     setAvatarFile(file);
@@ -41,6 +56,7 @@ const ProfileForm = ({
     }
   };
 
+  // Avatar-lataus
   const handleAvatarSubmit = async (e) => {
     e.preventDefault();
     if (!avatarFile) return;
@@ -56,9 +72,10 @@ const ProfileForm = ({
 
   return (
     <div className="bg-white shadow rounded-lg p-6 space-y-6">
-      <form onSubmit={handleAvatarSubmit} className="space-y-4">
-        <div className="flex items-center space-x-4">
-          <div className="w-24 h-24 rounded-full overflow-hidden border">
+      {/* Avatar-osio (voi tarvittaessa piilottaa hideAvatarSection-propilla) */}
+      {!hideAvatarSection && (
+        <form onSubmit={handleAvatarSubmit} className="flex items-center space-x-6">
+          <div className="w-12 h-12 rounded-full overflow-hidden border">
             {avatarPreview && (
               <img
                 src={avatarPreview}
@@ -70,39 +87,52 @@ const ProfileForm = ({
               />
             )}
           </div>
-          <div className="flex flex-col">
+
+          <div className="flex flex-col space-y-2">
             <input
               type="file"
               accept="image/*"
               onChange={handleAvatarChange}
-              className="block mb-2"
+              className="block"
             />
             <button
               type="submit"
               className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
             >
-              💾 {t("profile.saveChanges")}
+              🎨 {t("profile.saveAvatar")}
             </button>
-            {avatarError && (
-              <p className="text-red-600 mt-1">{avatarError}</p>
-            )}
+            {avatarError && <p className="text-red-600 mt-1">{avatarError}</p>}
           </div>
-        </div>
-      </form>
 
-      {/* Basic info */}
+          {/* Käyttäjätunnus ja sijainti */}
+          <div className="flex flex-col">
+            <h2 className="text-xl font-semibold">{user.username}</h2>
+            <p className="text-gray-600">
+              {values.country && (
+                <>
+                  {values.country}
+                  {values.region && `, ${values.region}`}
+                  {values.city && `, ${values.city}`}
+                </>
+              )}
+            </p>
+          </div>
+        </form>
+      )}
+
+      {/* Perustiedot */}
       <FormBasicInfo values={values} setters={setters} t={t} />
 
-      {/* Location */}
+      {/* Sijainti: maa/osavaltio/kaupunki */}
       <FormLocation values={values} setters={setters} t={t} />
 
-      {/* Education */}
+      {/* Koulutus */}
       <FormEducation values={values} setters={setters} t={t} />
 
-      {/* Children & Pets */}
+      {/* Lapset ja lemmikit */}
       <FormChildrenPets values={values} setters={setters} t={t} />
 
-      {/* Goal & Summary */}
+      {/* Goals & Summary */}
       <FormGoalSummary values={values} setters={setters} t={t} />
 
       {/* Looking For */}
@@ -117,7 +147,7 @@ const ProfileForm = ({
         onError={(err) => console.error(err)}
       />
 
-      {/* Submit whole profile */}
+      {/* Tallenna-painike */}
       <button
         onClick={setters.handleSubmit}
         className="w-full px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"

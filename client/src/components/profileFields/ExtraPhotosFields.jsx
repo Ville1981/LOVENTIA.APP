@@ -1,7 +1,7 @@
 // client/src/components/profileFields/ExtraPhotosFields.jsx
 
-import React, { useState, useEffect } from "react";
-import { uploadPhotos } from "../../api/images";
+import React, { useState, useEffect, useRef } from "react";
+import axios from "axios";
 import { BACKEND_BASE_URL } from "../../config";
 
 const ExtraPhotosFields = ({
@@ -11,98 +11,157 @@ const ExtraPhotosFields = ({
   onSuccess,
   onError,
 }) => {
-  const maxSlots = isPremium ? 12 : 3;
+  // Määritä kuvien maksimi määrä roolin mukaan
+  const maxSlots = isPremium ? 20 : 6;
 
-  // Tiedostot ja esikatselut
+  // Tiedostot ja esikatselujen tilat
   const [files, setFiles] = useState(Array(maxSlots).fill(null));
   const [previews, setPreviews] = useState(
     Array.from({ length: maxSlots }, (_, i) => {
       const img = extraImages[i];
       if (img) {
-        return img.startsWith("http")
-          ? img
-          : `${BACKEND_BASE_URL}/${img}`;
+        return img.startsWith("http") ? img : `${BACKEND_BASE_URL}/${img}`;
       }
       return null;
     })
   );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
 
-  // Kun palvelimen kuvat muuttuvat
+  // Päivitä esikatselut kun extraImages-propsi muuttuu
   useEffect(() => {
     setPreviews(
       Array.from({ length: maxSlots }, (_, i) => {
         const img = extraImages[i];
         if (img) {
-          return img.startsWith("http")
-            ? img
-            : `${BACKEND_BASE_URL}/${img}`;
+          return img.startsWith("http") ? img : `${BACKEND_BASE_URL}/${img}`;
         }
         return null;
       })
     );
+    setFiles(Array(maxSlots).fill(null));
   }, [extraImages, maxSlots]);
 
-  const handleFileChange = (e, idx) => {
-    const file = e.target.files[0] || null;
-    const newFiles = [...files];
-    newFiles[idx] = file;
-    setFiles(newFiles);
+  // Ref piilotetulle tiedosto-inputille
+  const hiddenFileInputRef = useRef(null);
 
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const newPreviews = [...previews];
-        newPreviews[idx] = ev.target.result;
-        setPreviews(newPreviews);
-      };
-      reader.readAsDataURL(file);
+  // Käyttäjä klikkaa "Lisää kuva" -nappia
+  const handleAddClick = () => {
+    if (hiddenFileInputRef.current) {
+      hiddenFileInputRef.current.click();
     }
   };
 
+  // Kun tiedosto valitaan, lisätään ensimmäiseen vapaaseen slotiin
+  const handleAddFile = (e) => {
+    const file = e.target.files[0] || null;
+    if (!file) return;
+
+    const slotIdx = previews.findIndex((p) => p === null);
+    if (slotIdx === -1) return; // Ei vapaata slotia
+
+    const newFiles = [...files];
+    newFiles[slotIdx] = file;
+    setFiles(newFiles);
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const newPreviews = [...previews];
+      newPreviews[slotIdx] = ev.target.result;
+      setPreviews(newPreviews);
+    };
+    reader.readAsDataURL(file);
+
+    // Tyhjennä valinta piilotetussa inputissa, jotta samankin tiedoston voi valita uudelleen
+    e.target.value = "";
+  };
+
+  // Lomakkeen submit
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (files.every((f) => !f)) return;
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
     const formData = new FormData();
     files.forEach((file) => {
-      if (file) formData.append("extraPhotos", file);
+      if (file) {
+        formData.append("photos", file);
+      }
     });
 
     try {
-      const updatedUser = await uploadPhotos(userId, formData);
+      const res = await axios.post(
+        `${BACKEND_BASE_URL}/api/users/${userId}/photos`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
+      const updatedUser = res.data.user || res.data;
       onSuccess(updatedUser);
     } catch (err) {
+      console.error(err);
+      setSubmitError("Lisäkuvien tallennus epäonnistui");
       onError(err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white shadow rounded-lg p-6 mb-6">
-      <h3 className="text-lg font-semibold mb-4">Lisäkuvat</h3>
-      <div className="grid grid-cols-3 gap-4 mb-4">
+    <form onSubmit={handleSubmit} className="bg-white shadow rounded-lg p-6 mb-6 space-y-4">
+      <h3 className="text-lg font-semibold">Lisäkuvat</h3>
+
+      {/* Piilotettu tiedosto-input */}
+      <input
+        type="file"
+        accept="image/*"
+        ref={hiddenFileInputRef}
+        onChange={handleAddFile}
+        className="hidden"
+      />
+
+      {/* Lisää kuva -nappi */}
+      <button
+        type="button"
+        onClick={handleAddClick}
+        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+      >
+        📸 Lisää kuva
+      </button>
+
+      {/* Kuvien esikatselut */}
+      <div className="grid grid-cols-3 gap-4">
         {previews.map((src, idx) => (
-          <div key={idx} className="w-full h-24 bg-gray-100 relative">
-            {src && (
+          <div key={idx} className="w-full h-24 bg-gray-100 rounded overflow-hidden">
+            {src ? (
               <img
                 src={src}
                 alt={`Lisäkuva ${idx + 1}`}
                 className="object-cover w-full h-full"
-                onError={(e) => { e.currentTarget.src = "/placeholder.png"; }}
+                onError={(e) => {
+                  e.currentTarget.src = "/placeholder.png";
+                }}
               />
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-400">
+                {/* Tyhjä slot */}
+                + {idx + 1}
+              </div>
             )}
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => handleFileChange(e, idx)}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            />
           </div>
         ))}
       </div>
+
+      {/* Tallenna lisäkuvat -nappi */}
       <button
         type="submit"
-        className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700"
+        disabled={files.every((f) => !f) || isSubmitting}
+        className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
       >
-        💾 Tallenna lisäkuvat
+        {isSubmitting ? "Tallennetaan..." : "💾 Tallenna lisäkuvat"}
       </button>
+      {submitError && <p className="text-red-600">{submitError}</p>}
     </form>
   );
 };

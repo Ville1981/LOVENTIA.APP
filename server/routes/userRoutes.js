@@ -4,11 +4,8 @@ const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
 const Subscription = require("../models/Subscription");
-// 🆕 Fix: import the new Image model
 const Image = require("../models/Image");
-// 🆕 Import the external auth middleware
 const authenticateToken = require("../middleware/auth");
-// 🆕 Import Multer-config
 const { upload } = require("../config/multer");
 const path = require("path");
 const fs = require("fs");
@@ -43,86 +40,47 @@ router.get("/me", authenticateToken, async (req, res) => {
 });
 
 // =====================
-// ✅ Päivitä profiili (kaikki kentät, profiilikuva ja lisäkuvat)
+// ✅ Päivitä profiili (teksti + avatar + extra-kuvat)
 // =====================
 router.put(
   "/profile",
   authenticateToken,
   upload.fields([
-    { name: "image", maxCount: 1 },        // profiilikuva
-    { name: "extraImages", maxCount: 20 }, // 🔄 maksimi nostettu 20:een
+    { name: "profilePhoto", maxCount: 1 },
+    { name: "photos", maxCount: 20 },
   ]),
   async (req, res) => {
     try {
       const user = await User.findById(req.userId);
       if (!user) return res.status(404).json({ error: "Käyttäjää ei löydy" });
 
-      // 📝 Päivitä tekstikentät dynaamisesti
-      const fields = [
-        "username",
-        "email",
-        "age",
-        "gender",
-        "orientation",
-        "education",
-        "height",
-        "weight",
-        "status",
-        "religion",
-        "religionImportance",
-        "children",
-        "pets",
-        "summary",
-        "goal",
-        "lookingFor",
-        "profession",
-        "location",
-        "country",
-        "region",
-        "city",
-        "interests",
-        "preferredGender",
-        "preferredMinAge",
-        "preferredMaxAge",
-        "preferredInterests",
-        "preferredCountry",
-        "preferredReligion",
-        "preferredReligionImportance",
-        "preferredEducation",
-        "preferredProfession",
+      // Tekstikentät
+      const textFields = [
+        "username", "email", "age", "gender", "orientation",
+        "education", "profession", "religion", "religionImportance",
+        "children", "pets", "summary", "goal", "lookingFor",
+        "country", "region", "city"
       ];
-      fields.forEach((field) => {
-        if (req.body[field] !== undefined) {
-          if (["interests", "preferredInterests"].includes(field)) {
-            user[field] =
-              typeof req.body[field] === "string"
-                ? req.body[field].split(",").map((s) => s.trim())
-                : req.body[field];
-          } else {
-            user[field] = req.body[field];
-          }
-        }
+      textFields.forEach(field => {
+        if (req.body[field] !== undefined) user[field] = req.body[field];
       });
 
-      // 📸 Profiilikuva
-      if (req.files["image"]) {
-        // Poista vanha kuva tarvittaessa: fs.unlinkSync(user.profilePicture)
-        user.profilePicture = req.files["image"][0].path;
+      // Profiilikuva
+      if (req.files.profilePhoto) {
+        const file = req.files.profilePhoto[0];
+        user.profilePicture = file.path;
       }
 
-      // 🖼️ Lisäkuvat (max 6 ilmais-, max 20 Premium-käyttäjille)
-      if (req.files["extraImages"]) {
-        const files = req.files["extraImages"];
+      // Lisäkuvat
+      if (req.files.photos) {
+        const files = req.files.photos;
         const maxAllowed = user.isPremium ? 20 : 6;
         if (files.length > maxAllowed) {
-          return res
-            .status(400)
-            .json({ error: `Enintään ${maxAllowed} lisäkuvaa sallittu` });
+          return res.status(400).json({ error: `Enintään ${maxAllowed} lisäkuvaa sallittu` });
         }
-        user.extraImages = files.map((f) => f.path);
+        user.extraImages = files.map(f => f.path);
       }
 
-      // 🌟 Tallenna ja palauta päivitetty olio
       const updatedUser = await user.save();
       res.json(updatedUser);
     } catch (err) {
@@ -270,7 +228,7 @@ router.post("/block/:id", authenticateToken, async (req, res) => {
     if (!blocker || blocker._id.equals(blockedId)) {
       return res.status(400).json({ message: "Et voi estää itseäsi." });
     }
-    if (!blockedUsers.includes(blockedId)) {
+    if (!blocker.blockedUsers.includes(blockedId)) {
       blocker.blockedUsers.push(blockedId);
       await blocker.save();
     }

@@ -10,40 +10,38 @@ const authenticateToken = require("../middleware/auth");
 const { profileUpload } = require("../config/multer");
 
 /**
- * POST /api/users/:userId/upload-avatar
- * Lataa profiilikuva, rajoitukset tilausplanin mukaan
+ * 1) POST /api/users/:userId/upload-avatar
  */
 router.post(
   "/:userId/upload-avatar",
   authenticateToken,
-  profileUpload.single("file"),
+  profileUpload.single("profilePhoto"),
   async (req, res) => {
     try {
-      if (req.userId !== req.params.userId) {
+      if (req.userId !== req.params.userId)
         return res.status(403).json({ error: "Forbidden" });
-      }
 
       const sub = await Subscription.findOne({ user: req.userId });
       const plan = sub?.plan || "free";
-      const maxImages = plan === "premium" ? 20 : 3;
+      const maxAvatar = 1; // aina 1 profiilikuva
+      const currentAvatars = await Image.countDocuments({
+        owner: req.userId,
+        isAvatar: true,
+      });
+      if (currentAvatars >= maxAvatar)
+        return res
+          .status(403)
+          .json({ error: `Avatar limit reached (${maxAvatar})` });
 
-      const currentCount = await Image.countDocuments({ owner: req.userId });
-      if (currentCount >= maxImages) {
-        return res.status(403).json({ error: `Upload limit reached (${maxImages} images for ${plan} plan)` });
-      }
-
-      // Luo Image-dokumentti profiilikuvalla
       const img = await Image.create({
         owner: req.userId,
         url: `/uploads/profiles/${req.file.filename}`,
         uploaded: new Date(),
-        isAvatar: true
+        isAvatar: true,
       });
 
-      // Päivitä User.extraImages ja profilePicture
       const user = await User.findById(req.userId);
       user.profilePicture = img.url;
-      // Sisällytä myös extraImages-listaan, jos haluat
       await user.save();
 
       return res.status(201).json({ user });
@@ -55,8 +53,7 @@ router.post(
 );
 
 /**
- * POST /api/users/:userId/upload-photos
- * Lataa lisäkuvia, rajoitukset tilausplanin mukaan
+ * 2) POST /api/users/:userId/upload-photos
  */
 router.post(
   "/:userId/upload-photos",
@@ -64,33 +61,33 @@ router.post(
   profileUpload.array("photos", 20),
   async (req, res) => {
     try {
-      if (req.userId !== req.params.userId) {
+      if (req.userId !== req.params.userId)
         return res.status(403).json({ error: "Forbidden" });
-      }
 
       const sub = await Subscription.findOne({ user: req.userId });
       const plan = sub?.plan || "free";
       const maxImages = plan === "premium" ? 20 : 6;
+      const existingCount = await Image.countDocuments({
+        owner: req.userId,
+        isAvatar: false,
+      });
+      const incoming = req.files.length;
+      if (existingCount + incoming > maxImages)
+        return res.status(403).json({
+          error: `Upload limit exceeded (${maxImages} images for ${plan} plan)`,
+        });
 
-      const existingCount = await Image.countDocuments({ owner: req.userId, isAvatar: false });
-      const incomingCount = req.files.length;
-      if (existingCount + incomingCount > maxImages) {
-        return res.status(403).json({ error: `Upload limit exceeded (${maxImages} images for ${plan} plan)` });
-      }
-
-      // Luo Image-dokumentit
       const urls = [];
       for (const file of req.files) {
         const img = await Image.create({
           owner: req.userId,
           url: `/uploads/profiles/${file.filename}`,
           uploaded: new Date(),
-          isAvatar: false
+          isAvatar: false,
         });
         urls.push(img.url);
       }
 
-      // Päivitä käyttäjän extraImages-kenttä
       const user = await User.findById(req.userId);
       user.extraImages = (user.extraImages || []).concat(urls);
       await user.save();
