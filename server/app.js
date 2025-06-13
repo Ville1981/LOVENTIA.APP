@@ -39,7 +39,7 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static uploads
+// Serve static uploads directory
 app.use(
   "/uploads",
   express.static(path.join(__dirname, "uploads"))
@@ -76,10 +76,10 @@ app.get("/api/users", (req, res) => {
   res.json([user]);
 });
 
-// Mount API routes
+// Mount API routers
 app.use("/api/user", userRoutes);
 app.use("/api/auth", authRoutes);
-// Tässä: profiilikuva ja lisäkuvat -> /api/users/:userId/…
+// Image upload routes: avatar and extra photos
 app.use("/api/users", imageRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/payment", paymentRoutes);

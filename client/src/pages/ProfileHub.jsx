@@ -1,3 +1,5 @@
+// client/src/pages/ProfileHub.jsx
+
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import axios from "axios";
@@ -121,7 +123,7 @@ const ProfileHub = () => {
     <div className="max-w-3xl mx-auto p-6 space-y-6">
       {/* Profiilikortti */}
       <div className="flex items-center bg-gray-800 text-white rounded-lg p-4 space-x-4">
-        <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-gray-600">
+        <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-gray-600">
           <img
             src={
               user.profilePicture?.startsWith("http")

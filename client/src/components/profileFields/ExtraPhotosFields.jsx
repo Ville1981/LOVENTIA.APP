@@ -11,6 +11,9 @@ const ExtraPhotosFields = ({
   onSuccess,
   onError,
 }) => {
+  // JWT-token haettuna localStoragesta
+  const token = localStorage.getItem("token");
+
   // Määritä kuvien maksimi määrä roolin mukaan
   const maxSlots = isPremium ? 20 : 6;
 
@@ -19,10 +22,11 @@ const ExtraPhotosFields = ({
   const [previews, setPreviews] = useState(
     Array.from({ length: maxSlots }, (_, i) => {
       const img = extraImages[i];
-      if (img) {
-        return img.startsWith("http") ? img : `${BACKEND_BASE_URL}/${img}`;
-      }
-      return null;
+      return img
+        ? img.startsWith("http")
+          ? img
+          : `${BACKEND_BASE_URL}/${img}`
+        : null;
     })
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -33,10 +37,11 @@ const ExtraPhotosFields = ({
     setPreviews(
       Array.from({ length: maxSlots }, (_, i) => {
         const img = extraImages[i];
-        if (img) {
-          return img.startsWith("http") ? img : `${BACKEND_BASE_URL}/${img}`;
-        }
-        return null;
+        return img
+          ? img.startsWith("http")
+            ? img
+            : `${BACKEND_BASE_URL}/${img}`
+          : null;
       })
     );
     setFiles(Array(maxSlots).fill(null));
@@ -47,9 +52,7 @@ const ExtraPhotosFields = ({
 
   // Käyttäjä klikkaa "Lisää kuva" -nappia
   const handleAddClick = () => {
-    if (hiddenFileInputRef.current) {
-      hiddenFileInputRef.current.click();
-    }
+    hiddenFileInputRef.current?.click();
   };
 
   // Kun tiedosto valitaan, lisätään ensimmäiseen vapaaseen slotiin
@@ -72,7 +75,7 @@ const ExtraPhotosFields = ({
     };
     reader.readAsDataURL(file);
 
-    // Tyhjennä valinta piilotetussa inputissa, jotta samankin tiedoston voi valita uudelleen
+    // Tyhjennä valinta, jotta samaa tiedostoa voi valita uudelleen
     e.target.value = "";
   };
 
@@ -86,16 +89,19 @@ const ExtraPhotosFields = ({
 
     const formData = new FormData();
     files.forEach((file) => {
-      if (file) {
-        formData.append("photos", file);
-      }
+      if (file) formData.append("photos", file);
     });
 
     try {
       const res = await axios.post(
-        `${BACKEND_BASE_URL}/api/users/${userId}/photos`,
+        `${BACKEND_BASE_URL}/api/users/${userId}/upload-photos`,
         formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
       const updatedUser = res.data.user || res.data;
       onSuccess(updatedUser);
@@ -109,7 +115,10 @@ const ExtraPhotosFields = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white shadow rounded-lg p-6 mb-6 space-y-4">
+    <form
+      onSubmit={handleSubmit}
+      className="bg-white shadow rounded-lg p-6 mb-6 space-y-4"
+    >
       <h3 className="text-lg font-semibold">Lisäkuvat</h3>
 
       {/* Piilotettu tiedosto-input */}
@@ -133,7 +142,10 @@ const ExtraPhotosFields = ({
       {/* Kuvien esikatselut */}
       <div className="grid grid-cols-3 gap-4">
         {previews.map((src, idx) => (
-          <div key={idx} className="w-full h-24 bg-gray-100 rounded overflow-hidden">
+          <div
+            key={idx}
+            className="w-full h-24 bg-gray-100 rounded overflow-hidden"
+          >
             {src ? (
               <img
                 src={src}
@@ -145,7 +157,6 @@ const ExtraPhotosFields = ({
               />
             ) : (
               <div className="flex items-center justify-center h-full text-gray-400">
-                {/* Tyhjä slot */}
                 + {idx + 1}
               </div>
             )}
@@ -161,6 +172,7 @@ const ExtraPhotosFields = ({
       >
         {isSubmitting ? "Tallennetaan..." : "💾 Tallenna lisäkuvat"}
       </button>
+
       {submitError && <p className="text-red-600">{submitError}</p>}
     </form>
   );

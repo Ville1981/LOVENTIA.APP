@@ -1,3 +1,5 @@
+// client/src/components/profileFields/FormLocation.jsx
+
 import React from "react";
 import { countryRegions, regionCities } from "../../utils/locationData";
 
@@ -15,22 +17,36 @@ const FormLocation = ({ values, setters, t }) => {
 
   // Options for region and city based on selected country and region
   const regionOptions = country ? countryRegions[country] || [] : [];
-  const cityOptions = country && region ? regionCities[country]?.[region] || [] : [];
+  const cityOptions =
+    country && region
+      ? regionCities[country]?.[region] || []
+      : [];
 
   // Handlers for dropdown and manual inputs
   const handleCountryChange = (e) => {
     const country = e.target.value;
-    setValues((prev) => ({ ...prev, country, region: "", city: "" }));
+    setValues((prev) => ({
+      ...prev,
+      country,
+      region: "",
+      city: "",
+      customCountry: "",
+    }));
   };
 
   const handleRegionChange = (e) => {
     const region = e.target.value;
-    setValues((prev) => ({ ...prev, region, city: "" }));
+    setValues((prev) => ({
+      ...prev,
+      region,
+      city: "",
+      customRegion: "",
+    }));
   };
 
   const handleCityChange = (e) => {
     const city = e.target.value;
-    setValues((prev) => ({ ...prev, city }));
+    setValues((prev) => ({ ...prev, city, customCity: "" }));
   };
 
   const handleCustomCountryChange = (e) => {
@@ -50,6 +66,7 @@ const FormLocation = ({ values, setters, t }) => {
 
   return (
     <div className="flex flex-col space-y-6 w-full text-left">
+
       {/* Country */}
       <div className="w-full">
         <label htmlFor="country" className="block font-medium mb-1">
@@ -90,6 +107,7 @@ const FormLocation = ({ values, setters, t }) => {
           onChange={handleRegionChange}
           className="p-2 border rounded w-full"
           aria-label={t("profile.selectRegion")}
+          disabled={!country}
         >
           <option value="">{t("profile.selectRegion")}</option>
           {regionOptions.map((r) => (
@@ -119,6 +137,7 @@ const FormLocation = ({ values, setters, t }) => {
           onChange={handleCityChange}
           className="p-2 border rounded w-full"
           aria-label={t("profile.selectCity")}
+          disabled={!region}
         >
           <option value="">{t("profile.selectCity")}</option>
           {cityOptions.map((c) => (
@@ -136,6 +155,7 @@ const FormLocation = ({ values, setters, t }) => {
           aria-label={t("profile.manualCity")}
         />
       </div>
+
     </div>
   );
 };

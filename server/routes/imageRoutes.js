@@ -18,21 +18,25 @@ router.post(
   profileUpload.single("profilePhoto"),
   async (req, res) => {
     try {
+      // Käyttäjä voi päivittää vain oman avattarinsa
       if (req.userId !== req.params.userId)
         return res.status(403).json({ error: "Forbidden" });
 
-      const sub = await Subscription.findOne({ user: req.userId });
-      const plan = sub?.plan || "free";
-      const maxAvatar = 1; // aina 1 profiilikuva
+      // Tarkista, että tiedosto on mukana
+      if (!req.file)
+        return res.status(400).json({ error: "No file uploaded" });
+
+      // Yksi avatar sallittu
       const currentAvatars = await Image.countDocuments({
         owner: req.userId,
         isAvatar: true,
       });
-      if (currentAvatars >= maxAvatar)
+      if (currentAvatars >= 1)
         return res
           .status(403)
-          .json({ error: `Avatar limit reached (${maxAvatar})` });
+          .json({ error: "Avatar limit reached (1 avatar allowed)" });
 
+      // Luo ja tallenna uusi avatar
       const img = await Image.create({
         owner: req.userId,
         url: `/uploads/profiles/${req.file.filename}`,
@@ -40,6 +44,7 @@ router.post(
         isAvatar: true,
       });
 
+      // Päivitä User-profiili
       const user = await User.findById(req.userId);
       user.profilePicture = img.url;
       await user.save();
@@ -47,7 +52,7 @@ router.post(
       return res.status(201).json({ user });
     } catch (err) {
       console.error("Upload avatar error:", err);
-      return res.status(500).json({ error: "Upload failed" });
+      return res.status(500).json({ error: "Avatar upload failed" });
     }
   }
 );
@@ -61,12 +66,16 @@ router.post(
   profileUpload.array("photos", 20),
   async (req, res) => {
     try {
+      // Käyttäjä voi lisätä kuvia vain omaan profiiliinsa
       if (req.userId !== req.params.userId)
         return res.status(403).json({ error: "Forbidden" });
 
+      // Tilaus ja kuvarajat
       const sub = await Subscription.findOne({ user: req.userId });
       const plan = sub?.plan || "free";
       const maxImages = plan === "premium" ? 20 : 6;
+
+      // Kuinka monta kuvaa jo olemassa
       const existingCount = await Image.countDocuments({
         owner: req.userId,
         isAvatar: false,
@@ -74,9 +83,10 @@ router.post(
       const incoming = req.files.length;
       if (existingCount + incoming > maxImages)
         return res.status(403).json({
-          error: `Upload limit exceeded (${maxImages} images for ${plan} plan)`,
+          error: `Upload limit exceeded (${maxImages} images allowed for ${plan} plan)`,
         });
 
+      // Tallenna jokainen kuva ja kerää URLit
       const urls = [];
       for (const file of req.files) {
         const img = await Image.create({
@@ -88,6 +98,7 @@ router.post(
         urls.push(img.url);
       }
 
+      // Lisää käyttäjän extraImages-taulukkoon
       const user = await User.findById(req.userId);
       user.extraImages = (user.extraImages || []).concat(urls);
       await user.save();
@@ -95,7 +106,7 @@ router.post(
       return res.status(201).json({ user });
     } catch (err) {
       console.error("Upload photos error:", err);
-      return res.status(500).json({ error: "Upload failed" });
+      return res.status(500).json({ error: "Photos upload failed" });
     }
   }
 );

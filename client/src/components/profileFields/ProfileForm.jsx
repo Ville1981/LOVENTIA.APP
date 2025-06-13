@@ -72,7 +72,7 @@ const ProfileForm = ({
 
   return (
     <div className="bg-white shadow rounded-lg p-6 space-y-6">
-      {/* Avatar-osio (voi tarvittaessa piilottaa hideAvatarSection-propilla) */}
+      {/* Avatar-osio (voidaan piilottaa hideAvatarSection-propilla) */}
       {!hideAvatarSection && (
         <form onSubmit={handleAvatarSubmit} className="flex items-center space-x-6">
           <div className="w-12 h-12 rounded-full overflow-hidden border">
@@ -147,7 +147,7 @@ const ProfileForm = ({
         onError={(err) => console.error(err)}
       />
 
-      {/* Tallenna-painike */}
+      {/* Tallenna loput muutokset */}
       <button
         onClick={setters.handleSubmit}
         className="w-full px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
