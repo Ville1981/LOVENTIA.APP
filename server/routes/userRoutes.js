@@ -1,5 +1,3 @@
-// server/routes/userRoutes.js
-
 const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
@@ -9,12 +7,15 @@ const authenticateToken = require("../middleware/auth");
 const { upload } = require("../config/multer");
 const path = require("path");
 const fs = require("fs");
+
 const {
   registerUser,
   loginUser,
   getMatchesWithScore,
   upgradeToPremium,
+  uploadExtraPhotos, // 🔄 uusi lisäys
 } = require("../controllers/userController");
+
 require("dotenv").config();
 
 // =====================
@@ -54,7 +55,6 @@ router.put(
       const user = await User.findById(req.userId);
       if (!user) return res.status(404).json({ error: "Käyttäjää ei löydy" });
 
-      // Tekstikentät
       const textFields = [
         "username", "email", "age", "gender", "orientation",
         "education", "profession", "religion", "religionImportance",
@@ -65,13 +65,11 @@ router.put(
         if (req.body[field] !== undefined) user[field] = req.body[field];
       });
 
-      // Profiilikuva
       if (req.files.profilePhoto) {
         const file = req.files.profilePhoto[0];
         user.profilePicture = file.path;
       }
 
-      // Lisäkuvat
       if (req.files.photos) {
         const files = req.files.photos;
         const maxAllowed = user.isPremium ? 20 : 6;
@@ -88,6 +86,16 @@ router.put(
       res.status(500).json({ error: "Profiilin päivitys epäonnistui" });
     }
   }
+);
+
+// =====================
+// ✅ Lataa lisäkuvat erikseen
+// =====================
+router.post(
+  "/:userId/upload-photos",
+  authenticateToken,
+  upload.array("photos", 20),
+  uploadExtraPhotos
 );
 
 // =====================

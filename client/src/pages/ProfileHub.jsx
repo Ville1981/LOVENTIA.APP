@@ -1,5 +1,3 @@
-// client/src/pages/ProfileHub.jsx
-
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import axios from "axios";
@@ -15,12 +13,10 @@ const ProfileHub = () => {
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState(false);
 
-  // Stub-progressit (lopulliset arvot backendistä myöhemmin)
   const [profileCompletion] = useState(60);
   const [questionsAnswered] = useState(15);
   const [highestMatch] = useState(93);
 
-  // Muokkauslomakkeen state
   const [values, setValues] = useState({
     username: "",
     email: "",
@@ -44,7 +40,6 @@ const ProfileHub = () => {
     lookingFor: ""
   });
 
-  // Stub-käännösfunktio
   const t = (key) => {
     const translations = {
       "profile.saved": "Profiili tallennettu",
@@ -53,7 +48,6 @@ const ProfileHub = () => {
     return translations[key] || key;
   };
 
-  // Hae käyttäjä (oma tai toisen)
   useEffect(() => {
     (async () => {
       try {
@@ -95,7 +89,6 @@ const ProfileHub = () => {
     })();
   }, [token, userIdParam]);
 
-  // Tallennus handler (vain oma profiili)
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (userIdParam) return;
@@ -121,28 +114,6 @@ const ProfileHub = () => {
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-6">
-      {/* Profiilikortti */}
-      <div className="flex items-center bg-gray-800 text-white rounded-lg p-4 space-x-4">
-        <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-gray-600">
-          <img
-            src={
-              user.profilePicture?.startsWith("http")
-                ? user.profilePicture
-                : `${BACKEND_BASE_URL}/${user.profilePicture}`
-            }
-            alt={`${user.username} profiilikuva`}
-            className="object-cover w-full h-full"
-            onError={(e) => (e.currentTarget.src = "/placeholder-avatar-male.png")}
-          />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold">{user.username}</h1>
-          <p className="text-sm opacity-75">
-            {user.city}, {user.country}
-          </p>
-        </div>
-      </div>
-
       {/* Tab-valikko */}
       <div className="flex bg-gray-900 rounded-lg overflow-hidden">
         <button
@@ -214,7 +185,7 @@ const ProfileHub = () => {
             </div>
           </div>
 
-          {/* Kokonainen muokkauslomake (sisältää avatarin, lisäkuvat ja kentät) */}
+          {/* Lomake + avatar + lisäkuvat */}
           <ProfileForm
             user={user}
             onUserUpdate={(u) => setUser(u)}
@@ -226,7 +197,7 @@ const ProfileHub = () => {
             success={success}
             t={t}
             readOnly={!!userIdParam}
-            hideAvatarSection={true}
+            hideAvatarSection={false}
           />
         </div>
       )}
@@ -242,10 +213,7 @@ const ProfileHub = () => {
               </Link>
             </li>
             <li>
-              <Link
-                to="/settings/notifications"
-                className="text-blue-600 hover:underline"
-              >
+              <Link to="/settings/notifications" className="text-blue-600 hover:underline">
                 Notification preferences
               </Link>
             </li>
@@ -255,10 +223,7 @@ const ProfileHub = () => {
               </Link>
             </li>
             <li>
-              <Link
-                to="/settings/subscriptions"
-                className="text-blue-600 hover:underline"
-              >
+              <Link to="/settings/subscriptions" className="text-blue-600 hover:underline">
                 Subscriptions & billing
               </Link>
             </li>

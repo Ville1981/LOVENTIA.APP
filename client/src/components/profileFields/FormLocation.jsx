@@ -4,7 +4,6 @@ import React from "react";
 import { countryRegions, regionCities } from "../../utils/locationData";
 
 const FormLocation = ({ values, setters, t }) => {
-  // setters is the setValues function from useState in parent
   const setValues = setters;
   const {
     country,
@@ -15,58 +14,58 @@ const FormLocation = ({ values, setters, t }) => {
     customCity,
   } = values;
 
-  // Options for region and city based on selected country and region
   const regionOptions = country ? countryRegions[country] || [] : [];
   const cityOptions =
     country && region
       ? regionCities[country]?.[region] || []
       : [];
 
-  // Handlers for dropdown and manual inputs
   const handleCountryChange = (e) => {
-    const country = e.target.value;
-    setValues((prev) => ({
-      ...prev,
-      country,
-      region: "",
-      city: "",
-      customCountry: "",
-    }));
+    const nextCountry = e.target.value;
+    if (nextCountry !== country) {
+      setValues((prev) => ({
+        ...prev,
+        country: nextCountry,
+        region: "",
+        city: "",
+        customCountry: "",
+      }));
+    }
   };
 
   const handleRegionChange = (e) => {
-    const region = e.target.value;
-    setValues((prev) => ({
-      ...prev,
-      region,
-      city: "",
-      customRegion: "",
-    }));
+    const nextRegion = e.target.value;
+    if (nextRegion !== region) {
+      setValues((prev) => ({
+        ...prev,
+        region: nextRegion,
+        city: "",
+        customRegion: "",
+      }));
+    }
   };
 
   const handleCityChange = (e) => {
-    const city = e.target.value;
-    setValues((prev) => ({ ...prev, city, customCity: "" }));
+    const nextCity = e.target.value;
+    if (nextCity !== city) {
+      setValues((prev) => ({ ...prev, city: nextCity, customCity: "" }));
+    }
   };
 
   const handleCustomCountryChange = (e) => {
-    const customCountry = e.target.value;
-    setValues((prev) => ({ ...prev, customCountry }));
+    setValues((prev) => ({ ...prev, customCountry: e.target.value }));
   };
 
   const handleCustomRegionChange = (e) => {
-    const customRegion = e.target.value;
-    setValues((prev) => ({ ...prev, customRegion }));
+    setValues((prev) => ({ ...prev, customRegion: e.target.value }));
   };
 
   const handleCustomCityChange = (e) => {
-    const customCity = e.target.value;
-    setValues((prev) => ({ ...prev, customCity }));
+    setValues((prev) => ({ ...prev, customCity: e.target.value }));
   };
 
   return (
     <div className="flex flex-col space-y-6 w-full text-left">
-
       {/* Country */}
       <div className="w-full">
         <label htmlFor="country" className="block font-medium mb-1">
@@ -155,7 +154,6 @@ const FormLocation = ({ values, setters, t }) => {
           aria-label={t("profile.manualCity")}
         />
       </div>
-
     </div>
   );
 };

@@ -1,5 +1,3 @@
-// client/src/components/profileFields/ExtraPhotosFields.jsx
-
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { BACKEND_BASE_URL } from "../../config";
@@ -8,16 +6,12 @@ const ExtraPhotosFields = ({
   userId,
   isPremium,
   extraImages = [],
-  onSuccess,
-  onError,
+  onSuccess = () => {},
+  onError = () => {},
 }) => {
-  // JWT-token haettuna localStoragesta
   const token = localStorage.getItem("token");
-
-  // Määritä kuvien maksimi määrä roolin mukaan
   const maxSlots = isPremium ? 20 : 6;
 
-  // Tiedostot ja esikatselujen tilat
   const [files, setFiles] = useState(Array(maxSlots).fill(null));
   const [previews, setPreviews] = useState(
     Array.from({ length: maxSlots }, (_, i) => {
@@ -32,7 +26,6 @@ const ExtraPhotosFields = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
 
-  // Päivitä esikatselut kun extraImages-propsi muuttuu
   useEffect(() => {
     setPreviews(
       Array.from({ length: maxSlots }, (_, i) => {
@@ -47,21 +40,18 @@ const ExtraPhotosFields = ({
     setFiles(Array(maxSlots).fill(null));
   }, [extraImages, maxSlots]);
 
-  // Ref piilotetulle tiedosto-inputille
   const hiddenFileInputRef = useRef(null);
 
-  // Käyttäjä klikkaa "Lisää kuva" -nappia
   const handleAddClick = () => {
     hiddenFileInputRef.current?.click();
   };
 
-  // Kun tiedosto valitaan, lisätään ensimmäiseen vapaaseen slotiin
   const handleAddFile = (e) => {
     const file = e.target.files[0] || null;
     if (!file) return;
 
     const slotIdx = previews.findIndex((p) => p === null);
-    if (slotIdx === -1) return; // Ei vapaata slotia
+    if (slotIdx === -1) return;
 
     const newFiles = [...files];
     newFiles[slotIdx] = file;
@@ -75,14 +65,12 @@ const ExtraPhotosFields = ({
     };
     reader.readAsDataURL(file);
 
-    // Tyhjennä valinta, jotta samaa tiedostoa voi valita uudelleen
     e.target.value = "";
   };
 
-  // Lomakkeen submit
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (files.every((f) => !f)) return;
+    if (!files.some((f) => f)) return;
 
     setIsSubmitting(true);
     setSubmitError(null);
@@ -103,10 +91,22 @@ const ExtraPhotosFields = ({
           },
         }
       );
+
       const updatedUser = res.data.user || res.data;
-      onSuccess(updatedUser);
+      if (updatedUser) {
+        onSuccess(updatedUser);
+        setFiles(Array(maxSlots).fill(null));
+        setPreviews(
+          updatedUser.extraImages.map((img) =>
+            img.startsWith("http") ? img : `${BACKEND_BASE_URL}/${img}`
+          )
+        );
+      } else {
+        setSubmitError("Palvelin ei palauttanut käyttäjäobjektia.");
+        console.warn("upload-photos: Palautettu käyttäjä puuttuu", res.data);
+      }
     } catch (err) {
-      console.error(err);
+      console.error("upload-photos virhe:", err);
       setSubmitError("Lisäkuvien tallennus epäonnistui");
       onError(err);
     } finally {
@@ -121,7 +121,6 @@ const ExtraPhotosFields = ({
     >
       <h3 className="text-lg font-semibold">Lisäkuvat</h3>
 
-      {/* Piilotettu tiedosto-input */}
       <input
         type="file"
         accept="image/*"
@@ -130,7 +129,6 @@ const ExtraPhotosFields = ({
         className="hidden"
       />
 
-      {/* Lisää kuva -nappi */}
       <button
         type="button"
         onClick={handleAddClick}
@@ -139,7 +137,6 @@ const ExtraPhotosFields = ({
         📸 Lisää kuva
       </button>
 
-      {/* Kuvien esikatselut */}
       <div className="grid grid-cols-3 gap-4">
         {previews.map((src, idx) => (
           <div
@@ -164,10 +161,9 @@ const ExtraPhotosFields = ({
         ))}
       </div>
 
-      {/* Tallenna lisäkuvat -nappi */}
       <button
         type="submit"
-        disabled={files.every((f) => !f) || isSubmitting}
+        disabled={!files.some((f) => f) || isSubmitting}
         className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
       >
         {isSubmitting ? "Tallennetaan..." : "💾 Tallenna lisäkuvat"}
