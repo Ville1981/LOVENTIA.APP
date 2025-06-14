@@ -77,7 +77,7 @@ app.get("/api/users", (req, res) => {
 });
 
 // Mount API routers
-app.use("/api/user", userRoutes);
+app.use("/api/users", userRoutes);     // ← korjattu mount: profiili- ja user-API:t
 app.use("/api/auth", authRoutes);
 // Image upload routes: avatar and extra photos
 app.use("/api/users", imageRoutes);

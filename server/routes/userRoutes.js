@@ -4,7 +4,7 @@ const User = require("../models/User");
 const Subscription = require("../models/Subscription");
 const Image = require("../models/Image");
 const authenticateToken = require("../middleware/auth");
-const { upload } = require("../config/multer");
+// File upload handled in separate routes (imageRoutes.js)
 const path = require("path");
 const fs = require("fs");
 
@@ -13,7 +13,7 @@ const {
   loginUser,
   getMatchesWithScore,
   upgradeToPremium,
-  uploadExtraPhotos, // 🔄 uusi lisäys
+  uploadExtraPhotos,
 } = require("../controllers/userController");
 
 require("dotenv").config();
@@ -29,6 +29,16 @@ router.post("/register", registerUser);
 router.post("/login", loginUser);
 
 // =====================
+// ✅ Lataa lisäkuvat erikseen
+// =====================
+router.post(
+  "/:userId/upload-photos",
+  authenticateToken,
+  // multer middleware defined in imageRoutes.js
+  uploadExtraPhotos
+);
+
+// =====================
 // ✅ Hae nykyisen käyttäjän tiedot
 // =====================
 router.get("/me", authenticateToken, async (req, res) => {
@@ -41,20 +51,17 @@ router.get("/me", authenticateToken, async (req, res) => {
 });
 
 // =====================
-// ✅ Päivitä profiili (teksti + avatar + extra-kuvat)
+// ✅ Päivitä profiili (vain tekstikentät)
 // =====================
 router.put(
   "/profile",
   authenticateToken,
-  upload.fields([
-    { name: "profilePhoto", maxCount: 1 },
-    { name: "photos", maxCount: 20 },
-  ]),
   async (req, res) => {
     try {
       const user = await User.findById(req.userId);
       if (!user) return res.status(404).json({ error: "Käyttäjää ei löydy" });
 
+      // Päivitä tekstit
       const textFields = [
         "username", "email", "age", "gender", "orientation",
         "education", "profession", "religion", "religionImportance",
@@ -65,36 +72,22 @@ router.put(
         if (req.body[field] !== undefined) user[field] = req.body[field];
       });
 
-      if (req.files.profilePhoto) {
-        const file = req.files.profilePhoto[0];
-        user.profilePicture = file.path;
-      }
-
-      if (req.files.photos) {
-        const files = req.files.photos;
-        const maxAllowed = user.isPremium ? 20 : 6;
-        if (files.length > maxAllowed) {
-          return res.status(400).json({ error: `Enintään ${maxAllowed} lisäkuvaa sallittu` });
-        }
-        user.extraImages = files.map(f => f.path);
-      }
-
+      // Tallennetaan muutokset
       const updatedUser = await user.save();
       res.json(updatedUser);
     } catch (err) {
-      console.error("Profiilin päivitysvirhe:", err);
+      console.error("Profiilin päivitysvirhe:", err.stack);
       res.status(500).json({ error: "Profiilin päivitys epäonnistui" });
     }
   }
 );
 
 // =====================
-// ✅ Lataa lisäkuvat erikseen
+// ✅ Lataa lisäkuvat erikseen (duplicate removal)
 // =====================
 router.post(
   "/:userId/upload-photos",
   authenticateToken,
-  upload.array("photos", 20),
   uploadExtraPhotos
 );
 
@@ -108,11 +101,10 @@ router.get("/all", authenticateToken, async (req, res) => {
     );
     res.json(users);
   } catch (err) {
-    console.error("Discover-haku epäonnistui:", err);
+    console.error("Discover-haku epäonnistui:", err.stack);
     res.status(500).json({ error: "Palvelinvirhe" });
   }
 });
-
 // =====================
 // ✅ Who liked me (Premium)
 // =====================
@@ -306,3 +298,4 @@ router.delete("/profile", authenticateToken, async (req, res) => {
 });
 
 module.exports = router;
+

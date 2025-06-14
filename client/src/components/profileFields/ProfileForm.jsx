@@ -1,6 +1,7 @@
 // client/src/components/profileFields/ProfileForm.jsx
 
 import React, { useState } from "react";
+import axios from "axios";
 import FormBasicInfo from "./FormBasicInfo";
 import FormLocation from "./FormLocation";
 import FormEducation from "./FormEducation";
@@ -17,7 +18,7 @@ import { BACKEND_BASE_URL } from "../../config";
  * @param {object} props.user             - Käyttäjädata
  * @param {boolean} props.isPremium       - Premium-oikeudet kuvien määrä
  * @param {object} props.values           - Lomakekenttien arvot
- * @param {object} props.setters          - Lomakekenttien setteri-funktiot
+ * @param {function} props.setters        - Funktio, jolla päivitetään koko values-olioa
  * @param {function} props.t              - Käännösfunktio
  * @param {string} props.message         - Status-viesti
  * @param {boolean} props.success        - Status-viestin tyyli (onnistuiko)
@@ -28,7 +29,7 @@ const ProfileForm = ({
   user,
   isPremium,
   values,
-  setters,
+  setters: setValues,
   t,
   message,
   success,
@@ -44,6 +45,8 @@ const ProfileForm = ({
       : null
   );
   const [avatarError, setAvatarError] = useState(null);
+
+  const token = localStorage.getItem("token");
 
   // Avatar-muutos
   const handleAvatarChange = (e) => {
@@ -70,11 +73,34 @@ const ProfileForm = ({
     }
   };
 
+  // Lomaketietojen tallennus backendille
+    // Lomaketietojen tallennus backendille
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    console.log("💾 handleSubmit käynnistyi, values =", values);
+    try {
+      const res = await axios.put(
+        // Korjattu endpoint: PUT /api/users/profile (tokenista haetaan userId)
+        `${BACKEND_BASE_URL}/api/users/profile`,
+        values,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      const updatedUser = res.data.user || res.data;
+      onUserUpdate(updatedUser);
+    } catch (err) {
+      console.error("Profiilin tallennus epäonnistui:", err);
+    }
+  };
+
   return (
-    <div className="bg-white shadow rounded-lg p-6 space-y-6">
+    <form onSubmit={handleSubmit} className="bg-white shadow rounded-lg p-6 space-y-6">
       {/* Avatar-osio (voidaan piilottaa hideAvatarSection-propilla) */}
       {!hideAvatarSection && (
-        <form onSubmit={handleAvatarSubmit} className="flex items-center space-x-6">
+        <div className="flex items-center space-x-6">
           <div className="w-12 h-12 rounded-full overflow-hidden border">
             {avatarPreview && (
               <img
@@ -96,7 +122,8 @@ const ProfileForm = ({
               className="block"
             />
             <button
-              type="submit"
+              type="button"
+              onClick={handleAvatarSubmit}
               className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
             >
               🎨 {t("profile.saveAvatar")}
@@ -117,26 +144,74 @@ const ProfileForm = ({
               )}
             </p>
           </div>
-        </form>
+        </div>
       )}
 
       {/* Perustiedot */}
-      <FormBasicInfo values={values} setters={setters} t={t} />
+      <FormBasicInfo
+        username={values.username}
+        setUsername={(v) => setValues((prev) => ({ ...prev, username: v }))}
+        email={values.email}
+        setEmail={(v) => setValues((prev) => ({ ...prev, email: v }))}
+        age={values.age}
+        setAge={(v) => setValues((prev) => ({ ...prev, age: v }))}
+        gender={values.gender}
+        setGender={(v) => setValues((prev) => ({ ...prev, gender: v }))}
+        orientation={values.orientation}
+        setOrientation={(v) =>
+          setValues((prev) => ({ ...prev, orientation: v }))
+        }
+        t={t}
+      />
 
       {/* Sijainti: maa/osavaltio/kaupunki */}
-      <FormLocation values={values} setters={setters} t={t} />
+      <FormLocation values={values} setters={setValues} t={t} />
 
       {/* Koulutus */}
-      <FormEducation values={values} setters={setters} t={t} />
+      <FormEducation
+        education={values.education}
+        setEducation={(v) => setValues((prev) => ({ ...prev, education: v }))}
+        profession={values.profession}
+        setProfession={(v) =>
+          setValues((prev) => ({ ...prev, profession: v }))
+        }
+        religion={values.religion}
+        setReligion={(v) =>
+          setValues((prev) => ({ ...prev, religion: v }))
+        }
+        religionImportance={values.religionImportance}
+        setReligionImportance={(v) =>
+          setValues((prev) => ({ ...prev, religionImportance: v }))
+        }
+        t={t}
+      />
 
       {/* Lapset ja lemmikit */}
-      <FormChildrenPets values={values} setters={setters} t={t} />
+      <FormChildrenPets
+        children={values.children}
+        setChildren={(v) => setValues((prev) => ({ ...prev, children: v }))}
+        pets={values.pets}
+        setPets={(v) => setValues((prev) => ({ ...prev, pets: v }))}
+        t={t}
+      />
 
       {/* Goals & Summary */}
-      <FormGoalSummary values={values} setters={setters} t={t} />
+      <FormGoalSummary
+        summary={values.summary}
+        setSummary={(v) => setValues((prev) => ({ ...prev, summary: v }))}
+        goal={values.goal}
+        setGoal={(v) => setValues((prev) => ({ ...prev, goal: v }))}
+        t={t}
+      />
 
       {/* Looking For */}
-      <FormLookingFor values={values} setters={setters} t={t} />
+      <FormLookingFor
+        lookingFor={values.lookingFor}
+        setLookingFor={(v) =>
+          setValues((prev) => ({ ...prev, lookingFor: v }))
+        }
+        t={t}
+      />
 
       {/* Extra Photos */}
       <ExtraPhotosFields
@@ -149,18 +224,20 @@ const ProfileForm = ({
 
       {/* Tallenna loput muutokset */}
       <button
-        onClick={setters.handleSubmit}
+        type="submit"
         className="w-full px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
       >
         💾 {t("profile.saveChanges")}
       </button>
 
       {message && (
-        <p className={`text-center ${success ? "text-green-600" : "text-red-600"}`}>
+        <p className={`text-center ${
+          success ? "text-green-600" : "text-red-600"
+        }`}>
           {message}
         </p>
       )}
-    </div>
+    </form>
   );
 };
 

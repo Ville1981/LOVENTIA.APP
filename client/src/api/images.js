@@ -1,12 +1,8 @@
-// client/src/api/images.js
-
 import axios from "axios";
+import { BACKEND_BASE_URL } from "../config"; // ✅ varmista, että config sisältää backend-URL:n
 
 /**
  * ✅ Profiilikuvan lataus
- * @param {string} userId - Käyttäjän ID
- * @param {File} file - Lähetettävä profiilikuva
- * @returns {Promise<Object>} päivitetty user
  */
 export const uploadAvatar = async (userId, file) => {
   const formData = new FormData();
@@ -15,7 +11,7 @@ export const uploadAvatar = async (userId, file) => {
   const token = localStorage.getItem("token");
 
   const res = await axios.post(
-    `/api/users/${userId}/upload-avatar`,
+    `${BACKEND_BASE_URL}/api/users/${userId}/upload-avatar`,
     formData,
     {
       headers: {
@@ -30,9 +26,6 @@ export const uploadAvatar = async (userId, file) => {
 
 /**
  * ✅ Lisäkuvien lataus
- * @param {string} userId - Käyttäjän ID
- * @param {File[]} files - Lista lähetettäviä kuvia
- * @returns {Promise<Object>} päivitetty user
  */
 export const uploadPhotos = async (userId, files) => {
   const formData = new FormData();
@@ -43,7 +36,7 @@ export const uploadPhotos = async (userId, files) => {
   const token = localStorage.getItem("token");
 
   const res = await axios.post(
-    `/api/users/${userId}/upload-photos`,
+    `${BACKEND_BASE_URL}/api/users/${userId}/upload-photos`,
     formData,
     {
       headers: {

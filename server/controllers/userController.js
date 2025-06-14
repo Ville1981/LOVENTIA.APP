@@ -145,10 +145,11 @@ const uploadExtraPhotos = async (req, res) => {
       return res.status(400).json({ error: `Enintään ${maxAllowed} lisäkuvaa sallittu.` });
     }
 
+    // Tallenna kuvat
     user.extraImages = files.map(f => f.path);
 
     const updatedUser = await user.save();
-    res.json({ user: updatedUser });
+    res.json({ user: updatedUser }); // ✅ tämä oli puuttuva!
   } catch (err) {
     console.error("uploadExtraPhotos virhe:", err);
     res.status(500).json({ error: "Lisäkuvien tallennus epäonnistui." });
@@ -160,5 +161,5 @@ module.exports = {
   loginUser,
   getMatchesWithScore,
   upgradeToPremium,
-  uploadExtraPhotos, // ✅ Uusi export
+  uploadExtraPhotos, // ✅ Export mukana
 };

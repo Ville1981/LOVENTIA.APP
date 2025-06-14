@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import axios from "axios";
 import { BACKEND_BASE_URL } from "../../config";
 
@@ -13,7 +13,7 @@ const ExtraPhotosFields = ({
   const maxSlots = isPremium ? 20 : 6;
 
   const [files, setFiles] = useState(Array(maxSlots).fill(null));
-  const [previews, setPreviews] = useState(
+  const [previews, setPreviews] = useState(() =>
     Array.from({ length: maxSlots }, (_, i) => {
       const img = extraImages[i];
       return img
@@ -26,26 +26,14 @@ const ExtraPhotosFields = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
 
-  useEffect(() => {
-    setPreviews(
-      Array.from({ length: maxSlots }, (_, i) => {
-        const img = extraImages[i];
-        return img
-          ? img.startsWith("http")
-            ? img
-            : `${BACKEND_BASE_URL}/${img}`
-          : null;
-      })
-    );
-    setFiles(Array(maxSlots).fill(null));
-  }, [extraImages, maxSlots]);
-
   const hiddenFileInputRef = useRef(null);
 
+  // Trigger file picker
   const handleAddClick = () => {
     hiddenFileInputRef.current?.click();
   };
 
+  // File selected
   const handleAddFile = (e) => {
     const file = e.target.files[0] || null;
     if (!file) return;
@@ -68,8 +56,18 @@ const ExtraPhotosFields = ({
     e.target.value = "";
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  // Remove selected image
+  const handleRemoveImage = (idx) => {
+    const newPreviews = [...previews];
+    const newFiles = [...files];
+    newPreviews[idx] = null;
+    newFiles[idx] = null;
+    setPreviews(newPreviews);
+    setFiles(newFiles);
+  };
+
+  // Submit extras
+  const handleSubmit = async () => {
     if (!files.some((f) => f)) return;
 
     setIsSubmitting(true);
@@ -93,17 +91,22 @@ const ExtraPhotosFields = ({
       );
 
       const updatedUser = res.data.user || res.data;
-      if (updatedUser) {
+      if (updatedUser && Array.isArray(updatedUser.extraImages)) {
         onSuccess(updatedUser);
         setFiles(Array(maxSlots).fill(null));
         setPreviews(
-          updatedUser.extraImages.map((img) =>
-            img.startsWith("http") ? img : `${BACKEND_BASE_URL}/${img}`
-          )
+          Array.from({ length: maxSlots }, (_, i) => {
+            const img = updatedUser.extraImages[i];
+            return img
+              ? img.startsWith("http")
+                ? img
+                : `${BACKEND_BASE_URL}/${img}`
+              : null;
+          })
         );
       } else {
         setSubmitError("Palvelin ei palauttanut käyttäjäobjektia.");
-        console.warn("upload-photos: Palautettu käyttäjä puuttuu", res.data);
+        console.warn("upload-photos: käyttäjäobjekti puuttuu", res.data);
       }
     } catch (err) {
       console.error("upload-photos virhe:", err);
@@ -115,10 +118,7 @@ const ExtraPhotosFields = ({
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="bg-white shadow rounded-lg p-6 mb-6 space-y-4"
-    >
+    <div className="bg-white shadow rounded-lg p-6 mb-6 space-y-4">
       <h3 className="text-lg font-semibold">Lisäkuvat</h3>
 
       <input
@@ -137,21 +137,31 @@ const ExtraPhotosFields = ({
         📸 Lisää kuva
       </button>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-4 min-h-[180px] max-h-[500px] overflow-y-auto">
         {previews.map((src, idx) => (
           <div
             key={idx}
-            className="w-full h-24 bg-gray-100 rounded overflow-hidden"
+            className="relative w-full h-24 bg-gray-100 rounded overflow-hidden group"
           >
             {src ? (
-              <img
-                src={src}
-                alt={`Lisäkuva ${idx + 1}`}
-                className="object-cover w-full h-full"
-                onError={(e) => {
-                  e.currentTarget.src = "/placeholder.png";
-                }}
-              />
+              <>
+                <img
+                  src={src}
+                  alt={`Lisäkuva ${idx + 1}`}
+                  className="object-cover w-full h-full"
+                  onError={(e) => {
+                    e.currentTarget.src = "/placeholder-avatar-male.png";
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => handleRemoveImage(idx)}
+                  className="absolute top-1 right-1 bg-black bg-opacity-50 text-white rounded-full px-2 py-0.5 text-xs opacity-0 group-hover:opacity-100 transition"
+                  title="Poista kuva"
+                >
+                  ✖
+                </button>
+              </>
             ) : (
               <div className="flex items-center justify-center h-full text-gray-400">
                 + {idx + 1}
@@ -162,7 +172,8 @@ const ExtraPhotosFields = ({
       </div>
 
       <button
-        type="submit"
+        type="button"
+        onClick={handleSubmit}
         disabled={!files.some((f) => f) || isSubmitting}
         className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
       >
@@ -170,7 +181,7 @@ const ExtraPhotosFields = ({
       </button>
 
       {submitError && <p className="text-red-600">{submitError}</p>}
-    </form>
+    </div>
   );
 };
 

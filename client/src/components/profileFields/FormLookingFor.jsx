@@ -1,3 +1,5 @@
+// client/src/components/profileFields/FormLookingFor.jsx
+
 import React from "react";
 
 const FormLookingFor = ({ lookingFor, setLookingFor, t }) => {
