@@ -29,16 +29,6 @@ router.post("/register", registerUser);
 router.post("/login", loginUser);
 
 // =====================
-// ✅ Lataa lisäkuvat erikseen
-// =====================
-router.post(
-  "/:userId/upload-photos",
-  authenticateToken,
-  // multer middleware defined in imageRoutes.js
-  uploadExtraPhotos
-);
-
-// =====================
 // ✅ Hae nykyisen käyttäjän tiedot
 // =====================
 router.get("/me", authenticateToken, async (req, res) => {
@@ -83,15 +73,6 @@ router.put(
 );
 
 // =====================
-// ✅ Lataa lisäkuvat erikseen (duplicate removal)
-// =====================
-router.post(
-  "/:userId/upload-photos",
-  authenticateToken,
-  uploadExtraPhotos
-);
-
-// =====================
 // ✅ Haetaan Discover-sivun käyttäjät
 // =====================
 router.get("/all", authenticateToken, async (req, res) => {
@@ -105,6 +86,7 @@ router.get("/all", authenticateToken, async (req, res) => {
     res.status(500).json({ error: "Palvelinvirhe" });
   }
 });
+
 // =====================
 // ✅ Who liked me (Premium)
 // =====================
@@ -298,4 +280,3 @@ router.delete("/profile", authenticateToken, async (req, res) => {
 });
 
 module.exports = router;
-
