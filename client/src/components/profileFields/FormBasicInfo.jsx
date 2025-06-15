@@ -1,11 +1,18 @@
+// client/src/components/profileFields/FormBasicInfo.jsx
+
 import React from "react";
 
 const FormBasicInfo = ({
-  username, setUsername,
-  email, setEmail,
-  age, setAge,
-  gender, setGender,
-  orientation, setOrientation,
+  username,
+  setUsername,
+  email,
+  setEmail,
+  age,
+  setAge,
+  gender,
+  setGender,
+  orientation,
+  setOrientation,
   t,
   hideUsernameEmail = false,
 }) => {

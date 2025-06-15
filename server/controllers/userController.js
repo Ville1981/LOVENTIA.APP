@@ -1,4 +1,3 @@
-// server/controllers/userController.js
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -26,7 +25,7 @@ const upgradeToPremium = async (req, res) => {
   }
 };
 
-// ✅ Muu sisältö: (rekisteröinti, login, matchit...)
+// ✅ Rekisteröi uusi käyttäjä
 const registerUser = async (req, res) => {
   const { username, email, password } = req.body;
   try {
@@ -45,6 +44,7 @@ const registerUser = async (req, res) => {
   }
 };
 
+// ✅ Kirjaudu sisään
 const loginUser = async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -71,6 +71,7 @@ const loginUser = async (req, res) => {
   }
 };
 
+// ✅ Etsi ottelut ja laske match-score
 const getMatchesWithScore = async (req, res) => {
   try {
     const currentUser = await User.findById(req.userId);
@@ -123,9 +124,42 @@ const getMatchesWithScore = async (req, res) => {
   }
 };
 
+// ✅ Lisäkuvien lataus (ExtraPhotosFields-komponentille)
+const uploadExtraPhotos = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    if (req.userId !== userId) {
+      return res.status(403).json({ error: "Et voi muokata toisen käyttäjän kuvia." });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ error: "Käyttäjää ei löydy." });
+
+    const files = req.files;
+    if (!files || files.length === 0) {
+      return res.status(400).json({ error: "Yhtään kuvaa ei lähetetty." });
+    }
+
+    const maxAllowed = user.isPremium ? 20 : 6;
+    if (files.length > maxAllowed) {
+      return res.status(400).json({ error: `Enintään ${maxAllowed} lisäkuvaa sallittu.` });
+    }
+
+    // Tallenna kuvat
+    user.extraImages = files.map(f => f.path);
+
+    const updatedUser = await user.save();
+    res.json({ user: updatedUser }); // ✅ tämä oli puuttuva!
+  } catch (err) {
+    console.error("uploadExtraPhotos virhe:", err);
+    res.status(500).json({ error: "Lisäkuvien tallennus epäonnistui." });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
   getMatchesWithScore,
   upgradeToPremium,
+  uploadExtraPhotos, // ✅ Export mukana
 };

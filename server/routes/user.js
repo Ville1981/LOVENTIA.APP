@@ -23,6 +23,9 @@ function authenticateToken(req, res, next) {
   }
 }
 
+// 🎯 JSON-parsin middleware profiilitietojen päivitykselle
+router.use(express.json());
+
 // 🔧 Multer-tiedostojen tallennus
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "uploads/"),
@@ -47,55 +50,68 @@ router.get("/me", authenticateToken, async (req, res) => {
 });
 
 // ✅ Päivitä profiili (kaikki uudet kentät mukana)
-router.put("/profile", authenticateToken, upload.fields([
-  { name: "image", maxCount: 1 },
-  { name: "extraImages", maxCount: 6 }
-]), async (req, res) => {
-  try {
-    const user = await User.findById(req.userId);
-    if (!user) return res.status(404).json({ error: "Käyttäjää ei löydy" });
+router.put(
+  "/profile",
+  authenticateToken,
+  express.json(),
+  upload.fields([
+    { name: "image", maxCount: 1 },
+    { name: "extraImages", maxCount: 6 },
+  ]),
+  async (req, res) => {
+    try {
+      const user = await User.findById(req.userId);
+      if (!user) return res.status(404).json({ error: "Käyttäjää ei löydy" });
 
-    const fields = [
-      "username", "email", "age", "gender", "orientation", "education",
-      "height", "weight", "status", "religion", "religionImportance",
-      "children", "pets", "summary", "goal", "lookingFor", "profession",
-      "location", "country", "region", "city",
-      "interests", "preferredGender", "preferredMinAge", "preferredMaxAge",
-      "preferredInterests", "preferredCountry", "preferredReligion",
-      "preferredReligionImportance", "preferredEducation", "preferredProfession"
-    ];
+      // Kaikki frontista tulevat kentät
+      const fields = [
+        "username", "email", "age", "gender", "orientation", "education",
+        "height", "weight", "status", "religion", "religionImportance",
+        "children", "pets", "summary", "goal", "lookingFor", "profession",
+        "location", "country", "region", "city",
+        "interests", "preferredGender", "preferredMinAge", "preferredMaxAge",
+        "preferredInterests", "preferredCountry", "preferredReligion",
+        "preferredReligionImportance", "preferredEducation", "preferredProfession"
+      ];
 
-    fields.forEach((field) => {
-      if (req.body[field] !== undefined) {
-        if (["interests", "preferredInterests"].includes(field)) {
-          user[field] = typeof req.body[field] === "string"
-            ? req.body[field].split(",").map(s => s.trim())
-            : req.body[field];
-        } else {
-          user[field] = req.body[field];
+      // Päivitä kentät
+      fields.forEach((field) => {
+        if (req.body[field] !== undefined) {
+          if (["interests", "preferredInterests"].includes(field)) {
+            user[field] =
+              typeof req.body[field] === "string"
+                ? req.body[field].split(",").map((s) => s.trim())
+                : req.body[field];
+          } else {
+            user[field] = req.body[field];
+          }
         }
+      });
+
+      // Avatar
+      if (req.files && req.files['image']) {
+        user.profilePicture = req.files['image'][0].path;
       }
-    });
+      // Lisäkuvat
+      if (req.files && req.files['extraImages']) {
+        user.extraImages = req.files['extraImages'].map((f) => f.path);
+      }
 
-    if (req.files["image"]) {
-      user.profilePicture = req.files["image"][0].path;
+      const updatedUser = await user.save();
+      res.json(updatedUser);
+    } catch (err) {
+      console.error("Profiilin päivitysvirhe:", err);
+      res.status(500).json({ error: "Profiilin päivitys epäonnistui" });
     }
-    if (req.files["extraImages"]) {
-      user.extraImages = req.files["extraImages"].map((f) => f.path);
-    }
-
-    const updatedUser = await user.save();
-    res.json(updatedUser);
-  } catch (err) {
-    console.error("Profiilin päivitysvirhe:", err);
-    res.status(500).json({ error: "Profiilin päivitys epäonnistui" });
   }
-});
+);
 
 // ✅ Julkinen profiili
 router.get("/:id", async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select("-password -email -likes -superLikes -blockedUsers");
+    const user = await User.findById(req.params.id).select(
+      "-password -email -likes -superLikes -blockedUsers"
+    );
     if (!user) return res.status(404).json({ error: "Käyttäjää ei löydy" });
     res.json(user);
   } catch (err) {
@@ -106,7 +122,9 @@ router.get("/:id", async (req, res) => {
 // ✅ Discover
 router.get("/users/all", authenticateToken, async (req, res) => {
   try {
-    const users = await User.find({ _id: { $ne: req.userId } }).select("name email profilePicture");
+    const users = await User.find({ _id: { $ne: req.userId } }).select(
+      "name email profilePicture"
+    );
     res.json(users);
   } catch (err) {
     res.status(401).json({ error: "Invalid token" });

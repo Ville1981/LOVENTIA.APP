@@ -1,10 +1,16 @@
+// client/src/components/profileFields/FormEducation.jsx
+
 import React from "react";
 
 const FormEducation = ({
-  education, setEducation,
-  profession, setProfession,
-  religion, setReligion,
-  religionImportance, setReligionImportance,
+  education,
+  setEducation,
+  profession,
+  setProfession,
+  religion,
+  setReligion,
+  religionImportance,
+  setReligionImportance,
   t
 }) => {
   return (

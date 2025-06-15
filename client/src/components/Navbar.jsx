@@ -9,7 +9,7 @@ const Navbar = () => {
   const { isLoggedIn, logout } = useAuth();
   const [lang, setLang] = useState(i18n.language);
 
-  // ✅ Päivitä kieli tilaan
+  // Päivitä kieli tilaan
   useEffect(() => {
     const handleLangChange = (lng) => {
       setLang(lng);
@@ -29,19 +29,19 @@ const Navbar = () => {
   const linkClass =
     "bg-white/80 text-blue-800 font-semibold px-4 py-2 rounded hover:bg-blue-200 transition text-sm text-center";
 
-  // ✅ Kaikille näkyvät linkit
+  // Kaikille näkyvät linkit
   const commonLinks = [
     { path: "/", label: t("Home") },
     { path: "/privacy", label: t("Privacy") },
   ];
 
-  // ✅ Vierailijoille näkyvät
+  // Vierailijoille näkyvät
   const guestLinks = [
     { path: "/login", label: t("Login") },
     { path: "/register", label: t("Register") },
   ];
 
-  // ✅ Kirjautuneille käyttäjille näkyvät
+  // Kirjautuneille käyttäjille näkyvät
   const userLinks = [
     { path: "/discover", label: t("Discover") },
     { path: "/profile", label: t("Profile") },
@@ -49,6 +49,8 @@ const Navbar = () => {
     { path: "/who-liked-me", label: t("Likes") },
     { path: "/map", label: t("Map") },
     { path: "/admin", label: t("Admin") },
+    // Premium-linkki
+    { path: "/upgrade", label: t("Premium") },
   ];
 
   const allLinks = isLoggedIn
@@ -70,7 +72,7 @@ const Navbar = () => {
         justifyContent: "space-between",
       }}
     >
-      {/* ✅ Otsikko + kielinappi – suunta pakotettu vasemmalta oikealle */}
+      {/* Otsikko + kielinappi */}
       <div className="flex items-center justify-center gap-4 direction-ltr">
         <h1 className="text-3xl font-bold text-white drop-shadow">
           💘 {t("site.title")}
@@ -78,7 +80,7 @@ const Navbar = () => {
         <LanguageSwitcher />
       </div>
 
-      {/* ✅ Navigaatio-linkit */}
+      {/* Navigaatio-linkit */}
       <div
         className="w-full"
         style={{

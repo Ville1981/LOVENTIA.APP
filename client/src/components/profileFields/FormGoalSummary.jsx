@@ -1,3 +1,5 @@
+// client/src/components/profileFields/FormGoalSummary.jsx
+
 import React from "react";
 
 const FormGoalSummary = ({
