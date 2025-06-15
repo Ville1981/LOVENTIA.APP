@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { setAccessToken } from "../utils/axiosInstance"; // ✅ Päivittää tokenin käyttöön api.pyynnöille
 
 const AuthContext = createContext();
@@ -11,7 +11,7 @@ export const AuthProvider = ({ children }) => {
     setAccessToken(newToken);
     setToken(newToken);
 
-    // ✅ (valinnainen) LocalStorage fallback, voi poistaa myöhemmin
+    // ✅ LocalStorage fallback
     localStorage.setItem("token", newToken);
   };
 
@@ -22,6 +22,7 @@ export const AuthProvider = ({ children }) => {
     window.location.href = "/login";
   };
 
+  // Huolehditaan, että mountatessa paikallinen token otetaan käyttöön
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
     if (storedToken) {
