@@ -1,3 +1,5 @@
+// server/controllers/userController.js
+
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -89,14 +91,12 @@ const getMatchesWithScore = async (req, res) => {
         if (
           currentUser.preferredGender === "any" ||
           user.gender?.toLowerCase() === currentUser.preferredGender?.toLowerCase()
-        )
-          score += 20;
+        ) score += 20;
 
         if (
           user.age >= (currentUser.preferredMinAge || 18) &&
           user.age <= (currentUser.preferredMaxAge || 100)
-        )
-          score += 20;
+        ) score += 20;
 
         const commonInterests = currentUser.preferredInterests?.filter((interest) =>
           user.interests?.includes(interest)
@@ -127,13 +127,17 @@ const getMatchesWithScore = async (req, res) => {
 // ✅ Lisäkuvien lataus (ExtraPhotosFields-komponentille)
 const uploadExtraPhotos = async (req, res) => {
   try {
-    const { userId } = req.params;
-    if (req.userId !== userId) {
+    // Parametri 'id' vastaa ':id/upload-photos'
+    const { id } = req.params;
+    if (req.userId !== id) {
       return res.status(403).json({ error: "Et voi muokata toisen käyttäjän kuvia." });
     }
 
-    const user = await User.findById(userId);
+    const user = await User.findById(id);
     if (!user) return res.status(404).json({ error: "Käyttäjää ei löydy." });
+
+    // Debug: tarkista lähetetyt tiedostot
+    console.log("📦 req.files:", req.files);
 
     const files = req.files;
     if (!files || files.length === 0) {
@@ -141,15 +145,23 @@ const uploadExtraPhotos = async (req, res) => {
     }
 
     const maxAllowed = user.isPremium ? 20 : 6;
-    if (files.length > maxAllowed) {
-      return res.status(400).json({ error: `Enintään ${maxAllowed} lisäkuvaa sallittu.` });
+    const existingCount = Array.isArray(user.extraImages) ? user.extraImages.length : 0;
+    const incomingCount = files.length;
+    console.log(`⛔ existingCount=${existingCount}, incomingCount=${incomingCount}, maxAllowed=${maxAllowed}`);
+    if (existingCount + incomingCount > maxAllowed) {
+      return res.status(400).json({ error: `Lisäkuvien kokonaismäärä ei saa ylittää ${maxAllowed} kuvia. Sinulla on jo ${existingCount}.` });
     }
 
-    // Tallenna kuvat
-    user.extraImages = files.map(f => f.path);
+    // Yhdistä vanhat ja uudet kuvat
+    user.extraImages = [
+      ...(Array.isArray(user.extraImages) ? user.extraImages : []),
+      ...files.map(f => f.path),
+    ];
 
     const updatedUser = await user.save();
-    res.json({ user: updatedUser }); // ✅ tämä oli puuttuva!
+    console.log("✅ uploadExtraPhotos success, total images:", updatedUser.extraImages.length);
+    // Palauta päivitetty käyttäjä
+    res.json({ user: updatedUser });
   } catch (err) {
     console.error("uploadExtraPhotos virhe:", err);
     res.status(500).json({ error: "Lisäkuvien tallennus epäonnistui." });
@@ -161,5 +173,5 @@ module.exports = {
   loginUser,
   getMatchesWithScore,
   upgradeToPremium,
-  uploadExtraPhotos, // ✅ Export mukana
+  uploadExtraPhotos,
 };

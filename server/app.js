@@ -1,5 +1,3 @@
-// server/app.js
-
 const express = require("express");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
@@ -34,12 +32,14 @@ app.use(
   cors({
     origin: process.env.CLIENT_URL || "http://localhost:5174",
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
   })
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static uploads directory
+// Serve static uploads directory for profile and extra images
 app.use(
   "/uploads",
   express.static(path.join(__dirname, "uploads"))
@@ -72,27 +72,38 @@ app.get("/api/users", (req, res) => {
     findOutCount: 4,
     summary: "Positive mindset, self develop …",
     details: {},
-  };
+  };  
   res.json([user]);
 });
 
 // Mount API routers
-app.use("/api/users", userRoutes);     // ← korjattu mount: profiili- ja user-API:t
 app.use("/api/auth", authRoutes);
-// Image upload routes: avatar and extra photos
+// Image upload routes: avatar and extra photos (must come before userRoutes)
 app.use("/api/users", imageRoutes);
+// User management routes
+app.use("/api/users", userRoutes);
+// Other routes
 app.use("/api/messages", messageRoutes);
 app.use("/api/payment", paymentRoutes);
 
+// Multer-specific error handler (e.g., file size limits)
+app.use((err, req, res, next) => {
+  if (err.name === "MulterError") {
+    // Handle Multer file size or other Multer errors
+    return res.status(413).json({ error: err.message });
+  }
+  next(err);
+});
+
 // 404 handler
 app.use((req, res, next) => {
-  res.status(404).json({ message: "Not Found" });
+  res.status(404).json({ error: "Not Found" });
 });
 
 // Global error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(err.status || 500).json({ message: err.message || "Internal Server Error" });
+  res.status(500).json({ error: "Server Error" });
 });
 
 module.exports = app;

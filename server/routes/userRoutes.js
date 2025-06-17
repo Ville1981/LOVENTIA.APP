@@ -4,7 +4,6 @@ const User = require("../models/User");
 const Subscription = require("../models/Subscription");
 const Image = require("../models/Image");
 const authenticateToken = require("../middleware/auth");
-// File upload handled in separate routes (imageRoutes.js)
 const path = require("path");
 const fs = require("fs");
 
@@ -51,7 +50,6 @@ router.put(
       const user = await User.findById(req.userId);
       if (!user) return res.status(404).json({ error: "Käyttäjää ei löydy" });
 
-      // Päivitä tekstit
       const textFields = [
         "username", "email", "age", "gender", "orientation",
         "education", "profession", "religion", "religionImportance",
@@ -62,11 +60,10 @@ router.put(
         if (req.body[field] !== undefined) user[field] = req.body[field];
       });
 
-      // Tallennetaan muutokset
       const updatedUser = await user.save();
       res.json(updatedUser);
     } catch (err) {
-      console.error("Profiilin päivitysvirhe:", err.stack);
+      console.error("Profiilin päivitysvirhe:", err);
       res.status(500).json({ error: "Profiilin päivitys epäonnistui" });
     }
   }
@@ -82,7 +79,7 @@ router.get("/all", authenticateToken, async (req, res) => {
     );
     res.json(users);
   } catch (err) {
-    console.error("Discover-haku epäonnistui:", err.stack);
+    console.error("Discover-haku epäonnistui:", err);
     res.status(500).json({ error: "Palvelinvirhe" });
   }
 });
@@ -236,6 +233,11 @@ router.post("/upgrade-premium", authenticateToken, async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+
+// =====================
+// 📸 Bulk upload extra photos
+// =====================
+router.post("/:id/upload-photos", authenticateToken, uploadExtraPhotos);
 
 // =====================
 // ✅ ADMIN: Piilota/näytä käyttäjä

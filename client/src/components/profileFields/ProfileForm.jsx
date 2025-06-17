@@ -1,6 +1,6 @@
-// client/src/components/profileFields/ProfileForm.jsx
+// src/components/profileFields/ProfileForm.jsx
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import FormBasicInfo from "./FormBasicInfo";
 import FormLocation from "./FormLocation";
@@ -8,22 +8,22 @@ import FormEducation from "./FormEducation";
 import FormChildrenPets from "./FormChildrenPets";
 import FormGoalSummary from "./FormGoalSummary";
 import FormLookingFor from "./FormLookingFor";
-import ExtraPhotosFields from "./ExtraPhotosFields";
+import MultiStepPhotoUploader from "./MultiStepPhotoUploader";
 import { uploadAvatar } from "../../api/images";
 import { BACKEND_BASE_URL } from "../../config";
 
 /**
  * ProfileForm
  * @param {object} props
- * @param {object} props.user             - Käyttäjädata
- * @param {boolean} props.isPremium       - Premium-oikeudet kuvien määrä
- * @param {object} props.values           - Lomakekenttien arvot
- * @param {function} props.setters        - Funktio, jolla päivitetään koko values-olioa
- * @param {function} props.t              - Käännösfunktio
- * @param {string} props.message         - Status-viesti
- * @param {boolean} props.success        - Status-viestin tyyli (onnistuiko)
- * @param {function} props.onUserUpdate  - Callback päivitetyn käyttäjädatan käsittelyyn
- * @param {boolean} [props.hideAvatarSection=false] - Piilottaa avatar-latausosion
+ * @param {object} props.user
+ * @param {boolean} props.isPremium
+ * @param {object} props.values
+ * @param {function} props.setters
+ * @param {function} props.t
+ * @param {string} props.message
+ * @param {boolean} props.success
+ * @param {function} props.onUserUpdate
+ * @param {boolean} [props.hideAvatarSection=false]
  */
 const ProfileForm = ({
   user,
@@ -36,6 +36,16 @@ const ProfileForm = ({
   onUserUpdate,
   hideAvatarSection = false,
 }) => {
+  // Local copy of extraImages to ensure child re-renders
+  const [localExtraImages, setLocalExtraImages] = useState(
+    user.extraImages || []
+  );
+
+  // Sync localExtraImages when parent user prop changes
+  useEffect(() => {
+    setLocalExtraImages(user.extraImages || []);
+  }, [user.extraImages]);
+
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(
     user.profilePicture
@@ -48,7 +58,7 @@ const ProfileForm = ({
 
   const token = localStorage.getItem("token");
 
-  // Avatar-muutos
+  // Avatar file change handler
   const handleAvatarChange = (e) => {
     const file = e.target.files[0] || null;
     setAvatarFile(file);
@@ -59,13 +69,15 @@ const ProfileForm = ({
     }
   };
 
-  // Avatar-lataus
+  // Avatar upload handler
   const handleAvatarSubmit = async (e) => {
     e.preventDefault();
     if (!avatarFile) return;
     setAvatarError(null);
     try {
       const updatedUser = await uploadAvatar(user._id, avatarFile);
+      // Update extra images and user data
+      setLocalExtraImages(updatedUser.extraImages || []);
       onUserUpdate(updatedUser);
     } catch (err) {
       setAvatarError("Avatar-lataus epäonnistui");
@@ -73,14 +85,11 @@ const ProfileForm = ({
     }
   };
 
-  // Lomaketietojen tallennus backendille
-    // Lomaketietojen tallennus backendille
+  // Profile info submit handler
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("💾 handleSubmit käynnistyi, values =", values);
     try {
       const res = await axios.put(
-        // Korjattu endpoint: PUT /api/users/profile (tokenista haetaan userId)
         `${BACKEND_BASE_URL}/api/users/profile`,
         values,
         {
@@ -90,6 +99,8 @@ const ProfileForm = ({
         }
       );
       const updatedUser = res.data.user || res.data;
+      // Update extra images and call parent update
+      setLocalExtraImages(updatedUser.extraImages || []);
       onUserUpdate(updatedUser);
     } catch (err) {
       console.error("Profiilin tallennus epäonnistui:", err);
@@ -97,8 +108,11 @@ const ProfileForm = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white shadow rounded-lg p-6 space-y-6">
-      {/* Avatar-osio (voidaan piilottaa hideAvatarSection-propilla) */}
+    <form
+      onSubmit={handleSubmit}
+      className="bg-white shadow rounded-lg p-6 space-y-6"
+    >
+      {/* Avatar section (optional) */}
       {!hideAvatarSection && (
         <div className="flex items-center space-x-6">
           <div className="w-12 h-12 rounded-full overflow-hidden border">
@@ -128,10 +142,11 @@ const ProfileForm = ({
             >
               🎨 {t("profile.saveAvatar")}
             </button>
-            {avatarError && <p className="text-red-600 mt-1">{avatarError}</p>}
+            {avatarError && (
+              <p className="text-red-600 mt-1">{avatarError}</p>
+            )}
           </div>
 
-          {/* Käyttäjätunnus ja sijainti */}
           <div className="flex flex-col">
             <h2 className="text-xl font-semibold">{user.username}</h2>
             <p className="text-gray-600">
@@ -147,16 +162,24 @@ const ProfileForm = ({
         </div>
       )}
 
-      {/* Perustiedot */}
+      {/* Basic Info */}
       <FormBasicInfo
         username={values.username}
-        setUsername={(v) => setValues((prev) => ({ ...prev, username: v }))}
+        setUsername={(v) =>
+          setValues((prev) => ({ ...prev, username: v }))
+        }
         email={values.email}
-        setEmail={(v) => setValues((prev) => ({ ...prev, email: v }))}
+        setEmail={(v) =>
+          setValues((prev) => ({ ...prev, email: v }))
+        }
         age={values.age}
-        setAge={(v) => setValues((prev) => ({ ...prev, age: v }))}
+        setAge={(v) =>
+          setValues((prev) => ({ ...prev, age: v }))
+        }
         gender={values.gender}
-        setGender={(v) => setValues((prev) => ({ ...prev, gender: v }))}
+        setGender={(v) =>
+          setValues((prev) => ({ ...prev, gender: v }))
+        }
         orientation={values.orientation}
         setOrientation={(v) =>
           setValues((prev) => ({ ...prev, orientation: v }))
@@ -164,13 +187,15 @@ const ProfileForm = ({
         t={t}
       />
 
-      {/* Sijainti: maa/osavaltio/kaupunki */}
+      {/* Location */}
       <FormLocation values={values} setters={setValues} t={t} />
 
-      {/* Koulutus */}
+      {/* Education */}
       <FormEducation
         education={values.education}
-        setEducation={(v) => setValues((prev) => ({ ...prev, education: v }))}
+        setEducation={(v) =>
+          setValues((prev) => ({ ...prev, education: v }))
+        }
         profession={values.profession}
         setProfession={(v) =>
           setValues((prev) => ({ ...prev, profession: v }))
@@ -181,26 +206,37 @@ const ProfileForm = ({
         }
         religionImportance={values.religionImportance}
         setReligionImportance={(v) =>
-          setValues((prev) => ({ ...prev, religionImportance: v }))
+          setValues((prev) => ({
+            ...prev,
+            religionImportance: v,
+          }))
         }
         t={t}
       />
 
-      {/* Lapset ja lemmikit */}
+      {/* Children & Pets */}
       <FormChildrenPets
         children={values.children}
-        setChildren={(v) => setValues((prev) => ({ ...prev, children: v }))}
+        setChildren={(v) =>
+          setValues((prev) => ({ ...prev, children: v }))
+        }
         pets={values.pets}
-        setPets={(v) => setValues((prev) => ({ ...prev, pets: v }))}
+        setPets={(v) =>
+          setValues((prev) => ({ ...prev, pets: v }))
+        }
         t={t}
       />
 
       {/* Goals & Summary */}
       <FormGoalSummary
         summary={values.summary}
-        setSummary={(v) => setValues((prev) => ({ ...prev, summary: v }))}
+        setSummary={(v) =>
+          setValues((prev) => ({ ...prev, summary: v }))
+        }
         goal={values.goal}
-        setGoal={(v) => setValues((prev) => ({ ...prev, goal: v }))}
+        setGoal={(v) =>
+          setValues((prev) => ({ ...prev, goal: v }))
+        }
         t={t}
       />
 
@@ -214,15 +250,20 @@ const ProfileForm = ({
       />
 
       {/* Extra Photos */}
-      <ExtraPhotosFields
+      <MultiStepPhotoUploader
         userId={user._id}
         isPremium={isPremium}
-        extraImages={user.extraImages || []}
-        onSuccess={onUserUpdate}
-        onError={(err) => console.error(err)}
+        extraImages={localExtraImages}
+        onSuccess={(updatedUser) => {
+          setLocalExtraImages(updatedUser.extraImages || []);
+          onUserUpdate(updatedUser);
+        }}
+        onError={(err) =>
+          console.error("MultiStepPhotoUploader error:", err)
+        }
       />
 
-      {/* Tallenna loput muutokset */}
+      {/* Save Changes */}
       <button
         type="submit"
         className="w-full px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
@@ -231,9 +272,11 @@ const ProfileForm = ({
       </button>
 
       {message && (
-        <p className={`text-center ${
-          success ? "text-green-600" : "text-red-600"
-        }`}>
+        <p
+          className={`text-center ${
+            success ? "text-green-600" : "text-red-600"
+          }`}
+        >
           {message}
         </p>
       )}
