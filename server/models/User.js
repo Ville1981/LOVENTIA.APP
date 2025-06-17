@@ -7,7 +7,17 @@ const userSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     profilePicture: { type: String },    // Profiilikuvan polku tallennetaan tähän
-    extraImages: [String],                // Lisäkuvat (max 6)
+    extraImages: {
+      type: [String],
+      default: [],
+      // Aina maxSlots-pituinen taulukko (6 ei-premium, 20 premium)
+      set: function(arr) {
+        const max = this.isPremium ? 20 : 6;
+        const a = Array.isArray(arr) ? arr.slice(0, max) : [];
+        while (a.length < max) a.push(null);
+        return a;
+      }
+    },                // Lisäkuvat (max 6 tai 20 Premium)
 
     // 🧍 Perustiedot
     name: String,

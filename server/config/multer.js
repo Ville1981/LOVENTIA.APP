@@ -4,18 +4,25 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 
-// Hakemisto profiilikuva- ja lisäkuva-uploadseille
-const UPLOAD_DIR = path.join(__dirname, "../uploads/profiles");
+// Hakemistot profiili- ja lisäkuva-uploadseille
+const PROFILES_DIR = path.join(__dirname, "../uploads/profiles");
+const EXTRA_DIR = path.join(__dirname, "../uploads/extra");
 
-// Varmistetaan, että hakemisto on olemassa
-if (!fs.existsSync(UPLOAD_DIR)) {
-  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-}
+// Varmistetaan, että hakemistot ovat olemassa
+[PROFILES_DIR, EXTRA_DIR].forEach((dir) => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+});
 
 const storage = multer.diskStorage({
-  // Tallennuskansio
+  // Tallennuskansio kentän mukaan
   destination: (req, file, cb) => {
-    cb(null, UPLOAD_DIR);
+    if (file.fieldname === "profilePhoto") {
+      cb(null, PROFILES_DIR);
+    } else {
+      cb(null, EXTRA_DIR);
+    }
   },
   // Tiedostonimi (ajastettu, uniikki)
   filename: (req, file, cb) => {
@@ -31,23 +38,22 @@ const fileFilter = (req, file, cb) => {
   if (file.mimetype.startsWith("image/")) {
     cb(null, true);
   } else {
-    cb(new Error("Only image files are allowed!"), false);
+    cb(new multer.MulterError('LIMIT_UNEXPECTED_FILE', file.fieldname), false);
   }
 };
 
+// Rajoitetaan tiedoston maksimikoko
 const limits = {
-  fileSize: 5 * 1024 * 1024, // max 5MB per file
+  fileSize: 10 * 1024 * 1024, // max 10 MB per file
 };
 
-// ProfileUpload for both avatar and extra photos
-const profileUpload = multer({
+// Export upload-middleware
+const upload = multer({
   storage,
   fileFilter,
   limits,
 });
 
-// Export both named properties for backward compatibility
 module.exports = {
-  profileUpload,
-  upload: profileUpload
+  upload,
 };
