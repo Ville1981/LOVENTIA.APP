@@ -22,7 +22,7 @@ app.use(
 
 // PayPal webhook endpoint (raw body required for signature verification)
 app.use(
-  "/api",
+  "/api/payment/paypal-webhook",
   paypalWebhookRouter
 );
 
@@ -46,9 +46,9 @@ app.use(
 );
 
 // 🔌 Application routes
-const userRoutes = require("./routes/userRoutes");
 const authRoutes = require("./routes/auth");
 const imageRoutes = require("./routes/imageRoutes");
+const userRoutes = require("./routes/userRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 const paymentRoutes = require("./routes/payment");
 
@@ -61,18 +61,18 @@ app.get("/api/users", (req, res) => {
     location: "Rayong, Thailand",
     compatibility: 88,
     photos: [
-      "/uploads/profiles/bunny1.jpg",
-      "/uploads/profiles/bunny2.jpg",
-      "/uploads/profiles/bunny3.jpg",
+      "/uploads/bunny1.jpg",
+      "/uploads/bunny2.jpg",
+      "/uploads/bunny3.jpg",
     ],
-    youPhoto: "/uploads/profiles/your-avatar.jpg",
-    profilePhoto: "/uploads/profiles/bunny-avatar.jpg",
+    youPhoto: "/uploads/your-avatar.jpg",
+    profilePhoto: "/uploads/bunny-avatar.jpg",
     agreeCount: 6,
     disagreeCount: 3,
     findOutCount: 4,
     summary: "Positive mindset, self develop …",
     details: {},
-  };  
+  };
   res.json([user]);
 });
 
