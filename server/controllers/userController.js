@@ -1,8 +1,15 @@
-// server/controllers/userController.js
-
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const fs = require("fs");
+const path = require("path");
+
+// Utility: poista tiedosto levyltä
+function removeFile(filePath) {
+  if (filePath && fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+  }
+}
 
 // ✅ Premium-tason aktivointi
 const upgradeToPremium = async (req, res) => {
@@ -124,10 +131,9 @@ const getMatchesWithScore = async (req, res) => {
   }
 };
 
-// ✅ Lisäkuvien lataus (ExtraPhotosFields-komponentille)
+// ✅ Lisäkuvien lataus (bulk)
 const uploadExtraPhotos = async (req, res) => {
   try {
-    // Parametri 'id' vastaa ':id/upload-photos'
     const { id } = req.params;
     if (req.userId !== id) {
       return res.status(403).json({ error: "Et voi muokata toisen käyttäjän kuvia." });
@@ -135,9 +141,6 @@ const uploadExtraPhotos = async (req, res) => {
 
     const user = await User.findById(id);
     if (!user) return res.status(404).json({ error: "Käyttäjää ei löydy." });
-
-    // Debug: tarkista lähetetyt tiedostot
-    console.log("📦 req.files:", req.files);
 
     const files = req.files;
     if (!files || files.length === 0) {
@@ -147,24 +150,73 @@ const uploadExtraPhotos = async (req, res) => {
     const maxAllowed = user.isPremium ? 20 : 6;
     const existingCount = Array.isArray(user.extraImages) ? user.extraImages.length : 0;
     const incomingCount = files.length;
-    console.log(`⛔ existingCount=${existingCount}, incomingCount=${incomingCount}, maxAllowed=${maxAllowed}`);
     if (existingCount + incomingCount > maxAllowed) {
-      return res.status(400).json({ error: `Lisäkuvien kokonaismäärä ei saa ylittää ${maxAllowed} kuvia. Sinulla on jo ${existingCount}.` });
+      return res.status(400).json({ error: `Lisäkuvien määrä ei saa ylittää ${maxAllowed}.` });
     }
 
-    // Yhdistä vanhat ja uudet kuvat
+    // Yhdistä vanhat ja uudet
     user.extraImages = [
       ...(Array.isArray(user.extraImages) ? user.extraImages : []),
       ...files.map(f => f.path),
     ];
 
     const updatedUser = await user.save();
-    console.log("✅ uploadExtraPhotos success, total images:", updatedUser.extraImages.length);
-    // Palauta päivitetty käyttäjä
-    res.json({ user: updatedUser });
+    res.json({ extraImages: updatedUser.extraImages });
   } catch (err) {
     console.error("uploadExtraPhotos virhe:", err);
     res.status(500).json({ error: "Lisäkuvien tallennus epäonnistui." });
+  }
+};
+
+// 🚀 Yksi kuva + crop + slot
+const uploadPhotoStep = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (req.userId !== id) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    const slot = parseInt(req.body.slot, 10);
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    // Poista vanha, jos on
+    if (user.extraImages && user.extraImages[slot]) {
+      removeFile(user.extraImages[slot]);
+    }
+    user.extraImages = user.extraImages || [];
+    user.extraImages[slot] = req.file.path;
+
+    const saved = await user.save();
+    res.json({ extraImages: saved.extraImages });
+  } catch (err) {
+    console.error("uploadPhotoStep error:", err);
+    res.status(500).json({ error: "Upload failed" });
+  }
+};
+
+// 🚀 Slot‐kohtainen poisto
+const deletePhotoSlot = async (req, res) => {
+  try {
+    const { id, slot } = req.params;
+    if (req.userId !== id) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    const idx = parseInt(slot, 10);
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    if (user.extraImages && user.extraImages[idx]) {
+      removeFile(user.extraImages[idx]);
+      user.extraImages[idx] = null;
+    }
+
+    const saved = await user.save();
+    res.json({ extraImages: saved.extraImages });
+  } catch (err) {
+    console.error("deletePhotoSlot error:", err);
+    res.status(500).json({ error: "Delete failed" });
   }
 };
 
@@ -174,4 +226,6 @@ module.exports = {
   getMatchesWithScore,
   upgradeToPremium,
   uploadExtraPhotos,
+  uploadPhotoStep,
+  deletePhotoSlot,
 };
