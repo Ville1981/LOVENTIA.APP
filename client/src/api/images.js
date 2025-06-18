@@ -1,5 +1,3 @@
-// client/src/api/images.js
-
 import axios from "axios";
 import { BACKEND_BASE_URL } from "../config";
 
@@ -21,8 +19,8 @@ export const uploadAvatar = async (userId, file) => {
       formData,
       {
         headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${token}`
+          // Content-Type jätetty pois: axios asettaa sen automaattisesti boundaryineen
         },
         withCredentials: true,
       }
@@ -66,7 +64,7 @@ export const uploadPhotos = async (userId, filesOrFormData) => {
       formData,
       {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${token}`
         },
         withCredentials: true,
       }
@@ -101,7 +99,7 @@ export const uploadPhotoStep = async (userId, formData) => {
       formData,
       {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${token}`
         },
         withCredentials: true,
       }
@@ -128,7 +126,7 @@ export const deletePhotoSlot = async (userId, slot) => {
       `${BACKEND_BASE_URL}/api/users/${userId}/photos/${slot}`,
       {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${token}`
         },
         withCredentials: true,
       }

@@ -1,5 +1,3 @@
-// src/components/profileFields/MultiStepPhotoUploader.jsx
-
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import Cropper from 'react-easy-crop';
 import 'react-easy-crop/react-easy-crop.css';
@@ -12,7 +10,7 @@ import { BACKEND_BASE_URL, PLACEHOLDER_IMAGE } from '../../config';
 
 /**
  * MultiStepPhotoUploader manages extra photo slots including:
- * - Single photo add with cropping and caption
+ * - Single-photo add with cropping and caption
  * - Bulk upload for multiple images
  * - Display of existing images with "Remove picture" action
  */
@@ -25,28 +23,20 @@ export default function MultiStepPhotoUploader({
 }) {
   const maxSlots = isPremium ? 20 : 6;
 
-  // Step state for single-photo flow
+  // --- state hooks ---
   const [step, setStep] = useState(1);
   const [selectedFile, setSelectedFile] = useState(null);
-
-  // Bulk-upload state
   const [bulkFiles, setBulkFiles] = useState([]);
-
-  // Crop + caption state
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [caption, setCaption] = useState('');
-
-  // Current slot index for single-photo flow
   const [slot, setSlot] = useState(0);
-
-  // Local images padded to maxSlots
   const [localImages, setLocalImages] = useState(
     Array.from({ length: maxSlots }, (_, i) => extraImages[i] || null)
   );
 
-  // Sync when extraImages prop changes
+  // --- sync props to state ---
   useEffect(() => {
     const padded = Array.from(
       { length: maxSlots },
@@ -55,14 +45,13 @@ export default function MultiStepPhotoUploader({
     setLocalImages(padded);
   }, [extraImages, maxSlots]);
 
-  // Reset scroll when modal opens
   useEffect(() => {
     if (step > 1) window.scrollTo(0, 0);
   }, [step]);
 
   const fileInputRef = useRef(null);
 
-  // Helpers
+  // --- helpers ---
   const findFirstEmpty = useCallback(() => {
     const idx = localImages.findIndex((img) => !img);
     return idx !== -1 ? idx : 0;
@@ -74,11 +63,7 @@ export default function MultiStepPhotoUploader({
     fileInputRef.current.click();
   }, []);
 
-  // Handlers
-  const handleAddClick = useCallback(() => {
-    openSlot(findFirstEmpty());
-  }, [findFirstEmpty, openSlot]);
-
+  // --- single-photo flow handlers ---
   const handleFileChange = useCallback((e) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -94,17 +79,47 @@ export default function MultiStepPhotoUploader({
   const handleNext = useCallback(() => {
     setStep((s) => Math.min(s + 1, 4));
   }, []);
-
   const handleBack = useCallback(() => {
     setStep((s) => Math.max(s - 1, 1));
   }, []);
 
-  // Bulk file selection
+  const handleSubmit = async () => {
+    if (!userId || !selectedFile || !croppedAreaPixels) return;
+    try {
+      const form = new FormData();
+      form.append('photo', selectedFile);
+      form.append('slot', slot);
+      form.append('cropX', croppedAreaPixels.x);
+      form.append('cropY', croppedAreaPixels.y);
+      form.append('cropWidth', croppedAreaPixels.width);
+      form.append('cropHeight', croppedAreaPixels.height);
+      if (caption) form.append('caption', caption);
+
+      const result = await uploadPhotoStep(userId, form);
+      if (result?.extraImages) {
+        const padded = Array.from(
+          { length: maxSlots },
+          (_, i) => result.extraImages[i] || null
+        );
+        setLocalImages(padded);
+      }
+      onSuccess(result);
+      // reset
+      setStep(1);
+      setSelectedFile(null);
+      setCaption('');
+      setCrop({ x: 0, y: 0 });
+      setZoom(1);
+      setCroppedAreaPixels(null);
+    } catch (err) {
+      onError(err);
+    }
+  };
+
+  // --- bulk-upload handlers ---
   const handleBulkChange = (e) => {
     setBulkFiles(Array.from(e.target.files || []));
   };
-
-  // Bulk upload submit
   const handleBulkUpload = async () => {
     if (!bulkFiles.length || !userId) return;
     try {
@@ -123,41 +138,7 @@ export default function MultiStepPhotoUploader({
     }
   };
 
-  // Single-photo final submit
-  const handleSubmit = async () => {
-    if (!userId || !selectedFile || !croppedAreaPixels) return;
-    const form = new FormData();
-    form.append('photo', selectedFile);
-    form.append('slot', slot);
-    form.append('cropX', croppedAreaPixels.x);
-    form.append('cropY', croppedAreaPixels.y);
-    form.append('cropWidth', croppedAreaPixels.width);
-    form.append('cropHeight', croppedAreaPixels.height);
-    if (caption) form.append('caption', caption);
-
-    try {
-      const result = await uploadPhotoStep(userId, form);
-      if (result?.extraImages) {
-        const padded = Array.from(
-          { length: maxSlots },
-          (_, i) => result.extraImages[i] || null
-        );
-        setLocalImages(padded);
-      }
-      onSuccess(result);
-      // Reset flow
-      setStep(1);
-      setSelectedFile(null);
-      setCaption('');
-      setCrop({ x: 0, y: 0 });
-      setZoom(1);
-      setCroppedAreaPixels(null);
-    } catch (err) {
-      onError(err);
-    }
-  };
-
-  // Delete photo slot
+  // --- delete slot ---
   const handleDelete = async (i) => {
     if (!userId) return;
     try {
@@ -177,21 +158,21 @@ export default function MultiStepPhotoUploader({
 
   return (
     <div>
-      {/* Add single photo & bulk upload controls */}
-      <button
-        type="button"
-        onClick={handleAddClick}
-        className="mb-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-      >
-        Add Photo
-      </button>
+      {/* Bulk-upload controls */}
       <div className="mb-4 flex items-center space-x-2">
+        <label
+          htmlFor="bulk-input"
+          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 cursor-pointer"
+        >
+          Add photo
+        </label>
         <input
+          id="bulk-input"
           type="file"
           multiple
           accept="image/*"
           onChange={handleBulkChange}
-          className="block"
+          className="hidden"
         />
         <button
           type="button"
@@ -199,7 +180,7 @@ export default function MultiStepPhotoUploader({
           onClick={handleBulkUpload}
           className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
         >
-          Save Photos
+          Save photos
         </button>
       </div>
 
@@ -212,23 +193,20 @@ export default function MultiStepPhotoUploader({
         onChange={handleFileChange}
       />
 
-      {/* Image slots grid */}
+      {/* Image slots - show only existing images */}
       <div className="grid grid-cols-3 gap-4 mt-4">
-        {localImages.map((src, i) => (
-          <div key={i} className="flex flex-col items-center">
-            <div
-              onClick={() => !src && openSlot(i)}
-              className="border p-2 cursor-pointer flex items-center justify-center w-32 h-32 bg-gray-100 hover:bg-gray-200"
-            >
-              <img
-                src={src ? `${BACKEND_BASE_URL}${src}` : PLACEHOLDER_IMAGE}
-                alt={src ? `Slot ${i + 1}` : `Empty slot ${i + 1}`}
-                className={`${
-                  !src ? 'opacity-50' : ''
-                } object-cover w-full h-full`}
-              />
-            </div>
-            {src && (
+        {localImages
+          .map((src, i) => ({ src, i }))
+          .filter(item => item.src)
+          .map(({ src, i }) => (
+            <div key={i} className="flex flex-col items-center">
+              <div className="border p-2 flex items-center justify-center w-32 h-32 bg-gray-100 hover:bg-gray-200">
+                <img
+                  src={`${BACKEND_BASE_URL}${src}`}
+                  alt={`Slot ${i + 1}`}
+                  className="object-cover w-full h-full"
+                />
+              </div>
               <button
                 type="button"
                 onClick={() => handleDelete(i)}
@@ -236,21 +214,18 @@ export default function MultiStepPhotoUploader({
               >
                 Remove picture
               </button>
-            )}
-          </div>
-        ))}
+            </div>
+          ))
+        }
       </div>
 
       {/* Modal for single-photo cropping & caption */}
       {step > 1 && selectedFile && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg w-96">
-            {/* Preview */}
             {step === 2 && (
               <>
-                <h2 className="text-lg font-semibold mb-4">
-                  Preview Image
-                </h2>
+                <h2 className="text-lg font-semibold mb-4">Preview Image</h2>
                 <div className="relative w-full h-64 bg-gray-200 flex items-center justify-center">
                   <img
                     src={URL.createObjectURL(selectedFile)}
@@ -263,12 +238,9 @@ export default function MultiStepPhotoUploader({
                 </p>
               </>
             )}
-            {/* Crop */}
             {step === 3 && (
               <>
-                <h2 className="text-lg font-semibold mb-4">
-                  Crop Image
-                </h2>
+                <h2 className="text-lg font-semibold mb-4">Crop Image</h2>
                 <div className="relative w-full h-64 bg-gray-200">
                   <Cropper
                     image={URL.createObjectURL(selectedFile)}
@@ -291,12 +263,9 @@ export default function MultiStepPhotoUploader({
                 />
               </>
             )}
-            {/* Caption & Submit */}
             {step === 4 && (
               <>
-                <h2 className="text-lg font-semibold mb-2">
-                  Add Caption
-                </h2>
+                <h2 className="text-lg font-semibold mb-2">Add Caption</h2>
                 <textarea
                   rows={3}
                   value={caption}
@@ -315,21 +284,14 @@ export default function MultiStepPhotoUploader({
                 </div>
               </>
             )}
-            {/* Navigation */}
             <div className="flex justify-between mt-4">
               {step > 2 && (
-                <button
-                  onClick={handleBack}
-                  className="px-3 py-1 bg-gray-200 rounded"
-                >
+                <button onClick={handleBack} className="px-3 py-1 bg-gray-200 rounded">
                   Back
                 </button>
               )}
               {step < 4 && (
-                <button
-                  onClick={handleNext}
-                  className="px-3 py-1 bg-gray-200 rounded"
-                >
+                <button onClick={handleNext} className="px-3 py-1 bg-gray-200 rounded">
                   Next
                 </button>
               )}

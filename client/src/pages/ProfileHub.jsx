@@ -2,13 +2,12 @@ import React, { useEffect, useState, useCallback } from "react";
 import { Link, useParams } from "react-router-dom";
 import axios from "axios";
 import ProfileForm from "../components/profileFields/ProfileForm";
-import MultiStepPhotoUploader from "../components/profileFields/MultiStepPhotoUploader";
 import { BACKEND_BASE_URL } from "../config";
 
 /**
  * ProfileHub handles user profile display and editing,
  * including tab navigation, profile completion stats,
- * question prompts, and delegates image upload/delete to MultiStepPhotoUploader.
+ * question prompts, and delegates image upload/delete to ProfileForm.
  */
 const ProfileHub = () => {
   const token = localStorage.getItem("token");
@@ -105,7 +104,7 @@ const ProfileHub = () => {
   // Handle profile form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (userIdParam) return; // jos katselee toisen profiilia, ei lähetetä
+    if (userIdParam) return; // Do not submit when viewing another's profile
     try {
       await axios.put(
         `${BACKEND_BASE_URL}/api/users/profile`,
@@ -184,8 +183,7 @@ const ProfileHub = () => {
               </span>
             </div>
             <p className="mt-2 text-sm text-gray-600">
-              Your highest possible match:{" "}
-              <span className="font-bold">{highestMatch}%</span>
+              Your highest possible match: <span className="font-bold">{highestMatch}%</span>
             </p>
             <div className="mt-4 flex space-x-2">
               <button className="flex-1 py-2 border border-blue-600 rounded-lg">
@@ -216,20 +214,6 @@ const ProfileHub = () => {
             success={success}
             hideAvatarSection={false}
           />
-
-          {/* Extra photos uploader */}
-          <div className="bg-white rounded-lg shadow p-4">
-            <h2 className="font-semibold mb-2">Extra Photos</h2>
-            <MultiStepPhotoUploader
-              userId={user._id}
-              isPremium={user.isPremium}
-              extraImages={user.extraImages || []}
-              onSuccess={({ extraImages: imgs }) =>
-                setUser((prev) => ({ ...prev, extraImages: imgs }))
-              }
-              onError={(err) => console.error("Photo upload/delete error:", err)}
-            />
-          </div>
         </div>
       )}
 

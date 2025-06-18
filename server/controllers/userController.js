@@ -14,22 +14,14 @@ function removeFile(filePath) {
 // ✅ Premium-tason aktivointi
 const upgradeToPremium = async (req, res) => {
   try {
-    console.log("🟡 Premium-pyyntö käyttäjältä:", req.userId);
-
-    if (!req.userId) {
-      return res.status(401).json({ error: "Unauthorized – no user ID in token" });
-    }
-
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ error: "User not found" });
 
     user.isPremium = true;
     await user.save();
-
-    console.log("✅ Premium aktivoitu käyttäjälle:", user.username);
     res.json({ message: "Premium activated successfully" });
   } catch (err) {
-    console.error("❌ Premium upgrade error:", err);
+    console.error("Premium upgrade error:", err);
     res.status(500).json({ error: "Server error upgrading to premium" });
   }
 };
@@ -87,43 +79,38 @@ const getMatchesWithScore = async (req, res) => {
     if (!currentUser) return res.status(404).json({ error: "User not found" });
 
     const allUsers = await User.find({ _id: { $ne: currentUser._id } });
-
     const matches = allUsers
-      .filter((user) =>
-        !currentUser.blockedUsers.includes(user._id) &&
-        !user.blockedUsers.includes(currentUser._id)
+      .filter(u =>
+        !currentUser.blockedUsers.includes(u._id) &&
+        !u.blockedUsers.includes(currentUser._id)
       )
-      .map((user) => {
+      .map(u => {
         let score = 0;
         if (
           currentUser.preferredGender === "any" ||
-          user.gender?.toLowerCase() === currentUser.preferredGender?.toLowerCase()
+          u.gender?.toLowerCase() === currentUser.preferredGender?.toLowerCase()
         ) score += 20;
-
         if (
-          user.age >= (currentUser.preferredMinAge || 18) &&
-          user.age <= (currentUser.preferredMaxAge || 100)
+          u.age >= (currentUser.preferredMinAge || 18) &&
+          u.age <= (currentUser.preferredMaxAge || 100)
         ) score += 20;
-
-        const commonInterests = currentUser.preferredInterests?.filter((interest) =>
-          user.interests?.includes(interest)
+        const common = currentUser.preferredInterests?.filter(i =>
+          u.interests?.includes(i)
         );
-        score += Math.min((commonInterests?.length || 0) * 10, 60);
-
+        score += Math.min((common?.length || 0) * 10, 60);
         return {
-          _id: user._id,
-          name: user.name,
-          email: user.email,
-          age: user.age,
-          gender: user.gender,
-          goal: user.goal,
-          location: user.location,
-          profilePicture: user.profilePicture,
-          isPremium: user.isPremium || false,
+          _id: u._id,
+          name: u.name,
+          email: u.email,
+          age: u.age,
+          gender: u.gender,
+          goal: u.goal,
+          location: u.location,
+          profilePicture: u.profilePicture,
+          isPremium: u.isPremium,
           matchScore: score,
         };
       });
-
     res.json(matches);
   } catch (err) {
     console.error("Match score error:", err);
@@ -134,56 +121,41 @@ const getMatchesWithScore = async (req, res) => {
 // ✅ Lisäkuvien lataus (bulk)
 const uploadExtraPhotos = async (req, res) => {
   try {
-    const { id } = req.params;
-    if (req.userId !== id) {
-      return res.status(403).json({ error: "Et voi muokata toisen käyttäjän kuvia." });
-    }
-
-    const user = await User.findById(id);
-    if (!user) return res.status(404).json({ error: "Käyttäjää ei löydy." });
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: "User not found" });
 
     const files = req.files;
-    if (!files || files.length === 0) {
-      return res.status(400).json({ error: "Yhtään kuvaa ei lähetetty." });
+    if (!files?.length) {
+      return res.status(400).json({ error: "No photos uploaded" });
     }
 
     const maxAllowed = user.isPremium ? 20 : 6;
-    const existingCount = Array.isArray(user.extraImages) ? user.extraImages.length : 0;
-    const incomingCount = files.length;
-    if (existingCount + incomingCount > maxAllowed) {
-      return res.status(400).json({ error: `Lisäkuvien määrä ei saa ylittää ${maxAllowed}.` });
+    if ((user.extraImages?.filter(Boolean).length || 0) + files.length > maxAllowed) {
+      return res.status(400).json({ error: `Cannot exceed ${maxAllowed} extra photos` });
     }
 
-    // Yhdistä vanhat ja uudet
-    user.extraImages = [
-      ...(Array.isArray(user.extraImages) ? user.extraImages : []),
-      ...files.map(f => f.path),
-    ];
-
-    const updatedUser = await user.save();
-    res.json({ extraImages: updatedUser.extraImages });
+    // Poista vanhat jos halutaan korvata, tai lisää perään
+    // Tässä korvatakseen: removeFile on jo osa put /profile
+    user.extraImages = files.map(f => f.path);
+    const saved = await user.save();
+    res.json({ extraImages: saved.extraImages });
   } catch (err) {
-    console.error("uploadExtraPhotos virhe:", err);
-    res.status(500).json({ error: "Lisäkuvien tallennus epäonnistui." });
+    console.error("uploadExtraPhotos error:", err);
+    res.status(500).json({ error: "Bulk upload failed" });
   }
 };
 
-// 🚀 Yksi kuva + crop + slot
+// 🚀 Yksi kuva + slot + crop + caption
 const uploadPhotoStep = async (req, res) => {
   try {
-    const { id } = req.params;
-    if (req.userId !== id) {
-      return res.status(403).json({ error: "Forbidden" });
-    }
-
-    const slot = parseInt(req.body.slot, 10);
-    const user = await User.findById(id);
+    const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    // Poista vanha, jos on
-    if (user.extraImages && user.extraImages[slot]) {
-      removeFile(user.extraImages[slot]);
-    }
+    const slot = parseInt(req.body.slot, 10);
+    if (isNaN(slot)) return res.status(400).json({ error: "Invalid slot" });
+
+    // Poista vanha
+    if (user.extraImages[slot]) removeFile(user.extraImages[slot]);
     user.extraImages = user.extraImages || [];
     user.extraImages[slot] = req.file.path;
 
@@ -195,21 +167,18 @@ const uploadPhotoStep = async (req, res) => {
   }
 };
 
-// 🚀 Slot‐kohtainen poisto
+// 🚀 Slot-kohtainen poisto
 const deletePhotoSlot = async (req, res) => {
   try {
-    const { id, slot } = req.params;
-    if (req.userId !== id) {
-      return res.status(403).json({ error: "Forbidden" });
-    }
-
-    const idx = parseInt(slot, 10);
-    const user = await User.findById(id);
+    const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    if (user.extraImages && user.extraImages[idx]) {
-      removeFile(user.extraImages[idx]);
-      user.extraImages[idx] = null;
+    const slot = parseInt(req.params.slot, 10);
+    if (isNaN(slot)) return res.status(400).json({ error: "Invalid slot" });
+
+    if (user.extraImages[slot]) {
+      removeFile(user.extraImages[slot]);
+      user.extraImages[slot] = null;
     }
 
     const saved = await user.save();
@@ -221,10 +190,10 @@ const deletePhotoSlot = async (req, res) => {
 };
 
 module.exports = {
+  upgradeToPremium,
   registerUser,
   loginUser,
   getMatchesWithScore,
-  upgradeToPremium,
   uploadExtraPhotos,
   uploadPhotoStep,
   deletePhotoSlot,
