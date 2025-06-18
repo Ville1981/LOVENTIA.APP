@@ -51,7 +51,7 @@ const ProfileForm = ({
     user.profilePicture
       ? user.profilePicture.startsWith("http")
         ? user.profilePicture
-        : `${BACKEND_BASE_URL}/${user.profilePicture}`
+        : `${BACKEND_BASE_URL}${user.profilePicture}`
       : null
   );
   const [avatarError, setAvatarError] = useState(null);
@@ -80,7 +80,7 @@ const ProfileForm = ({
       setLocalExtraImages(updatedUser.extraImages || []);
       onUserUpdate(updatedUser);
     } catch (err) {
-      setAvatarError("Avatar-lataus epäonnistui");
+      setAvatarError("Avatar upload failed");
       console.error(err);
     }
   };
@@ -99,11 +99,11 @@ const ProfileForm = ({
         }
       );
       const updatedUser = res.data.user || res.data;
-      // Update extra images and call parent update
+      // Update extra images and notify parent
       setLocalExtraImages(updatedUser.extraImages || []);
       onUserUpdate(updatedUser);
     } catch (err) {
-      console.error("Profiilin tallennus epäonnistui:", err);
+      console.error("Profile save failed:", err);
     }
   };
 
@@ -119,7 +119,7 @@ const ProfileForm = ({
             {avatarPreview && (
               <img
                 src={avatarPreview}
-                alt="Profiilikuva"
+                alt="Profile"
                 className="w-full h-full object-cover"
                 onError={(e) => {
                   e.currentTarget.src = "/placeholder-avatar-male.png";
@@ -142,9 +142,7 @@ const ProfileForm = ({
             >
               🎨 {t("profile.saveAvatar")}
             </button>
-            {avatarError && (
-              <p className="text-red-600 mt-1">{avatarError}</p>
-            )}
+            {avatarError && <p className="text-red-600 mt-1">{avatarError}</p>}
           </div>
 
           <div className="flex flex-col">
@@ -165,21 +163,13 @@ const ProfileForm = ({
       {/* Basic Info */}
       <FormBasicInfo
         username={values.username}
-        setUsername={(v) =>
-          setValues((prev) => ({ ...prev, username: v }))
-        }
+        setUsername={(v) => setValues((prev) => ({ ...prev, username: v }))}
         email={values.email}
-        setEmail={(v) =>
-          setValues((prev) => ({ ...prev, email: v }))
-        }
+        setEmail={(v) => setValues((prev) => ({ ...prev, email: v }))}
         age={values.age}
-        setAge={(v) =>
-          setValues((prev) => ({ ...prev, age: v }))
-        }
+        setAge={(v) => setValues((prev) => ({ ...prev, age: v }))}
         gender={values.gender}
-        setGender={(v) =>
-          setValues((prev) => ({ ...prev, gender: v }))
-        }
+        setGender={(v) => setValues((prev) => ({ ...prev, gender: v }))}
         orientation={values.orientation}
         setOrientation={(v) =>
           setValues((prev) => ({ ...prev, orientation: v }))
@@ -206,10 +196,7 @@ const ProfileForm = ({
         }
         religionImportance={values.religionImportance}
         setReligionImportance={(v) =>
-          setValues((prev) => ({
-            ...prev,
-            religionImportance: v,
-          }))
+          setValues((prev) => ({ ...prev, religionImportance: v }))
         }
         t={t}
       />
@@ -221,9 +208,7 @@ const ProfileForm = ({
           setValues((prev) => ({ ...prev, children: v }))
         }
         pets={values.pets}
-        setPets={(v) =>
-          setValues((prev) => ({ ...prev, pets: v }))
-        }
+        setPets={(v) => setValues((prev) => ({ ...prev, pets: v }))}
         t={t}
       />
 
@@ -234,9 +219,7 @@ const ProfileForm = ({
           setValues((prev) => ({ ...prev, summary: v }))
         }
         goal={values.goal}
-        setGoal={(v) =>
-          setValues((prev) => ({ ...prev, goal: v }))
-        }
+        setGoal={(v) => setValues((prev) => ({ ...prev, goal: v }))}
         t={t}
       />
 
@@ -254,13 +237,12 @@ const ProfileForm = ({
         userId={user._id}
         isPremium={isPremium}
         extraImages={localExtraImages}
-        onSuccess={(updatedUser) => {
-          setLocalExtraImages(updatedUser.extraImages || []);
-          onUserUpdate(updatedUser);
+        onSuccess={(result) => {
+          const imgs = result.extraImages || [];
+          setLocalExtraImages(imgs);
+          onUserUpdate({ ...user, extraImages: imgs });
         }}
-        onError={(err) =>
-          console.error("MultiStepPhotoUploader error:", err)
-        }
+        onError={(err) => console.error("Photo uploader error:", err)}
       />
 
       {/* Save Changes */}
@@ -285,7 +267,3 @@ const ProfileForm = ({
 };
 
 export default ProfileForm;
-
-
-
-

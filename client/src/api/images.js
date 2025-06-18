@@ -22,11 +22,12 @@ export const uploadAvatar = async (userId, file) => {
       {
         headers: {
           Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
         },
         withCredentials: true,
       }
     );
-    return res.data.user;
+    return res.data.user || res.data;
   } catch (err) {
     console.error("uploadAvatar error:", err.response || err);
     const msg = err.response?.data?.error || "Avatarin tallennus epäonnistui";
@@ -38,6 +39,10 @@ export const uploadAvatar = async (userId, file) => {
  * Lisäkuvien lataus (useamman kuvan bulk-lähetys)
  */
 export const uploadPhotos = async (userId, filesOrFormData) => {
+  if (!userId || typeof userId !== "string") {
+    throw new Error("Virheellinen käyttäjätunnus kuvan latauksessa");
+  }
+
   let formData;
   if (filesOrFormData instanceof FormData) {
     formData = filesOrFormData;
@@ -47,9 +52,7 @@ export const uploadPhotos = async (userId, filesOrFormData) => {
       throw new Error("Et valinnut kuvaa ladattavaksi.");
     }
     formData = new FormData();
-    validFiles.forEach((file) => {
-      formData.append("photos", file);
-    });
+    validFiles.forEach((file) => formData.append("photos", file));
   }
 
   const token = localStorage.getItem("token");
@@ -68,7 +71,7 @@ export const uploadPhotos = async (userId, filesOrFormData) => {
         withCredentials: true,
       }
     );
-    return res.data.user;
+    return res.data.user || res.data;
   } catch (err) {
     console.error("uploadPhotos error:", err.response || err);
     const errorMsg = err.response?.data?.error;
@@ -83,7 +86,10 @@ export const uploadPhotos = async (userId, filesOrFormData) => {
  * Yksi kuvan vaiheittainen lähetys: crop + caption + slot
  */
 export const uploadPhotoStep = async (userId, formData) => {
-  // formData sisältää kentät: photo, slot, cropX, cropY, cropWidth, cropHeight, caption
+  if (!userId || typeof userId !== "string") {
+    throw new Error("Virheellinen käyttäjätunnus vaiheittaisessa kuvien tallennuksessa");
+  }
+
   const token = localStorage.getItem("token");
   if (!token) {
     throw new Error("Kirjaudu sisään tallentaaksesi kuvan");
@@ -100,7 +106,7 @@ export const uploadPhotoStep = async (userId, formData) => {
         withCredentials: true,
       }
     );
-    return res.data.user;
+    return res.data.user || res.data;
   } catch (err) {
     console.error("uploadPhotoStep error:", err.response || err);
     const msg = err.response?.data?.error || "Kuvan tallennus epäonnistui";
@@ -127,7 +133,7 @@ export const deletePhotoSlot = async (userId, slot) => {
         withCredentials: true,
       }
     );
-    return res.data.user;
+    return res.data.user || res.data;
   } catch (err) {
     console.error("deletePhotoSlot error:", err.response || err);
     const msg = err.response?.data?.error || "Kuvan poisto epäonnistui";
