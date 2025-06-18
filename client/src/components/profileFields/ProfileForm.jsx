@@ -1,5 +1,3 @@
-// src/components/profileFields/ProfileForm.jsx
-
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import FormBasicInfo from "./FormBasicInfo";
@@ -14,16 +12,6 @@ import { BACKEND_BASE_URL } from "../../config";
 
 /**
  * ProfileForm
- * @param {object} props
- * @param {object} props.user
- * @param {boolean} props.isPremium
- * @param {object} props.values
- * @param {function} props.setters
- * @param {function} props.t
- * @param {string} props.message
- * @param {boolean} props.success
- * @param {function} props.onUserUpdate
- * @param {boolean} [props.hideAvatarSection=false]
  */
 const ProfileForm = ({
   user,
@@ -36,16 +24,13 @@ const ProfileForm = ({
   onUserUpdate,
   hideAvatarSection = false,
 }) => {
-  // Local copy of extraImages to ensure child re-renders
-  const [localExtraImages, setLocalExtraImages] = useState(
-    user.extraImages || []
-  );
-
-  // Sync localExtraImages when parent user prop changes
+  // Extra images
+  const [localExtraImages, setLocalExtraImages] = useState(user.extraImages || []);
   useEffect(() => {
     setLocalExtraImages(user.extraImages || []);
   }, [user.extraImages]);
 
+  // Avatar state
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(
     user.profilePicture
@@ -56,9 +41,20 @@ const ProfileForm = ({
   );
   const [avatarError, setAvatarError] = useState(null);
 
+  // Sync preview when user.profilePicture updates
+  useEffect(() => {
+    if (user.profilePicture) {
+      setAvatarPreview(
+        user.profilePicture.startsWith("http")
+          ? user.profilePicture
+          : `${BACKEND_BASE_URL}${user.profilePicture}`
+      );
+    }
+  }, [user.profilePicture]);
+
   const token = localStorage.getItem("token");
 
-  // Avatar file change handler
+  // Avatar file change
   const handleAvatarChange = (e) => {
     const file = e.target.files[0] || null;
     setAvatarFile(file);
@@ -69,23 +65,31 @@ const ProfileForm = ({
     }
   };
 
-  // Avatar upload handler
+  // Avatar upload
   const handleAvatarSubmit = async (e) => {
     e.preventDefault();
     if (!avatarFile) return;
     setAvatarError(null);
     try {
       const updatedUser = await uploadAvatar(user._id, avatarFile);
-      // Update extra images and user data
-      setLocalExtraImages(updatedUser.extraImages || []);
+      // Update preview and parent state
+      if (updatedUser.profilePicture) {
+        setAvatarPreview(
+          updatedUser.profilePicture.startsWith("http")
+            ? updatedUser.profilePicture
+            : `${BACKEND_BASE_URL}${updatedUser.profilePicture}`
+        );
+      }
       onUserUpdate(updatedUser);
     } catch (err) {
-      setAvatarError("Avatar upload failed");
-      console.error(err);
+      // Show server error if available
+      const msg = err.message || t("profile.avatarUploadFailed");
+      setAvatarError(msg);
+      console.error("Avatar upload error:", err);
     }
   };
 
-  // Profile info submit handler
+  // Profile save
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -93,13 +97,10 @@ const ProfileForm = ({
         `${BACKEND_BASE_URL}/api/users/profile`,
         values,
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
       const updatedUser = res.data.user || res.data;
-      // Update extra images and notify parent
       setLocalExtraImages(updatedUser.extraImages || []);
       onUserUpdate(updatedUser);
     } catch (err) {
@@ -108,11 +109,8 @@ const ProfileForm = ({
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="bg-white shadow rounded-lg p-6 space-y-6"
-    >
-      {/* Avatar section (optional) */}
+    <form onSubmit={handleSubmit} className="bg-white shadow rounded-lg p-6 space-y-6">
+      {/* Avatar section */}
       {!hideAvatarSection && (
         <div className="flex items-center space-x-6">
           <div className="w-12 h-12 rounded-full overflow-hidden border">
@@ -171,9 +169,7 @@ const ProfileForm = ({
         gender={values.gender}
         setGender={(v) => setValues((prev) => ({ ...prev, gender: v }))}
         orientation={values.orientation}
-        setOrientation={(v) =>
-          setValues((prev) => ({ ...prev, orientation: v }))
-        }
+        setOrientation={(v) => setValues((prev) => ({ ...prev, orientation: v }))}
         t={t}
       />
 
@@ -183,30 +179,20 @@ const ProfileForm = ({
       {/* Education */}
       <FormEducation
         education={values.education}
-        setEducation={(v) =>
-          setValues((prev) => ({ ...prev, education: v }))
-        }
+        setEducation={(v) => setValues((prev) => ({ ...prev, education: v }))}
         profession={values.profession}
-        setProfession={(v) =>
-          setValues((prev) => ({ ...prev, profession: v }))
-        }
+        setProfession={(v) => setValues((prev) => ({ ...prev, profession: v }))}
         religion={values.religion}
-        setReligion={(v) =>
-          setValues((prev) => ({ ...prev, religion: v }))
-        }
+        setReligion={(v) => setValues((prev) => ({ ...prev, religion: v }))}
         religionImportance={values.religionImportance}
-        setReligionImportance={(v) =>
-          setValues((prev) => ({ ...prev, religionImportance: v }))
-        }
+        setReligionImportance={(v) => setValues((prev) => ({ ...prev, religionImportance: v }))}
         t={t}
       />
 
       {/* Children & Pets */}
       <FormChildrenPets
         children={values.children}
-        setChildren={(v) =>
-          setValues((prev) => ({ ...prev, children: v }))
-        }
+        setChildren={(v) => setValues((prev) => ({ ...prev, children: v }))}
         pets={values.pets}
         setPets={(v) => setValues((prev) => ({ ...prev, pets: v }))}
         t={t}
@@ -215,9 +201,7 @@ const ProfileForm = ({
       {/* Goals & Summary */}
       <FormGoalSummary
         summary={values.summary}
-        setSummary={(v) =>
-          setValues((prev) => ({ ...prev, summary: v }))
-        }
+        setSummary={(v) => setValues((prev) => ({ ...prev, summary: v }))}
         goal={values.goal}
         setGoal={(v) => setValues((prev) => ({ ...prev, goal: v }))}
         t={t}
@@ -226,9 +210,7 @@ const ProfileForm = ({
       {/* Looking For */}
       <FormLookingFor
         lookingFor={values.lookingFor}
-        setLookingFor={(v) =>
-          setValues((prev) => ({ ...prev, lookingFor: v }))
-        }
+        setLookingFor={(v) => setValues((prev) => ({ ...prev, lookingFor: v }))}
         t={t}
       />
 
@@ -254,11 +236,7 @@ const ProfileForm = ({
       </button>
 
       {message && (
-        <p
-          className={`text-center ${
-            success ? "text-green-600" : "text-red-600"
-          }`}
-        >
+        <p className={`text-center ${success ? "text-green-600" : "text-red-600"}`}>
           {message}
         </p>
       )}

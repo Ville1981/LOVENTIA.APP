@@ -1,8 +1,18 @@
+// server/routes/users.js
+
 const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
-const { registerUser, loginUser } = require("../controllers/userController");
+const {
+  registerUser,
+  loginUser,
+  getMatchesWithScore,
+  upgradeToPremium,
+  uploadExtraPhotos,
+  uploadPhotoStep,
+  deletePhotoSlot,
+} = require("../controllers/userController");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
@@ -44,14 +54,9 @@ function removeFile(filePath) {
 // =====================
 // = Perusreitit =
 // =====================
-
-// Rekisteröi käyttäjä
 router.post("/register", registerUser);
-
-// Kirjaudu sisään
 router.post("/login", loginUser);
 
-// Hae nykyinen käyttäjä
 router.get("/me", authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.userId).select("-password");
@@ -61,28 +66,28 @@ router.get("/me", authenticateToken, async (req, res) => {
   }
 });
 
-// Päivitä profiili (kentät + avatar + bulk extraImages)
 router.put(
   "/profile",
   authenticateToken,
   upload.fields([
-    { name: "profilePhoto", maxCount: 1 },  // ← muutettu vastaamaan fronttia
-    { name: "extraImages",  maxCount: 6 },
+    { name: "profilePhoto", maxCount: 1 },
+    { name: "extraImages", maxCount: 20 },
   ]),
   async (req, res) => {
     try {
       const user = await User.findById(req.userId);
       if (!user) return res.status(404).json({ error: "User not found" });
 
-      // Päivitä peruskentät
+      // Päivitä peruskentät…
       const fields = [
-        "username","email","age","gender","orientation","education",
-        "height","weight","status","religion","religionImportance",
-        "children","pets","summary","goal","lookingFor","profession",
-        "location","country","region","city",
-        "interests","preferredGender","preferredMinAge","preferredMaxAge",
-        "preferredInterests","preferredCountry","preferredReligion",
-        "preferredReligionImportance","preferredEducation","preferredProfession"
+        "username","email","age","gender","orientation",
+        "education","height","weight","status","religion",
+        "religionImportance","children","pets","summary","goal",
+        "lookingFor","profession","location","country","region",
+        "city","interests","preferredGender","preferredMinAge",
+        "preferredMaxAge","preferredInterests","preferredCountry",
+        "preferredReligion","preferredReligionImportance",
+        "preferredEducation","preferredProfession"
       ];
       fields.forEach(field => {
         if (req.body[field] !== undefined) {
@@ -96,14 +101,14 @@ router.put(
         }
       });
 
-      // Avatar‐päivitys (PUT /profile)
-      if (req.files && req.files.profilePhoto) {
+      // Avatar-päivitys
+      if (req.files?.profilePhoto?.length) {
         removeFile(user.profilePicture);
         user.profilePicture = req.files.profilePhoto[0].path;
       }
 
-      // Bulk extraImages
-      if (req.files && req.files.extraImages) {
+      // Bulk-extraImages päivitys
+      if (req.files?.extraImages?.length) {
         (user.extraImages || []).forEach(removeFile);
         user.extraImages = req.files.extraImages.map(f => f.path);
       }
@@ -117,7 +122,6 @@ router.put(
   }
 );
 
-// Julkinen profiili
 router.get("/:id", async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select(
@@ -130,7 +134,6 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// Discover (kaikki muut paitsi itse)
 router.get("/users/all", authenticateToken, async (req, res) => {
   try {
     const list = await User.find({ _id: { $ne: req.userId } }).select(
@@ -142,11 +145,10 @@ router.get("/users/all", authenticateToken, async (req, res) => {
   }
 });
 
-// Like
 router.post("/like/:id", authenticateToken, async (req, res) => {
   try {
     const current = await User.findById(req.userId);
-    const target  = req.params.id;
+    const target = req.params.id;
     if (!current.likes.includes(target)) {
       current.likes.push(target);
       await current.save();
@@ -157,12 +159,11 @@ router.post("/like/:id", authenticateToken, async (req, res) => {
   }
 });
 
-// Superlike
 router.post("/superlike/:id", authenticateToken, async (req, res) => {
   try {
     const current = await User.findById(req.userId);
-    const target  = req.params.id;
-    const now     = new Date();
+    const target = req.params.id;
+    const now = new Date();
     current.superLikeTimestamps = (current.superLikeTimestamps || [])
       .filter(ts => now - new Date(ts) < 48 * 60 * 60 * 1000);
     const limit = current.isPremium ? 3 : 1;
@@ -180,10 +181,9 @@ router.post("/superlike/:id", authenticateToken, async (req, res) => {
   }
 });
 
-// Block user
 router.post("/block/:id", authenticateToken, async (req, res) => {
   try {
-    const me      = await User.findById(req.userId);
+    const me = await User.findById(req.userId);
     const blockId = req.params.id;
     if (me._id.equals(blockId))
       return res.status(400).json({ message: "Cannot block yourself" });
@@ -197,19 +197,10 @@ router.post("/block/:id", authenticateToken, async (req, res) => {
   }
 });
 
-// Upgrade to premium
-router.post("/upgrade-premium", authenticateToken, async (req, res) => {
-  try {
-    const u = await User.findById(req.userId);
-    u.isPremium = true;
-    await u.save();
-    res.json({ message: "Premium updated" });
-  } catch (err) {
-    res.status(500).json({ error: "Server error" });
-  }
-});
+// Premium upgrade
+router.post("/upgrade-premium", authenticateToken, upgradeToPremium);
 
-// Who liked me (premium only)
+// Who liked me
 router.get("/who-liked-me", authenticateToken, async (req, res) => {
   try {
     const me = await User.findById(req.userId);
@@ -235,52 +226,9 @@ router.get("/nearby", async (req, res) => {
   }
 });
 
-// Admin: list users
-router.get("/admin/users", authenticateToken, async (req, res) => {
-  try {
-    const all = await User.find().select("-password");
-    res.json(all);
-  } catch (err) {
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-// Admin: hide/unhide
-router.put("/admin/hide/:id", authenticateToken, async (req, res) => {
-  try {
-    const u = await User.findById(req.params.id);
-    u.hidden = !u.hidden;
-    await u.save();
-    res.json({ message: `User ${u.hidden ? "hidden" : "visible"}` });
-  } catch (err) {
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-// Admin: delete user
-router.delete("/admin/:id", authenticateToken, async (req, res) => {
-  try {
-    await User.findByIdAndDelete(req.params.id);
-    res.json({ message: "User deleted" });
-  } catch (err) {
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-// Delete own account
-router.delete("/profile", authenticateToken, async (req, res) => {
-  try {
-    await User.findByIdAndDelete(req.userId);
-    res.json({ message: "Account deleted" });
-  } catch (err) {
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-
-// ==============================
-// = Kuvien upload- ja delete =
-// ==============================
+// =====================
+// = Kuvien upload =
+// =====================
 
 /**
  * Profiiliavatar
@@ -293,16 +241,14 @@ router.post(
   async (req, res) => {
     try {
       const { id } = req.params;
-      if (req.userId !== id)
+      if (req.userId !== id) {
         return res.status(403).json({ error: "Forbidden" });
-
+      }
       const user = await User.findById(id);
       if (!user) return res.status(404).json({ error: "User not found" });
 
-      // Poista vanha
+      // Poista vanha ja aseta uusi
       removeFile(user.profilePicture);
-
-      // Tallenna uusi
       user.profilePicture = req.file.path;
       await user.save();
 
@@ -315,34 +261,14 @@ router.post(
 );
 
 /**
- * Bulk‐lisäkuvien lataus
+ * Bulk extraImages
  * Client kutsuu uploadPhotos() → POST /api/users/:id/upload-photos
  */
 router.post(
   "/:id/upload-photos",
   authenticateToken,
   upload.array("photos", 20),
-  async (req, res) => {
-    try {
-      const { id } = req.params;
-      if (req.userId !== id)
-        return res.status(403).json({ error: "Forbidden" });
-
-      const user = await User.findById(id);
-      if (!user) return res.status(404).json({ error: "User not found" });
-
-      // Poistetaan vanhat
-      (user.extraImages || []).forEach(removeFile);
-
-      // Tallennetaan uudet
-      user.extraImages = req.files.map(f => f.path);
-      const saved = await user.save();
-      res.json({ extraImages: saved.extraImages });
-    } catch (err) {
-      console.error("upload-photos error:", err);
-      res.status(500).json({ error: "Bulk upload failed" });
-    }
-  }
+  uploadExtraPhotos
 );
 
 /**
@@ -353,61 +279,17 @@ router.post(
   "/:id/upload-photo-step",
   authenticateToken,
   upload.single("photo"),
-  async (req, res) => {
-    try {
-      const { id } = req.params;
-      if (req.userId !== id)
-        return res.status(403).json({ error: "Forbidden" });
-
-      const slot = parseInt(req.body.slot, 10);
-      const user = await User.findById(id);
-      if (!user) return res.status(404).json({ error: "User not found" });
-
-      // Poistetaan aiempi tiedosto slotista
-      if (user.extraImages && user.extraImages[slot]) {
-        removeFile(user.extraImages[slot]);
-      }
-      user.extraImages = user.extraImages || [];
-      user.extraImages[slot] = req.file.path;
-
-      const saved = await user.save();
-      res.json({ extraImages: saved.extraImages });
-    } catch (err) {
-      console.error("upload-photo-step error:", err);
-      res.status(500).json({ error: "Upload failed" });
-    }
-  }
+  uploadPhotoStep
 );
 
 /**
- * Slot‐kohtainen poisto
+ * Slot-kohtainen poisto
  * Client kutsuu deletePhotoSlot() → DELETE /api/users/:id/photos/:slot
  */
 router.delete(
   "/:id/photos/:slot",
   authenticateToken,
-  async (req, res) => {
-    try {
-      const { id, slot } = req.params;
-      if (req.userId !== id)
-        return res.status(403).json({ error: "Forbidden" });
-
-      const idx = parseInt(slot, 10);
-      const user = await User.findById(id);
-      if (!user) return res.status(404).json({ error: "User not found" });
-
-      if (user.extraImages && user.extraImages[idx]) {
-        removeFile(user.extraImages[idx]);
-        user.extraImages[idx] = null;
-      }
-
-      const saved = await user.save();
-      res.json({ extraImages: saved.extraImages });
-    } catch (err) {
-      console.error("delete-photo-slot error:", err);
-      res.status(500).json({ error: "Delete failed" });
-    }
-  }
+  deletePhotoSlot
 );
 
 module.exports = router;
