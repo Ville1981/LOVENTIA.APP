@@ -1,18 +1,21 @@
-# Node
+# Node modules
 node_modules/
-.env
-dist/
-.vscode/
-*.log
-.DS_Store
+client/node_modules/
+server/node_modules/
 
 # Build artifacts
 client/dist/
-server/node_modules/
-client/node_modules/
+dist/
 
-# IDE
-.idea/
-*.iml
+# Env files
+.env
 client/.env.local
+
+# Uploads (user content)
 server/uploads/
+
+# Editor & OS temp files
+.vscode/
+.idea/
+*.log
+.DS_Store
