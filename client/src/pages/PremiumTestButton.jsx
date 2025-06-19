@@ -1,20 +1,15 @@
 import React from "react";
-import axios from "axios";
+import api from "../utils/axiosInstance";
 
 const PremiumTestButton = () => {
   const handleUpgrade = async () => {
-    const token = localStorage.getItem("token");
     try {
-      const res = await axios.post(
-        "http://localhost:5000/api/auth/upgrade-premium",
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      // Lähetetään pyyntö premium-statuksen päivitykseen
+      const res = await api.post(
+        "/auth/upgrade-premium",
+        {}
       );
-      alert("✅ Premium aktivoitu: " + res.data.message);
+      alert("✅ Premium aktivoitu: " + (res.data.message || "Onnistui!"));
     } catch (err) {
       console.error("❌ Virhe:", err.response?.data || err);
       alert("❌ Premiumin aktivointi epäonnistui");

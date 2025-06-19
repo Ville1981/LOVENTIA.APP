@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
-import axios from "axios";
+import api from "../utils/axiosInstance";
 import { useTranslation } from "react-i18next";
 
 // Oletusikoni toimii Leafletissä
@@ -17,7 +17,6 @@ const MapView = () => {
   const [position, setPosition] = useState(null); // oma sijainti
   const [users, setUsers] = useState([]); // muut käyttäjät
   const [error, setError] = useState("");
-  const token = localStorage.getItem("token");
 
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
@@ -42,9 +41,7 @@ const MapView = () => {
           }
 
           // Hae muiden käyttäjien tiedot tältä paikkakunnalta
-          const res = await axios.get(`http://localhost:5000/api/users/nearby?city=${city}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
+          const res = await api.get(`/users/nearby?city=${encodeURIComponent(city)}`);
 
           // Suodata: näytetään vain käyttäjät, joilla on sijainti ja koordinaatit
           const filtered = res.data.filter(
@@ -59,15 +56,21 @@ const MapView = () => {
       },
       () => setError(t("map.locationError"))
     );
-  }, [token]);
+  }, []);
 
   return (
     <div className="h-[80vh] p-4">
-      <h2 className="text-xl font-semibold mb-4 text-center">🗺️ {t("map.title")}</h2>
+      <h2 className="text-xl font-semibold mb-4 text-center">
+        🗺️ {t("map.title")}
+      </h2>
       {error && <p className="text-red-500 text-center">{error}</p>}
 
       {position ? (
-        <MapContainer center={position} zoom={13} className="h-full w-full rounded shadow">
+        <MapContainer
+          center={position}
+          zoom={13}
+          className="h-full w-full rounded shadow"
+        >
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
@@ -92,7 +95,9 @@ const MapView = () => {
           ))}
         </MapContainer>
       ) : (
-        <p className="text-center text-gray-500">🔄 {t("map.loadingLocation")}</p>
+        <p className="text-center text-gray-500">
+          🔄 {t("map.loadingLocation")}
+        </p>
       )}
     </div>
   );

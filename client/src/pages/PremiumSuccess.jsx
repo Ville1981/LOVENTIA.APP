@@ -1,18 +1,18 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../utils/axiosInstance";
 import { useTranslation } from "react-i18next";
 
 const PremiumSuccess = () => {
   const { t } = useTranslation();
   const [message, setMessage] = useState(t("premium.updating"));
+  const token = localStorage.getItem("token");
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-
     const updatePremium = async () => {
       try {
-        await axios.post(
-          "http://localhost:5000/api/auth/upgrade-premium",
+        // Lähetetään päivityspyyntö premium-statuksen nostamiseksi
+        await api.post(
+          "/auth/upgrade-premium",
           {},
           {
             headers: {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import axios from "axios";
+import api from "../utils/axiosInstance";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
@@ -14,11 +14,8 @@ const ChatPage = () => {
   useEffect(() => {
     const fetchMessages = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/messages/${userId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        // Authorization-headerin lisää interceptor
+        const res = await api.get(`/messages/${userId}`);
         setMessages(res.data);
         scrollToBottom();
       } catch (err) {
@@ -37,14 +34,9 @@ const ChatPage = () => {
     if (!newMessage.trim()) return;
 
     try {
-      const res = await axios.post(
-        `http://localhost:5000/api/messages/${userId}`,
-        { text: newMessage },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const res = await api.post(
+        `/messages/${userId}`,
+        { text: newMessage }
       );
       setMessages((prev) => [...prev, res.data]);
       setNewMessage("");
@@ -56,7 +48,9 @@ const ChatPage = () => {
 
   return (
     <div className="flex flex-col max-w-2xl mx-auto h-screen p-4">
-      <h2 className="text-xl font-bold mb-2 text-center">💬 {t("chat.title")}</h2>
+      <h2 className="text-xl font-bold mb-2 text-center">
+        💬 {t("chat.title")}
+      </h2>
 
       <div className="flex-1 overflow-y-auto bg-gray-100 p-4 rounded shadow-sm">
         {messages.map((msg, i) => (
@@ -68,7 +62,9 @@ const ChatPage = () => {
           >
             <div
               className={`p-2 rounded-lg max-w-xs ${
-                msg.sender === userId ? "bg-white text-left" : "bg-blue-500 text-white text-right"
+                msg.sender === userId
+                  ? "bg-white text-left"
+                  : "bg-blue-500 text-white text-right"
               }`}
             >
               {msg.text}

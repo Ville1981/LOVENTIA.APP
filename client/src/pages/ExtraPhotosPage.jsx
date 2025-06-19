@@ -1,8 +1,6 @@
-// client/src/pages/ExtraPhotosPage.jsx
-
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import api from "../utils/axiosInstance";
 import ExtraPhotosFields from "../components/profileFields/ExtraPhotosFields";
 
 const ExtraPhotosPage = () => {
@@ -17,10 +15,9 @@ const ExtraPhotosPage = () => {
       navigate('/login');
       return;
     }
-    axios
-      .get("http://localhost:5000/api/users/me", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+
+    // Haetaan käyttäjätiedot api-instanssilla, interceptor hoitaa Authorization-headerin
+    api.get("/users/me")
       .then((res) => {
         setUser(res.data);
         setLoading(false);
@@ -50,7 +47,6 @@ const ExtraPhotosPage = () => {
       <h2 className="text-2xl font-bold mb-4">Lisäkuvat</h2>
       <ExtraPhotosFields
         user={user}
-        token={localStorage.getItem("token")}
         onSuccess={handleSuccess}
         onError={handleError}
       />
