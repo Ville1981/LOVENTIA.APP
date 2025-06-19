@@ -1,5 +1,3 @@
-// src/components/DiscoverFilters.jsx
-
 import React, { memo } from "react";
 import PropTypes from "prop-types";
 
@@ -41,18 +39,8 @@ const DiscoverFilters = ({
 
         {/* Sijainti: Maa, Alue, Kaupunki */}
         <FormLocation
-          country={values.country}
-          region={values.region}
-          city={values.city}
-          customCountry={values.customCountry}
-          customRegion={values.customRegion}
-          customCity={values.customCity}
-          setCountry={setters.setCountry}
-          setRegion={setters.setRegion}
-          setCity={setters.setCity}
-          setCustomCountry={setters.setCustomCountry}
-          setCustomRegion={setters.setCustomRegion}
-          setCustomCity={setters.setCustomCity}
+          values={values}
+          setters={setters}
           t={t}
         />
 
@@ -144,6 +132,4 @@ DiscoverFilters.propTypes = {
   t: PropTypes.func.isRequired,
 };
 
-// Paketoidaan memo–kutsuun, jotta DiscoverFilters renderöityy vain,
-// jos sen propsit (values, setters, handleFilter tai t) muuttuvat.
 export default memo(DiscoverFilters);
