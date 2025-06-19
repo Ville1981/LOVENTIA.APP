@@ -1,17 +1,15 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../utils/axiosInstance";
 
 const AdBanner = () => {
-  const [isPremium, setIsPremium] = useState(true); // oletetaan ensin ettei näytetä
+  // oletuksena true, jotta premium-käyttäjälle ei näytetä mainosta
+  const [isPremium, setIsPremium] = useState(true);
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const res = await axios.get("http://localhost:5000/api/auth/me", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
+        // interceptor hoitaa Authorization-headerin
+        const res = await api.get("/users/me");
         setIsPremium(res.data.isPremium);
       } catch (err) {
         console.error("Käyttäjätietojen haku epäonnistui", err);
@@ -21,7 +19,8 @@ const AdBanner = () => {
     fetchUser();
   }, []);
 
-  if (isPremium) return null; // älä näytä mainosta premium-käyttäjälle
+  // jos premium, ei näytetä banneria
+  if (isPremium) return null;
 
   return (
     <div className="bg-yellow-100 border border-yellow-300 p-4 rounded shadow-md text-center mt-6">
@@ -31,7 +30,9 @@ const AdBanner = () => {
         alt="Mainos"
         className="mx-auto h-32 object-contain"
       />
-      <p className="mt-2 text-sm text-yellow-700">Osta silmälasit nyt -50% alennuksella!</p>
+      <p className="mt-2 text-sm text-yellow-700">
+        Osta silmälasit nyt -50% alennuksella!
+      </p>
     </div>
   );
 };

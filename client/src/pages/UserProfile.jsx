@@ -1,15 +1,9 @@
-// client/src/pages/UserProfile.jsx
-
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { useParams } from "react-router-dom";
+import api from "../utils/axiosInstance";
 import ProfileForm from "../components/profileFields/ProfileForm";  // profiilin muokkauslomake
 
-// Tämä osoite pitää vastata backendisi URL:ia
-const BACKEND_BASE_URL = "http://localhost:5000";
-
 const UserProfile = () => {
-  const token = localStorage.getItem("token");
   const { userId: userIdParam } = useParams();
 
   // Käyttäjädata ja status-viestit
@@ -61,14 +55,8 @@ const UserProfile = () => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const url = userIdParam
-          ? `${BACKEND_BASE_URL}/api/users/${userIdParam}`
-          : `${BACKEND_BASE_URL}/api/auth/me`;
-        const res = await axios.get(url, {
-          headers: userIdParam
-            ? { Authorization: `Bearer ${token}` }
-            : { Authorization: `Bearer ${token}` },
-        });
+        const path = userIdParam ? `/users/${userIdParam}` : "/users/me";
+        const res = await api.get(path);
         const u = res.data.user || res.data;
         setUser(u);
 
@@ -103,7 +91,7 @@ const UserProfile = () => {
     };
 
     fetchUser();
-  }, [token, userIdParam]);
+  }, [userIdParam]);
 
   // 2) Oman profiilin päivitys
   const handleSubmit = async (e) => {
@@ -130,11 +118,7 @@ const UserProfile = () => {
         goal,
         lookingFor,
       };
-      await axios.put(
-        `${BACKEND_BASE_URL}/api/users/profile`,
-        payload,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.put("/users/profile", payload);
       setSuccess(true);
       setMessage("Profiilitiedot päivitetty onnistuneesti.");
     } catch (err) {
@@ -188,7 +172,7 @@ const UserProfile = () => {
     setSummary,
     setGoal,
     setLookingFor,
-    handleSubmit, // tärkeä: ProfileForm kutsuu tätä lopulliseen tallennukseen
+    handleSubmit, // ProfileForm kutsuu tätä lopulliseen tallennukseen
   };
 
   return (

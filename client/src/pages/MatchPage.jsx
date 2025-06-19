@@ -1,28 +1,27 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import api from "../utils/axiosInstance";
 
 const MatchPage = () => {
   const { t } = useTranslation();
   const [matches, setMatches] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
   const navigate = useNavigate();
-  const token = localStorage.getItem("token");
 
   const fetchMatches = async () => {
     try {
-      const meRes = await axios.get("http://localhost:5000/api/auth/me", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // Haetaan oma profiili
+      const meRes = await api.get("/auth/me");
       const me = meRes.data;
       setCurrentUser(me);
 
-      const matchRes = await axios.get("http://localhost:5000/api/auth/matches", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // Haetaan matchit
+      const matchRes = await api.get("/auth/matches");
+      const data = matchRes.data;
 
-      const filtered = matchRes.data.filter(
+      // Suodatetaan estot
+      const filtered = data.filter(
         (u) => !me.blockedUsers?.includes(u._id) && !u.blockedUsers?.includes(me._id)
       );
 

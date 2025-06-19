@@ -135,8 +135,7 @@ const ProfileHub = () => {
             activeTab === "preferences"
               ? "bg-blue-600 text-white"
               : "bg-gray-800 text-gray-400"
-          }`}
-        >
+          }`}>
           Preferences
         </button>
         <button
@@ -145,8 +144,7 @@ const ProfileHub = () => {
             activeTab === "settings"
               ? "bg-blue-600 text-white"
               : "bg-gray-800 text-gray-400"
-          }`}
-        >
+          }`}>
           Settings
         </button>
       </div>

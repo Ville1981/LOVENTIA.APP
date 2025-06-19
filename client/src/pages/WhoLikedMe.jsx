@@ -1,20 +1,18 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../utils/axiosInstance";
 
 const WhoLikedMe = () => {
   const [users, setUsers] = useState([]);
   const [error, setError] = useState("");
-  const token = localStorage.getItem("token");
 
   useEffect(() => {
     const fetchWhoLikedMe = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/auth/who-liked-me", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        // Interceptor hoitaa Authorization-headerin
+        const res = await api.get("/auth/who-liked-me");
         setUsers(res.data);
       } catch (err) {
-        console.error("Virhe:", err);
+        console.error("Virhe haettaessa tykkäyksiä:", err.response?.data || err);
         if (err.response?.status === 403) {
           setError("❌ Tämä ominaisuus on vain Premium-käyttäjille.");
         } else {
@@ -28,7 +26,9 @@ const WhoLikedMe = () => {
 
   return (
     <div className="container mx-auto p-4">
-      <h2 className="text-2xl font-semibold mb-4 text-center">👀 Ketkä tykkäsivät sinusta</h2>
+      <h2 className="text-2xl font-semibold mb-4 text-center">
+        👀 Ketkä tykkäsivät sinusta
+      </h2>
 
       {error && <p className="text-center text-red-500">{error}</p>}
 
@@ -40,8 +40,12 @@ const WhoLikedMe = () => {
         {users.map((user) => (
           <div key={user._id} className="bg-white p-4 rounded shadow-md text-center">
             <img
-              src={user.profilePicture ? `http://localhost:5000/${user.profilePicture}` : "/default.jpg"}
-              alt={user.name}
+              src={
+                user.profilePicture
+                  ? `http://localhost:5000/${user.profilePicture}`
+                  : "/default.jpg"
+              }
+              alt={user.name || "Profiilikuva"}
               className="w-full h-48 object-cover rounded mb-3"
             />
             <h3 className="text-lg font-bold">{user.name || "Nimetön"}</h3>
