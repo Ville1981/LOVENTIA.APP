@@ -12,7 +12,7 @@ const { upload } = require("../config/multer");
 /**
  * POST /api/users/:userId/upload-avatar
  * - Tallentaa yhden avatar-kuvan käyttäjälle
- * - Rajoitus: 1 avatar-kuva
+ * - Korvaa mahdollisen aiemman avatarin
  */
 router.post(
   "/:userId/upload-avatar",
@@ -29,11 +29,17 @@ router.post(
       if (!req.file)
         return res.status(400).json({ error: "No file uploaded" });
 
-      const avatarCount = await Image.countDocuments({ owner: req.userId, isAvatar: true });
-      console.log("⛔ avatarCount:", avatarCount);
-      if (avatarCount >= 1)
-        return res.status(403).json({ error: "Avatar limit reached (1 allowed)" });
+      // 1) Poistetaan vanha avatar sekä levystä että tietokannasta
+      const oldAvatars = await Image.find({ owner: req.userId, isAvatar: true });
+      for (const old of oldAvatars) {
+        const filePath = path.join(__dirname, "..", old.url.replace(/^\//, ""));
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+        await old.deleteOne();
+      }
 
+      // 2) Luodaan uusi avatar‐dokumentti
       const newAvatar = await Image.create({
         owner: req.userId,
         url: `/uploads/profiles/${req.file.filename}`,
@@ -41,6 +47,7 @@ router.post(
         isAvatar: true,
       });
 
+      // 3) Päivitetään käyttäjän profiilikuva‐kenttä
       const user = await User.findById(req.userId);
       user.profilePicture = newAvatar.url;
       await user.save();
@@ -109,7 +116,7 @@ router.post(
           isAvatar: false
         });
 
-        // Jos clientsends slot, käytä sitä, muussa tapauksessa etsi ensimmäinen null
+        // Jos client lähettää slotin, käytä sitä, muussa tapauksessa etsi ensimmäinen null
         const slotIndex = Number.isInteger(slots[i]) && slots[i] >= 0 && slots[i] < maxExtra
           ? slots[i]
           : updatedImgs.findIndex((src) => !src);
