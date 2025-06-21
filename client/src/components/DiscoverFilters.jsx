@@ -1,3 +1,5 @@
+// client/src/components/DiscoverFilters.jsx
+
 import React, { memo } from "react";
 import PropTypes from "prop-types";
 
@@ -8,12 +10,7 @@ import FormChildrenPets from "./profileFields/FormChildrenPets";
 import FormGoalSummary from "./profileFields/FormGoalSummary";
 import FormLookingFor from "./profileFields/FormLookingFor";
 
-const DiscoverFilters = ({
-  values,
-  setters,
-  handleFilter,
-  t,
-}) => {
+const DiscoverFilters = ({ values, setters, handleFilter, t }) => {
   return (
     <div className="w-full">
       <form onSubmit={handleFilter} className="flex flex-col gap-6">
@@ -25,7 +22,7 @@ const DiscoverFilters = ({
           </p>
         </div>
 
-        {/* Perustiedot: Ikä, Sukupuoli, Orientaatio (käyttäjänimi/sähköposti piilotetaan) */}
+        {/* Perustiedot */}
         <FormBasicInfo
           age={values.age}
           gender={values.gender}
@@ -39,8 +36,18 @@ const DiscoverFilters = ({
 
         {/* Sijainti: Maa, Alue, Kaupunki */}
         <FormLocation
-          values={values}
-          setters={setters}
+          country={values.country}
+          region={values.region}
+          city={values.city}
+          customCountry={values.customCountry}
+          customRegion={values.customRegion}
+          customCity={values.customCity}
+          setCountry={setters.setCountry}
+          setRegion={setters.setRegion}
+          setCity={setters.setCity}
+          setCustomCountry={setters.setCustomCountry}
+          setCustomRegion={setters.setCustomRegion}
+          setCustomCity={setters.setCustomCity}
           t={t}
         />
 

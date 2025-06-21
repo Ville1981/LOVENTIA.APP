@@ -1,5 +1,4 @@
 // server/middleware/auth.js
-
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
@@ -12,7 +11,11 @@ function authenticateToken(req, res, next) {
   // Accept either lowercase or uppercase header name
   const authHeader = req.headers.authorization || req.headers.Authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    console.error("Authentication failed: No token provided (authHeader:", authHeader, ")");
+    console.error(
+      "Authentication failed: No token provided (authHeader:",
+      authHeader,
+      ")"
+    );
     return res.status(401).json({ error: "No token provided" });
   }
 

@@ -1,6 +1,10 @@
 // client/src/App.jsx
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+// lisää slickin CSS:t juuri App.jsx:ään, jotta karuselli tyylit ladataan oikein
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
+
 import Etusivu from "./pages/Etusivu";
 import Discover from "./pages/Discover";
 import ProfileHub from "./pages/ProfileHub";
@@ -17,7 +21,7 @@ import Upgrade from "./pages/Upgrade"; // 🌟 Uusi sivu
 const AppContent = () => {
   return (
     <Routes>
-      <Route path="/" element={<MainLayout />}>        
+      <Route path="/" element={<MainLayout />}>
         <Route index element={<Etusivu />} />
         <Route path="discover" element={<Discover />} />
 

@@ -6,19 +6,22 @@ import axios from "axios";
 let accessToken = localStorage.getItem("token") || null;
 
 /**
- * Päivittää sisäisen accessToken-muuttujan,
- * kutsutaan esim. login-funktion jälkeen ja refresh-vastauksen jälkeen.
+ * Päivittää sisäisen accessToken-muuttujan
+ * ja tallentaa sen localStorageen.
+ * Kutsutaan esim. login-funktion jälkeen ja refresh-vastauksen jälkeen.
  */
 export const setAccessToken = (token) => {
   accessToken = token;
+  localStorage.setItem("token", token);
 };
 
 const api = axios.create({
-  baseURL: "http://localhost:5000/api",
+  // Käytä VITE_API_URL ympäristömuuttujaa tai oletusproxya /api
+  baseURL: import.meta.env.VITE_API_URL || "/api",
   withCredentials: true, // lähettää sekä vastaanottaa httpOnly-cookiet
 });
 
-// --- Request interceptor: lisätään Authorization-header ----------------------------------------------------------------------------
+// --- Request interceptor: lisätään Authorization-header ---
 api.interceptors.request.use(
   (config) => {
     // Haetaan tuorein token joko suljetusta closure-muuttujasta tai localStoragesta
@@ -31,12 +34,11 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// --- Response interceptor: jos 401, yritä refresh ja uudelleenlähetä alkuperäinen pyyntö ------------------------------------------
+// --- Response interceptor: jos 401, yritä refresh ja uudelleenlähetä alkuperäinen pyyntö ---
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-
     // Tarkista, että virhe on 401, ei ole vielä retry, eikä olla jo refresh-endpointissa
     if (
       error.response?.status === 401 &&
@@ -46,26 +48,23 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        // Kutsutaan refresh-endpointia saman instanssin kautta,
-        // jolloin baseURL + withCredentials hoituu automaattisesti
+        // Kutsutaan refresh-endpointia saman instanssin kautta
         const { data } = await api.post("/auth/refresh");
 
-        // Päivitetään sekä closure-muuttuja että localStorage
+        // Päivitetään token sekä closureen että localStorageen
         accessToken = data.accessToken;
         setAccessToken(accessToken);
-        localStorage.setItem("token", accessToken);
 
-        // Lisätään uusi token alkuperäiseen pyyntöön ja toistetaan se
+        // Lisätään uusi token alkuperäiseen pyyntöön ja toistetaan pyyntö
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return api(originalRequest);
       } catch (refreshError) {
         console.error("🔄 Refresh token epäonnistui:", refreshError);
-        // Palauta virhe eteenpäin, jotta konteksti/komponentti käsittelee uloskirjautumisen
         return Promise.reject(refreshError);
       }
     }
 
-    // Muut virheet kulkevat suoraan eteenpäin
+    // Kaikki muut virheet kulkevat eteenpäin
     return Promise.reject(error);
   }
 );

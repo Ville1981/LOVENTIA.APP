@@ -1,5 +1,3 @@
-// server/index.js
-
 const express = require("express");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
@@ -51,17 +49,16 @@ const imageRoutes   = require("./routes/imageRoutes");
 const userRoutes    = require("./routes/userRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 const paymentRoutes = require("./routes/payment");
+const discoverRoutes = require("./routes/discover");
 
 app.use("/api/auth",       authRoutes);
-// imageRoutes handles avatar + extra-photo uploads
 app.use("/api/users",      imageRoutes);
-// userRoutes handles the rest of your user-profile CRU(D)
 app.use("/api/users",      userRoutes);
-
 app.use("/api/messages",   messageRoutes);
 app.use("/api/payment",    paymentRoutes);
+app.use("/api/discover",   discoverRoutes);
 
-// ── Mock discover endpoint ────────────────────────────────────────────────────
+// ── Mock users endpoint (for development/testing) ─────────────────────────────
 app.get("/api/users", (req, res) => {
   const user = {
     _id: "1",

@@ -10,9 +10,17 @@ dotenv.config();
 
 const app = express();
 
-// Import webhook routes before body parsers
+// Import webhook routes (before body parsers)
 const stripeWebhookRouter = require("./routes/stripeWebhook");
 const paypalWebhookRouter = require("./routes/paypalWebhook");
+
+// Import application routes
+const authRoutes     = require("./routes/auth");
+const imageRoutes    = require("./routes/imageRoutes");
+const userRoutes     = require("./routes/userRoutes");
+const messageRoutes  = require("./routes/messageRoutes");
+const paymentRoutes  = require("./routes/payment");
+const discoverRoutes = require("./routes/discover");
 
 // Stripe webhook endpoint (raw body required for signature verification)
 app.use(
@@ -33,7 +41,7 @@ app.use(
     origin: process.env.CLIENT_URL || "http://localhost:5174",
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 app.use(express.json());
@@ -45,14 +53,7 @@ app.use(
   express.static(path.join(__dirname, "uploads"))
 );
 
-// 🔌 Application routes
-const authRoutes = require("./routes/auth");
-const imageRoutes = require("./routes/imageRoutes");
-const userRoutes = require("./routes/userRoutes");
-const messageRoutes = require("./routes/messageRoutes");
-const paymentRoutes = require("./routes/payment");
-
-// Mock discover endpoint
+// Mock users endpoint (for development/testing)
 app.get("/api/users", (req, res) => {
   const user = {
     _id: "1",
@@ -61,12 +62,12 @@ app.get("/api/users", (req, res) => {
     location: "Rayong, Thailand",
     compatibility: 88,
     photos: [
-      "/uploads/bunny1.jpg",
-      "/uploads/bunny2.jpg",
-      "/uploads/bunny3.jpg",
+      "/assets/bunny1.jpg",
+      "/assets/bunny2.jpg",
+      "/assets/bunny3.jpg",
     ],
-    youPhoto: "/uploads/your-avatar.jpg",
-    profilePhoto: "/uploads/bunny-avatar.jpg",
+    youPhoto: "/assets/your-avatar.jpg",
+    profilePhoto: "/assets/bunny-avatar.jpg",
     agreeCount: 6,
     disagreeCount: 3,
     findOutCount: 4,
@@ -76,27 +77,36 @@ app.get("/api/users", (req, res) => {
   res.json([user]);
 });
 
-// Mount API routers
-app.use("/api/auth", authRoutes);
-// Image upload routes: avatar and extra photos (must come before userRoutes)
-app.use("/api/users", imageRoutes);
-// User management routes
-app.use("/api/users", userRoutes);
-// Other routes
-app.use("/api/messages", messageRoutes);
+// Mount application routes
+app.use("/api/auth",    authRoutes);
+app.use("/api/users",   imageRoutes);
+app.use("/api/users",   userRoutes);
+app.use("/api/messages",messageRoutes);
 app.use("/api/payment", paymentRoutes);
 
-// Multer-specific error handler (e.g., file size limits)
+// Mount Discover (must come after other /api mounts)
+app.use("/api/discover", discoverRoutes);
+
+// DEBUG: log all mounted routes
+console.log("\n🛣️ Registered routes:");
+app._router.stack.forEach(layer => {
+  if (layer.route && layer.route.path) {
+    const methods = Object.keys(layer.route.methods)
+      .map(m => m.toUpperCase()).join(", ");
+    console.log(`  ${methods.padEnd(6)} ${layer.route.path}`);
+  }
+});
+
+// Multer-specific error handler
 app.use((err, req, res, next) => {
   if (err.name === "MulterError") {
-    // Handle Multer file size or other Multer errors
     return res.status(413).json({ error: err.message });
   }
   next(err);
 });
 
 // 404 handler
-app.use((req, res, next) => {
+app.use((req, res) => {
   res.status(404).json({ error: "Not Found" });
 });
 
