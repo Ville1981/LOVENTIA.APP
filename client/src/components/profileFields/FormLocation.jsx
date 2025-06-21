@@ -3,66 +3,72 @@
 import React from "react";
 import { countryRegions, regionCities } from "../../utils/locationData";
 
-const FormLocation = ({ values, setters, t }) => {
-  const setValues = setters;
-  const {
-    country,
-    region,
-    city,
-    customCountry,
-    customRegion,
-    customCity,
-  } = values;
+const FormLocation = ({
+  country,
+  region,
+  city,
+  customCountry,
+  customRegion,
+  customCity,
+  setCountry,
+  setRegion,
+  setCity,
+  setCustomCountry,
+  setCustomRegion,
+  setCustomCity,
+  t,
+}) => {
+  // Maavalinta
+  const handleCountryChange = (e) => {
+    const next = e.target.value;
+    if (next !== country) {
+      setCountry(next);
+      setRegion("");
+      setCity("");
+      setCustomCountry("");
+    }
+  };
 
+  // Aluevalinta
+  const handleRegionChange = (e) => {
+    const next = e.target.value;
+    if (next !== region) {
+      setRegion(next);
+      setCity("");
+      setCustomRegion("");
+    }
+  };
+
+  // Kaupunkivalinta
+  const handleCityChange = (e) => {
+    const next = e.target.value;
+    if (next !== city) {
+      setCity(next);
+      setCustomCity("");
+    }
+  };
+
+  // Manuaalinen syöttö — tyhjennä samalla lista-arvot
+  const handleCustomCountryChange = (e) => {
+    setCustomCountry(e.target.value);
+    setCountry("");
+    setRegion("");
+    setCity("");
+  };
+  const handleCustomRegionChange = (e) => {
+    setCustomRegion(e.target.value);
+    setRegion("");
+    setCity("");
+  };
+  const handleCustomCityChange = (e) => {
+    setCustomCity(e.target.value);
+    setCity("");
+  };
+
+  // Dynaamiset listat
   const regionOptions = country ? countryRegions[country] || [] : [];
   const cityOptions =
-    country && region
-      ? regionCities[country]?.[region] || []
-      : [];
-
-  const handleCountryChange = (e) => {
-    const nextCountry = e.target.value;
-    if (nextCountry !== country) {
-      setValues((prev) => ({
-        ...prev,
-        country: nextCountry,
-        region: "",
-        city: "",
-        customCountry: "",
-      }));
-    }
-  };
-
-  const handleRegionChange = (e) => {
-    const nextRegion = e.target.value;
-    if (nextRegion !== region) {
-      setValues((prev) => ({
-        ...prev,
-        region: nextRegion,
-        city: "",
-        customRegion: "",
-      }));
-    }
-  };
-
-  const handleCityChange = (e) => {
-    const nextCity = e.target.value;
-    if (nextCity !== city) {
-      setValues((prev) => ({ ...prev, city: nextCity, customCity: "" }));
-    }
-  };
-
-  const handleCustomCountryChange = (e) => {
-    setValues((prev) => ({ ...prev, customCountry: e.target.value }));
-  };
-
-  const handleCustomRegionChange = (e) => {
-    setValues((prev) => ({ ...prev, customRegion: e.target.value }));
-  };
-
-  const handleCustomCityChange = (e) => {
-    setValues((prev) => ({ ...prev, customCity: e.target.value }));
-  };
+    country && region ? regionCities[country]?.[region] || [] : [];
 
   return (
     <div className="flex flex-col space-y-6 w-full text-left">
@@ -91,7 +97,6 @@ const FormLocation = ({ values, setters, t }) => {
           value={customCountry}
           onChange={handleCustomCountryChange}
           className="mt-2 p-2 border rounded w-full"
-          aria-label={t("profile.manualCountry")}
         />
       </div>
 
@@ -104,9 +109,9 @@ const FormLocation = ({ values, setters, t }) => {
           id="region"
           value={region}
           onChange={handleRegionChange}
+          disabled={!country}
           className="p-2 border rounded w-full"
           aria-label={t("profile.selectRegion")}
-          disabled={!country}
         >
           <option value="">{t("profile.selectRegion")}</option>
           {regionOptions.map((r) => (
@@ -121,7 +126,6 @@ const FormLocation = ({ values, setters, t }) => {
           value={customRegion}
           onChange={handleCustomRegionChange}
           className="mt-2 p-2 border rounded w-full"
-          aria-label={t("profile.manualRegion")}
         />
       </div>
 
@@ -134,9 +138,9 @@ const FormLocation = ({ values, setters, t }) => {
           id="city"
           value={city}
           onChange={handleCityChange}
+          disabled={!region}
           className="p-2 border rounded w-full"
           aria-label={t("profile.selectCity")}
-          disabled={!region}
         >
           <option value="">{t("profile.selectCity")}</option>
           {cityOptions.map((c) => (
@@ -151,7 +155,6 @@ const FormLocation = ({ values, setters, t }) => {
           value={customCity}
           onChange={handleCustomCityChange}
           className="mt-2 p-2 border rounded w-full"
-          aria-label={t("profile.manualCity")}
         />
       </div>
     </div>
