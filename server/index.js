@@ -5,7 +5,7 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const path = require("path");
 
-// load .env into process.env
+// Load environment variables from .env
 dotenv.config();
 
 const app = express();
@@ -37,13 +37,13 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ── Serve your uploads folder as static files ─────────────────────────────────
+// ── Serve uploads folder as static files ────────────────────────────────────────
 app.use(
   "/uploads",
   express.static(path.join(__dirname, "uploads"))
 );
 
-// ── API routes ────────────────────────────────────────────────────────────────
+// ── Mount application routes ────────────────────────────────────────────────────
 const authRoutes    = require("./routes/auth");
 const imageRoutes   = require("./routes/imageRoutes");
 const userRoutes    = require("./routes/userRoutes");
@@ -58,13 +58,16 @@ app.use("/api/messages",   messageRoutes);
 app.use("/api/payment",    paymentRoutes);
 app.use("/api/discover",   discoverRoutes);
 
-// ── Mock users endpoint (for development/testing) ─────────────────────────────
-app.get("/api/users", (req, res) => {
+// ── Temporary mock users endpoint (for development/testing) ────────────────────
+// NOTE: this is mounted *after* your real /api/users routes, so it won't override them.
+app.get("/api/mock-users", (req, res) => {
   const user = {
     _id: "1",
     name: "Bunny",
     age: 45,
-    location: "Rayong, Thailand",
+    city: "Rayong",
+    region: "Chonburi",
+    country: "Thailand",
     compatibility: 88,
     photos: [
       "/uploads/bunny1.jpg",
@@ -79,19 +82,18 @@ app.get("/api/users", (req, res) => {
     summary: "Positive mindset, self develop …",
     details: {},
   };
-  res.json([user]);
+  return res.json([user]);
 });
 
-// ── Multer error handler ───────────────────────────────────────────────────────
+// ── Multer-specific error handler ──────────────────────────────────────────────
 app.use((err, req, res, next) => {
   if (err.name === "MulterError") {
-    // e.g. file too large
     return res.status(413).json({ error: err.message });
   }
   next(err);
 });
 
-// ── 404 handler ───────────────────────────────────────────────────────────────
+// ── 404 Not Found handler ──────────────────────────────────────────────────────
 app.use((req, res, next) => {
   res.status(404).json({ error: "Not Found" });
 });
@@ -102,14 +104,22 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: "Server Error" });
 });
 
-// ── Mongo + launch ────────────────────────────────────────────────────────────
+// ── Start server & connect to MongoDB ──────────────────────────────────────────
 mongoose.set("strictQuery", true);
-
 const PORT = process.env.PORT || 5000;
+
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
     console.log("✅ MongoDB connected");
+    console.log("🛣️ Registered routes:");
+    app._router.stack.forEach(layer => {
+      if (layer.route && layer.route.path) {
+        const methods = Object.keys(layer.route.methods)
+          .map(m => m.toUpperCase()).join(", ");
+        console.log(`  ${methods.padEnd(6)} ${layer.route.path}`);
+      }
+    });
     app.listen(PORT, () =>
       console.log(`✅ Server running on http://localhost:${PORT}`)
     );

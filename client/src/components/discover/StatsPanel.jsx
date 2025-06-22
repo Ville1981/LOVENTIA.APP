@@ -1,8 +1,7 @@
-// client/src/components/discover/StatsPanel.jsx
 import React from "react";
 import PropTypes from "prop-types";
 
-const StatsPanel = ({ user, onAction }) => {
+const StatsPanel = ({ user, onAction = () => {} }) => {
   const displayName = user.name || user.username || "Unknown";
   const youPhoto    = user.youPhoto      || "/assets/your-avatar.jpg";
   const profilePhoto= user.profilePhoto  || "/assets/bunny-avatar.jpg";
@@ -74,7 +73,7 @@ StatsPanel.propTypes = {
     disagreeCount:  PropTypes.number,
     findOutCount:   PropTypes.number,
   }).isRequired,
-  onAction: PropTypes.func.isRequired,
+  onAction: PropTypes.func,
 };
 
 export default React.memo(StatsPanel);
