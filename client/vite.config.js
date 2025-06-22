@@ -5,15 +5,13 @@ import path from 'path';
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 5174, // toimii rinnakkain muiden porttien kanssa
+    port: 5174,
     proxy: {
-      // Proxy kaikki /api-pyynnöt backendille
       '/api': {
         target: 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
       },
-      // Proxy myös kaikki /uploads-pyynnöt (Expressin static-kansio)
       '/uploads': {
         target: 'http://localhost:5000',
         changeOrigin: true,
@@ -21,12 +19,16 @@ export default defineConfig({
       },
     },
     fs: {
-      // Sallitaan projektin juurihakemisto ja slick-carousel-kansiot fonttien palvelemiseksi
+      // Allow serving slick-carousel fonts
       allow: [
-        process.cwd(), // projektin juurihakemisto
-        path.resolve(__dirname, 'node_modules/slick-carousel'),
-        path.resolve(__dirname, 'node_modules/slick-carousel/slick/fonts'),
+        process.cwd(),
+        // explicitly include slick-carousel font folder
+        path.resolve(process.cwd(), 'node_modules/slick-carousel/slick/fonts'),
       ],
     },
+  },
+  build: {
+    // ensure assets are referenced correctly
+    assetsDir: 'assets',
   },
 });

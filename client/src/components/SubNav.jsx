@@ -1,8 +1,10 @@
 import React, { useState, useEffect, memo } from "react";
 import PropTypes from "prop-types";
 
-const SubNav = ({ tabs, activeKey, onChange }) => {
-  const [active, setActive] = useState(activeKey || (tabs.length > 0 ? tabs[0].key : ""));
+const SubNav = ({ tabs, activeKey = "", onChange = () => {} }) => {
+  const [active, setActive] = useState(
+    activeKey || (tabs.length > 0 ? tabs[0].key : "")
+  );
 
   useEffect(() => {
     if (activeKey && activeKey !== active) {
@@ -12,9 +14,7 @@ const SubNav = ({ tabs, activeKey, onChange }) => {
 
   const handleClick = (key) => {
     setActive(key);
-    if (typeof onChange === "function") {
-      onChange(key);
-    }
+    onChange(key);
   };
 
   return (
@@ -61,11 +61,6 @@ SubNav.propTypes = {
   ).isRequired,
   activeKey: PropTypes.string,
   onChange: PropTypes.func,
-};
-
-SubNav.defaultProps = {
-  activeKey: undefined,
-  onChange: undefined,
 };
 
 export default memo(SubNav);

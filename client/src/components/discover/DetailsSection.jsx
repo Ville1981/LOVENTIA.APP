@@ -1,9 +1,8 @@
-// client/src/components/discover/DetailsSection.jsx
 import React from "react";
 import PropTypes from "prop-types";
 
-const DetailsSection = ({ details }) => {
-  if (!details || typeof details !== "object") return null;
+const DetailsSection = ({ details = {} }) => {
+  if (typeof details !== "object" || Object.keys(details).length === 0) return null;
 
   return (
     <div className="mt-6">
@@ -83,10 +82,6 @@ DetailsSection.propTypes = {
     pets:               PropTypes.string,
     lookingFor:         PropTypes.string,
   }),
-};
-
-DetailsSection.defaultProps = {
-  details: {},
 };
 
 export default React.memo(DetailsSection);

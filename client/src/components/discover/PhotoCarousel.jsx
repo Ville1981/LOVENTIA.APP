@@ -1,13 +1,12 @@
-// client/src/components/discover/PhotoCarousel.jsx
 import React from "react";
 import PropTypes from "prop-types";
 import Slider from "react-slick";
 
-// Tärkeää: nämä tyylit täytyy tuoda, muuten karuselli ei skaalau eikä nuolet näky
+// Tärkeää: nämä tyylit täytyy tuoda, muuten karuselli ei skaalau eikä nuolet näy
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
-const PhotoCarousel = ({ photos }) => {
+const PhotoCarousel = ({ photos = [] }) => {
   // Jos ei ole yhtään kuvaa, näytetään selkeä viesti
   if (!Array.isArray(photos) || photos.length === 0) {
     return (
@@ -46,10 +45,6 @@ const PhotoCarousel = ({ photos }) => {
 
 PhotoCarousel.propTypes = {
   photos: PropTypes.arrayOf(PropTypes.string),
-};
-
-PhotoCarousel.defaultProps = {
-  photos: [],
 };
 
 export default React.memo(PhotoCarousel);

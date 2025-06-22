@@ -1,8 +1,9 @@
 // client/src/components/discover/SummaryAccordion.jsx
+
 import React, { useState } from "react";
 import PropTypes from "prop-types";
 
-const SummaryAccordion = ({ summary }) => {
+const SummaryAccordion = ({ summary = "" }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   if (!summary) {
@@ -21,6 +22,7 @@ const SummaryAccordion = ({ summary }) => {
         <button
           onClick={() => setIsExpanded(!isExpanded)}
           className="text-[#005FFF] text-xs font-medium mt-1"
+          type="button"
         >
           {isExpanded ? "Collapse" : "Expand"}
         </button>
@@ -31,10 +33,6 @@ const SummaryAccordion = ({ summary }) => {
 
 SummaryAccordion.propTypes = {
   summary: PropTypes.string,
-};
-
-SummaryAccordion.defaultProps = {
-  summary: "",
 };
 
 export default React.memo(SummaryAccordion);
