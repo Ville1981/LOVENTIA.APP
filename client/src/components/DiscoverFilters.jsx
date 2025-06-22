@@ -1,5 +1,3 @@
-// client/src/components/DiscoverFilters.jsx
-
 import React, { memo } from "react";
 import PropTypes from "prop-types";
 
@@ -12,17 +10,18 @@ import FormLookingFor from "./profileFields/FormLookingFor";
 
 const DiscoverFilters = ({ values, setters, handleFilter, t }) => {
   return (
-    <div className="w-full">
+    // Keskitetään ja rajataan maksimileveyteen
+    <div className="w-full max-w-3xl mx-auto">
       <form onSubmit={handleFilter} className="flex flex-col gap-6">
         <div className="text-center">
           <h2 className="text-3xl font-bold mb-2">{t("discover.title")}</h2>
           <p className="text-gray-600">
             {t("discover.instructions") ||
-              "Valitse hakukriteerit löytääksesi sopivia profiileja."}
+              "Select filter criteria to find matching profiles."}
           </p>
         </div>
 
-        {/* Perustiedot */}
+        {/* Basic Info */}
         <FormBasicInfo
           age={values.age}
           gender={values.gender}
@@ -34,7 +33,7 @@ const DiscoverFilters = ({ values, setters, handleFilter, t }) => {
           hideUsernameEmail
         />
 
-        {/* Sijainti: Maa, Alue, Kaupunki */}
+        {/* Location */}
         <FormLocation
           country={values.country}
           region={values.region}
@@ -51,7 +50,7 @@ const DiscoverFilters = ({ values, setters, handleFilter, t }) => {
           t={t}
         />
 
-        {/* Koulutus */}
+        {/* Education */}
         <FormEducation
           education={values.education}
           profession={values.profession}
@@ -60,7 +59,7 @@ const DiscoverFilters = ({ values, setters, handleFilter, t }) => {
           t={t}
         />
 
-        {/* Lapsi & Lemmikki */}
+        {/* Children & Pets */}
         <FormChildrenPets
           children={values.children}
           pets={values.pets}
@@ -69,7 +68,7 @@ const DiscoverFilters = ({ values, setters, handleFilter, t }) => {
           t={t}
         />
 
-        {/* Tavoitteet ja tiivistelmä */}
+        {/* Goals & Summary */}
         <FormGoalSummary
           summary={values.summary}
           goals={values.goals}
@@ -78,7 +77,7 @@ const DiscoverFilters = ({ values, setters, handleFilter, t }) => {
           t={t}
         />
 
-        {/* Mitä etsit? */}
+        {/* Looking For */}
         <FormLookingFor
           lookingFor={values.lookingFor}
           setLookingFor={setters.setLookingFor}
@@ -88,7 +87,7 @@ const DiscoverFilters = ({ values, setters, handleFilter, t }) => {
         <div className="text-center pt-3">
           <button
             type="submit"
-            className="bg-[#FF4081] text-white font-bold py-2 px-8 rounded-full hover:opacity-90 transition duration-200"
+            className="bg-pink-600 text-white font-bold py-2 px-8 rounded-full hover:opacity-90 transition duration-200"
           >
             🔍 {t("common.filter")}
           </button>
