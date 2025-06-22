@@ -6,12 +6,29 @@ import DiscoverFilters from "../components/DiscoverFilters";
 import ProfileCardList from "../components/discover/ProfileCardList";
 import SubNav from "../components/SubNav";
 
+// Bunny-fallback profiili kun back-endillä ei ole kuvia
+const bunnyUser = {
+  id: "bunny",
+  _id: "bunny",
+  username: "bunny",
+  age: 25,
+  gender: "Female",
+  orientation: "Straight",
+  photos: [
+    { url: "/assets/bunny1.jpg" },
+    { url: "/assets/bunny2.jpg" },
+    { url: "/assets/bunny3.jpg" },
+  ],
+  location: "Unknown",
+  summary: "Hi, I'm Bunny! 🐰",
+};
+
 const Discover = () => {
   const { t } = useTranslation();
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Hakulomakkeen kenttien state-muuttujat
+  // --- suodatuslomakkeen tilat (vakio) ---
   const [username, setUsername] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
@@ -32,41 +49,41 @@ const Discover = () => {
   const [goals, setGoals] = useState("");
   const [lookingFor, setLookingFor] = useState("");
 
-  // Alustava haku "recommended"-profiileille sivun latautuessa
+  // --- haetaan discover-listaus back-endistä ---
   useEffect(() => {
     const loadRecommended = async () => {
       setIsLoading(true);
       try {
+        // Tänne menee /api/discover proxyn kautta
         const res = await api.get("/discover");
+        // jos res.data.users on olemassa (muuten suoraan res.data)
         const data = res.data.users ?? res.data;
-        const list = Array.isArray(data) ? data : [];
-        const normalized = list.map((u) => ({
+        // normalisoi id
+        const normalized = (Array.isArray(data) ? data : []).map((u) => ({
           ...u,
           id: u._id || u.id,
         }));
-        setUsers(normalized);
+        setUsers([...normalized, bunnyUser]);
       } catch (err) {
         console.error("Error fetching recommended profiles:", err);
-        setUsers([]);
+        setUsers([bunnyUser]);
       } finally {
         setIsLoading(false);
       }
     };
-
     loadRecommended();
   }, []);
 
-  // Pass/Like/Superlike -napit
-  const handleAction = async (userId, actionType) => {
-    try {
-      await api.post(`/discover/${userId}/${actionType}`);
-      setUsers((prev) => prev.filter((u) => u.id !== userId));
-    } catch (err) {
-      console.error(`Error executing ${actionType} for user ${userId}:`, err);
-    }
+  // --- pass/like/superlike -toiminnot ---
+  const handleAction = (userId, actionType) => {
+    setUsers((prev) => prev.filter((u) => u.id !== userId));
+    if (userId === bunnyUser.id) return;
+    api.post(`/discover/${userId}/${actionType}`).catch((err) =>
+      console.error(`Error executing ${actionType} for user ${userId}:`, err)
+    );
   };
 
-  // Lomakkeen filtteroiva funktio
+  // --- lomakesuodatin lähetys ---
   const handleFilter = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -92,21 +109,20 @@ const Discover = () => {
         },
       });
       const data = res.data.users ?? res.data;
-      const list = Array.isArray(data) ? data : [];
-      const normalized = list.map((u) => ({
+      const normalized = (Array.isArray(data) ? data : []).map((u) => ({
         ...u,
         id: u._id || u.id,
       }));
-      setUsers(normalized);
+      setUsers([...normalized, bunnyUser]);
     } catch (err) {
       console.error("Error filtering users:", err);
-      setUsers([]);
+      setUsers([bunnyUser]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Kerätään filter-arvot ja setterit DiscoverFilters-komponentille
+  // props DiscoverFiltersille
   const values = {
     username,
     age,
@@ -128,7 +144,6 @@ const Discover = () => {
     goals,
     lookingFor,
   };
-
   const setters = {
     setUsername,
     setAge,
@@ -151,9 +166,13 @@ const Discover = () => {
     setLookingFor,
   };
 
+  // kaikki profiilit näkyviin
+  const displayUsers = users;
+
   return (
     <div className="w-full flex flex-col items-center bg-gray-100 min-h-screen">
-      <div className="w-full bg-[#000]">
+      {/* ylänavigaatio */}
+      <div className="w-full bg-black">
         <SubNav
           tabs={[
             { key: "recommended", label: t("subnav.recommended"), icon: "/icons/recommended.svg" },
@@ -166,28 +185,17 @@ const Discover = () => {
         />
       </div>
 
-      <div className="w-full max-w-[1400px] flex flex-row justify-between px-4 mt-6">
+      {/* pääsisältö */}
+      <div className="w-full max-w-[1400px] flex flex-col lg:flex-row justify-between px-4 mt-6">
+        {/* vasen sidebar (piilossa mobiilissa) */}
         <aside className="hidden lg:block w-[200px] sticky top-[160px] space-y-6">
-          <div className="bg-white border border-gray-200 rounded-lg shadow-md overflow-hidden">
-            <img src="/ads/left-banner-1.jpg" alt="Advertise left" className="w-full h-auto" />
-            <div className="p-4 text-center">
-              <a href="/advertise" className="text-sm font-medium text-[#005FFF] hover:underline">
-                Lataa sovellus
-              </a>
-            </div>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-lg shadow-md overflow-hidden">
-            <img src="/ads/left-banner-2.jpg" alt="Advertise left" className="w-full h-auto" />
-            <div className="p-4 text-center">
-              <a href="/register" className="text-sm font-medium text-[#FF4081] hover:underline">
-                Rekisteröidy nyt
-              </a>
-            </div>
-          </div>
+          {/* ... */}
         </aside>
 
-        <main className="flex-1 px-4">
-          <div className="bg-white border border-gray-200 rounded-lg shadow-md p-6">
+        {/* keskeinen sisältö */}
+        <main className="flex-1">
+          {/* --- suodatinlomake keskitettynä --- */}
+          <div className="bg-white border rounded-lg shadow-md p-6 max-w-3xl mx-auto">
             <DiscoverFilters
               values={values}
               setters={setters}
@@ -196,41 +204,34 @@ const Discover = () => {
             />
           </div>
 
-          <div className="mt-6 w-full">
-            {isLoading ? (
-              <div className="mt-12 text-center text-gray-500">
-                {t("discover.loading")}…
-              </div>
-            ) : (
-              <>
-                <ProfileCardList users={users} onAction={handleAction} />
-                {users.length === 0 && (
-                  <div className="mt-12 text-center text-gray-500">
-                    🔍 {t("discover.noResults")}
-                  </div>
-                )}
-              </>
-            )}
+          {/* --- profiilikaruselli keskitettynä --- */}
+          <div className="mt-6 flex justify-center w-full">
+            <div className="w-full max-w-3xl">
+              {isLoading ? (
+                <div className="mt-12 text-center text-gray-500">
+                  {t("discover.loading")}…
+                </div>
+              ) : (
+                <>
+                  <ProfileCardList
+                    key={displayUsers.map((u) => u.id).join("|")}
+                    users={displayUsers}
+                    onAction={handleAction}
+                  />
+                  {displayUsers.length === 0 && (
+                    <div className="mt-12 text-center text-gray-500">
+                      🔍 {t("discover.noResults")}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </main>
 
+        {/* oikea sidebar (piilossa mobiilissa) */}
         <aside className="hidden lg:block w-[200px] sticky top-[160px] space-y-6">
-          <div className="bg-white border border-gray-200 rounded-lg shadow-md overflow-hidden">
-            <img src="/ads/right-banner-1.jpg" alt="Advertise right" className="w-full h-auto" />
-            <div className="p-4 text-center">
-              <a href="/contact" className="text-sm font-medium text-[#FF4081] hover:underline">
-                Ota yhteyttä
-              </a>
-            </div>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-lg shadow-md overflow-hidden">
-            <img src="/ads/right-banner-2.jpg" alt="Advertise right" className="w-full h-auto" />
-            <div className="p-4 text-center">
-              <a href="/promote" className="text-sm font-medium text-[#005FFF] hover:underline">
-                Place your banner now!
-              </a>
-            </div>
-          </div>
+          {/* ... */}
         </aside>
       </div>
     </div>

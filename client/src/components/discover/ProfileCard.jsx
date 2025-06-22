@@ -1,3 +1,5 @@
+// src/components/discover/ProfileCard.jsx
+
 import React, { memo, useState, useEffect } from "react";
 import PropTypes from "prop-types";
 
@@ -8,42 +10,67 @@ import SummaryAccordion from "./SummaryAccordion";
 import StatsPanel from "./StatsPanel";
 import DetailsSection from "./DetailsSection";
 
-// Staattiset fallback-kuvat public/assets-kansiosta
+// Static fallback photos from public/assets (relative polut)
 const FALLBACK_PHOTOS = [
   "/assets/bunny1.jpg",
   "/assets/bunny2.jpg",
-  "/assets/bunny3.jpg"
+  "/assets/bunny3.jpg",
 ];
 
 const ProfileCard = ({ user, onPass, onLike, onSuperlike }) => {
-  const [photos, setPhotos]   = useState([]);
+  const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState(null);
+  const [error, setError] = useState(null);
 
-  // Kun user.photos muuttuu, päivitä karuselli
+  // Helper: normalisoi mikä tahansa raw URL absoluteksi
+  const normalize = (raw) => {
+    if (!raw) return "";
+    if (/^https?:\/\//.test(raw)) return raw;
+    // Jos alkaa slashilla, lisää origin eteen, muuten lisää myös "/"
+    return raw.startsWith("/")
+      ? `${window.location.origin}${raw}`
+      : `${window.location.origin}/${raw}`;
+  };
+
   useEffect(() => {
     setLoading(true);
     setError(null);
     try {
-      const list = Array.isArray(user.photos) && user.photos.length > 0
-        ? user.photos
-        : FALLBACK_PHOTOS;
-      setPhotos(list);
+      // Otetaan joko backendin kuvat tai fallback
+      const rawList =
+        Array.isArray(user.photos) && user.photos.length > 0
+          ? user.photos
+          : FALLBACK_PHOTOS;
+
+      // Muutetaan kaikki itemit string-URLeiksi ja normalisoidaan
+      const urls = rawList
+        .map((item) => {
+          if (typeof item === "string") return item;
+          if (item.url) return item.url;
+          if (item.src) return item.src;
+          if (item.photoUrl) return item.photoUrl;
+          if (item.imageUrl) return item.imageUrl;
+          return "";
+        })
+        .map(normalize)
+        .filter(Boolean);
+
+      setPhotos(urls);
     } catch (e) {
-      setError("Kuvien lataus epäonnistui");
+      console.error(e);
+      setError("Failed to load images");
     } finally {
       setLoading(false);
     }
   }, [user.photos]);
 
-  // Display name ja id-fallback (jos normalization jäi tekemättä)
   const displayName = user.name || user.username || "Unknown";
-  const id          = user.id   || user._id;
+  const id = user.id || user._id;
 
   if (loading) {
     return (
       <div className="p-6 text-center text-gray-500">
-        Ladataan profiilia…
+        Loading profile…
       </div>
     );
   }
@@ -57,24 +84,27 @@ const ProfileCard = ({ user, onPass, onLike, onSuperlike }) => {
   }
 
   return (
-    <div className="relative bg-white border border-gray-200 rounded-lg shadow-md overflow-hidden">
+    <div
+      className="relative bg-white border border-gray-200 rounded-lg shadow-md overflow-hidden w-full"
+    >
+      {/* Karuselli: korkeus on rajoitettu PhotoCarousel-komponentissa */}
       <PhotoCarousel photos={photos} />
 
-      {/* INTRO-painike (optional) */}
+      {/* INTRO-painike */}
       <button
         type="button"
-        className="absolute bottom-2 right-2 bg-white text-[#005FFF] text-xs font-semibold py-1 px-2 rounded shadow-sm"
+        className="absolute bottom-2 right-2 bg-white text-blue-600 text-xs font-semibold py-1 px-2 rounded shadow-sm"
       >
         INTRO
       </button>
 
       <div className="p-4 space-y-4">
-        {/* Nimi, ikä ja match-% */}
+        {/* Nimi, ikä ja match-prosentti */}
         <div className="flex items-center justify-between">
           <h3 className="text-xl font-bold">
             {displayName}, {user.age ?? "?"}
           </h3>
-          <div className="w-10 h-10 border-2 border-[#005FFF] rounded-full flex items-center justify-center text-[#005FFF] font-bold">
+          <div className="w-10 h-10 border-2 border-blue-600 rounded-full flex items-center justify-center text-blue-600 font-bold">
             {user.compatibility ?? 0}%
           </div>
         </div>
@@ -86,7 +116,7 @@ const ProfileCard = ({ user, onPass, onLike, onSuperlike }) => {
           country={user.country}
         />
 
-        {/* Pass/Like/Superlike */}
+        {/* Pass / Like / Superlike -napit */}
         <ActionButtons
           userId={id}
           onPass={() => onPass(id)}
@@ -94,13 +124,13 @@ const ProfileCard = ({ user, onPass, onLike, onSuperlike }) => {
           onSuperlike={() => onSuperlike(id)}
         />
 
-        {/* My self-summary */}
+        {/* Kuvailu */}
         <SummaryAccordion summary={user.summary} />
 
-        {/* You & [Profiili] -statistiikat */}
+        {/* Statistikot */}
         <StatsPanel user={user} />
 
-        {/* Details-paneeli */}
+        {/* Lisätiedot */}
         <DetailsSection details={user.details} />
       </div>
     </div>
@@ -118,7 +148,17 @@ ProfileCard.propTypes = {
     city: PropTypes.string,
     region: PropTypes.string,
     country: PropTypes.string,
-    photos: PropTypes.arrayOf(PropTypes.string),
+    photos: PropTypes.arrayOf(
+      PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.shape({
+          url: PropTypes.string,
+          src: PropTypes.string,
+          photoUrl: PropTypes.string,
+          imageUrl: PropTypes.string,
+        }),
+      ])
+    ),
     summary: PropTypes.string,
     details: PropTypes.object,
   }).isRequired,
@@ -128,3 +168,5 @@ ProfileCard.propTypes = {
 };
 
 export default memo(ProfileCard);
+
+
