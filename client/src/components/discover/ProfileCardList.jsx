@@ -1,11 +1,18 @@
-import React, { memo } from "react";
+// src/components/discover/ProfileCardList.jsx
+
+import React, { memo, useMemo } from "react";
 import PropTypes from "prop-types";
 import Slider from "react-slick";
 import ProfileCard from "./ProfileCard";
 
+// Näitä importteja tarvitaan, jotta slickin CSS latautuu
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
+/**
+ * Displays a carousel of profile cards (one at a time),
+ * or a fallback message if there are no users.
+ */
 const ProfileCardList = ({ users = [], onAction }) => {
   if (!Array.isArray(users) || users.length === 0) {
     return (
@@ -15,7 +22,8 @@ const ProfileCardList = ({ users = [], onAction }) => {
     );
   }
 
-  const settings = {
+  // Muistetaan asetukset yhdellä kertaa, jotta Slick ei re-initoidu
+  const settings = useMemo(() => ({
     dots: false,
     arrows: true,
     infinite: false,
@@ -23,15 +31,21 @@ const ProfileCardList = ({ users = [], onAction }) => {
     slidesToShow: 1,
     slidesToScroll: 1,
     adaptiveHeight: true,
-  };
 
-  const firstUserId = users[0].id || users[0]._id;
+    // Estetään kaikenlainen fokus- ja hover-triggeröity scrollaus
+    accessibility: false,
+    focusOnSelect: false,
+    focusOnChange: false,
+    pauseOnFocus: false,
+    pauseOnHover: false,
+  }), []);
 
   return (
     <div className="profile-carousel mt-6 w-full">
-      {/* rajoita karuselli 800px leveäksi ja keskelle */}
+      {/* Rajoita karuselli maksimissaan 800px levyiseksi ja keskelle */}
       <div className="mx-auto w-full max-w-[800px]">
-        <Slider key={firstUserId} {...settings}>
+        {/* Ei key-proppia, jotta Slider pysyy samana instanssina */}
+        <Slider {...settings}>
           {users.map((u) => {
             const userId = u.id || u._id;
             return (
@@ -52,7 +66,12 @@ const ProfileCardList = ({ users = [], onAction }) => {
 };
 
 ProfileCardList.propTypes = {
-  users: PropTypes.array.isRequired,
+  users: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.string,
+      _id: PropTypes.string,
+    })
+  ).isRequired,
   onAction: PropTypes.func.isRequired,
 };
 
