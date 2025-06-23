@@ -1,3 +1,5 @@
+// src/pages/Discover.jsx
+
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import api from "../utils/axiosInstance";
@@ -28,7 +30,7 @@ const Discover = () => {
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // --- suodatuslomakkeen tilat (vakio) ---
+  // --- suodatuslomakkeen tilat ---
   const [username, setUsername] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
@@ -54,11 +56,8 @@ const Discover = () => {
     const loadRecommended = async () => {
       setIsLoading(true);
       try {
-        // Tänne menee /api/discover proxyn kautta
         const res = await api.get("/discover");
-        // jos res.data.users on olemassa (muuten suoraan res.data)
         const data = res.data.users ?? res.data;
-        // normalisoi id
         const normalized = (Array.isArray(data) ? data : []).map((u) => ({
           ...u,
           id: u._id || u.id,
@@ -74,13 +73,29 @@ const Discover = () => {
     loadRecommended();
   }, []);
 
-  // --- pass/like/superlike -toiminnot ---
+  // --- pass/like/superlike -toiminnot (scroll-restauraatio lisätty) ---
   const handleAction = (userId, actionType) => {
+    // tallenna nykyinen scroll-asento
+    const currentScroll = window.scrollY;
+
+    // optimistinen käyttöliittymäpäivitys
     setUsers((prev) => prev.filter((u) => u.id !== userId));
-    if (userId === bunnyUser.id) return;
-    api.post(`/discover/${userId}/${actionType}`).catch((err) =>
-      console.error(`Error executing ${actionType} for user ${userId}:`, err)
-    );
+
+    // jos bunny, ei kutsuta APIa, mutta palautetaan scroll
+    if (userId === bunnyUser.id) {
+      setTimeout(() => window.scrollTo({ top: currentScroll }), 0);
+      return;
+    }
+
+    api
+      .post(`/discover/${userId}/${actionType}`)
+      .then(() => {
+        // onnistuneen vastauksen jälkeen palautetaan scroll
+        window.scrollTo({ top: currentScroll });
+      })
+      .catch((err) =>
+        console.error(`Error executing ${actionType} for user ${userId}:`, err)
+      );
   };
 
   // --- lomakesuodatin lähetys ---
@@ -166,7 +181,6 @@ const Discover = () => {
     setLookingFor,
   };
 
-  // kaikki profiilit näkyviin
   const displayUsers = users;
 
   return (
@@ -187,14 +201,12 @@ const Discover = () => {
 
       {/* pääsisältö */}
       <div className="w-full max-w-[1400px] flex flex-col lg:flex-row justify-between px-4 mt-6">
-        {/* vasen sidebar (piilossa mobiilissa) */}
         <aside className="hidden lg:block w-[200px] sticky top-[160px] space-y-6">
-          {/* ... */}
+          {/* vasen sidebar */}
         </aside>
 
-        {/* keskeinen sisältö */}
         <main className="flex-1">
-          {/* --- suodatinlomake keskitettynä --- */}
+          {/* suodatinlomake */}
           <div className="bg-white border rounded-lg shadow-md p-6 max-w-3xl mx-auto">
             <DiscoverFilters
               values={values}
@@ -204,7 +216,7 @@ const Discover = () => {
             />
           </div>
 
-          {/* --- profiilikaruselli keskitettynä --- */}
+          {/* profiilikaruselli */}
           <div className="mt-6 flex justify-center w-full">
             <div className="w-full max-w-3xl">
               {isLoading ? (
@@ -229,9 +241,8 @@ const Discover = () => {
           </div>
         </main>
 
-        {/* oikea sidebar (piilossa mobiilissa) */}
         <aside className="hidden lg:block w-[200px] sticky top-[160px] space-y-6">
-          {/* ... */}
+          {/* oikea sidebar */}
         </aside>
       </div>
     </div>

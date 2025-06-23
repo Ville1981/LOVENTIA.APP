@@ -6,12 +6,16 @@ body,
   padding: 0;
 }
 
-
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 .direction-ltr {
   direction: ltr;
+}
+
+/* ensure slick never shows an outline when it somehow gets focus */
+.slick-slide:focus,
+.slick-slide *:focus {
+  outline: none !important;
 }

@@ -1,10 +1,38 @@
-import React from "react";
+// src/components/discover/PhotoCarousel.jsx
+
+import React, { memo } from "react";
 import PropTypes from "prop-types";
 import Slider from "react-slick";
 
-// slick-tyylit
+// slick-carouselin CSS (ei poistoja!)
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
+
+/**
+ * Custom non-focusable arrow buttons for slick
+ */
+const PrevArrow = ({ onClick }) => (
+  <button
+    type="button"
+    className="slick-prev slick-arrow"
+    tabIndex={-1}
+    onClick={onClick}
+    onMouseDown={(e) => e.preventDefault()}
+    onMouseUp={(e) => e.currentTarget.blur()}
+    style={{ display: "block" }}
+  />
+);
+const NextArrow = ({ onClick }) => (
+  <button
+    type="button"
+    className="slick-next slick-arrow"
+    tabIndex={-1}
+    onClick={onClick}
+    onMouseDown={(e) => e.preventDefault()}
+    onMouseUp={(e) => e.currentTarget.blur()}
+    style={{ display: "block" }}
+  />
+);
 
 const PhotoCarousel = ({ photos = [] }) => {
   const photoList = Array.isArray(photos) ? photos : [];
@@ -17,9 +45,11 @@ const PhotoCarousel = ({ photos = [] }) => {
     );
   }
 
-  // lähdeosoitteet stringiksi
+  // key vaihtuu, jos photoList muuttuu
   const photoKey = photoList
-    .map((item) => (typeof item === "string" ? item : item.url || ""))
+    .map((item) =>
+      typeof item === "string" ? item : item.url || ""
+    )
     .join("|");
 
   const settings = {
@@ -30,29 +60,57 @@ const PhotoCarousel = ({ photos = [] }) => {
     slidesToShow: 3,
     slidesToScroll: 1,
     adaptiveHeight: false,
+
+    // custom arrows
+    prevArrow: <PrevArrow />,
+    nextArrow: <NextArrow />,
+
+    // estä fokusointi + swipe/drag
+    accessibility: false,
+    focusOnSelect: false,
+    pauseOnFocus: false,
+    pauseOnHover: false,
+    swipe: false,
+    swipeToSlide: false,
+    draggable: false,
   };
 
   return (
-    // kiinteä korkeus 12rem (h-48), overflow hidden
-    <div className="relative w-full h-48 overflow-hidden">
+    <div
+      className="relative w-full h-48 overflow-hidden"
+      tabIndex={-1}
+    >
       <Slider key={photoKey} {...settings}>
         {photoList.map((item, idx) => {
           const raw =
             typeof item === "string" ? item : item.url || "";
           const src = raw.startsWith("http")
             ? raw
-            : `${window.location.origin}${raw.startsWith("/") ? "" : "/"}${raw}`;
+            : `${window.location.origin}${
+                raw.startsWith("/") ? "" : "/"
+              }${raw}`;
 
           return (
-            <div key={idx} className="px-1">
+            <div key={idx} className="px-1" tabIndex={-1}>
               <img
                 src={src}
                 alt={`Photo ${idx + 1}`}
                 className="w-full h-48 object-cover rounded-md"
                 onError={(e) => {
                   e.currentTarget.onerror = null;
-                  e.currentTarget.src = photoList[0] || "";
+                  const fb = photoList[0];
+                  const fallback =
+                    typeof fb === "string"
+                      ? fb
+                      : fb?.url || "";
+                  e.currentTarget.src = fallback.startsWith("http")
+                    ? fallback
+                    : `${window.location.origin}${
+                        fallback.startsWith("/") ? "" : "/"
+                      }${fallback}`;
                 }}
+                tabIndex={-1}
+                draggable={false}
               />
             </div>
           );
@@ -75,4 +133,4 @@ PhotoCarousel.defaultProps = {
   photos: [],
 };
 
-export default React.memo(PhotoCarousel);
+export default memo(PhotoCarousel);

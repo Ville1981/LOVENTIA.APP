@@ -45,42 +45,41 @@ exports.getDiscover = async (req, res) => {
       .lean();
 
     const users = rawUsers.map((u) => {
-      // Build a photos array of { url } objects
-      let photos = [];
+      // Ensure arrays exist to avoid runtime errors
+      const likes      = Array.isArray(u.likes) ? u.likes : [];
+      const passes     = Array.isArray(u.passes) ? u.passes : [];
+      const superLikes = Array.isArray(u.superLikes) ? u.superLikes : [];
 
-      /** 
-       * Utility to normalize a single img-string into a URL.
-       * - jos alkaa http, lähetetään sellaisenaan
-       * - jos stringissä on "/" ⇒ oletetaan, että se on jo polku “uploads/…”
-       *   => varmistetaan vain, että siinä on alussa yksi "/"
-       * - muuten katsotaan pelkkä tiedostonimi ⇒ prefixataan "/uploads/"
-       */
+      // Utility to normalize an image string into a URL
       const normalizeUrl = (img) => {
+        if (typeof img !== 'string' || img.trim() === '') return null;
         if (img.startsWith("http")) {
           return img;
         }
         if (img.includes("/")) {
-          // jo muotoa "uploads/…" tai "/uploads/…"
           return img.startsWith("/") ? img : `/${img}`;
         }
-        // pelkkä tiedostonimi
         return `/uploads/${img}`;
       };
 
-      // 1) extraImages‐taulukosta
+      // Build a photos array of { url } objects
+      let photos = [];
       if (Array.isArray(u.extraImages) && u.extraImages.length) {
         photos = u.extraImages
+          .map(normalizeUrl)
           .filter(Boolean)
-          .map((img) => ({ url: normalizeUrl(img) }));
-      }
-      // 2) fallback: profilePicture‐kenttä
-      else if (u.profilePicture) {
-        photos = [{ url: normalizeUrl(u.profilePicture) }];
+          .map((url) => ({ url }));
+      } else if (u.profilePicture) {
+        const url = normalizeUrl(u.profilePicture);
+        if (url) photos.push({ url });
       }
 
       return {
         ...u,
         id: u._id.toString(),
+        likes,
+        passes,
+        superLikes,
         photos,
       };
     });
@@ -103,6 +102,11 @@ exports.handleAction = async (req, res) => {
     if (!user) {
       return res.sendStatus(404);
     }
+
+    // Ensure arrays exist before modification
+    if (!Array.isArray(user.likes))      user.likes = [];
+    if (!Array.isArray(user.passes))     user.passes = [];
+    if (!Array.isArray(user.superLikes)) user.superLikes = [];
 
     // Record the chosen action
     switch (actionType) {
