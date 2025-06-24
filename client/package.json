@@ -24,7 +24,9 @@
     "react-easy-crop": "^5.4.2",
     "react-i18next": "^15.5.2",
     "react-icons": "^5.5.0",
-    "react-router-dom": "^6.0.0"
+    "react-router-dom": "^6.0.0",
+    "react-slick": "^0.30.3",
+    "slick-carousel": "^1.8.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.8",

@@ -1,11 +1,11 @@
 // src/components/discover/ProfileCardList.jsx
 
-import React, { memo, useMemo } from "react";
+import React, { memo, useMemo, useRef, useEffect } from "react";
 import PropTypes from "prop-types";
 import Slider from "react-slick";
 import ProfileCard from "./ProfileCard";
 
-// Näitä importteja tarvitaan, jotta slickin CSS latautuu
+// Slick-carouselin tyylit (pidetään App.jsx:ssä myös, mutta varmistetaan)
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
@@ -22,34 +22,56 @@ const ProfileCardList = ({ users = [], onAction }) => {
     );
   }
 
-  // Muistetaan asetukset yhdellä kertaa, jotta Slick ei re-initoidu
-  const settings = useMemo(() => ({
-    dots: false,
-    arrows: true,
-    infinite: false,
-    speed: 300,
-    slidesToShow: 1,
-    slidesToScroll: 1,
-    adaptiveHeight: true,
+  const sliderRef = useRef(null);
+  const userKey = users.map((u) => u.id || u._id).join("|");
 
-    // Estetään kaikenlainen fokus- ja hover-triggeröity scrollaus
-    accessibility: false,
-    focusOnSelect: false,
-    focusOnChange: false,
-    pauseOnFocus: false,
-    pauseOnHover: false,
-  }), []);
+  useEffect(() => {
+    sliderRef.current?.slickGoTo(0, /* dontAnimate */ true);
+  }, [userKey]);
+
+  const settings = useMemo(
+    () => ({
+      initialSlide: 0,
+      dots: false,
+      arrows: true,
+      infinite: false,
+      speed: 300,
+      slidesToShow: 1,
+      slidesToScroll: 1,
+      adaptiveHeight: false,
+
+      accessibility: false,
+      focusOnSelect: false,
+      focusOnChange: false,
+      pauseOnFocus: false,
+      pauseOnHover: false,
+    }),
+    []
+  );
 
   return (
-    <div className="profile-carousel mt-6 w-full">
-      {/* Rajoita karuselli maksimissaan 800px levyiseksi ja keskelle */}
-      <div className="mx-auto w-full max-w-[800px]">
-        {/* Ei key-proppia, jotta Slider pysyy samana instanssina */}
-        <Slider {...settings}>
+    <div
+      className="profile-carousel mt-6 w-full"
+      style={{ overflowAnchor: "none" }}
+    >
+      <div
+        className="mx-auto w-full max-w-[800px]"
+        style={{ overflowAnchor: "none" }}
+      >
+        <Slider
+          ref={sliderRef}
+          {...settings}
+          style={{ overflowAnchor: "none", minHeight: "600px" }}
+        >
           {users.map((u) => {
             const userId = u.id || u._id;
             return (
-              <div key={userId} className="px-2">
+              <div
+                key={userId}
+                className="px-2"
+                tabIndex={-1}
+                style={{ minHeight: "100%", overflowAnchor: "none" }}
+              >
                 <ProfileCard
                   user={u}
                   onPass={() => onAction(userId, "pass")}

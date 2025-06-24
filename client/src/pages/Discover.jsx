@@ -29,6 +29,14 @@ const Discover = () => {
   const { t } = useTranslation();
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [filterKey, setFilterKey] = useState("initial");
+
+  // estä selaimen automaattinen scroll-restauraatio
+  useEffect(() => {
+    if ("scrollRestoration" in window.history) {
+      window.history.scrollRestoration = "manual";
+    }
+  }, []);
 
   // --- suodatuslomakkeen tilat ---
   const [username, setUsername] = useState("");
@@ -63,9 +71,11 @@ const Discover = () => {
           id: u._id || u.id,
         }));
         setUsers([...normalized, bunnyUser]);
+        setFilterKey(Date.now().toString());
       } catch (err) {
         console.error("Error fetching recommended profiles:", err);
         setUsers([bunnyUser]);
+        setFilterKey(Date.now().toString());
       } finally {
         setIsLoading(false);
       }
@@ -73,29 +83,23 @@ const Discover = () => {
     loadRecommended();
   }, []);
 
-  // --- pass/like/superlike -toiminnot (scroll-restauraatio lisätty) ---
+  // --- pass/like/superlike -toiminnot ---
   const handleAction = (userId, actionType) => {
-    // tallenna nykyinen scroll-asento
     const currentScroll = window.scrollY;
-
-    // optimistinen käyttöliittymäpäivitys
     setUsers((prev) => prev.filter((u) => u.id !== userId));
 
-    // jos bunny, ei kutsuta APIa, mutta palautetaan scroll
-    if (userId === bunnyUser.id) {
-      setTimeout(() => window.scrollTo({ top: currentScroll }), 0);
-      return;
-    }
+    // Korjattu scroll-pomppu: ajoitus DOM-päivityksen jälkeen
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        window.scrollTo({ top: currentScroll, behavior: "auto" });
+      }, 0);
+    });
 
-    api
-      .post(`/discover/${userId}/${actionType}`)
-      .then(() => {
-        // onnistuneen vastauksen jälkeen palautetaan scroll
-        window.scrollTo({ top: currentScroll });
-      })
-      .catch((err) =>
-        console.error(`Error executing ${actionType} for user ${userId}:`, err)
-      );
+    if (userId !== bunnyUser.id) {
+      api
+        .post(`/discover/${userId}/${actionType}`)
+        .catch((err) => console.error(`Error executing ${actionType}:`, err));
+    }
   };
 
   // --- lomakesuodatin lähetys ---
@@ -129,15 +133,16 @@ const Discover = () => {
         id: u._id || u.id,
       }));
       setUsers([...normalized, bunnyUser]);
+      setFilterKey(Date.now().toString());
     } catch (err) {
       console.error("Error filtering users:", err);
       setUsers([bunnyUser]);
+      setFilterKey(Date.now().toString());
     } finally {
       setIsLoading(false);
     }
   };
 
-  // props DiscoverFiltersille
   const values = {
     username,
     age,
@@ -159,6 +164,7 @@ const Discover = () => {
     goals,
     lookingFor,
   };
+
   const setters = {
     setUsername,
     setAge,
@@ -181,11 +187,8 @@ const Discover = () => {
     setLookingFor,
   };
 
-  const displayUsers = users;
-
   return (
-    <div className="w-full flex flex-col items-center bg-gray-100 min-h-screen">
-      {/* ylänavigaatio */}
+    <div className="w-full flex flex-col items-center bg-gray-100 min-h-screen" style={{ overflowAnchor: 'none' }}>
       <div className="w-full bg-black">
         <SubNav
           tabs={[
@@ -199,14 +202,9 @@ const Discover = () => {
         />
       </div>
 
-      {/* pääsisältö */}
       <div className="w-full max-w-[1400px] flex flex-col lg:flex-row justify-between px-4 mt-6">
-        <aside className="hidden lg:block w-[200px] sticky top-[160px] space-y-6">
-          {/* vasen sidebar */}
-        </aside>
-
+        <aside className="hidden lg:block w-[200px] sticky top-[160px] space-y-6" />
         <main className="flex-1">
-          {/* suodatinlomake */}
           <div className="bg-white border rounded-lg shadow-md p-6 max-w-3xl mx-auto">
             <DiscoverFilters
               values={values}
@@ -215,35 +213,22 @@ const Discover = () => {
               t={t}
             />
           </div>
-
-          {/* profiilikaruselli */}
           <div className="mt-6 flex justify-center w-full">
             <div className="w-full max-w-3xl">
               {isLoading ? (
-                <div className="mt-12 text-center text-gray-500">
-                  {t("discover.loading")}…
-                </div>
+                <div className="mt-12 text-center text-gray-500">{t("discover.loading")}…</div>
               ) : (
                 <>
-                  <ProfileCardList
-                    key={displayUsers.map((u) => u.id).join("|")}
-                    users={displayUsers}
-                    onAction={handleAction}
-                  />
-                  {displayUsers.length === 0 && (
-                    <div className="mt-12 text-center text-gray-500">
-                      🔍 {t("discover.noResults")}
-                    </div>
+                  <ProfileCardList key={filterKey} users={users} onAction={handleAction} />
+                  {users.length === 0 && (
+                    <div className="mt-12 text-center text-gray-500">🔍 {t("discover.noResults")} </div>
                   )}
                 </>
               )}
             </div>
           </div>
         </main>
-
-        <aside className="hidden lg:block w-[200px] sticky top-[160px] space-y-6">
-          {/* oikea sidebar */}
-        </aside>
+        <aside className="hidden lg:block w-[200px] sticky top-[160px] space-y-6" />
       </div>
     </div>
   );
