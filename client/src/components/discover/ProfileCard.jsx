@@ -94,6 +94,9 @@ const ProfileCard = ({ user, onPass, onLike, onSuperlike }) => {
       <button
         type="button"
         className="absolute bottom-2 right-2 bg-white text-blue-600 text-xs font-semibold py-1 px-2 rounded shadow-sm"
+        tabIndex={-1}
+        onMouseDown={(e) => e.preventDefault()}
+        onMouseUp={(e) => e.currentTarget.blur()}
       >
         INTRO
       </button>
@@ -168,5 +171,3 @@ ProfileCard.propTypes = {
 };
 
 export default memo(ProfileCard);
-
-

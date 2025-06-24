@@ -1,3 +1,5 @@
+// src/components/discover/DetailsSection.jsx
+
 import React from "react";
 import PropTypes from "prop-types";
 
@@ -5,11 +7,29 @@ const DetailsSection = ({ details = {} }) => {
   if (typeof details !== "object" || Object.keys(details).length === 0) return null;
 
   return (
-    <div className="mt-6">
-      <div className="bg-[#111] text-white px-2 py-1 rounded-t-lg text-sm font-semibold">
+    <div
+      className="mt-6 focus:outline-none"
+      tabIndex={-1}
+      style={{
+        overflowAnchor: "none",  // estää scroll-ankkuroinnin
+        minHeight: "5rem",       // takaa vakauden eri profiileilla
+      }}
+    >
+      <div
+        className="bg-[#111] text-white px-2 py-1 rounded-t-lg text-sm font-semibold focus:outline-none"
+        tabIndex={-1}
+        style={{ overflowAnchor: "none" }}
+      >
         Details
       </div>
-      <div className="border border-gray-200 border-t-0 rounded-b-lg p-4 flex flex-col space-y-2 text-gray-700 text-sm">
+      <div
+        className="border border-gray-200 border-t-0 rounded-b-lg p-4 flex flex-col space-y-2 text-gray-700 text-sm focus:outline-none"
+        tabIndex={-1}
+        style={{
+          overflowAnchor: "none",
+          minHeight: "4rem",    // vakioidaan sisällön minikorkeus
+        }}
+      >
         {details.gender && (
           <div className="flex items-center space-x-2">
             <span>👤</span>

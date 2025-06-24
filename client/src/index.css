@@ -1,21 +1,52 @@
+/* ==================================================
+   Perusasetukset ja Tailwind-importit
+   ================================================== */
+
 html,
 body,
 #root {
   height: 100%;
   margin: 0;
   padding: 0;
+  /* Sammutetaan selaimen scroll anchoring koko dokumentissa */
+  overflow-anchor: none !important;
+  /* Poistetaan smooth‐scroll jotta selaimen oletus ei sotke päivityksiä */
+  scroll-behavior: auto !important;
 }
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ==================================================
+   Tekstisuunta luettavuuden takaamiseksi
+   ================================================== */
+
 .direction-ltr {
   direction: ltr;
 }
 
-/* ensure slick never shows an outline when it somehow gets focus */
+/* ==================================================
+   Slick‐karusellin outline‐poisto
+   ================================================== */
+
+/* Jos jostain syystä jokin slide saa focusin, sen outline poistetaan */
 .slick-slide:focus,
 .slick-slide *:focus {
   outline: none !important;
+}
+
+/* ==================================================
+   Scroll-anchoringin esto Slick-komponenteille
+   ================================================== */
+
+/* Slickin pääkontit ja napit + kaikki lapset varmuuden vuoksi */
+.slick-slider,
+.slick-list,
+.slick-track,
+.profile-carousel,
+.profile-carousel *,
+.slick-prev,
+.slick-next {
+  overflow-anchor: none !important;
 }

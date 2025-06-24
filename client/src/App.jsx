@@ -1,7 +1,9 @@
 // client/src/App.jsx
-import React from "react";
+
+import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-// lisää slickin CSS:t juuri App.jsx:ään, jotta karuselli tyylit ladataan oikein
+
+// Slick-karusellin CSS-tiedostot lisätään globaalisti, jotta karuselli toimii oikein
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
@@ -16,11 +18,12 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
 import MainLayout from "./components/MainLayout";
-import Upgrade from "./pages/Upgrade"; // 🌟 Uusi sivu
+import Upgrade from "./pages/Upgrade"; // 🌟 Uusi sivu: Premium-päivitys
 
 const AppContent = () => {
   return (
     <Routes>
+      {/* Sivut MainLayoutin sisällä (navbar + main content) */}
       <Route path="/" element={<MainLayout />}>
         <Route index element={<Etusivu />} />
         <Route path="discover" element={<Discover />} />
@@ -37,19 +40,32 @@ const AppContent = () => {
         <Route path="login" element={<Login />} />
         <Route path="register" element={<Register />} />
 
-        {/* Premium-upgrade */}
+        {/* Premium-upgrade -sivu */}
         <Route path="upgrade" element={<Upgrade />} />
       </Route>
 
+      {/* 404-sivu, jos mikään reitti ei täsmää */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
 };
 
-const App = () => (
-  <Router>
-    <AppContent />
-  </Router>
-);
+const App = () => {
+  useEffect(() => {
+    // Palautetaan selaimen oletus-scroll-restauraatio (scroll-sijainti säilyy)
+    if ("scrollRestoration" in window.history) {
+      window.history.scrollRestoration = "auto";
+    }
+
+    // Estetään selainpohjainen scroll-ankkurointi globaalisti (layout shift -ongelmien estämiseksi)
+    document.documentElement.style.overflowAnchor = "none";
+  }, []);
+
+  return (
+    <Router>
+      <AppContent />
+    </Router>
+  );
+};
 
 export default App;
