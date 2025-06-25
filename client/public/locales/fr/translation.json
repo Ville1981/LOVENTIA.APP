@@ -151,7 +151,12 @@
     "like": "J'aime",
     "superlike": "Superlike",
     "viewProfile": "Voir le profil",
-    "premium": "Utilisateur Premium"
+    "premium": "Utilisateur Premium",
+        "minAge": "Âge minimum",
+    "maxAge": "Âge maximum",
+    "instructions": "Sélectionnez les filtres pour trouver des profils compatibles.",
+    "filter": "Filtrer"
+
   },
 
   "chat": {
@@ -223,5 +228,11 @@
     "Kazakstan": "Kazakhstan",
     "Portugali": "Portugal",
     "Italia": "Italie"
-  }
+  },
+
+  "common": {
+  "select": "Sélectionner",
+  "filter": "Filtrer"
+}
+
 }

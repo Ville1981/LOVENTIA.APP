@@ -150,7 +150,12 @@
     "like": "いいね",
     "superlike": "スーパーライク",
     "viewProfile": "プロフィールを見る",
-    "premium": "プレミアムユーザー"
+    "premium": "プレミアムユーザー",
+        "minAge": "最小年齢",
+    "maxAge": "最大年齢",
+    "instructions": "条件を選択して、相性の良いプロフィールを見つけましょう。",
+    "filter": "フィルター"
+
   },
 
   "chat": {
@@ -222,5 +227,11 @@
     "Kazakstan": "カザフスタン",
     "Portugali": "ポルトガル",
     "Italia": "イタリア"
-  }
+  },
+
+  "common": {
+  "select": "選択",
+  "filter": "フィルター"
+}
+
 }

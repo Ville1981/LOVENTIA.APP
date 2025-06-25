@@ -149,7 +149,12 @@
     "like": "Μου αρέσει",
     "superlike": "Superlike",
     "viewProfile": "Προβολή προφίλ",
-    "premium": "Premium χρήστης"
+    "premium": "Premium χρήστης",
+        "minAge": "Ελάχιστη ηλικία",
+    "maxAge": "Μέγιστη ηλικία",
+    "instructions": "Επιλέξτε φίλτρα για να βρείτε κατάλληλα προφίλ.",
+    "filter": "Φιλτράρισμα"
+
   },
   "chat": {
     "title": "Συζήτηση",
@@ -215,7 +220,13 @@
     "Kazakstan": "Καζακστάν",
     "Portugali": "Πορτογαλία",
     "Italia": "Ιταλία"
-  }
+  },
+
+  "common": {
+  "select": "Επιλέξτε",
+  "filter": "Φιλτράρισμα"
+}
+
 }
 
   

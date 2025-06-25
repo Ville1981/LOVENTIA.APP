@@ -8,7 +8,6 @@ import DiscoverFilters from "../components/DiscoverFilters";
 import ProfileCardList from "../components/discover/ProfileCardList";
 import SubNav from "../components/SubNav";
 
-// Bunny-fallback profiili kun back-endillä ei ole kuvia
 const bunnyUser = {
   id: "bunny",
   _id: "bunny",
@@ -31,14 +30,12 @@ const Discover = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [filterKey, setFilterKey] = useState("initial");
 
-  // estä selaimen automaattinen scroll-restauraatio
   useEffect(() => {
     if ("scrollRestoration" in window.history) {
       window.history.scrollRestoration = "manual";
     }
   }, []);
 
-  // --- suodatuslomakkeen tilat ---
   const [username, setUsername] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
@@ -58,8 +55,9 @@ const Discover = () => {
   const [summary, setSummary] = useState("");
   const [goals, setGoals] = useState("");
   const [lookingFor, setLookingFor] = useState("");
+  const [minAge, setMinAge] = useState(18);
+  const [maxAge, setMaxAge] = useState(99);
 
-  // --- haetaan discover-listaus back-endistä ---
   useEffect(() => {
     const loadRecommended = async () => {
       setIsLoading(true);
@@ -83,12 +81,10 @@ const Discover = () => {
     loadRecommended();
   }, []);
 
-  // --- pass/like/superlike -toiminnot ---
   const handleAction = (userId, actionType) => {
     const currentScroll = window.scrollY;
     setUsers((prev) => prev.filter((u) => u.id !== userId));
 
-    // Korjattu scroll-pomppu: ajoitus DOM-päivityksen jälkeen
     requestAnimationFrame(() => {
       setTimeout(() => {
         window.scrollTo({ top: currentScroll, behavior: "auto" });
@@ -102,31 +98,35 @@ const Discover = () => {
     }
   };
 
-  // --- lomakesuodatin lähetys ---
   const handleFilter = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const res = await api.get("/discover", {
-        params: {
-          username,
-          age,
-          gender,
-          orientation,
-          religion,
-          religionImportance,
-          education,
-          profession,
-          country: customCountry || country,
-          region: customRegion || region,
-          city: customCity || city,
-          children,
-          pets,
-          summary,
-          goals,
-          lookingFor,
-        },
+      const query = {
+        username,
+        gender,
+        orientation,
+        religion,
+        religionImportance,
+        education,
+        profession,
+        country: customCountry || country,
+        region: customRegion || region,
+        city: customCity || city,
+        children,
+        pets,
+        summary,
+        goals,
+        lookingFor,
+        minAge: Number(minAge),
+        maxAge: Number(maxAge),
+      };
+
+      Object.keys(query).forEach((key) => {
+        if (query[key] === "" || query[key] == null) delete query[key];
       });
+
+      const res = await api.get("/discover", { params: query });
       const data = res.data.users ?? res.data;
       const normalized = (Array.isArray(data) ? data : []).map((u) => ({
         ...u,
@@ -163,6 +163,8 @@ const Discover = () => {
     summary,
     goals,
     lookingFor,
+    minAge,
+    maxAge,
   };
 
   const setters = {
@@ -185,6 +187,8 @@ const Discover = () => {
     setSummary,
     setGoals,
     setLookingFor,
+    setMinAge,
+    setMaxAge,
   };
 
   return (
@@ -221,7 +225,7 @@ const Discover = () => {
                 <>
                   <ProfileCardList key={filterKey} users={users} onAction={handleAction} />
                   {users.length === 0 && (
-                    <div className="mt-12 text-center text-gray-500">🔍 {t("discover.noResults")} </div>
+                    <div className="mt-12 text-center text-gray-500">🔍 {t("discover.noResults")}</div>
                   )}
                 </>
               )}

@@ -1,3 +1,5 @@
+// server/models/User.js
+
 const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema(
@@ -6,18 +8,18 @@ const userSchema = new mongoose.Schema(
     username: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    profilePicture: { type: String },    // Profiilikuvan polku tallennetaan tähän
+    profilePicture: { type: String }, // Profiilikuvan polku tallennetaan tähän
     extraImages: {
       type: [String],
       default: [],
       // Aina maxSlots-pituinen taulukko (6 ei-premium, 20 premium)
-      set: function(arr) {
+      set: function (arr) {
         const max = this.isPremium ? 20 : 6;
         const a = Array.isArray(arr) ? arr.slice(0, max) : [];
         while (a.length < max) a.push(null);
         return a;
-      }
-    },                // Lisäkuvat (max 6 tai 20 Premium)
+      },
+    }, // Lisäkuvat (max 6 tai 20 Premium)
 
     // 🧍 Perustiedot
     name: String,
@@ -38,7 +40,8 @@ const userSchema = new mongoose.Schema(
     children: String,
     pets: String,
     summary: String,
-    goal: String,
+    goal: String,           // säilytetään yhteensopivuuden vuoksi
+    goals: String,          // lisätty DiscoverFilters-yhteensopivuutta varten
     lookingFor: String,
     interests: [String],
     hidden: { type: Boolean, default: false },

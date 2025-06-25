@@ -133,7 +133,12 @@
     "like": "Penda",
     "superlike": "Superlike",
     "viewProfile": "Tazama wasifu",
-    "premium": "Mtumiaji wa Premium"
+    "premium": "Mtumiaji wa Premium",
+        "minAge": "Umri wa chini kabisa",
+    "maxAge": "Umri wa juu kabisa",
+    "instructions": "Chagua vichujio ili kupata wasifu unaolingana.",
+    "filter": "Chuja"
+
   },
   "admin": {
     "title": "Jopo la Msimamizi: Usimamizi wa Watumiaji",
@@ -207,7 +212,13 @@
     "Kazakstan": "Kazakhstan",
     "Portugali": "Portugal",
     "Italia": "Italy"
-  }
+  },
+
+  "common": {
+  "select": "Chagua",
+  "filter": "Chuja"
+}
+
  }
 
 
