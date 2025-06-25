@@ -1,10 +1,9 @@
 // server/controllers/discoverController.js
 const User = require("../models/User");
 
-// Whitelist of query parameters allowed for filtering
+// Sallittujen query-parametrien whitelist
 const allowedFilters = [
   "username",
-  "age",
   "gender",
   "orientation",
   "religion",
@@ -18,6 +17,7 @@ const allowedFilters = [
   "pets",
   "summary",
   "goals",
+  "goal", // vanha tuki
   "lookingFor",
 ];
 
@@ -26,43 +26,40 @@ exports.getDiscover = async (req, res) => {
     const currentUserId = req.userId;
     const filters = {};
 
-    // Build filters only from allowed query params
+    // Perusfiltterit (vain whitelistatut avaimet)
     Object.entries(req.query).forEach(([key, value]) => {
       if (value != null && value !== "" && allowedFilters.includes(key)) {
-        filters[key] = key === "age" ? Number(value) : value;
+        filters[key] = value;
       }
     });
 
-    // Exclude the current user from results
+    // Ikähaarukka: tukee minAge & maxAge
+    const minAge = parseInt(req.query.minAge) || 18;
+    const maxAge = parseInt(req.query.maxAge) || 99;
+    filters.age = { $gte: minAge, $lte: maxAge };
+
+    // Poissulje nykyinen käyttäjä tuloksista
     if (currentUserId) {
       filters._id = { $ne: currentUserId };
     }
 
-    // Fetch up to 20 profiles, omit sensitive fields, return plain JS objects
+    // Hae käyttäjät MongoDB:stä ilman arkaluonteisia kenttiä
     const rawUsers = await User.find(filters)
       .limit(20)
       .select("-password -email -blockedUsers")
       .lean();
 
     const users = rawUsers.map((u) => {
-      // Ensure arrays exist to avoid runtime errors
-      const likes      = Array.isArray(u.likes) ? u.likes : [];
-      const passes     = Array.isArray(u.passes) ? u.passes : [];
+      const likes = Array.isArray(u.likes) ? u.likes : [];
+      const passes = Array.isArray(u.passes) ? u.passes : [];
       const superLikes = Array.isArray(u.superLikes) ? u.superLikes : [];
 
-      // Utility to normalize an image string into a URL
       const normalizeUrl = (img) => {
-        if (typeof img !== 'string' || img.trim() === '') return null;
-        if (img.startsWith("http")) {
-          return img;
-        }
-        if (img.includes("/")) {
-          return img.startsWith("/") ? img : `/${img}`;
-        }
-        return `/uploads/${img}`;
+        if (typeof img !== "string" || img.trim() === "") return null;
+        if (img.startsWith("http")) return img;
+        return img.startsWith("/") ? img : `/uploads/${img}`;
       };
 
-      // Build a photos array of { url } objects
       let photos = [];
       if (Array.isArray(u.extraImages) && u.extraImages.length) {
         photos = u.extraImages
@@ -103,12 +100,10 @@ exports.handleAction = async (req, res) => {
       return res.sendStatus(404);
     }
 
-    // Ensure arrays exist before modification
-    if (!Array.isArray(user.likes))      user.likes = [];
-    if (!Array.isArray(user.passes))     user.passes = [];
+    if (!Array.isArray(user.likes)) user.likes = [];
+    if (!Array.isArray(user.passes)) user.passes = [];
     if (!Array.isArray(user.superLikes)) user.superLikes = [];
 
-    // Record the chosen action
     switch (actionType) {
       case "like":
         if (!user.likes.includes(targetId)) {

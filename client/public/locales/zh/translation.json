@@ -112,7 +112,12 @@
     "like": "点赞",
     "superlike": "超级点赞",
     "viewProfile": "查看资料",
-    "premium": "高级用户"
+    "premium": "高级用户",
+        "minAge": "最小年龄",
+    "maxAge": "最大年龄",
+    "instructions": "请选择筛选条件以查找匹配的用户。",
+    "filter": "筛选"
+
   },
 
   "chat": {
@@ -184,5 +189,11 @@
     "Kazakstan": "哈萨克斯坦",
     "Portugali": "葡萄牙",
     "Italia": "意大利"
-  }
+  },
+
+  "common": {
+  "select": "请选择",
+  "filter": "筛选"
+}
+
 }

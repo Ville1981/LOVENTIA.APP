@@ -10,7 +10,6 @@ import FormLookingFor from "./profileFields/FormLookingFor";
 
 const DiscoverFilters = ({ values, setters, handleFilter, t }) => {
   return (
-    // Keskitetään ja rajataan maksimileveyteen
     <div className="w-full max-w-3xl mx-auto">
       <form onSubmit={handleFilter} className="flex flex-col gap-6">
         <div className="text-center">
@@ -29,6 +28,10 @@ const DiscoverFilters = ({ values, setters, handleFilter, t }) => {
           setAge={setters.setAge}
           setGender={setters.setGender}
           setOrientation={setters.setOrientation}
+          minAge={values.minAge}
+          maxAge={values.maxAge}
+          setMinAge={setters.setMinAge}
+          setMaxAge={setters.setMaxAge}
           t={t}
           hideUsernameEmail
         />
@@ -50,7 +53,7 @@ const DiscoverFilters = ({ values, setters, handleFilter, t }) => {
           t={t}
         />
 
-        {/* Education */}
+        {/* Education & Profession */}
         <FormEducation
           education={values.education}
           profession={values.profession}
@@ -84,12 +87,13 @@ const DiscoverFilters = ({ values, setters, handleFilter, t }) => {
           t={t}
         />
 
+        {/* Submit Button */}
         <div className="text-center pt-3">
           <button
             type="submit"
             className="bg-pink-600 text-white font-bold py-2 px-8 rounded-full hover:opacity-90 transition duration-200"
           >
-            🔍 {t("common.filter")}
+            🔍 {t("common.filter") || "Filter"}
           </button>
         </div>
       </form>
@@ -115,6 +119,8 @@ DiscoverFilters.propTypes = {
     summary: PropTypes.string,
     goals: PropTypes.string,
     lookingFor: PropTypes.string,
+    minAge: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    maxAge: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   }).isRequired,
   setters: PropTypes.shape({
     setAge: PropTypes.func.isRequired,
@@ -133,6 +139,8 @@ DiscoverFilters.propTypes = {
     setSummary: PropTypes.func.isRequired,
     setGoals: PropTypes.func.isRequired,
     setLookingFor: PropTypes.func.isRequired,
+    setMinAge: PropTypes.func.isRequired,
+    setMaxAge: PropTypes.func.isRequired,
   }).isRequired,
   handleFilter: PropTypes.func.isRequired,
   t: PropTypes.func.isRequired,

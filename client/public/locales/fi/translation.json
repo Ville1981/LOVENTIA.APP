@@ -135,7 +135,12 @@
 
   
   "premiumText": "Näet kuka on tykännyt sinusta, käytä Superlike ja saa enemmän osumia.",
-  "upgradeNow": "Päivitä nyt"
+  "upgradeNow": "Päivitä nyt",
+      "minAge": "Vähimmäisikä",
+    "maxAge": "Enimmäisikä",
+    "instructions": "Valitse suodattimet löytääksesi yhteensopivia profiileja.",
+    "filter": "Suodata"
+
   
     
     
@@ -214,5 +219,11 @@
   "Kazakstan": "Kazakstan",
   "Portugali": "Portugali",
   "Italia": "Italia"
-  }
+  },
+
+  "common": {
+  "select": "Valitse",
+  "filter": "Suodata"
+}
+
 }
