@@ -167,6 +167,7 @@
   "common": {
     "select": "Select",
     "filter": "Filter"
+    
   },
 
   "chat": {
@@ -247,5 +248,20 @@
     "cupidsPicks": "Cupid’s Picks",
     "matchPercentage": "Match %",
     "passport": "Passport"
-  }
+  },
+
+  "lifestyle": {
+  "title": "Lifestyle",
+  "smoke": "Smoking",
+  "drink": "Alcohol",
+  "drugs": "Drugs",
+  "no": "None",
+  "little": "A little",
+  "average": "Average",
+  "much": "A lot",
+  "sober": "Free from addiction"
+}
+
+
+
 }

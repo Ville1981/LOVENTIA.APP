@@ -217,7 +217,20 @@
   "common": {
   "select": "Chagua",
   "filter": "Chuja"
+},
+
+"lifestyle": {
+  "title": "Mtindo wa maisha",
+  "smoke": "Uvutaji sigara",
+  "drink": "Pombe",
+  "drugs": "Madawa ya kulevya",
+  "no": "Hatumii",
+  "little": "Kidogo",
+  "average": "Kawaida",
+  "much": "Mengi",
+  "sober": "Huru kutokana na uraibu"
 }
+
 
  }
 

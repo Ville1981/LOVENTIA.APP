@@ -19,6 +19,9 @@ const allowedFilters = [
   "goals",
   "goal", // vanha tuki
   "lookingFor",
+  "smoke",      // ✅ UUSI
+  "drink",      // ✅ UUSI
+  "drugs",      // ✅ UUSI
 ];
 
 exports.getDiscover = async (req, res) => {

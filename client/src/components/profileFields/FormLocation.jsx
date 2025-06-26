@@ -1,5 +1,3 @@
-// client/src/components/profileFields/FormLocation.jsx
-
 import React from "react";
 import { countryRegions, regionCities } from "../../utils/locationData";
 
@@ -18,7 +16,6 @@ const FormLocation = ({
   setCustomCity,
   t,
 }) => {
-  // Maavalinta
   const handleCountryChange = (e) => {
     const next = e.target.value;
     if (next !== country) {
@@ -29,7 +26,6 @@ const FormLocation = ({
     }
   };
 
-  // Aluevalinta
   const handleRegionChange = (e) => {
     const next = e.target.value;
     if (next !== region) {
@@ -39,7 +35,6 @@ const FormLocation = ({
     }
   };
 
-  // Kaupunkivalinta
   const handleCityChange = (e) => {
     const next = e.target.value;
     if (next !== city) {
@@ -48,7 +43,6 @@ const FormLocation = ({
     }
   };
 
-  // Manuaalinen syöttö — tyhjennä samalla lista-arvot
   const handleCustomCountryChange = (e) => {
     setCustomCountry(e.target.value);
     setCountry("");
@@ -65,10 +59,12 @@ const FormLocation = ({
     setCity("");
   };
 
-  // Dynaamiset listat
   const regionOptions = country ? countryRegions[country] || [] : [];
   const cityOptions =
     country && region ? regionCities[country]?.[region] || [] : [];
+
+  const hasCountry = country || customCountry;
+  const hasRegion = region || customRegion;
 
   return (
     <div className="flex flex-col space-y-6 w-full text-left">
@@ -109,9 +105,9 @@ const FormLocation = ({
           id="region"
           value={region}
           onChange={handleRegionChange}
-          disabled={!country}
           className="p-2 border rounded w-full"
           aria-label={t("profile.selectRegion")}
+          disabled={!hasCountry || regionOptions.length === 0}
         >
           <option value="">{t("profile.selectRegion")}</option>
           {regionOptions.map((r) => (
@@ -138,9 +134,9 @@ const FormLocation = ({
           id="city"
           value={city}
           onChange={handleCityChange}
-          disabled={!region}
           className="p-2 border rounded w-full"
           aria-label={t("profile.selectCity")}
+          disabled={!hasRegion || cityOptions.length === 0}
         >
           <option value="">{t("profile.selectCity")}</option>
           {cityOptions.map((c) => (

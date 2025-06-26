@@ -222,7 +222,20 @@
   "common": {
   "select": "Seleziona",
   "filter": "Filtra"
+},
+
+"lifestyle": {
+  "title": "Stile di vita",
+  "smoke": "Fumo",
+  "drink": "Alcol",
+  "drugs": "Droghe",
+  "no": "Nessuno",
+  "little": "Poco",
+  "average": "Moderato",
+  "much": "Molto",
+  "sober": "Libero da dipendenze"
 }
+
 
 }
 

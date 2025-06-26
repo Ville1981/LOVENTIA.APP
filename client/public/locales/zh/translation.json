@@ -194,6 +194,19 @@
   "common": {
   "select": "请选择",
   "filter": "筛选"
+},
+
+"lifestyle": {
+  "title": "生活方式",
+  "smoke": "吸烟",
+  "drink": "饮酒",
+  "drugs": "毒品",
+  "no": "不使用",
+  "little": "少量",
+  "average": "适量",
+  "much": "大量",
+  "sober": "无成瘾"
 }
+
 
 }

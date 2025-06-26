@@ -1,17 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import api from "../utils/axiosInstance";
-import ProfileForm from "../components/profileFields/ProfileForm";  // profiilin muokkauslomake
+import ProfileForm from "../components/profileFields/ProfileForm";
 
 const UserProfile = () => {
   const { userId: userIdParam } = useParams();
 
-  // Käyttäjädata ja status-viestit
   const [user, setUser] = useState(null);
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState(false);
 
-  // Lomakkeen kenttätilat (vain oman profiilin muokkaukseen)
+  // Kenttätilat
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [age, setAge] = useState("");
@@ -32,8 +31,10 @@ const UserProfile = () => {
   const [summary, setSummary] = useState("");
   const [goal, setGoal] = useState("");
   const [lookingFor, setLookingFor] = useState("");
+  const [smoke, setSmoke] = useState("");
+  const [drink, setDrink] = useState("");
+  const [drugs, setDrugs] = useState("");
 
-  // Stub-käännösfunktio (ProfileForm tarvitsee prop t)
   const t = (key) => {
     const translations = {
       "profile.saveAvatar": "Tallenna profiilikuva",
@@ -47,11 +48,13 @@ const UserProfile = () => {
       "profile.manualCountry": "Tai kirjoita maa…",
       "profile.manualRegion": "Tai kirjoita osavaltio…",
       "profile.manualCity": "Tai kirjoita kaupunki…",
+      "lifestyle.smoke": "Tupakointi",
+      "lifestyle.drink": "Alkoholi",
+      "lifestyle.drugs": "Huumeet",
     };
     return translations[key] || key;
   };
 
-  // 1) Haetaan data
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -60,7 +63,6 @@ const UserProfile = () => {
         const u = res.data.user || res.data;
         setUser(u);
 
-        // Esitä nykyiset arvot muokkauslomakkeessa vain oman profiilin kohdalla
         if (!userIdParam) {
           setUsername(u.username || "");
           setEmail(u.email || "");
@@ -82,6 +84,9 @@ const UserProfile = () => {
           setSummary(u.summary || "");
           setGoal(u.goal || "");
           setLookingFor(u.lookingFor || "");
+          setSmoke(u.smoke || "");
+          setDrink(u.drink || "");
+          setDrugs(u.drugs || "");
         }
       } catch (err) {
         console.error("❌ Profiilin haku epäonnistui", err);
@@ -93,10 +98,9 @@ const UserProfile = () => {
     fetchUser();
   }, [userIdParam]);
 
-  // 2) Oman profiilin päivitys
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (userIdParam) return; // älä päivitä vieraan profiilia
+    if (userIdParam) return;
 
     try {
       const payload = {
@@ -117,6 +121,9 @@ const UserProfile = () => {
         summary,
         goal,
         lookingFor,
+        smoke,
+        drink,
+        drugs,
       };
       await api.put("/users/profile", payload);
       setSuccess(true);
@@ -128,7 +135,6 @@ const UserProfile = () => {
     }
   };
 
-  // Propsit ProfileForm-komponentille
   const values = {
     username,
     email,
@@ -150,6 +156,9 @@ const UserProfile = () => {
     summary,
     goal,
     lookingFor,
+    smoke,
+    drink,
+    drugs,
   };
   const setters = {
     setUsername,
@@ -172,7 +181,10 @@ const UserProfile = () => {
     setSummary,
     setGoal,
     setLookingFor,
-    handleSubmit, // ProfileForm kutsuu tätä lopulliseen tallennukseen
+    setSmoke,
+    setDrink,
+    setDrugs,
+    handleSubmit,
   };
 
   return (
@@ -186,7 +198,6 @@ const UserProfile = () => {
           <span className="text-gray-600">Ladataan…</span>
         </div>
       ) : userIdParam ? (
-        // Read-only-näyttö vieraan profiilissa
         <div className="bg-white shadow rounded-lg p-6 space-y-4">
           <h3 className="text-lg font-semibold">Tietoja käyttäjästä</h3>
           <p><strong>Käyttäjätunnus:</strong> {user.username}</p>
@@ -198,9 +209,11 @@ const UserProfile = () => {
           <p><strong>Esittely:</strong> {user.summary}</p>
           <p><strong>Tavoitteet:</strong> {user.goal}</p>
           <p><strong>Etsin:</strong> {user.lookingFor}</p>
+          <p><strong>{t("lifestyle.smoke")}:</strong> {user.smoke || "-"}</p>
+          <p><strong>{t("lifestyle.drink")}:</strong> {user.drink || "-"}</p>
+          <p><strong>{t("lifestyle.drugs")}:</strong> {user.drugs || "-"}</p>
         </div>
       ) : (
-        // Oman profiilin muokkaus
         <>
           {message && (
             <div className={`mb-4 text-center ${success ? "text-green-600" : "text-red-600"}`}>
@@ -224,3 +237,10 @@ const UserProfile = () => {
 };
 
 export default UserProfile;
+
+
+
+
+
+
+

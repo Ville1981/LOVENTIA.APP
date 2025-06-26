@@ -7,6 +7,7 @@ import FormEducation from "./profileFields/FormEducation";
 import FormChildrenPets from "./profileFields/FormChildrenPets";
 import FormGoalSummary from "./profileFields/FormGoalSummary";
 import FormLookingFor from "./profileFields/FormLookingFor";
+import FormLifestyle from "./profileFields/FormLifestyle"; // ✅ uusi komponentti
 
 const DiscoverFilters = ({ values, setters, handleFilter, t }) => {
   return (
@@ -71,6 +72,17 @@ const DiscoverFilters = ({ values, setters, handleFilter, t }) => {
           t={t}
         />
 
+        {/* Lifestyle: Smoke, Drink, Drugs */}
+        <FormLifestyle
+          smoke={values.smoke}
+          drink={values.drink}
+          drugs={values.drugs}
+          setSmoke={setters.setSmoke}
+          setDrink={setters.setDrink}
+          setDrugs={setters.setDrugs}
+          t={t}
+        />
+
         {/* Goals & Summary */}
         <FormGoalSummary
           summary={values.summary}
@@ -121,6 +133,9 @@ DiscoverFilters.propTypes = {
     lookingFor: PropTypes.string,
     minAge: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     maxAge: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    smoke: PropTypes.string,
+    drink: PropTypes.string,
+    drugs: PropTypes.string,
   }).isRequired,
   setters: PropTypes.shape({
     setAge: PropTypes.func.isRequired,
@@ -141,6 +156,9 @@ DiscoverFilters.propTypes = {
     setLookingFor: PropTypes.func.isRequired,
     setMinAge: PropTypes.func.isRequired,
     setMaxAge: PropTypes.func.isRequired,
+    setSmoke: PropTypes.func.isRequired,
+    setDrink: PropTypes.func.isRequired,
+    setDrugs: PropTypes.func.isRequired,
   }).isRequired,
   handleFilter: PropTypes.func.isRequired,
   t: PropTypes.func.isRequired,

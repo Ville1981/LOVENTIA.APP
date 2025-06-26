@@ -210,7 +210,20 @@
   "common": {
   "select": "Wybierz",
   "filter": "Filtruj"
+},
+
+"lifestyle": {
+  "title": "Styl życia",
+  "smoke": "Palenie",
+  "drink": "Alkohol",
+  "drugs": "Narkotyki",
+  "no": "Brak",
+  "little": "Trochę",
+  "average": "Średnio",
+  "much": "Dużo",
+  "sober": "Bez uzależnień"
 }
+
 
 }
 
