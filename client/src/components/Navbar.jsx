@@ -27,7 +27,7 @@ const Navbar = () => {
   };
 
   const linkClass =
-    "bg-white/80 text-blue-800 font-semibold px-4 py-2 rounded hover:bg-blue-200 transition text-sm text-center";
+    "bg-white/10 text-white font-semibold px-4 py-2 rounded hover:bg-blue-500 transition text-sm text-center shadow backdrop-blur";
 
   // Kaikille näkyvät linkit
   const commonLinks = [
@@ -49,7 +49,6 @@ const Navbar = () => {
     { path: "/who-liked-me", label: t("Likes") },
     { path: "/map", label: t("Map") },
     { path: "/admin", label: t("Admin") },
-    // Premium-linkki
     { path: "/upgrade", label: t("Premium") },
   ];
 
@@ -98,7 +97,7 @@ const Navbar = () => {
         {isLoggedIn && (
           <button
             onClick={logout}
-            className="bg-red-500 text-white font-semibold px-4 py-2 rounded hover:bg-red-600 text-sm"
+            className="bg-red-600 text-white font-semibold px-4 py-2 rounded hover:bg-red-700 text-sm transition shadow"
           >
             {t("Logout")}
           </button>

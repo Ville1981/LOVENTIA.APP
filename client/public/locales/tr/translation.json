@@ -225,7 +225,20 @@
 "common": {
   "select": "Seç",
   "filter": "Filtrele"
+},
+
+"lifestyle": {
+  "title": "Yaşam tarzı",
+  "smoke": "Sigara",
+  "drink": "Alkol",
+  "drugs": "Uyuşturucu",
+  "no": "Kullanmıyor",
+  "little": "Az",
+  "average": "Orta",
+  "much": "Çok",
+  "sober": "Bağımlılıktan uzak"
 }
+
 
 
 }

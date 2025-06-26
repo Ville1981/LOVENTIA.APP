@@ -232,6 +232,19 @@
   "common": {
   "select": "選択",
   "filter": "フィルター"
+},
+
+"lifestyle": {
+  "title": "ライフスタイル",
+  "smoke": "喫煙",
+  "drink": "飲酒",
+  "drugs": "薬物",
+  "no": "なし",
+  "little": "少し",
+  "average": "普通",
+  "much": "多い",
+  "sober": "依存なし"
 }
+
 
 }

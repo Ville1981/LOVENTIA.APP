@@ -18,7 +18,13 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
 import MainLayout from "./components/MainLayout";
-import Upgrade from "./pages/Upgrade"; // 🌟 Uusi sivu: Premium-päivitys
+import Upgrade from "./pages/Upgrade";
+
+// ✅ Uudet sivut
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import WhoLikedMe from "./pages/WhoLikedMe";
+import MapView from "./pages/MapPage"; // huom: MapView sisällä
+const MapPage = MapView; // korjattu exportnimi
 
 const AppContent = () => {
   return (
@@ -42,6 +48,11 @@ const AppContent = () => {
 
         {/* Premium-upgrade -sivu */}
         <Route path="upgrade" element={<Upgrade />} />
+
+        {/* ✅ Uudet lisätyt reitit */}
+        <Route path="privacy" element={<PrivacyPolicy />} />
+        <Route path="who-liked-me" element={<WhoLikedMe />} />
+        <Route path="map" element={<MapPage />} />
       </Route>
 
       {/* 404-sivu, jos mikään reitti ei täsmää */}
@@ -52,12 +63,9 @@ const AppContent = () => {
 
 const App = () => {
   useEffect(() => {
-    // Palautetaan selaimen oletus-scroll-restauraatio (scroll-sijainti säilyy)
     if ("scrollRestoration" in window.history) {
       window.history.scrollRestoration = "auto";
     }
-
-    // Estetään selainpohjainen scroll-ankkurointi globaalisti (layout shift -ongelmien estämiseksi)
     document.documentElement.style.overflowAnchor = "none";
   }, []);
 

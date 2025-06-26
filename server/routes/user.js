@@ -28,7 +28,7 @@ function authenticateToken(req, res, next) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.userId = decoded.id;
     next();
-  } catch (err) {
+  } catch {
     return res.status(401).json({ error: "Invalid token" });
   }
 }
@@ -36,7 +36,7 @@ function authenticateToken(req, res, next) {
 // 🎯 JSON-body parser
 router.use(express.json());
 
-// 🔧 Multer storage + filename
+// 🔧 Multer storage + tiedostonpoisto
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "uploads/"),
   filename: (req, file, cb) =>
@@ -44,7 +44,6 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// ⚙ Utility: poista tiedosto levyltä
 function removeFile(filePath) {
   if (filePath && fs.existsSync(filePath)) {
     fs.unlinkSync(filePath);
@@ -52,20 +51,26 @@ function removeFile(filePath) {
 }
 
 // =====================
-// = Perusreitit =
+// ✅ Rekisteröinti / login
 // =====================
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 
+// =====================
+// ✅ Hae oma profiili
+// =====================
 router.get("/me", authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.userId).select("-password");
     res.json(user);
-  } catch (err) {
+  } catch {
     res.status(401).json({ error: "Invalid token" });
   }
 });
 
+// =====================
+// ✅ Profiilin päivitys
+// =====================
 router.put(
   "/profile",
   authenticateToken,
@@ -78,39 +83,47 @@ router.put(
       const user = await User.findById(req.userId);
       if (!user) return res.status(404).json({ error: "User not found" });
 
-      // Päivitä peruskentät…
+      // Lista kaikista päivitettävistä kentistä
       const fields = [
-        "username","email","age","gender","orientation",
-        "education","height","weight","status","religion",
-        "religionImportance","children","pets","summary","goal",
-        "lookingFor","profession","location","country","region",
-        "city","interests","preferredGender","preferredMinAge",
-        "preferredMaxAge","preferredInterests","preferredCountry",
-        "preferredReligion","preferredReligionImportance",
-        "preferredEducation","preferredProfession"
+        "username", "email", "age", "gender", "orientation",
+        "education", "height", "weight", "status", "religion",
+        "religionImportance", "children", "pets", "summary", "goal",
+        "lookingFor", "profession", "location", "country", "region",
+        "city", "latitude", "longitude",             // koordinaatit
+        "smoke", "drink", "drugs",                   // lifestyle
+        "bodyType", "activityLevel",                 // metrics
+        "nutritionPreferences", "healthInfo",        // health
+        "interests", "preferredGender", "preferredMinAge",
+        "preferredMaxAge", "preferredInterests", "preferredCountry",
+        "preferredReligion", "preferredReligionImportance",
+        "preferredEducation", "preferredProfession"
       ];
-      fields.forEach(field => {
+
+      fields.forEach((field) => {
         if (req.body[field] !== undefined) {
-          if (["interests","preferredInterests"].includes(field)) {
+          // array-kentät käsitellään pilkulla eroteltuna merkkijonona tai valmiina taulukkona
+          if (["interests", "preferredInterests", "nutritionPreferences"].includes(field)) {
             user[field] = Array.isArray(req.body[field])
               ? req.body[field]
-              : req.body[field].split(",").map(s => s.trim());
+              : typeof req.body[field] === "string"
+                ? req.body[field].split(",").map((s) => s.trim())
+                : [];
           } else {
             user[field] = req.body[field];
           }
         }
       });
 
-      // Avatar-päivitys
+      // Profiilikuva
       if (req.files?.profilePhoto?.length) {
         removeFile(user.profilePicture);
         user.profilePicture = req.files.profilePhoto[0].path;
       }
 
-      // Bulk-extraImages päivitys
+      // Lisäkuvat
       if (req.files?.extraImages?.length) {
         (user.extraImages || []).forEach(removeFile);
-        user.extraImages = req.files.extraImages.map(f => f.path);
+        user.extraImages = req.files.extraImages.map((f) => f.path);
       }
 
       const updated = await user.save();
@@ -122,6 +135,9 @@ router.put(
   }
 );
 
+// =====================
+// ✅ Profiili ID:llä
+// =====================
 router.get("/:id", async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select(
@@ -129,22 +145,28 @@ router.get("/:id", async (req, res) => {
     );
     if (!user) return res.status(404).json({ error: "User not found" });
     res.json(user);
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: "Server error" });
   }
 });
 
+// =====================
+// ✅ Kaikki muut käyttäjät (kotiin, Discoveriin)
+// =====================
 router.get("/users/all", authenticateToken, async (req, res) => {
   try {
     const list = await User.find({ _id: { $ne: req.userId } }).select(
       "username profilePicture"
     );
     res.json(list);
-  } catch (err) {
+  } catch {
     res.status(401).json({ error: "Invalid token" });
   }
 });
 
+// =====================
+// ❤️ Like
+// =====================
 router.post("/like/:id", authenticateToken, async (req, res) => {
   try {
     const current = await User.findById(req.userId);
@@ -154,18 +176,22 @@ router.post("/like/:id", authenticateToken, async (req, res) => {
       await current.save();
     }
     res.json({ message: "Liked successfully" });
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: "Server error" });
   }
 });
 
+// =====================
+// 🌟 Superlike
+// =====================
 router.post("/superlike/:id", authenticateToken, async (req, res) => {
   try {
     const current = await User.findById(req.userId);
     const target = req.params.id;
     const now = new Date();
-    current.superLikeTimestamps = (current.superLikeTimestamps || [])
-      .filter(ts => now - new Date(ts) < 48 * 60 * 60 * 1000);
+    current.superLikeTimestamps = (current.superLikeTimestamps || []).filter(
+      (ts) => now - new Date(ts) < 48 * 60 * 60 * 1000
+    );
     const limit = current.isPremium ? 3 : 1;
     if (current.superLikeTimestamps.length >= limit) {
       return res.status(403).json({ error: "Superlike limit reached" });
@@ -176,11 +202,14 @@ router.post("/superlike/:id", authenticateToken, async (req, res) => {
       await current.save();
     }
     res.json({ message: "Superliked successfully" });
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: "Server error" });
   }
 });
 
+// =====================
+// 🚫 Estä käyttäjä
+// =====================
 router.post("/block/:id", authenticateToken, async (req, res) => {
   try {
     const me = await User.findById(req.userId);
@@ -192,15 +221,19 @@ router.post("/block/:id", authenticateToken, async (req, res) => {
       await me.save();
     }
     res.json({ message: "User blocked" });
-  } catch (err) {
+  } catch {
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// Premium upgrade
+// =====================
+// 💎 Premium
+// =====================
 router.post("/upgrade-premium", authenticateToken, upgradeToPremium);
 
-// Who liked me
+// =====================
+// 👀 Kuka tykkäsi minusta
+// =====================
 router.get("/who-liked-me", authenticateToken, async (req, res) => {
   try {
     const me = await User.findById(req.userId);
@@ -209,31 +242,54 @@ router.get("/who-liked-me", authenticateToken, async (req, res) => {
       "username profilePicture"
     );
     res.json(likers);
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: "Server error" });
   }
 });
 
-// Nearby search
-router.get("/nearby", async (req, res) => {
+// =====================
+// 📍 Lähialueen käyttäjät (koordinaattien perusteella)
+// =====================
+router.get("/nearby", authenticateToken, async (req, res) => {
   try {
-    const { city } = req.query;
-    if (!city) return res.status(400).json({ error: "City required" });
-    const users = await User.find({ city }).select("-password");
-    res.json(users);
+    const user = await User.findById(req.userId);
+    const maxDistanceKm = 50;
+    if (!user || !user.latitude || !user.longitude) {
+      return res.status(400).json({ error: "User location is missing" });
+    }
+
+    const users = await User.find({
+      _id: { $ne: req.userId },
+      latitude: { $exists: true },
+      longitude: { $exists: true },
+    }).select("-password");
+
+    const toRad = (deg) => (deg * Math.PI) / 180;
+    const earthRadius = 6371;
+
+    const nearby = users.filter((u) => {
+      const dLat = toRad(u.latitude - user.latitude);
+      const dLon = toRad(u.longitude - user.longitude);
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(user.latitude)) *
+          Math.cos(toRad(u.latitude)) *
+          Math.sin(dLon / 2) ** 2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const d = earthRadius * c;
+      return d <= maxDistanceKm;
+    });
+
+    res.json(nearby);
   } catch (err) {
+    console.error("Nearby error:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
 // =====================
-// = Kuvien upload =
+// 🖼 Kuvien käsittely
 // =====================
-
-/**
- * Profiiliavatar
- * Client kutsuu uploadAvatar() → POST /api/users/:id/upload-avatar
- */
 router.post(
   "/:id/upload-avatar",
   authenticateToken,
@@ -247,7 +303,6 @@ router.post(
       const user = await User.findById(id);
       if (!user) return res.status(404).json({ error: "User not found" });
 
-      // Poista vanha ja aseta uusi
       removeFile(user.profilePicture);
       user.profilePicture = req.file.path;
       await user.save();
@@ -260,10 +315,6 @@ router.post(
   }
 );
 
-/**
- * Bulk extraImages
- * Client kutsuu uploadPhotos() → POST /api/users/:id/upload-photos
- */
 router.post(
   "/:id/upload-photos",
   authenticateToken,
@@ -271,10 +322,6 @@ router.post(
   uploadExtraPhotos
 );
 
-/**
- * Yksi kuva + slot + crop + caption
- * Client kutsuu uploadPhotoStep() → POST /api/users/:id/upload-photo-step
- */
 router.post(
   "/:id/upload-photo-step",
   authenticateToken,
@@ -282,10 +329,6 @@ router.post(
   uploadPhotoStep
 );
 
-/**
- * Slot-kohtainen poisto
- * Client kutsuu deletePhotoSlot() → DELETE /api/users/:id/photos/:slot
- */
 router.delete(
   "/:id/photos/:slot",
   authenticateToken,

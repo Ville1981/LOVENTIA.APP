@@ -40,37 +40,35 @@ router.get("/me", authenticateToken, async (req, res) => {
 });
 
 // =====================
-// ✅ Päivitä profiili (vain tekstikentät)
+// ✅ Päivitä profiili (teksti + lifestyle)
 // =====================
-router.put(
-  "/profile",
-  authenticateToken,
-  async (req, res) => {
-    try {
-      const user = await User.findById(req.userId);
-      if (!user) return res.status(404).json({ error: "Käyttäjää ei löydy" });
+router.put("/profile", authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: "Käyttäjää ei löydy" });
 
-      const textFields = [
-        "username", "email", "age", "gender", "orientation",
-        "education", "profession", "religion", "religionImportance",
-        "children", "pets", "summary", "goal", "lookingFor",
-        "country", "region", "city"
-      ];
-      textFields.forEach(field => {
-        if (req.body[field] !== undefined) user[field] = req.body[field];
-      });
+    const textFields = [
+      "username", "email", "age", "gender", "orientation",
+      "education", "profession", "religion", "religionImportance",
+      "children", "pets", "summary", "goal", "lookingFor",
+      "country", "region", "city",
+      "smoke", "drink", "drugs" // ✅ lifestyle-kentät
+    ];
 
-      const updatedUser = await user.save();
-      res.json(updatedUser);
-    } catch (err) {
-      console.error("Profiilin päivitysvirhe:", err);
-      res.status(500).json({ error: "Profiilin päivitys epäonnistui" });
-    }
+    textFields.forEach((field) => {
+      if (req.body[field] !== undefined) user[field] = req.body[field];
+    });
+
+    const updatedUser = await user.save();
+    res.json(updatedUser);
+  } catch (err) {
+    console.error("Profiilin päivitysvirhe:", err);
+    res.status(500).json({ error: "Profiilin päivitys epäonnistui" });
   }
-);
+});
 
 // =====================
-// ✅ Haetaan Discover-sivun käyttäjät
+// ✅ Discover: muut käyttäjät
 // =====================
 router.get("/all", authenticateToken, async (req, res) => {
   try {
@@ -85,7 +83,7 @@ router.get("/all", authenticateToken, async (req, res) => {
 });
 
 // =====================
-// ✅ Who liked me (Premium)
+// ✅ Premium: Who liked me
 // =====================
 router.get("/who-liked-me", authenticateToken, async (req, res) => {
   try {
@@ -104,13 +102,18 @@ router.get("/who-liked-me", authenticateToken, async (req, res) => {
 });
 
 // =====================
-// 🔍 Sijaintihaku
+// 🔍 Sijaintihaku (regex ja hidden check)
 // =====================
-router.get("/nearby", async (req, res) => {
+router.get("/nearby", authenticateToken, async (req, res) => {
   try {
     const city = req.query.city;
     if (!city) return res.status(400).json({ error: "City is required" });
-    const users = await User.find({ location: city }).select("-password");
+
+    const users = await User.find({
+      location: { $regex: new RegExp(city, "i") },
+      hidden: { $ne: true }
+    }).select("-password");
+
     res.json(users);
   } catch (err) {
     console.error("Nearby-haku epäonnistui:", err);
@@ -119,7 +122,7 @@ router.get("/nearby", async (req, res) => {
 });
 
 // =====================
-// ✅ ADMIN: Hae kaikki käyttäjät
+// ✅ ADMIN: Kaikki käyttäjät
 // =====================
 router.get("/admin/users", authenticateToken, async (req, res) => {
   try {
@@ -132,7 +135,7 @@ router.get("/admin/users", authenticateToken, async (req, res) => {
 });
 
 // =====================
-// ✅ Julkinen profiili (id-parametri)
+// ✅ Julkinen profiili (/:id)
 // =====================
 router.get("/:id", async (req, res) => {
   try {
@@ -198,7 +201,7 @@ router.post("/superlike/:id", authenticateToken, async (req, res) => {
 });
 
 // =====================
-// ✅ Estä toinen käyttäjä
+// ✅ Estä käyttäjä
 // =====================
 router.post("/block/:id", authenticateToken, async (req, res) => {
   try {
@@ -235,12 +238,12 @@ router.post("/upgrade-premium", authenticateToken, async (req, res) => {
 });
 
 // =====================
-// 📸 Bulk upload extra photos
+// 📸 Upload extra photos
 // =====================
 router.post("/:id/upload-photos", authenticateToken, uploadExtraPhotos);
 
 // =====================
-// ✅ ADMIN: Piilota/näytä käyttäjä
+// ✅ ADMIN: Näytä/Piilota käyttäjä
 // =====================
 router.put("/admin/hide/:id", authenticateToken, async (req, res) => {
   try {
@@ -269,7 +272,7 @@ router.delete("/admin/:id", authenticateToken, async (req, res) => {
 });
 
 // =====================
-// ✅ Poista oma käyttäjätili
+// ✅ Poista oma profiili
 // =====================
 router.delete("/profile", authenticateToken, async (req, res) => {
   try {

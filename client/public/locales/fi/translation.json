@@ -224,6 +224,19 @@
   "common": {
   "select": "Valitse",
   "filter": "Suodata"
+},
+
+"lifestyle": {
+  "title": "Elämäntavat",
+  "smoke": "Tupakointi",
+  "drink": "Alkoholi",
+  "drugs": "Huumeet",
+  "no": "Ei käytä",
+  "little": "Vähän",
+  "average": "Kohtalaisesti",
+  "much": "Paljon",
+  "sober": "Riippuvuudesta vapaa"
 }
+
 
 }

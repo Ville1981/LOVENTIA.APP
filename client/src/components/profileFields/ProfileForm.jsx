@@ -6,13 +6,11 @@ import FormEducation from "./FormEducation";
 import FormChildrenPets from "./FormChildrenPets";
 import FormGoalSummary from "./FormGoalSummary";
 import FormLookingFor from "./FormLookingFor";
+import FormLifestyle from "./FormLifestyle"; // ✅ Lisätty
 import MultiStepPhotoUploader from "./MultiStepPhotoUploader";
 import { uploadAvatar } from "../../api/images";
 import { BACKEND_BASE_URL } from "../../config";
 
-/**
- * ProfileForm
- */
 const ProfileForm = ({
   user,
   isPremium,
@@ -24,13 +22,11 @@ const ProfileForm = ({
   onUserUpdate,
   hideAvatarSection = false,
 }) => {
-  // Extra images
   const [localExtraImages, setLocalExtraImages] = useState(user.extraImages || []);
   useEffect(() => {
     setLocalExtraImages(user.extraImages || []);
   }, [user.extraImages]);
 
-  // Avatar state
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(
     user.profilePicture
@@ -41,7 +37,6 @@ const ProfileForm = ({
   );
   const [avatarError, setAvatarError] = useState(null);
 
-  // Sync preview when user.profilePicture updates
   useEffect(() => {
     if (user.profilePicture) {
       setAvatarPreview(
@@ -54,7 +49,6 @@ const ProfileForm = ({
 
   const token = localStorage.getItem("token");
 
-  // Avatar file change
   const handleAvatarChange = (e) => {
     const file = e.target.files[0] || null;
     setAvatarFile(file);
@@ -65,14 +59,12 @@ const ProfileForm = ({
     }
   };
 
-  // Avatar upload
   const handleAvatarSubmit = async (e) => {
     e.preventDefault();
     if (!avatarFile) return;
     setAvatarError(null);
     try {
       const updatedUser = await uploadAvatar(user._id, avatarFile);
-      // Update preview and parent state
       if (updatedUser.profilePicture) {
         setAvatarPreview(
           updatedUser.profilePicture.startsWith("http")
@@ -82,16 +74,17 @@ const ProfileForm = ({
       }
       onUserUpdate(updatedUser);
     } catch (err) {
-      // Show server error if available
       const msg = err.message || t("profile.avatarUploadFailed");
       setAvatarError(msg);
       console.error("Avatar upload error:", err);
     }
   };
 
-  // Profile save
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // 🔥 Debug: tulostetaan payload konsoliin
+    console.log("📤 Lähetettävä payload:", values);
+
     try {
       const res = await axios.put(
         `${BACKEND_BASE_URL}/api/users/profile`,
@@ -110,7 +103,6 @@ const ProfileForm = ({
 
   return (
     <form onSubmit={handleSubmit} className="bg-white shadow rounded-lg p-6 space-y-6">
-      {/* Avatar section */}
       {!hideAvatarSection && (
         <div className="flex items-center space-x-6">
           <div className="w-12 h-12 rounded-full overflow-hidden border">
@@ -158,7 +150,6 @@ const ProfileForm = ({
         </div>
       )}
 
-      {/* Basic Info */}
       <FormBasicInfo
         username={values.username}
         setUsername={(v) => setValues((prev) => ({ ...prev, username: v }))}
@@ -173,10 +164,22 @@ const ProfileForm = ({
         t={t}
       />
 
-      {/* Location */}
-      <FormLocation values={values} setters={setValues} t={t} />
+      <FormLocation
+        country={values.country}
+        region={values.region}
+        city={values.city}
+        customCountry={values.customCountry}
+        customRegion={values.customRegion}
+        customCity={values.customCity}
+        setCountry={(v) => setValues((prev) => ({ ...prev, country: v }))}
+        setRegion={(v) => setValues((prev) => ({ ...prev, region: v }))}
+        setCity={(v) => setValues((prev) => ({ ...prev, city: v }))}
+        setCustomCountry={(v) => setValues((prev) => ({ ...prev, customCountry: v }))}
+        setCustomRegion={(v) => setValues((prev) => ({ ...prev, customRegion: v }))}
+        setCustomCity={(v) => setValues((prev) => ({ ...prev, customCity: v }))}
+        t={t}
+      />
 
-      {/* Education */}
       <FormEducation
         education={values.education}
         setEducation={(v) => setValues((prev) => ({ ...prev, education: v }))}
@@ -185,11 +188,12 @@ const ProfileForm = ({
         religion={values.religion}
         setReligion={(v) => setValues((prev) => ({ ...prev, religion: v }))}
         religionImportance={values.religionImportance}
-        setReligionImportance={(v) => setValues((prev) => ({ ...prev, religionImportance: v }))}
+        setReligionImportance={(v) =>
+          setValues((prev) => ({ ...prev, religionImportance: v }))
+        }
         t={t}
       />
 
-      {/* Children & Pets */}
       <FormChildrenPets
         children={values.children}
         setChildren={(v) => setValues((prev) => ({ ...prev, children: v }))}
@@ -198,7 +202,154 @@ const ProfileForm = ({
         t={t}
       />
 
-      {/* Goals & Summary */}
+      {/* ✅ UUSI LIFESTYLE-OSIO */}
+      <FormLifestyle
+        smoke={values.smoke}
+        setSmoke={(v) => setValues((prev) => ({ ...prev, smoke: v }))}
+        drink={values.drink}
+        setDrink={(v) => setValues((prev) => ({ ...prev, drink: v }))}
+        drugs={values.drugs}
+        setDrugs={(v) => setValues((prev) => ({ ...prev, drugs: v }))}
+        t={t}
+      />
+
+      {/* ✅ UUSI METRICS-OSIO */}
+      <div className="space-y-6">
+        {/* Height & Weight */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="height" className="block text-sm font-medium text-gray-700">
+              {t("profile.height")} (cm)
+            </label>
+            <input
+              type="number"
+              id="height"
+              value={values.height || ""}
+              onChange={(e) =>
+                setValues((prev) => ({ ...prev, height: e.target.value }))
+              }
+              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
+            />
+          </div>
+          <div>
+            <label htmlFor="weight" className="block text-sm font-medium text-gray-700">
+              {t("profile.weight")} (kg)
+            </label>
+            <input
+              type="number"
+              id="weight"
+              value={values.weight || ""}
+              onChange={(e) =>
+                setValues((prev) => ({ ...prev, weight: e.target.value }))
+              }
+              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
+            />
+          </div>
+        </div>
+
+        {/* Body Type & Activity Level */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="bodyType" className="block text-sm font-medium text-gray-700">
+              {t("profile.bodyType")}
+            </label>
+            <select
+              id="bodyType"
+              value={values.bodyType || "normal"}
+              onChange={(e) =>
+                setValues((prev) => ({ ...prev, bodyType: e.target.value }))
+              }
+              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
+            >
+              <option value="slim">{t("profile.slim")}</option>
+              <option value="normal">{t("profile.normal")}</option>
+              <option value="athletic">{t("profile.athletic")}</option>
+              <option value="overweight">{t("profile.overweight")}</option>
+              <option value="obese">{t("profile.obese")}</option>
+            </select>
+          </div>
+          <div>
+            <label
+              htmlFor="activityLevel"
+              className="block text-sm font-medium text-gray-700"
+            >
+              {t("profile.activityLevel")}
+            </label>
+            <select
+              id="activityLevel"
+              value={values.activityLevel || "sedentary"}
+              onChange={(e) =>
+                setValues((prev) => ({ ...prev, activityLevel: e.target.value }))
+              }
+              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
+            >
+              <option value="sedentary">{t("profile.sedentary")}</option>
+              <option value="light">{t("profile.light")}</option>
+              <option value="moderate">{t("profile.moderate")}</option>
+              <option value="active">{t("profile.active")}</option>
+              <option value="very active">{t("profile.veryActive")}</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Nutrition Preferences */}
+        <div>
+          <label
+            htmlFor="nutritionPreferences"
+            className="block text-sm font-medium text-gray-700"
+          >
+            {t("profile.nutritionPreferences")}
+          </label>
+          <select
+            id="nutritionPreferences"
+            multiple
+            value={values.nutritionPreferences || []}
+            onChange={(e) => {
+              const opts = Array.from(e.target.selectedOptions).map((o) => o.value);
+              setValues((prev) => ({ ...prev, nutritionPreferences: opts }));
+            }}
+            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
+          >
+            <option value="none">{t("profile.none")}</option>
+            <option value="omnivore">{t("profile.omnivore")}</option>
+            <option value="vegetarian">{t("profile.vegetarian")}</option>
+            <option value="vegan">{t("profile.vegan")}</option>
+            <option value="pescatarian">{t("profile.pescatarian")}</option>
+            <option value="flexitarian">{t("profile.flexitarian")}</option>
+            <option value="gluten-free">{t("profile.glutenFree")}</option>
+            <option value="dairy-free">{t("profile.dairyFree")}</option>
+            <option value="nut-free">{t("profile.nutFree")}</option>
+            <option value="halal">{t("profile.halal")}</option>
+            <option value="kosher">{t("profile.kosher")}</option>
+            <option value="paleo">{t("profile.paleo")}</option>
+            <option value="keto">{t("profile.keto")}</option>
+            <option value="mediterranean">{t("profile.mediterranean")}</option>
+            <option value="other">{t("profile.other")}</option>
+          </select>
+          <p className="mt-1 text-sm text-gray-500">
+            {t("profile.nutritionHelp")}
+          </p>
+        </div>
+
+        {/* Health Info */}
+        <div>
+          <label htmlFor="healthInfo" className="block text-sm font-medium text-gray-700">
+            {t("profile.healthInfo")}
+          </label>
+          <textarea
+            id="healthInfo"
+            rows="3"
+            value={values.healthInfo || ""}
+            onChange={(e) =>
+              setValues((prev) => ({ ...prev, healthInfo: e.target.value }))
+            }
+            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
+            placeholder={t("profile.healthPlaceholder")}
+          />
+        </div>
+      </div>
+      {/* ✅ END OF METRICS-OSIO */}
+
       <FormGoalSummary
         summary={values.summary}
         setSummary={(v) => setValues((prev) => ({ ...prev, summary: v }))}
@@ -207,14 +358,12 @@ const ProfileForm = ({
         t={t}
       />
 
-      {/* Looking For */}
       <FormLookingFor
         lookingFor={values.lookingFor}
         setLookingFor={(v) => setValues((prev) => ({ ...prev, lookingFor: v }))}
         t={t}
       />
 
-      {/* Extra Photos */}
       <MultiStepPhotoUploader
         userId={user._id}
         isPremium={isPremium}
@@ -227,7 +376,6 @@ const ProfileForm = ({
         onError={(err) => console.error("Photo uploader error:", err)}
       />
 
-      {/* Save Changes */}
       <button
         type="submit"
         className="w-full px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"

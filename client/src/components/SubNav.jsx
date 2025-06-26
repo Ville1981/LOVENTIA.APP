@@ -19,26 +19,28 @@ const SubNav = ({ tabs, activeKey = "", onChange = () => {} }) => {
 
   return (
     <div className="w-full bg-[#111]">
-      <ul className="flex justify-center space-x-8 overflow-x-auto px-4 py-3">
+      <ul className="flex justify-center space-x-6 overflow-x-auto scrollbar-none whitespace-nowrap px-4 py-3">
         {tabs.map((item) => (
           <li
             key={item.key}
-            className="flex flex-col items-center cursor-pointer"
+            className="flex flex-col items-center cursor-pointer hover:opacity-90 transition"
             onClick={() => handleClick(item.key)}
           >
             <div
-              className={`w-12 h-12 rounded-full flex items-center justify-center border-2 ${
-                active === item.key ? "border-[#FF4081]" : "border-transparent"
+              className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition ${
+                active === item.key
+                  ? "border-[#FF4081] bg-[#222]"
+                  : "border-transparent bg-[#1a1a1a]"
               }`}
             >
               <img
                 src={item.icon}
                 alt={`${item.label} icon`}
-                className="w-8 h-8"
+                className="w-7 h-7"
               />
             </div>
             <span
-              className={`mt-1 text-[12px] font-medium ${
+              className={`mt-1 text-[12px] font-medium text-center break-keep ${
                 active === item.key ? "text-[#FF4081]" : "text-[#ccc]"
               }`}
             >

@@ -233,6 +233,19 @@
   "common": {
   "select": "Sélectionner",
   "filter": "Filtrer"
+},
+
+"lifestyle": {
+  "title": "Mode de vie",
+  "smoke": "Tabac",
+  "drink": "Alcool",
+  "drugs": "Drogues",
+  "no": "Aucun",
+  "little": "Un peu",
+  "average": "Moyennement",
+  "much": "Beaucoup",
+  "sober": "Sobre / Sans dépendance"
 }
+
 
 }
