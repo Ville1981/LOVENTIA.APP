@@ -34,6 +34,9 @@ const UserProfile = () => {
   const [smoke, setSmoke] = useState("");
   const [drink, setDrink] = useState("");
   const [drugs, setDrugs] = useState("");
+  // Uudet: karttakoordinaatit
+  const [latitude, setLatitude] = useState(null);
+  const [longitude, setLongitude] = useState(null);
 
   const t = (key) => {
     const translations = {
@@ -87,6 +90,9 @@ const UserProfile = () => {
           setSmoke(u.smoke || "");
           setDrink(u.drink || "");
           setDrugs(u.drugs || "");
+          // Haetaan lat/long tietokannasta
+          setLatitude(u.location?.coordinates?.[1] ?? null);
+          setLongitude(u.location?.coordinates?.[0] ?? null);
         }
       } catch (err) {
         console.error("❌ Profiilin haku epäonnistui", err);
@@ -124,6 +130,9 @@ const UserProfile = () => {
         smoke,
         drink,
         drugs,
+        // Lisää payloadiin
+        latitude,
+        longitude,
       };
       await api.put("/users/profile", payload);
       setSuccess(true);
@@ -159,6 +168,8 @@ const UserProfile = () => {
     smoke,
     drink,
     drugs,
+    latitude,
+    longitude,    // uusi
   };
   const setters = {
     setUsername,
@@ -184,6 +195,8 @@ const UserProfile = () => {
     setSmoke,
     setDrink,
     setDrugs,
+    setLatitude,    // uusi
+    setLongitude,   // uusi
     handleSubmit,
   };
 
@@ -206,6 +219,7 @@ const UserProfile = () => {
           <p><strong>Sukupuoli:</strong> {user.gender}</p>
           <p><strong>Suuntautuminen:</strong> {user.orientation}</p>
           <p><strong>Sijainti:</strong> {user.city}, {user.region}, {user.country}</p>
+          <p><strong>Lat/Long:</strong> {user.location?.coordinates?.[1]?.toFixed(5)}, {user.location?.coordinates?.[0]?.toFixed(5)}</p>
           <p><strong>Esittely:</strong> {user.summary}</p>
           <p><strong>Tavoitteet:</strong> {user.goal}</p>
           <p><strong>Etsin:</strong> {user.lookingFor}</p>
@@ -237,10 +251,3 @@ const UserProfile = () => {
 };
 
 export default UserProfile;
-
-
-
-
-
-
-

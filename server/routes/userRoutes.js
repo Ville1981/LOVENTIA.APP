@@ -1,11 +1,14 @@
 const express = require("express");
 const router = express.Router();
+require("dotenv").config();
+
+const path = require("path");
+const fs = require("fs");
+
 const User = require("../models/User");
 const Subscription = require("../models/Subscription");
 const Image = require("../models/Image");
 const authenticateToken = require("../middleware/auth");
-const path = require("path");
-const fs = require("fs");
 
 const {
   registerUser,
@@ -14,8 +17,6 @@ const {
   upgradeToPremium,
   uploadExtraPhotos,
 } = require("../controllers/userController");
-
-require("dotenv").config();
 
 // =====================
 // ✅ Rekisteröi käyttäjä
@@ -40,30 +41,86 @@ router.get("/me", authenticateToken, async (req, res) => {
 });
 
 // =====================
-// ✅ Päivitä profiili (teksti + lifestyle)
+// ✅ Päivitä profiili (teksti + lifestyle + metrics + location)
 // =====================
 router.put("/profile", authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ error: "Käyttäjää ei löydy" });
 
+    // Määritellään eri kenttäkategoriat
     const textFields = [
-      "username", "email", "age", "gender", "orientation",
+      "username", "email", "gender", "orientation",
       "education", "profession", "religion", "religionImportance",
       "children", "pets", "summary", "goal", "lookingFor",
-      "country", "region", "city",
-      "smoke", "drink", "drugs" // ✅ lifestyle-kentät
+      "country", "region", "city", "customCountry", "customRegion", "customCity",
+      "smoke", "drink", "drugs"
     ];
+    const numberFields = ["age", "height", "weight", "latitude", "longitude"];
+    const singleSelectFields = ["bodyType", "activityLevel"];
+    const arrayFields = ["nutritionPreferences"];
+    const longTextFields = ["healthInfo"];
 
-    textFields.forEach((field) => {
-      if (req.body[field] !== undefined) user[field] = req.body[field];
+    // Päivitä tekstikentät
+    textFields.forEach(f => {
+      if (req.body[f] !== undefined) {
+        user[f] = req.body[f];
+      }
+    });
+
+    // Päivitä numeeriset kentät
+    numberFields.forEach(f => {
+      if (req.body[f] !== undefined) {
+        const n = Number(req.body[f]);
+        user[f] = isNaN(n) ? null : n;
+      }
+    });
+
+    // Päivitä yksivalintaiset drop-down kentät
+    singleSelectFields.forEach(f => {
+      if (req.body[f] !== undefined) {
+        user[f] = req.body[f];
+      }
+    });
+
+    // Päivitä monivalinnat (nutritionPreferences), hyväksyy sekä arrayn että stringin
+    arrayFields.forEach(f => {
+      if (Array.isArray(req.body[f])) {
+        user[f] = req.body[f];
+      } else if (typeof req.body[f] === "string") {
+        user[f] = [req.body[f]];
+      }
+    });
+
+    // Päivitä pitkät tekstikentät
+    longTextFields.forEach(f => {
+      if (req.body[f] !== undefined) {
+        user[f] = req.body[f];
+      }
     });
 
     const updatedUser = await user.save();
     res.json(updatedUser);
   } catch (err) {
     console.error("Profiilin päivitysvirhe:", err);
-    res.status(500).json({ error: "Profiilin päivitys epäonnistui" });
+    res.status(500).json({ error: err.message || "Profiilin päivitys epäonnistui" });
+  }
+});
+
+// =====================
+// ✅ Piilota / Paljasta oma profiili
+// =====================
+router.put("/profile/hide", authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: "Käyttäjää ei löydy" });
+
+    user.hidden = !user.hidden;
+    await user.save();
+    res.json({ hidden: user.hidden });
+  } catch (err) {
+    console.error("Piilotusvirhe:", err);
+    res.status(500).json({ error: "Profiilin piilotus epäonnistui" });
   }
 });
 
@@ -72,9 +129,8 @@ router.put("/profile", authenticateToken, async (req, res) => {
 // =====================
 router.get("/all", authenticateToken, async (req, res) => {
   try {
-    const users = await User.find({ _id: { $ne: req.userId } }).select(
-      "name email profilePicture extraImages"
-    );
+    const users = await User.find({ _id: { $ne: req.userId }, hidden: { $ne: true } })
+      .select("username email profilePicture extraImages");
     res.json(users);
   } catch (err) {
     console.error("Discover-haku epäonnistui:", err);
@@ -91,9 +147,7 @@ router.get("/who-liked-me", authenticateToken, async (req, res) => {
     if (!currentUser.isPremium) {
       return res.status(403).json({ error: "Vain Premium-käyttäjille." });
     }
-    const users = await User.find({ likes: req.userId }).select(
-      "name email profilePicture"
-    );
+    const users = await User.find({ likes: req.userId }).select("username email profilePicture");
     res.json(users);
   } catch (err) {
     console.error("Who-liked-me virhe:", err);
@@ -110,7 +164,7 @@ router.get("/nearby", authenticateToken, async (req, res) => {
     if (!city) return res.status(400).json({ error: "City is required" });
 
     const users = await User.find({
-      location: { $regex: new RegExp(city, "i") },
+      city: { $regex: new RegExp(city, "i") },
       hidden: { $ne: true }
     }).select("-password");
 
@@ -176,23 +230,20 @@ router.post("/superlike/:id", authenticateToken, async (req, res) => {
     const currentUser = await User.findById(req.userId);
     const targetId = req.params.id;
     const now = new Date();
-
     if (!currentUser.superLikeTimestamps) currentUser.superLikeTimestamps = [];
+    // Poistetaan vanhat timestampit (yli 48h)
     currentUser.superLikeTimestamps = currentUser.superLikeTimestamps.filter(
-      (ts) => now - new Date(ts) < 48 * 60 * 60 * 1000
+      ts => now - new Date(ts) < 48 * 60 * 60 * 1000
     );
-
     const limit = currentUser.isPremium ? 3 : 1;
     if (currentUser.superLikeTimestamps.length >= limit) {
       return res.status(403).json({ error: `Superlike-raja saavutettu (${limit}/48h).` });
     }
-
     if (!currentUser.superLikes.includes(targetId)) {
       currentUser.superLikes.push(targetId);
       currentUser.superLikeTimestamps.push(now);
       await currentUser.save();
     }
-
     res.json({ message: "Superliked successfully!" });
   } catch (err) {
     console.error("Superlike-virhe:", err);

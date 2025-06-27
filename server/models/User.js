@@ -25,26 +25,28 @@ const userSchema = new mongoose.Schema(
     orientation: String,
     education: String,
     profession: String,
-    location: String,
-    city: String,
-    country: String,
-    height: { type: Number },  // in cm
-    weight: { type: Number },  // in kg
-    status: String,
     religion: String,
     religionImportance: String,
     children: String,
     pets: String,
     summary: String,
     goal: String,
-    goals: String,
+    goals: String,      // old field, kept for backwards compatibility
     lookingFor: String,
     interests: [String],
-    hidden: { type: Boolean, default: false },
+    status: String,
+
+    // 🌐 Location & Custom fields
+    country: String,
+    region: String,
+    city: String,
+    customCountry: String,
+    customRegion: String,
+    customCity: String,
 
     // 🗺️ Coordinates
-    latitude: { type: Number },
-    longitude: { type: Number },
+    latitude: Number,
+    longitude: Number,
 
     // 🚭 Lifestyle
     smoke: {
@@ -64,15 +66,17 @@ const userSchema = new mongoose.Schema(
     },
 
     // ⚖️ Metrics & Health
+    height: Number,
+    weight: Number,
     bodyType: {
       type: String,
       enum: ["slim", "normal", "athletic", "overweight", "obese", ""],
-      default: "",
+      default: "normal",
     },
     activityLevel: {
       type: String,
-      enum: ["sedentary", "light", "moderate", "active", "very active", ""],
-      default: "",
+      enum: ["sedentary", "light", "moderate", "active", "veryActive", ""],
+      default: "sedentary",
     },
     nutritionPreferences: {
       type: [String],
@@ -83,8 +87,11 @@ const userSchema = new mongoose.Schema(
         "vegan",
         "pescatarian",
         "flexitarian",
+        "glutenFree",
         "gluten-free",
+        "dairyFree",
         "dairy-free",
+        "nutFree",
         "nut-free",
         "halal",
         "kosher",
@@ -119,6 +126,7 @@ const userSchema = new mongoose.Schema(
 
     // 💎 Premium
     isPremium: { type: Boolean, default: false },
+    hidden: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

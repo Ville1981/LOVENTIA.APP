@@ -44,7 +44,18 @@ const ProfileHub = () => {
     pets: "",
     summary: "",
     goal: "",
-    lookingFor: ""
+    lookingFor: "",
+    // Newly added lifestyle fields:
+    smoke: "",
+    drink: "",
+    drugs: "",
+    // Existing metric & preference fields:
+    height: "",
+    weight: "",
+    bodyType: "",
+    activityLevel: "",
+    nutritionPreferences: [],
+    healthInfo: ""
   });
 
   const t = (key) => {
@@ -78,9 +89,9 @@ const ProfileHub = () => {
           country: u.country || "",
           region: u.region || "",
           city: u.city || "",
-          customCountry: "",
-          customRegion: "",
-          customCity: "",
+          customCountry: u.customCountry || "",
+          customRegion: u.customRegion || "",
+          customCity: u.customCity || "",
           education: u.education || "",
           profession: u.profession || "",
           religion: u.religion || "",
@@ -89,7 +100,20 @@ const ProfileHub = () => {
           pets: u.pets || "",
           summary: u.summary || "",
           goal: u.goal || "",
-          lookingFor: u.lookingFor || ""
+          lookingFor: u.lookingFor || "",
+          // Populate newly added lifestyle fields:
+          smoke: u.smoke || "",
+          drink: u.drink || "",
+          drugs: u.drugs || "",
+          // Populate existing metric & preference fields:
+          height: u.height || "",
+          weight: u.weight || "",
+          bodyType: u.bodyType || "",
+          activityLevel: u.activityLevel || "",
+          nutritionPreferences: Array.isArray(u.nutritionPreferences)
+            ? u.nutritionPreferences
+            : [],
+          healthInfo: u.healthInfo || ""
         });
       }
     } catch (err) {
@@ -135,7 +159,8 @@ const ProfileHub = () => {
             activeTab === "preferences"
               ? "bg-blue-600 text-white"
               : "bg-gray-800 text-gray-400"
-          }`}>
+          }`}
+        >
           Preferences
         </button>
         <button
@@ -144,7 +169,8 @@ const ProfileHub = () => {
             activeTab === "settings"
               ? "bg-blue-600 text-white"
               : "bg-gray-800 text-gray-400"
-          }`}>
+          }`}
+        >
           Settings
         </button>
       </div>
@@ -181,7 +207,8 @@ const ProfileHub = () => {
               </span>
             </div>
             <p className="mt-2 text-sm text-gray-600">
-              Your highest possible match: <span className="font-bold">{highestMatch}%</span>
+              Your highest possible match:{" "}
+              <span className="font-bold">{highestMatch}%</span>
             </p>
             <div className="mt-4 flex space-x-2">
               <button className="flex-1 py-2 border border-blue-600 rounded-lg">
@@ -211,6 +238,7 @@ const ProfileHub = () => {
             message={message}
             success={success}
             hideAvatarSection={false}
+            onSubmit={handleSubmit}
           />
         </div>
       )}
@@ -226,7 +254,10 @@ const ProfileHub = () => {
               </Link>
             </li>
             <li>
-              <Link to="/settings/notifications" className="text-blue-600 hover:underline">
+              <Link
+                to="/settings/notifications"
+                className="text-blue-600 hover:underline"
+              >
                 Notification preferences
               </Link>
             </li>
@@ -236,7 +267,10 @@ const ProfileHub = () => {
               </Link>
             </li>
             <li>
-              <Link to="/settings/subscriptions" className="text-blue-600 hover:underline">
+              <Link
+                to="/settings/subscriptions"
+                className="text-blue-600 hover:underline"
+              >
                 Subscriptions & billing
               </Link>
             </li>
