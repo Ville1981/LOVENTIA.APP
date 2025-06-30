@@ -13,8 +13,11 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Lähetetään kirjautumispyyntö
       const res = await api.post('/auth/login', { email, password });
-      login(res.data.token);
+      // Backend asettaa refresh-tokenin HttpOnly-cookiessa,
+      // frontti tallentaa vain access-tokenin AuthContextiin
+      login(res.data.accessToken);
       setMessage('Kirjautuminen onnistui!');
       navigate('/profile');
     } catch (err) {

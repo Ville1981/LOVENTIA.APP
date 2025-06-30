@@ -8,6 +8,17 @@ const path = require("path");
 // Load environment variables
 dotenv.config();
 
+// Connect to MongoDB
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+  .then(() => console.log("✅ MongoDB connected"))
+  .catch(err => {
+    console.error("❌ MongoDB connection error:", err);
+    process.exit(1);
+  });
+
 const app = express();
 
 // Import webhook routes (before body parsers)
@@ -21,6 +32,7 @@ const userRoutes     = require("./routes/userRoutes");
 const messageRoutes  = require("./routes/messageRoutes");
 const paymentRoutes  = require("./routes/payment");
 const discoverRoutes = require("./routes/discover");
+const adminRoutes    = require("./routes/admin");
 
 // Stripe webhook endpoint (raw body required for signature verification)
 app.use(
@@ -84,18 +96,11 @@ app.use("/api/users",   userRoutes);
 app.use("/api/messages",messageRoutes);
 app.use("/api/payment", paymentRoutes);
 
+// Protect admin routes under /api/admin
+app.use("/api/admin",   adminRoutes);
+
 // Mount Discover (must come after other /api mounts)
 app.use("/api/discover", discoverRoutes);
-
-// DEBUG: log all mounted routes
-console.log("\n🛣️ Registered routes:");
-app._router.stack.forEach(layer => {
-  if (layer.route && layer.route.path) {
-    const methods = Object.keys(layer.route.methods)
-      .map(m => m.toUpperCase()).join(", ");
-    console.log(`  ${methods.padEnd(6)} ${layer.route.path}`);
-  }
-});
 
 // Multer-specific error handler
 app.use((err, req, res, next) => {
@@ -116,4 +121,8 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: "Server Error" });
 });
 
-module.exports = app;
+// Start the server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});

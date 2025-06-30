@@ -1,21 +1,33 @@
-# Käytetään kevyttä Node-alpine -kuvaa
-FROM node:18-alpine
+# server/Dockerfile
 
-# Työhakemisto
+# 1) Build-vaihe (TypeScript/moderni JS)
+FROM node:18-alpine AS builder
 WORKDIR /usr/src/app
 
-# Kopioidaan riippuvuustiedostot ja asennetaan tuotantoriippuvuudet
-COPY package*.json ./
-RUN npm install --only=production
+# Kopioidaan vain pakettilistat ja tsconfig, asennetaan dev-riippuvuudet
+COPY package*.json tsconfig*.json ./
+RUN npm ci
 
-# Kopioidaan muu sovelluskoodi
+# Kopioidaan lähdekoodi ja käännetään
 COPY . .
+RUN npm run build
 
-# Luodaan hakemisto latauksille
-RUN mkdir -p uploads uploads/profiles
+# 2) Runtime-vaihe
+FROM node:18-alpine
+WORKDIR /usr/src/app
 
-# Expose port
+# Kopioidaan tuotantorakenne ja pakettitiedostot
+COPY --from=builder /usr/src/app/dist ./dist
+COPY --from=builder /usr/src/app/package*.json ./
+
+# Asennetaan vain production-riippuvuudet
+RUN npm ci --only=production
+
+# Ympäristömuuttuja ja portti
+ENV NODE_ENV=production
 EXPOSE 5000
 
 # Käynnistyskomento
-CMD ["npm", "start"]
+CMD ["node", "dist/index.js"]
+
+

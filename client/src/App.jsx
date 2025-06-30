@@ -23,6 +23,7 @@ import Upgrade from "./pages/Upgrade";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import WhoLikedMe from "./pages/WhoLikedMe";
 import MapPage from "./pages/MapPage";  // suora import ilman aliasia
+import Settings from "./pages/Settings"; // Lisätty Settings-sivu
 
 const AppContent = () => (
   <Routes>
@@ -49,6 +50,8 @@ const AppContent = () => (
       <Route path="privacy" element={<PrivacyPolicy />} />
       <Route path="who-liked-me" element={<WhoLikedMe />} />
       <Route path="map" element={<MapPage />} />
+      {/* Settings-sivu */}
+      <Route path="settings" element={<Settings />} />
     </Route>
 
     {/* 404, jos mikään ei matchaa */}
