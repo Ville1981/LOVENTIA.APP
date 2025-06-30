@@ -10,13 +10,17 @@ let accessToken = localStorage.getItem("token") || null;
  */
 export const setAccessToken = (token) => {
   accessToken = token;
-  localStorage.setItem("token", token);
+  if (token) {
+    localStorage.setItem("token", token);
+  } else {
+    localStorage.removeItem("token");
+  }
 };
 
-// Luo Axios-instanssi hyödyntäen Vite-proxya kehityksessä
+// Luo Axios-instanssi kehityksessä käyttäen suoraa backendin URL:ää portille 5000
 const api = axios.create({
-  // Jos VITE_API_URL on määritelty, käytä sitä, muussa tapauksessa proxy "/api"
-  baseURL: import.meta.env.VITE_API_URL || "/api",
+  // Jos VITE_API_URL on määritelty, käytä sitä, muussa tapauksessa käytetään localhost:5000/api
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
   withCredentials: true, // lähettää ja vastaanottaa httpOnly-cookiet
 });
 
@@ -49,14 +53,16 @@ api.interceptors.response.use(
         const { data } = await api.post("/auth/refresh");
 
         // Päivitetään token sekä closureen että localStorageen
-        accessToken = data.accessToken;
-        setAccessToken(accessToken);
+        setAccessToken(data.accessToken);
 
         // Lisää header ja toista alkuperäinen pyyntö
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
         return api(originalRequest);
       } catch (refreshError) {
         console.error("🔄 Refresh token epäonnistui:", refreshError);
+        // Tyhjennetään token ja ohjataan käyttäjä kirjautumissivulle
+        setAccessToken(null);
+        window.location.href = "/login";
         return Promise.reject(refreshError);
       }
     }

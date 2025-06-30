@@ -127,6 +127,14 @@ const userSchema = new mongoose.Schema(
     // 💎 Premium
     isPremium: { type: Boolean, default: false },
     hidden: { type: Boolean, default: false },
+
+    // 🎛️ Role-Based Access
+    role: {
+      type: String,
+      enum: ['user', 'admin'],
+      default: 'user',
+      required: true,
+    },
   },
   { timestamps: true }
 );

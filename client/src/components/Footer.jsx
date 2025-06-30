@@ -86,6 +86,7 @@ const Footer = () => {
               <li><Link to="/map" className="hover:underline">{t("Map")}</Link></li>
               <li><Link to="/admin" className="hover:underline">{t("Admin")}</Link></li>
               <li><Link to="/download" className="hover:underline">{t("download")}</Link></li>
++              <li><Link to="/settings" className="hover:underline">{t("Settings")}</Link></li>
             </ul>
           </div>
         </div>

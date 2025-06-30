@@ -6,7 +6,7 @@ import LanguageSwitcher from "../components/LanguageSwitcher";
 
 const Navbar = () => {
   const { t, i18n } = useTranslation();
-  const { isLoggedIn, logout } = useAuth();
+  const { isLoggedIn, isAdmin, logout } = useAuth();
   const [lang, setLang] = useState(i18n.language);
 
   // Päivitä kieli tilaan
@@ -41,19 +41,26 @@ const Navbar = () => {
     { path: "/register", label: t("Register") },
   ];
 
-  // Kirjautuneille käyttäjille näkyvät
+  // Kirjautuneille käyttäjille näkyvät (admin-linkki suodatetaan alla)
   const userLinks = [
     { path: "/discover", label: t("Discover") },
     { path: "/profile", label: t("Profile") },
     { path: "/matches", label: t("Matches") },
     { path: "/who-liked-me", label: t("Likes") },
     { path: "/map", label: t("Map") },
-    { path: "/admin", label: t("Admin") },
+    { path: "/admin", label: t("Admin") }, // näytetään vain adminille
     { path: "/upgrade", label: t("Premium") },
+    { path: "/settings", label: t("Settings") },
   ];
 
+  // Suodatetaan admin-linkki pois, jos ei ole admin
+  const filteredUserLinks = userLinks.filter(
+    (link) => link.path !== "/admin" || isAdmin
+  );
+
+  // Kokonaislinkkilista
   const allLinks = isLoggedIn
-    ? [...commonLinks, ...userLinks]
+    ? [...commonLinks, ...filteredUserLinks]
     : [...commonLinks, ...guestLinks];
 
   return (
