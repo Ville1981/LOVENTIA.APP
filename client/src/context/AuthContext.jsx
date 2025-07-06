@@ -1,3 +1,5 @@
+// src/context/AuthContext.jsx
+
 import React, { createContext, useContext, useEffect, useState } from "react";
 import api, { setAccessToken } from "../utils/axiosInstance";
 
@@ -5,25 +7,22 @@ import api, { setAccessToken } from "../utils/axiosInstance";
 const AuthContext = createContext({
   token: null,
   user: null,
-  login: () => {},
-  logout: () => {},
+  setUser: () => {},          // lisätty stub
+  login: async () => {},
+  logout: async () => {},
   isLoggedIn: false,
   isAdmin: false,
 });
 
 export const AuthProvider = ({ children }) => {
-  // token kertoo, onko käyttäjä kirjautuneena
-  const [token, setToken]     = useState(null);
-  // user sisältää id, email ja role
-  const [user, setUser]       = useState(null);
-  // loading estää lapset-renderöinnin ennen kuin initAuth on suoritettu
-  const [loading, setLoading] = useState(true);
+  const [token, setToken]     = useState(null); // JWT-token
+  const [user, setUser]       = useState(null); // { id, email, role }
+  const [loading, setLoading] = useState(true); // estää lapset-renderöinnin initAuthin aikana
 
-  // Sisäinen funktio hakemaan user-data /auth/me -endpointista
+  // Hakee käyttäjätiedot backendistä /auth/me
   const fetchUser = async () => {
     try {
       const { data } = await api.get("/auth/me");
-      // data: { id, email, role }
       setUser(data);
     } catch (err) {
       console.warn("fetchUser epäonnistui:", err);
@@ -31,54 +30,47 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Kirjautuminen: talletetaan token, päivitämme axios-instanssin ja noudetaan käyttäjä
   const login = async (newToken) => {
-    // Päivitä axios-instanssin token, React state ja localStorage
     setAccessToken(newToken);
     setToken(newToken);
     localStorage.setItem("token", newToken);
-
-    // Hae heti käyttäjätiedot
     await fetchUser();
   };
 
+  // Uloskirjautuminen: tyhjennetään token ja ohjataan login-sivulle
   const logout = async () => {
-    // Kutsutaan backend logout, jotta HttpOnly-cookie poistuu
     try {
       await api.post("/auth/logout");
     } catch (err) {
       console.warn("Logout-backend epäonnistui", err);
     }
-    // Tyhjennä token instanssista, statesta ja localStoragesta
     setAccessToken(null);
     setToken(null);
     setUser(null);
     localStorage.removeItem("token");
-    // Ohjaa login-sivulle
     window.location.href = "/login";
   };
 
+  // InitAuth: haetaan localStoragesta token, yritetään refresh ja lopulta annetaan lapset-renderöityä
   useEffect(() => {
     const initAuth = async () => {
-      // 1) Haetaan mahdollinen aiemmin tallennettu token
       const stored = localStorage.getItem("token");
       if (stored) {
         setAccessToken(stored);
         setToken(stored);
       }
 
-      // 2) Yritetään “silent refresh” (ei pakota /login here)
       try {
         const { data } = await api.post("/auth/refresh");
-        // Jos saadaan uusi token, kirjaudutaan sisään sen avulla
+        // refresh-palauttaa uuden accessTokenin
         await login(data.accessToken);
       } catch (err) {
-        console.warn("Silent refresh epäonnistui, selvitellään julkisia reittejä.", err);
-        // Poistetaan vanhentunut token, mutta EI OHJATA LOGIN:iin
+        console.warn("Silent refresh epäonnistui:", err);
         setAccessToken(null);
         setToken(null);
         localStorage.removeItem("token");
       } finally {
-        // Annetaan lapset-renderöityä (login/register jne. latautuvat nyt)
         setLoading(false);
       }
     };
@@ -86,7 +78,7 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  // Varmistetaan, että julkiset reitit saavat näkyä ilman jäätynyttä loading-tilaa
+  // Jos backendia ja localStoragea käydään läpi, näytetään latausteksti siihen asti
   if (loading) {
     return (
       <div className="text-center py-8">
@@ -100,6 +92,7 @@ export const AuthProvider = ({ children }) => {
       value={{
         token,
         user,
+        setUser,               // lisätty setter kontekstiin
         login,
         logout,
         isLoggedIn: !!token,
@@ -111,4 +104,7 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+// Helppo hook kuluttajille
+export const useAuth = () => {
+  return useContext(AuthContext);
+};

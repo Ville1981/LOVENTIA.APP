@@ -1,5 +1,3 @@
-// server/routes/users.js
-
 const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
@@ -16,6 +14,7 @@ const {
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const { body, validationResult } = require("express-validator");
 
 // 🔐 Middleware: varmista tokenin aitous
 function authenticateToken(req, res, next) {
@@ -39,8 +38,7 @@ router.use(express.json());
 // 🔧 Multer storage + tiedostonpoisto
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "uploads/"),
-  filename: (req, file, cb) =>
-    cb(null, Date.now() + path.extname(file.originalname)),
+  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),
 });
 const upload = multer({ storage });
 
@@ -69,8 +67,29 @@ router.get("/me", authenticateToken, async (req, res) => {
 });
 
 // =====================
-// ✅ Profiilin päivitys
+// ✅ Profiilin päivitys with validation
 // =====================
+const profileValidation = [
+  authenticateToken,
+  body('username').optional().notEmpty().withMessage('Username is required'),
+  body('email').optional().isEmail().withMessage('Invalid email'),
+  body('age').optional().isInt({ min: 18 }).withMessage('Age must be at least 18'),
+  body('gender').optional().notEmpty().withMessage('Gender is required'),
+  body('orientation').optional().notEmpty().withMessage('Orientation is required'),
+  body('height').optional().isNumeric().withMessage('Height must be a number'),
+  body('weight').optional().isNumeric().withMessage('Weight must be a number'),
+  body('latitude').optional().isFloat({ min: -90, max: 90 }).withMessage('Invalid latitude'),
+  body('longitude').optional().isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude'),
+  body('nutritionPreferences').optional().isArray().withMessage('Nutrition preferences must be an array'),
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    next();
+  }
+];
+
 router.put(
   "/profile",
   authenticateToken,
@@ -78,6 +97,7 @@ router.put(
     { name: "profilePhoto", maxCount: 1 },
     { name: "extraImages", maxCount: 20 },
   ]),
+  profileValidation,
   async (req, res) => {
     try {
       const user = await User.findById(req.userId);
@@ -89,10 +109,10 @@ router.put(
         "education", "height", "weight", "status", "religion",
         "religionImportance", "children", "pets", "summary", "goal",
         "lookingFor", "profession", "location", "country", "region",
-        "city", "latitude", "longitude",             // koordinaatit
-        "smoke", "drink", "drugs",                   // lifestyle
-        "bodyType", "activityLevel",                 // metrics
-        "nutritionPreferences", "healthInfo",        // health
+        "city", "latitude", "longitude",
+        "smoke", "drink", "drugs",
+        "bodyType", "activityLevel",
+        "nutritionPreferences", "healthInfo",
         "interests", "preferredGender", "preferredMinAge",
         "preferredMaxAge", "preferredInterests", "preferredCountry",
         "preferredReligion", "preferredReligionImportance",
@@ -101,7 +121,6 @@ router.put(
 
       fields.forEach((field) => {
         if (req.body[field] !== undefined) {
-          // array-kentät käsitellään pilkulla eroteltuna merkkijonona tai valmiina taulukkona
           if (["interests", "preferredInterests", "nutritionPreferences"].includes(field)) {
             user[field] = Array.isArray(req.body[field])
               ? req.body[field]

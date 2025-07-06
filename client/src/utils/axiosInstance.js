@@ -17,10 +17,9 @@ export const setAccessToken = (token) => {
   }
 };
 
-// Luo Axios-instanssi kehityksessä käyttäen suoraa backendin URL:ää portille 5000
+// Luo Axios-instanssi: kehityksessä käyttää Vite-proxya ("/api"), tuotannossa tarvittaessa VITE_API_URL
 const api = axios.create({
-  // Jos VITE_API_URL on määritelty, käytä sitä, muussa tapauksessa käytetään localhost:5000/api
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
+  baseURL: import.meta.env.VITE_API_URL || "/api",
   withCredentials: true, // lähettää ja vastaanottaa httpOnly-cookiet
 });
 
@@ -49,7 +48,7 @@ api.interceptors.response.use(
     ) {
       originalRequest._retry = true;
       try {
-        // Kutsutaan refresh-endpointia samassa instanssissa
+        // Kutsutaan refresh-endpointia samaan instanssiin (polku /api/auth/refresh proxyn kautta)
         const { data } = await api.post("/auth/refresh");
 
         // Päivitetään token sekä closureen että localStorageen

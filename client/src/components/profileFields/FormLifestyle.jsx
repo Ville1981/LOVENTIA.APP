@@ -1,5 +1,7 @@
+// src/components/profileFields/FormLifestyle.jsx
+
 import React from "react";
-import PropTypes from "prop-types";
+import { useFormContext } from "react-hook-form";
 
 const lifestyleOptions = [
   { value: "", labelKey: "common.select" },
@@ -10,7 +12,17 @@ const lifestyleOptions = [
   { value: "sober", labelKey: "lifestyle.sober" },
 ];
 
-const FormLifestyle = ({ smoke, drink, drugs, setSmoke, setDrink, setDrugs, t }) => {
+/**
+ * FormLifestyle
+ * Lomakeosio: tupakointi, alkoholi ja huumeet
+ * Käyttää RHF-kontekstia kenttien rekisteröintiin ja virheiden näyttöön.
+ */
+const FormLifestyle = ({ t }) => {
+  const {
+    register,
+    formState: { errors },
+  } = useFormContext();
+
   return (
     <div>
       <h3 className="text-lg font-semibold mb-2">{t("lifestyle.title")}</h3>
@@ -21,8 +33,7 @@ const FormLifestyle = ({ smoke, drink, drugs, setSmoke, setDrink, setDrugs, t })
             {t("lifestyle.smoke")}
           </label>
           <select
-            value={smoke}
-            onChange={(e) => setSmoke(e.target.value)}
+            {...register("smoke")}
             className="w-full border rounded px-3 py-2 text-sm"
           >
             {lifestyleOptions.map((opt) => (
@@ -31,15 +42,18 @@ const FormLifestyle = ({ smoke, drink, drugs, setSmoke, setDrink, setDrugs, t })
               </option>
             ))}
           </select>
+          {errors.smoke && (
+            <p className="mt-1 text-sm text-red-600">{errors.smoke.message}</p>
+          )}
         </div>
+
         {/* Drink */}
         <div>
           <label className="block text-sm font-medium mb-1">
             {t("lifestyle.drink")}
           </label>
           <select
-            value={drink}
-            onChange={(e) => setDrink(e.target.value)}
+            {...register("drink")}
             className="w-full border rounded px-3 py-2 text-sm"
           >
             {lifestyleOptions.map((opt) => (
@@ -48,15 +62,18 @@ const FormLifestyle = ({ smoke, drink, drugs, setSmoke, setDrink, setDrugs, t })
               </option>
             ))}
           </select>
+          {errors.drink && (
+            <p className="mt-1 text-sm text-red-600">{errors.drink.message}</p>
+          )}
         </div>
+
         {/* Drugs */}
         <div>
           <label className="block text-sm font-medium mb-1">
             {t("lifestyle.drugs")}
           </label>
           <select
-            value={drugs}
-            onChange={(e) => setDrugs(e.target.value)}
+            {...register("drugs")}
             className="w-full border rounded px-3 py-2 text-sm"
           >
             {lifestyleOptions.map((opt) => (
@@ -65,20 +82,13 @@ const FormLifestyle = ({ smoke, drink, drugs, setSmoke, setDrink, setDrugs, t })
               </option>
             ))}
           </select>
+          {errors.drugs && (
+            <p className="mt-1 text-sm text-red-600">{errors.drugs.message}</p>
+          )}
         </div>
       </div>
     </div>
   );
-};
-
-FormLifestyle.propTypes = {
-  smoke: PropTypes.string.isRequired,
-  drink: PropTypes.string.isRequired,
-  drugs: PropTypes.string.isRequired,
-  setSmoke: PropTypes.func.isRequired,
-  setDrink: PropTypes.func.isRequired,
-  setDrugs: PropTypes.func.isRequired,
-  t: PropTypes.func.isRequired,
 };
 
 export default FormLifestyle;

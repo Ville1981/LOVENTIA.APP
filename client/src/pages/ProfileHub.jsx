@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Link, useParams } from "react-router-dom";
 import axios from "axios";
+import { useAuth } from "../context/AuthContext";
 import ProfileForm from "../components/profileFields/ProfileForm";
 import { BACKEND_BASE_URL } from "../config";
 
@@ -12,18 +13,15 @@ import { BACKEND_BASE_URL } from "../config";
 const ProfileHub = () => {
   const token = localStorage.getItem("token");
   const { userId: userIdParam } = useParams();
+  const { user: authUser, setUser: setAuthUser } = useAuth();
 
+  // --- paikalliset statet ---
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState("preferences");
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState(false);
 
-  // Stats for profile completion
-  const [profileCompletion] = useState(60);
-  const [questionsAnswered] = useState(15);
-  const [highestMatch] = useState(93);
-
-  // Form values for profile editing
+  // Lomakkeen kentät
   const [values, setValues] = useState({
     username: "",
     email: "",
@@ -45,11 +43,9 @@ const ProfileHub = () => {
     summary: "",
     goal: "",
     lookingFor: "",
-    // Newly added lifestyle fields:
     smoke: "",
     drink: "",
     drugs: "",
-    // Existing metric & preference fields:
     height: "",
     weight: "",
     bodyType: "",
@@ -57,6 +53,11 @@ const ProfileHub = () => {
     nutritionPreferences: [],
     healthInfo: ""
   });
+
+  // Profiilin edistymis‐statistiikat
+  const [profileCompletion] = useState(60);
+  const [questionsAnswered] = useState(15);
+  const [highestMatch] = useState(93);
 
   const t = (key) => {
     const translations = {
@@ -66,7 +67,7 @@ const ProfileHub = () => {
     return translations[key] || key;
   };
 
-  // Fetch current user or viewed user's data
+  // --- käyttäjätiedon haku ---
   const fetchUser = useCallback(async () => {
     try {
       const url = userIdParam
@@ -78,8 +79,8 @@ const ProfileHub = () => {
       const u = res.data.user || res.data;
       setUser(u);
 
-      // Populate form values if viewing own profile
       if (!userIdParam) {
+        setAuthUser(u);
         setValues({
           username: u.username || "",
           email: u.email || "",
@@ -101,11 +102,9 @@ const ProfileHub = () => {
           summary: u.summary || "",
           goal: u.goal || "",
           lookingFor: u.lookingFor || "",
-          // Populate newly added lifestyle fields:
           smoke: u.smoke || "",
           drink: u.drink || "",
           drugs: u.drugs || "",
-          // Populate existing metric & preference fields:
           height: u.height || "",
           weight: u.weight || "",
           bodyType: u.bodyType || "",
@@ -119,25 +118,32 @@ const ProfileHub = () => {
     } catch (err) {
       console.error("Profiilin haku epäonnistui:", err);
     }
-  }, [token, userIdParam]);
+  }, [token, userIdParam, setAuthUser]);
 
   useEffect(() => {
     fetchUser();
   }, [fetchUser]);
 
-  // Handle profile form submission
+  if (!user) {
+    return <div className="text-center mt-12">Ladataan profiilia…</div>;
+  }
+
+  const profileUserId = userIdParam || authUser?._id || user._id || user.id;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (userIdParam) return; // Do not submit when viewing another's profile
+    if (userIdParam) return;
     try {
-      await axios.put(
+      const res = await axios.put(
         `${BACKEND_BASE_URL}/api/users/profile`,
         values,
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      const updated = res.data.user || res.data;
       setSuccess(true);
-      setMessage("Profiilitiedot päivitetty onnistuneesti.");
-      setUser((u) => ({ ...u, ...values }));
+      setMessage(t("profile.saved"));
+      setUser(updated);
+      setAuthUser(updated);
     } catch (err) {
       console.error("Päivitys epäonnistui:", err);
       setSuccess(false);
@@ -145,13 +151,8 @@ const ProfileHub = () => {
     }
   };
 
-  if (!user) {
-    return <div className="text-center mt-12">Ladataan profiilia…</div>;
-  }
-
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-6">
-      {/* Tab navigation */}
       <div className="flex bg-gray-900 rounded-lg overflow-hidden">
         <button
           onClick={() => setActiveTab("preferences")}
@@ -175,10 +176,8 @@ const ProfileHub = () => {
         </button>
       </div>
 
-      {/* Preferences tab */}
       {activeTab === "preferences" && (
         <div className="space-y-6">
-          {/* Completion progress */}
           <div className="bg-white rounded-lg shadow p-4">
             <h2 className="font-semibold mb-2">Steps to success</h2>
             <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
@@ -192,7 +191,6 @@ const ProfileHub = () => {
             </p>
           </div>
 
-          {/* Answer more questions */}
           <div className="bg-white rounded-lg shadow p-4">
             <h2 className="font-semibold mb-2">Answer More Questions</h2>
             <div className="flex items-center space-x-4">
@@ -207,43 +205,37 @@ const ProfileHub = () => {
               </span>
             </div>
             <p className="mt-2 text-sm text-gray-600">
-              Your highest possible match:{" "}
-              <span className="font-bold">{highestMatch}%</span>
+              Your highest possible match: <span className="font-bold">{highestMatch}%</span>
             </p>
             <div className="mt-4 flex space-x-2">
-              <button className="flex-1 py-2 border border-blue-600 rounded-lg">
-                NO
-              </button>
-              <button className="flex-1 py-2 bg-blue-600 text-white rounded-lg">
-                YES
-              </button>
+              <button className="flex-1 py-2 border border-blue-600 rounded-lg">NO</button>
+              <button className="flex-1 py-2 bg-blue-600 text-white rounded-lg">YES</button>
             </div>
             <div className="mt-2 text-center">
-              <button className="text-sm text-gray-500 underline">Skip</button>
-              {" • "}
+              <button className="text-sm text-gray-500 underline">Skip</button> •{' '}
               <Link to="/questions/answered" className="text-sm text-blue-600">
                 See answered questions
               </Link>
             </div>
           </div>
 
-          {/* Profile form */}
           <ProfileForm
+            userId={profileUserId}
             user={user}
-            onUserUpdate={(u) => setUser(u)}
+            onUserUpdate={(u) => {
+              setUser(u);
+              setAuthUser(u);
+            }}
             isPremium={user.isPremium}
-            values={values}
-            setters={setValues}
             t={t}
             message={message}
             success={success}
-            hideAvatarSection={false}
             onSubmit={handleSubmit}
+            hideAvatarSection={false}
           />
         </div>
       )}
 
-      {/* Settings tab */}
       {activeTab === "settings" && (
         <div className="bg-white rounded-lg shadow p-6 space-y-4">
           <h2 className="font-semibold text-xl">Settings</h2>
@@ -254,10 +246,7 @@ const ProfileHub = () => {
               </Link>
             </li>
             <li>
-              <Link
-                to="/settings/notifications"
-                className="text-blue-600 hover:underline"
-              >
+              <Link to="/settings/notifications" className="text-blue-600 hover:underline">
                 Notification preferences
               </Link>
             </li>
@@ -267,10 +256,7 @@ const ProfileHub = () => {
               </Link>
             </li>
             <li>
-              <Link
-                to="/settings/subscriptions"
-                className="text-blue-600 hover:underline"
-              >
+              <Link to="/settings/subscriptions" className="text-blue-600 hover:underline">
                 Subscriptions & billing
               </Link>
             </li>

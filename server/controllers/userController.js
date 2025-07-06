@@ -4,69 +4,74 @@ const jwt = require("jsonwebtoken");
 const fs = require("fs");
 const path = require("path");
 
-// Utility: poista tiedosto levyltä
+// Configuration
+const SALT_ROUNDS = parseInt(process.env.SALT_ROUNDS, 10) || 10;
+
+// Utility: remove a file from disk
 function removeFile(filePath) {
-  if (filePath && fs.existsSync(filePath)) {
-    fs.unlinkSync(filePath);
+  if (!filePath) return;
+  try {
+    const fullPath = path.resolve(filePath);
+    if (fs.existsSync(fullPath)) {
+      fs.unlinkSync(fullPath);
+    }
+  } catch (err) {
+    console.error(`Failed to remove file ${filePath}: ${err.message}`);
   }
 }
 
-// ✅ Premium-tason aktivointi
-const upgradeToPremium = async (req, res) => {
-  try {
-    const user = await User.findById(req.userId);
-    if (!user) return res.status(404).json({ error: "User not found" });
-
-    user.isPremium = true;
-    await user.save();
-    res.json({ message: "Premium activated successfully" });
-  } catch (err) {
-    console.error("Premium upgrade error:", err);
-    res.status(500).json({ error: "Server error upgrading to premium" });
-  }
-};
-
-// ✅ Rekisteröi uusi käyttäjä
+// Register a new user with hashed password
 const registerUser = async (req, res) => {
   const { username, email, password } = req.body;
   try {
     const existingEmail = await User.findOne({ email });
+    if (existingEmail) {
+      return res.status(400).json({ error: "Sähköposti on jo käytössä" });
+    }
     const existingUsername = await User.findOne({ username });
-    if (existingEmail) return res.status(400).json({ error: "Sähköposti on jo käytössä" });
-    if (existingUsername) return res.status(400).json({ error: "Käyttäjänimi on jo varattu" });
+    if (existingUsername) {
+      return res.status(400).json({ error: "Käyttäjänimi on jo varattu" });
+    }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
     const newUser = new User({ username, email, password: hashedPassword });
     await newUser.save();
-    res.status(201).json({ message: "Rekisteröinti onnistui" });
+
+    return res.status(201).json({
+      message: "Rekisteröinti onnistui",
+      user: { id: newUser._id, username: newUser.username, email: newUser.email },
+    });
   } catch (err) {
-    console.error("Rekisteröintivirhe:", err);
-    res.status(500).json({ error: "Palvelinvirhe rekisteröinnissä" });
+    console.error(`Rekisteröintivirhe: ${err.message}`);
+    return res.status(500).json({ error: "Palvelinvirhe rekisteröinnissä" });
   }
 };
 
-// ✅ Kirjaudu sisään
+// Log in a user by comparing password and issuing tokens
 const loginUser = async (req, res) => {
   const { email, password } = req.body;
   try {
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ error: "User not found" });
+    if (!user) {
+      return res.status(401).json({ error: "Virheelliset kirjautumistiedot" });
+    }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ error: "Invalid credentials" });
+    if (!isMatch) {
+      return res.status(401).json({ error: "Virheelliset kirjautumistiedot" });
+    }
 
     const accessToken = jwt.sign(
-      { id: user._id },
+      { id: user._id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "15m" }
     );
     const refreshToken = jwt.sign(
-      { id: user._id },
+      { id: user._id, role: user.role },
       process.env.JWT_REFRESH_SECRET,
       { expiresIn: "30d" }
     );
 
-    // Aseta refresh-token cookieksi, frontti tallentaa vain accessTokenin
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -74,135 +79,172 @@ const loginUser = async (req, res) => {
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
-    // Palautetaan JSONissa accessToken
-    res.json({ accessToken });
+    return res.json({
+      accessToken,
+      user: { id: user._id, username: user.username, email: user.email, isPremium: user.isPremium, role: user.role },
+    });
   } catch (err) {
-    console.error("Login error:", err);
-    res.status(500).json({ error: "Server error" });
+    console.error(`Login error: ${err.message}`);
+    return res.status(500).json({ error: "Palvelinvirhe kirjautumisessa" });
   }
 };
 
-// ✅ Etsi ottelut ja laske match-score
+// Activate premium status for the user
+const upgradeToPremium = async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ error: "Käyttäjää ei löydy" });
+    }
+
+    user.isPremium = true;
+    await user.save();
+    return res.json({ message: "Premium-tila aktivoitu onnistuneesti" });
+  } catch (err) {
+    console.error(`Premium upgrade error: ${err.message}`);
+    return res.status(500).json({ error: "Palvelinvirhe premium-päivityksessä" });
+  }
+};
+
+// Get possible matches with a computed score
 const getMatchesWithScore = async (req, res) => {
   try {
     const currentUser = await User.findById(req.userId);
-    if (!currentUser) return res.status(404).json({ error: "User not found" });
+    if (!currentUser) {
+      return res.status(404).json({ error: "Käyttäjää ei löydy" });
+    }
+
+    const blockedByMe = Array.isArray(currentUser.blockedUsers) ? currentUser.blockedUsers : [];
+    const interests = Array.isArray(currentUser.preferredInterests) ? currentUser.preferredInterests : [];
 
     const allUsers = await User.find({ _id: { $ne: currentUser._id } });
-    const matches = allUsers
-      .filter(u =>
-        !currentUser.blockedUsers.includes(u._id) &&
-        !u.blockedUsers.includes(currentUser._id)
-      )
+    let matches = allUsers
+      .filter(u => {
+        const blockedThem = Array.isArray(u.blockedUsers) ? u.blockedUsers : [];
+        return !blockedByMe.includes(u._id) && !blockedThem.includes(currentUser._id);
+      })
       .map(u => {
         let score = 0;
         if (
           currentUser.preferredGender === "any" ||
-          u.gender?.toLowerCase() === currentUser.preferredGender?.toLowerCase()
+          (u.gender && u.gender.toLowerCase() === currentUser.preferredGender?.toLowerCase())
         ) score += 20;
         if (
           u.age >= (currentUser.preferredMinAge || 18) &&
           u.age <= (currentUser.preferredMaxAge || 100)
         ) score += 20;
-        const common = currentUser.preferredInterests?.filter(i =>
-          u.interests?.includes(i)
-        );
-        score += Math.min((common?.length || 0) * 10, 60);
+        const userInterests = Array.isArray(u.interests) ? u.interests : [];
+        const common = interests.filter(i => userInterests.includes(i));
+        score += Math.min(common.length * 10, 60);
+
         return {
-          _id: u._id,
-          name: u.name,
+          id: u._id,
+          username: u.username,
           email: u.email,
           age: u.age,
           gender: u.gender,
-          goal: u.goal,
           location: u.location,
           profilePicture: u.profilePicture,
           isPremium: u.isPremium,
           matchScore: score,
         };
       });
-    res.json(matches);
+
+    // Sort by matchScore descending
+    matches.sort((a, b) => b.matchScore - a.matchScore);
+
+    return res.json(matches);
   } catch (err) {
-    console.error("Match score error:", err);
-    res.status(500).json({ error: "Server error" });
+    console.error(`Match score error: ${err.message}`);
+    return res.status(500).json({ error: "Palvelinvirhe ottelujen haussa" });
   }
 };
 
-// ✅ Lisäkuvien lataus (bulk)
+// Bulk upload extra photos
 const uploadExtraPhotos = async (req, res) => {
   try {
     const user = await User.findById(req.userId);
-    if (!user) return res.status(404).json({ error: "User not found" });
+    if (!user) {
+      return res.status(404).json({ error: "Käyttäjää ei löydy" });
+    }
 
     const files = req.files;
-    if (!files?.length) {
-      return res.status(400).json({ error: "No photos uploaded" });
+    if (!Array.isArray(files) || files.length === 0) {
+      return res.status(400).json({ error: "Kuvia ei ladattu" });
     }
 
+    user.extraImages = Array.isArray(user.extraImages) ? user.extraImages : [];
+    const existingCount = user.extraImages.filter(Boolean).length;
     const maxAllowed = user.isPremium ? 20 : 6;
-    if ((user.extraImages?.filter(Boolean).length || 0) + files.length > maxAllowed) {
-      return res.status(400).json({ error: `Cannot exceed ${maxAllowed} extra photos` });
+    if (existingCount + files.length > maxAllowed) {
+      return res.status(400).json({ error: `Kuvien enimmäismäärä on ${maxAllowed}` });
     }
 
-    // Poista vanhat jos halutaan korvata, tai lisää perään
-    // Tässä korvatakseen: removeFile on jo osa put /profile
-    user.extraImages = files.map(f => f.path);
-    const saved = await user.save();
-    res.json({ extraImages: saved.extraImages });
+    files.forEach(f => user.extraImages.push(f.path));
+    await user.save();
+    return res.json({ extraImages: user.extraImages });
   } catch (err) {
-    console.error("uploadExtraPhotos error:", err);
-    res.status(500).json({ error: "Bulk upload failed" });
+    console.error(`uploadExtraPhotos error: ${err.message}`);
+    return res.status(500).json({ error: "Palvelinvirhe kuvien latauksessa" });
   }
 };
 
-// 🚀 Yksi kuva + slot + crop + caption
+// Upload single photo into a slot
 const uploadPhotoStep = async (req, res) => {
   try {
     const user = await User.findById(req.userId);
-    if (!user) return res.status(404).json({ error: "User not found" });
+    if (!user) {
+      return res.status(404).json({ error: "Käyttäjää ei löydy" });
+    }
 
     const slot = parseInt(req.body.slot, 10);
-    if (isNaN(slot)) return res.status(400).json({ error: "Invalid slot" });
+    if (isNaN(slot) || slot < 0) {
+      return res.status(400).json({ error: "Virheellinen slot" });
+    }
 
-    // Poista vanha
+    user.extraImages = Array.isArray(user.extraImages) ? user.extraImages : [];
     if (user.extraImages[slot]) removeFile(user.extraImages[slot]);
-    user.extraImages = user.extraImages || [];
-    user.extraImages[slot] = req.file.path;
 
-    const saved = await user.save();
-    res.json({ extraImages: saved.extraImages });
+    user.extraImages[slot] = req.file.path;
+    await user.save();
+    return res.json({ extraImages: user.extraImages });
   } catch (err) {
-    console.error("uploadPhotoStep error:", err);
-    res.status(500).json({ error: "Upload failed" });
+    console.error(`uploadPhotoStep error: ${err.message}`);
+    return res.status(500).json({ error: "Palvelinvirhe yksittäisessä kuvassa" });
   }
 };
 
-// 🚀 Slot-kohtainen poisto
+// Delete a specific photo slot
 const deletePhotoSlot = async (req, res) => {
   try {
     const user = await User.findById(req.userId);
-    if (!user) return res.status(404).json({ error: "User not found" });
+    if (!user) {
+      return res.status(404).json({ error: "Käyttäjää ei löydy" });
+    }
 
     const slot = parseInt(req.params.slot, 10);
-    if (isNaN(slot)) return res.status(400).json({ error: "Invalid slot" });
+    if (isNaN(slot) || slot < 0) {
+      return res.status(400).json({ error: "Virheellinen slot" });
+    }
 
+    user.extraImages = Array.isArray(user.extraImages) ? user.extraImages : [];
     if (user.extraImages[slot]) {
       removeFile(user.extraImages[slot]);
       user.extraImages[slot] = null;
     }
 
-    const saved = await user.save();
-    res.json({ extraImages: saved.extraImages });
+    await user.save();
+    return res.json({ extraImages: user.extraImages });
   } catch (err) {
-    console.error("deletePhotoSlot error:", err);
-    res.status(500).json({ error: "Delete failed" });
+    console.error(`deletePhotoSlot error: ${err.message}`);
+    return res.status(500).json({ error: "Palvelinvirhe slotin poistoissa" });
   }
 };
 
 module.exports = {
-  upgradeToPremium,
   registerUser,
   loginUser,
+  upgradeToPremium,
   getMatchesWithScore,
   uploadExtraPhotos,
   uploadPhotoStep,

@@ -1,14 +1,19 @@
-// client/src/components/profileFields/FormChildrenPets.jsx
+// src/components/profileFields/FormChildrenPets.jsx
 
 import React from "react";
+import { useFormContext } from "react-hook-form";
 
-const FormChildrenPets = ({
-  children,
-  setChildren,
-  pets,
-  setPets,
-  t,
-}) => {
+/**
+ * FormChildrenPets
+ * Lomakeosio: lapset ja lemmikit
+ * Käyttää RHF-kontekstia kenttien rekisteröintiin ja virheiden näyttöön.
+ */
+const FormChildrenPets = ({ t }) => {
+  const {
+    register,
+    formState: { errors },
+  } = useFormContext();
+
   return (
     <div className="flex flex-col gap-4 w-full text-left">
       {/* Lapset */}
@@ -18,8 +23,7 @@ const FormChildrenPets = ({
         </label>
         <select
           id="children"
-          value={children}
-          onChange={(e) => setChildren(e.target.value)}
+          {...register("children")}
           className="p-2 border rounded w-full"
         >
           <option value="">{t("common.select")}</option>
@@ -28,6 +32,11 @@ const FormChildrenPets = ({
           <option value="Aikuisia lapsia">{t("profile.childrenAdult")}</option>
           <option value="Muu">{t("common.other")}</option>
         </select>
+        {errors.children && (
+          <p className="mt-1 text-sm text-red-600">
+            {errors.children.message}
+          </p>
+        )}
       </div>
 
       {/* Lemmikit */}
@@ -37,8 +46,7 @@ const FormChildrenPets = ({
         </label>
         <select
           id="pets"
-          value={pets}
-          onChange={(e) => setPets(e.target.value)}
+          {...register("pets")}
           className="p-2 border rounded w-full"
         >
           <option value="">{t("common.select")}</option>
@@ -48,6 +56,11 @@ const FormChildrenPets = ({
           <option value="Muu">{t("common.other")}</option>
           <option value="Ei lemmikkiä">{t("pets.none")}</option>
         </select>
+        {errors.pets && (
+          <p className="mt-1 text-sm text-red-600">
+            {errors.pets.message}
+          </p>
+        )}
       </div>
     </div>
   );

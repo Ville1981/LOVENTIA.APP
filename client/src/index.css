@@ -1,52 +1,54 @@
-/* ==================================================
-   Perusasetukset ja Tailwind-importit
-   ================================================== */
-
-html,
-body,
-#root {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  /* Sammutetaan selaimen scroll anchoring koko dokumentissa */
-  overflow-anchor: none !important;
-  /* Poistetaan smooth‐scroll jotta selaimen oletus ei sotke päivityksiä */
-  scroll-behavior: auto !important;
-}
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ==================================================
-   Tekstisuunta luettavuuden takaamiseksi
-   ================================================== */
+/\* ==================================================
+Mukautetut base-tyylit Tailwindin päälle
+\================================================== */
+@layer base {
+html,
+body,
+\#root {
+height: 100%;
+margin: 0;
+padding: 0;
+/* Sammutetaan selaimen scroll anchoring koko dokumentissa */
+overflow-anchor: none !important;
+/* Poistetaan selaimen oletus smooth-scroll-asetukset \*/
+scroll-behavior: auto !important;
+}
+}
 
+/\* ==================================================
+Tekstisuunta luettavuuden takaamiseksi
+\================================================== \*/
+@layer utilities {
 .direction-ltr {
-  direction: ltr;
+direction: ltr;
+}
 }
 
-/* ==================================================
-   Slick‐karusellin outline‐poisto
-   ================================================== */
-
-/* Jos jostain syystä jokin slide saa focusin, sen outline poistetaan */
-.slick-slide:focus,
-.slick-slide *:focus {
-  outline: none !important;
+/\* ==================================================
+Slick‐karusellin outline‐poisto
+\================================================== \*/
+@layer utilities {
+.slick-slide\:focus,
+.slick-slide \*:focus {
+outline: none !important;
+}
 }
 
-/* ==================================================
-   Scroll-anchoringin esto Slick-komponenteille
-   ================================================== */
-
-/* Slickin pääkontit ja napit + kaikki lapset varmuuden vuoksi */
+/\* ==================================================
+Scroll-anchoringin esto Slick-komponenteille
+\================================================== \*/
+@layer utilities {
 .slick-slider,
 .slick-list,
 .slick-track,
 .profile-carousel,
-.profile-carousel *,
+.profile-carousel \*,
 .slick-prev,
 .slick-next {
-  overflow-anchor: none !important;
+overflow-anchor: none !important;
+}
 }

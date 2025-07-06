@@ -1,8 +1,12 @@
+// src/api/images.js
+
 import axios from "axios";
 import { BACKEND_BASE_URL } from "../config";
 
 /**
- * Profiilikuvan lataus
+ * Profiilikuvan lataus:
+ * 1) Lähetä kuva endpointiin /api/users/:userId/upload-avatar
+ * 2) Hae takaisin koko käyttäjädata endpointista /api/users/:userId
  */
 export const uploadAvatar = async (userId, file) => {
   const formData = new FormData();
@@ -14,18 +18,29 @@ export const uploadAvatar = async (userId, file) => {
   }
 
   try {
-    const res = await axios.post(
+    // 1) Lähetä profiilikuva
+    await axios.post(
       `${BACKEND_BASE_URL}/api/users/${userId}/upload-avatar`,
       formData,
       {
         headers: {
-          Authorization: `Bearer ${token}`
-          // Content-Type jätetty pois: axios asettaa sen automaattisesti boundaryineen
+          Authorization: `Bearer ${token}`,
+          // Content-Type jätetty pois, axios hoitaa rajanumerot automaattisesti
         },
         withCredentials: true,
       }
     );
-    return res.data.user || res.data;
+
+    // 2) Hae päivitetty käyttäjädata (tässä mukana myös profilePicture + extraImages)
+    const resUser = await axios.get(
+      `${BACKEND_BASE_URL}/api/users/${userId}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
+      }
+    );
+
+    return resUser.data.user || resUser.data;
   } catch (err) {
     console.error("uploadAvatar error:", err.response || err);
     const msg = err.response?.data?.error || "Avatarin tallennus epäonnistui";
@@ -34,24 +49,24 @@ export const uploadAvatar = async (userId, file) => {
 };
 
 /**
- * Lisäkuvien lataus (useamman kuvan bulk-lähetys)
+ * Lisäkuvien lataus (bulk-upload):
+ * Hakee jälkikäteen kokonaisen käyttäjädatan samasta /api/users/:userId
  */
 export const uploadPhotos = async (userId, filesOrFormData) => {
   if (!userId || typeof userId !== "string") {
     throw new Error("Virheellinen käyttäjätunnus kuvan latauksessa");
   }
 
-  let formData;
-  if (filesOrFormData instanceof FormData) {
-    formData = filesOrFormData;
-  } else {
-    const validFiles = filesOrFormData.filter((file) => file instanceof File);
-    if (validFiles.length === 0) {
-      throw new Error("Et valinnut kuvaa ladattavaksi.");
-    }
-    formData = new FormData();
-    validFiles.forEach((file) => formData.append("photos", file));
-  }
+  const formData =
+    filesOrFormData instanceof FormData
+      ? filesOrFormData
+      : (() => {
+          const fd = new FormData();
+          filesOrFormData
+            .filter((f) => f instanceof File)
+            .forEach((file) => fd.append("photos", file));
+          return fd;
+        })();
 
   const token = localStorage.getItem("token");
   if (!token) {
@@ -59,52 +74,61 @@ export const uploadPhotos = async (userId, filesOrFormData) => {
   }
 
   try {
-    const res = await axios.post(
+    await axios.post(
       `${BACKEND_BASE_URL}/api/users/${userId}/upload-photos`,
       formData,
       {
-        headers: {
-          Authorization: `Bearer ${token}`
-        },
+        headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,
       }
     );
-    return res.data.user || res.data;
+
+    const resUser = await axios.get(
+      `${BACKEND_BASE_URL}/api/users/${userId}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
+      }
+    );
+    return resUser.data.user || resUser.data;
   } catch (err) {
     console.error("uploadPhotos error:", err.response || err);
-    const errorMsg = err.response?.data?.error;
-    if (errorMsg) {
-      throw new Error(errorMsg);
-    }
-    throw new Error("Lisäkuvien tallennus epäonnistui");
+    const errorMsg = err.response?.data?.error || "Lisäkuvien tallennus epäonnistui";
+    throw new Error(errorMsg);
   }
 };
 
 /**
- * Yksi kuvan vaiheittainen lähetys: crop + caption + slot
+ * Vaiheittainen yksittäisen kuvan lataus (crop+caption+slot):
+ * Palauttaa aina koko käyttäjädatan.
  */
 export const uploadPhotoStep = async (userId, formData) => {
   if (!userId || typeof userId !== "string") {
-    throw new Error("Virheellinen käyttäjätunnus vaiheittaisessa kuvien tallennuksessa");
+    throw new Error("Virheellinen käyttäjätunnus kuvavaiheessa");
   }
-
   const token = localStorage.getItem("token");
   if (!token) {
     throw new Error("Kirjaudu sisään tallentaaksesi kuvan");
   }
 
   try {
-    const res = await axios.post(
+    await axios.post(
       `${BACKEND_BASE_URL}/api/users/${userId}/upload-photo-step`,
       formData,
       {
-        headers: {
-          Authorization: `Bearer ${token}`
-        },
+        headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,
       }
     );
-    return res.data.user || res.data;
+
+    const resUser = await axios.get(
+      `${BACKEND_BASE_URL}/api/users/${userId}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
+      }
+    );
+    return resUser.data.user || resUser.data;
   } catch (err) {
     console.error("uploadPhotoStep error:", err.response || err);
     const msg = err.response?.data?.error || "Kuvan tallennus epäonnistui";
@@ -113,7 +137,8 @@ export const uploadPhotoStep = async (userId, formData) => {
 };
 
 /**
- * Poistaa kuvan annetusta slotista
+ * Kuvan poisto tietyltä slotilta:
+ * Poista, ja hae sen jälkeen aina koko käyttäjädata uudelleen.
  */
 export const deletePhotoSlot = async (userId, slot) => {
   const token = localStorage.getItem("token");
@@ -122,16 +147,22 @@ export const deletePhotoSlot = async (userId, slot) => {
   }
 
   try {
-    const res = await axios.delete(
+    await axios.delete(
       `${BACKEND_BASE_URL}/api/users/${userId}/photos/${slot}`,
       {
-        headers: {
-          Authorization: `Bearer ${token}`
-        },
+        headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,
       }
     );
-    return res.data.user || res.data;
+
+    const resUser = await axios.get(
+      `${BACKEND_BASE_URL}/api/users/${userId}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
+      }
+    );
+    return resUser.data.user || resUser.data;
   } catch (err) {
     console.error("deletePhotoSlot error:", err.response || err);
     const msg = err.response?.data?.error || "Kuvan poisto epäonnistui";
