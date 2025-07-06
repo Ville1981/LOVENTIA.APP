@@ -1,19 +1,25 @@
 const express = require('express');
 const router = express.Router();
-const { authenticate, authorizeAdmin } = require('../middleware/authMiddleware');
+const { authenticate } = require('../middleware/authMiddleware');
+const { authorizeRoles } = require('../middleware/authorize');
 
-// Admin-reitit
-// Dashboard: vain admin-käyttäjille
+// Admin routes
+// Dashboard: only accessible by admin users
 router.get(
   '/dashboard',
   authenticate,
-  authorizeAdmin,
+  authorizeRoles('admin'),
   (req, res) => {
     return res.json({ message: 'Welcome to the admin dashboard' });
   }
 );
 
-// Voit lisätä tänne lisää admin-toimintoja, esim. käyttäjähallinnan
-// router.get('/users', authenticate, authorizeAdmin, adminController.listUsers);
+// Additional admin operations (e.g., user management)
+// router.get(
+//   '/users',
+//   authenticate,
+//   authorizeRoles('admin'),
+//   adminController.listUsers
+// );
 
 module.exports = router;

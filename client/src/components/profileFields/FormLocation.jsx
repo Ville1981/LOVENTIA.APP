@@ -1,160 +1,144 @@
-import React from "react";
+// src/components/profileFields/FormLocation.jsx
+
+import React, { useEffect } from "react";
+import { useFormContext } from "react-hook-form";
+import PropTypes from "prop-types";
 import { countryRegions, regionCities } from "../../utils/locationData";
 
-const FormLocation = ({
-  country,
-  region,
-  city,
-  customCountry,
-  customRegion,
-  customCity,
-  setCountry,
-  setRegion,
-  setCity,
-  setCustomCountry,
-  setCustomRegion,
-  setCustomCity,
-  t,
-}) => {
-  const handleCountryChange = (e) => {
-    const next = e.target.value;
-    if (next !== country) {
-      setCountry(next);
-      setRegion("");
-      setCity("");
-      setCustomCountry("");
-    }
-  };
+/**
+ * FormLocation
+ * Lomakeosio: käyttäjän sijainti (maa, alue, kaupunki)
+ * Käyttää RHF-kontekstia kenttien rekisteröintiin ja riippuvuuksien hallintaan.
+ */
+const FormLocation = ({ t }) => {
+  const {
+    register,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useFormContext();
 
-  const handleRegionChange = (e) => {
-    const next = e.target.value;
-    if (next !== region) {
-      setRegion(next);
-      setCity("");
-      setCustomRegion("");
-    }
-  };
+  const country = watch("country");
+  const customCountry = watch("customCountry");
+  const region = watch("region");
+  const customRegion = watch("customRegion");
+  const city = watch("city");
+  const customCity = watch("customCity");
 
-  const handleCityChange = (e) => {
-    const next = e.target.value;
-    if (next !== city) {
-      setCity(next);
-      setCustomCity("");
+  // Reset dependent fields when parent changes
+  useEffect(() => {
+    if (country) {
+      setValue("customCountry", "");
+      setValue("region", "");
+      setValue("city", "");
+      setValue("customRegion", "");
+      setValue("customCity", "");
     }
-  };
+  }, [country, setValue]);
 
-  const handleCustomCountryChange = (e) => {
-    setCustomCountry(e.target.value);
-    setCountry("");
-    setRegion("");
-    setCity("");
-  };
-  const handleCustomRegionChange = (e) => {
-    setCustomRegion(e.target.value);
-    setRegion("");
-    setCity("");
-  };
-  const handleCustomCityChange = (e) => {
-    setCustomCity(e.target.value);
-    setCity("");
-  };
+  useEffect(() => {
+    if (region) {
+      setValue("customRegion", "");
+      setValue("city", "");
+      setValue("customCity", "");
+    }
+  }, [region, setValue]);
+
+  useEffect(() => {
+    if (customCountry) {
+      setValue("country", "");
+      setValue("region", "");
+      setValue("city", "");
+      setValue("customRegion", "");
+      setValue("customCity", "");
+    }
+  }, [customCountry, setValue]);
+
+  useEffect(() => {
+    if (customRegion) {
+      setValue("city", "");
+      setValue("customCity", "");
+    }
+  }, [customRegion, setValue]);
 
   const regionOptions = country ? countryRegions[country] || [] : [];
-  const cityOptions =
-    country && region ? regionCities[country]?.[region] || [] : [];
-
-  const hasCountry = country || customCountry;
-  const hasRegion = region || customRegion;
+  const cityOptions = country && region ? regionCities[country]?.[region] || [] : [];
 
   return (
     <div className="flex flex-col space-y-6 w-full text-left">
       {/* Country */}
-      <div className="w-full">
-        <label htmlFor="country" className="block font-medium mb-1">
-          🌍 {t("profile.country")}
-        </label>
+      <div>
+        <label className="block font-medium mb-1">{t("profile.location.country")}</label>
         <select
-          id="country"
-          value={country}
-          onChange={handleCountryChange}
+          {...register("country")}
           className="p-2 border rounded w-full"
-          aria-label={t("profile.selectCountry")}
         >
-          <option value="">{t("profile.selectCountry")}</option>
+          <option value="">{t("common.selectCountry")}</option>
           {Object.keys(countryRegions).map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
+            <option key={c} value={c}>{c}</option>
           ))}
         </select>
+        {errors.country && <p className="text-red-600 text-sm mt-1">{errors.country.message}</p>}
         <input
           type="text"
-          placeholder={t("profile.manualCountry")}
-          value={customCountry}
-          onChange={handleCustomCountryChange}
+          placeholder={t("profile.location.otherCountry")}
+          {...register("customCountry")}
           className="mt-2 p-2 border rounded w-full"
         />
+        {errors.customCountry && <p className="text-red-600 text-sm mt-1">{errors.customCountry.message}</p>}
       </div>
 
       {/* Region */}
-      <div className="w-full">
-        <label htmlFor="region" className="block font-medium mb-1">
-          🗺 {t("profile.region")}
-        </label>
+      <div>
+        <label className="block font-medium mb-1">{t("profile.location.region")}</label>
         <select
-          id="region"
-          value={region}
-          onChange={handleRegionChange}
+          {...register("region")}
+          disabled={!country}
           className="p-2 border rounded w-full"
-          aria-label={t("profile.selectRegion")}
-          disabled={!hasCountry || regionOptions.length === 0}
         >
-          <option value="">{t("profile.selectRegion")}</option>
+          <option value="">{t("common.selectRegion")}</option>
           {regionOptions.map((r) => (
-            <option key={r} value={r}>
-              {r}
-            </option>
+            <option key={r} value={r}>{r}</option>
           ))}
         </select>
+        {errors.region && <p className="text-red-600 text-sm mt-1">{errors.region.message}</p>}
         <input
           type="text"
-          placeholder={t("profile.manualRegion")}
-          value={customRegion}
-          onChange={handleCustomRegionChange}
+          placeholder={t("profile.location.otherRegion")}
+          {...register("customRegion")}
           className="mt-2 p-2 border rounded w-full"
         />
+        {errors.customRegion && <p className="text-red-600 text-sm mt-1">{errors.customRegion.message}</p>}
       </div>
 
       {/* City */}
-      <div className="w-full">
-        <label htmlFor="city" className="block font-medium mb-1">
-          🏩 {t("profile.city")}
-        </label>
+      <div>
+        <label className="block font-medium mb-1">{t("profile.location.city")}</label>
         <select
-          id="city"
-          value={city}
-          onChange={handleCityChange}
+          {...register("city")}
+          disabled={!region && !customRegion}
           className="p-2 border rounded w-full"
-          aria-label={t("profile.selectCity")}
-          disabled={!hasRegion || cityOptions.length === 0}
         >
-          <option value="">{t("profile.selectCity")}</option>
+          <option value="">{t("common.selectCity")}</option>
           {cityOptions.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
+            <option key={c} value={c}>{c}</option>
           ))}
         </select>
+        {errors.city && <p className="text-red-600 text-sm mt-1">{errors.city.message}</p>}
         <input
           type="text"
-          placeholder={t("profile.manualCity")}
-          value={customCity}
-          onChange={handleCustomCityChange}
+          placeholder={t("profile.location.otherCity")}
+          {...register("customCity")}
           className="mt-2 p-2 border rounded w-full"
         />
+        {errors.customCity && <p className="text-red-600 text-sm mt-1">{errors.customCity.message}</p>}
       </div>
     </div>
   );
+};
+
+FormLocation.propTypes = {
+  t: PropTypes.func.isRequired,
 };
 
 export default FormLocation;

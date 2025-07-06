@@ -1,18 +1,20 @@
-// client/src/components/profileFields/FormEducation.jsx
+// src/components/profileFields/FormEducation.jsx
 
 import React from "react";
+import { useFormContext } from "react-hook-form";
+import PropTypes from "prop-types";
 
-const FormEducation = ({
-  education,
-  setEducation,
-  profession,
-  setProfession,
-  religion,
-  setReligion,
-  religionImportance,
-  setReligionImportance,
-  t
-}) => {
+/**
+ * FormEducation
+ * Lomakeosio: koulutus, ammatti, uskonto ja uskonnon merkitys
+ * Käyttää RHF-kontekstia kenttien rekisteröintiin ja virheiden näyttöön.
+ */
+const FormEducation = ({ t }) => {
+  const {
+    register,
+    formState: { errors },
+  } = useFormContext();
+
   return (
     <div className="flex flex-col gap-4 w-full text-left">
       {/* Koulutustaso */}
@@ -22,8 +24,7 @@ const FormEducation = ({
         </label>
         <select
           id="education"
-          value={education}
-          onChange={(e) => setEducation(e.target.value)}
+          {...register("education")}
           className="p-2 border rounded w-full"
         >
           <option value="">{t("common.select")}</option>
@@ -34,6 +35,11 @@ const FormEducation = ({
           <option value="Tohtori / tutkimus">{t("education.phd")}</option>
           <option value="Muu">{t("common.other")}</option>
         </select>
+        {errors.education && (
+          <p className="mt-1 text-sm text-red-600">
+            {errors.education.message}
+          </p>
+        )}
       </div>
 
       {/* Ammatti */}
@@ -44,11 +50,15 @@ const FormEducation = ({
         <input
           type="text"
           id="profession"
+          {...register("profession")}
           placeholder={t("profile.profession")}
-          value={profession}
-          onChange={(e) => setProfession(e.target.value)}
           className="p-2 border rounded w-full"
         />
+        {errors.profession && (
+          <p className="mt-1 text-sm text-red-600">
+            {errors.profession.message}
+          </p>
+        )}
       </div>
 
       {/* Uskonto */}
@@ -58,8 +68,7 @@ const FormEducation = ({
         </label>
         <select
           id="religion"
-          value={religion}
-          onChange={(e) => setReligion(e.target.value)}
+          {...register("religion")}
           className="p-2 border rounded w-full"
         >
           <option value="">{t("common.select")}</option>
@@ -71,6 +80,11 @@ const FormEducation = ({
           <option value="Uskonnottomuus">{t("religion.none")}</option>
           <option value="Muu">{t("common.other")}</option>
         </select>
+        {errors.religion && (
+          <p className="mt-1 text-sm text-red-600">
+            {errors.religion.message}
+          </p>
+        )}
       </div>
 
       {/* Uskonnon merkitys */}
@@ -80,18 +94,28 @@ const FormEducation = ({
         </label>
         <select
           id="religionImportance"
-          value={religionImportance}
-          onChange={(e) => setReligionImportance(e.target.value)}
+          {...register("religionImportance")}
           className="p-2 border rounded w-full"
         >
           <option value="">{t("common.select")}</option>
           <option value="Ei tärkeä">{t("religionImportance.notImportant")}</option>
-          <option value="Jonkin verran tärkeä">{t("religionImportance.somewhatImportant")}</option>
+          <option value="Jonkin verran tärkeä">
+            {t("religionImportance.somewhatImportant")}
+          </option>
           <option value="Erittäin tärkeä">{t("religionImportance.veryImportant")}</option>
         </select>
+        {errors.religionImportance && (
+          <p className="mt-1 text-sm text-red-600">
+            {errors.religionImportance.message}
+          </p>
+        )}
       </div>
     </div>
   );
+};
+
+FormEducation.propTypes = {
+  t: PropTypes.func.isRequired,
 };
 
 export default FormEducation;

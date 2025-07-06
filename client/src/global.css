@@ -2,34 +2,105 @@
 @tailwind components;
 @tailwind utilities;
 
-/* --- Mukautetut lisätyylit Tailwindin jälkeen --- */
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background-color: #f4f4f4;
-  padding: 1rem;
+/\* ==================================================
+Mukautetut base-tyylit Tailwindin päälle
+\================================================== */
+@layer base {
+html,
+body,
+\#root {
+/* Perusresetit \*/
+height: 100%;
+margin: 0;
+padding: 1rem;
+overflow-anchor: none !important;
+scroll-behavior: auto !important;
+font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+"Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+background-color: #f7fafc;
+color: #1a202c;
 }
 
+/\* Tumman tilan värit \*/
+.dark html,
+.dark body,
+.dark #root {
+background-color: #1a202c;
+color: #f7fafc;
+}
+}
+
+/\* ==================================================
+Container-komponentti responsiiviseen keskitykseen
+\================================================== */
+@layer components {
+.container {
+margin-left: auto;
+margin-right: auto;
+padding-left: 1rem;
+padding-right: 1rem;
+}
+@screen md {
+.container {
+max-width: 36rem; /* Tailwind max-w-xl */
+}
+}
+@screen lg {
+.container {
+max-width: 42rem; /* Tailwind max-w-2xl \*/
+}
+}
+}
+
+/\* ==================================================
+Lomake-komponenttien yhtenäinen tyyli
+\================================================== \*/
+@layer components {
 form input,
 form button,
 form textarea {
-  width: 100%;
-  max-width: 500px;
-  padding: 0.5rem;
-  margin-top: 0.5rem;
-  font-size: 1rem;
-  box-sizing: border-box;
+display: block;
+width: 100%;
+padding: 0.5rem 1rem;
+margin-top: 0.5rem;
+font-size: 1rem;
+border: 1px solid #D1D5DB;
+border-radius: 0.375rem;
+box-sizing: border-box;
+}
+form input\:focus,
+form button\:focus,
+form textarea\:focus {
+outline: none;
+box-shadow: 0 0 0 2px rgba(255,64,129,0.5);
+}
 }
 
+/\* ==================================================
+Kuvien perusasetukset
+\================================================== \*/
+@layer utilities {
 img {
-  max-width: 100%;
-  height: auto;
-  display: block;
+max-width: 100%;
+height: auto;
+display: block;
+}
 }
 
-@media (min-width: 768px) {
-  .container {
-    max-width: 700px;
-    margin: 0 auto;
-  }
+/\* ==================================================
+Slick-karusellin outline-poisto ja scroll-anchoring
+\================================================== \*/
+@layer utilities {
+.slick-slide\:focus,
+.slick-slide \*:focus,
+.slick-slider,
+.slick-list,
+.slick-track,
+.profile-carousel,
+.profile-carousel \*,
+.slick-prev,
+.slick-next {
+outline: none !important;
+overflow-anchor: none !important;
+}
 }

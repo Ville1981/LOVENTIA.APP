@@ -1,37 +1,55 @@
-// client/src/components/profileFields/FormLookingFor.jsx
+// src/components/profileFields/FormLookingFor.jsx
 
 import React from "react";
+import { useFormContext } from "react-hook-form";
 
-const FormLookingFor = ({ lookingFor, setLookingFor, t }) => {
+/**
+ * FormLookingFor
+ * Lomakeosio: mitä etsit profiilissasi
+ * Käyttää RHF-kontekstia kenttien rekisteröintiin ja virheiden näyttöön.
+ */
+const FormLookingFor = ({ t }) => {
+  const {
+    register,
+    formState: { errors },
+  } = useFormContext();
+
+  const name = "lookingFor";
+  const options = [
+    { value: "", label: t("common.select") },
+    { value: "Ystävää", label: t("looking.friend") },
+    { value: "Tutustumassa", label: t("looking.gettingToKnow") },
+    { value: "Deittailua", label: t("looking.dating") },
+    { value: "Treffejä", label: t("looking.dates") },
+    { value: "Pitkäaikaista suhdetta", label: t("looking.longTerm") },
+    { value: "Pitkää vakavaa parisuhdetta / avioliittoa", label: t("looking.marriage") },
+    { value: "Vain juttuseuraa / keskustelukaveria", label: t("looking.chatOnly") },
+    { value: "Satunnaisia tapaamisia", label: t("looking.casual") },
+    { value: "En tiedä vielä", label: t("looking.undecided") },
+    { value: "Muu", label: t("common.other") },
+  ];
+
   return (
     <div className="flex flex-col gap-4 w-full text-left">
-      <div className="w-full">
-        <label htmlFor="lookingFor" className="block font-medium mb-1">
-          🔍 {t("profile.searchingFor")}
-        </label>
-        <select
-          id="lookingFor"
-          value={lookingFor}
-          onChange={(e) => setLookingFor(e.target.value)}
-          className="p-2 border rounded w-full"
-        >
-          <option value="">{t("common.select")}</option>
-          <option value="Ystävää">{t("looking.friend")}</option>
-          <option value="Tutustumassa">{t("looking.gettingToKnow")}</option>
-          <option value="Deittailua">{t("looking.dating")}</option>
-          <option value="Treffejä">{t("looking.dates")}</option>
-          <option value="Pitkäaikaista suhdetta">{t("looking.longTerm")}</option>
-          <option value="Pitkää vakavaa parisuhdetta / avioliittoa">
-            {t("looking.marriage")}
+      <label htmlFor={name} className="block font-medium mb-1">
+        🔍 {t("profile.searchingFor")}
+      </label>
+      <select
+        id={name}
+        {...register(name)}
+        className="p-2 border rounded w-full"
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
           </option>
-          <option value="Vain juttuseuraa / keskustelukaveria">
-            {t("looking.chatOnly")}
-          </option>
-          <option value="Satunnaisia tapaamisia">{t("looking.casual")}</option>
-          <option value="En tiedä vielä">{t("looking.undecided")}</option>
-          <option value="Muu">{t("common.other")}</option>
-        </select>
-      </div>
+        ))}
+      </select>
+      {errors[name] && (
+        <p className="mt-1 text-sm text-red-600">
+          {errors[name].message}
+        </p>
+      )}
     </div>
   );
 };

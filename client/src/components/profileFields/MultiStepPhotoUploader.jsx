@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import Cropper from 'react-easy-crop';
 import 'react-easy-crop/react-easy-crop.css';
 import {
@@ -16,10 +17,10 @@ import { BACKEND_BASE_URL, PLACEHOLDER_IMAGE } from '../../config';
  */
 export default function MultiStepPhotoUploader({
   userId,
-  isPremium,
+  isPremium = false,
   extraImages = [],
-  onSuccess,
-  onError,
+  onSuccess = () => {},
+  onError = () => {},
 }) {
   const maxSlots = isPremium ? 20 : 6;
 
@@ -36,6 +37,10 @@ export default function MultiStepPhotoUploader({
     Array.from({ length: maxSlots }, (_, i) => extraImages[i] || null)
   );
 
+  // --- ref hooks ---
+  const fileInputRef = useRef(null);
+  const bulkInputRef = useRef(null);
+
   // --- sync props to state ---
   useEffect(() => {
     const padded = Array.from(
@@ -48,8 +53,6 @@ export default function MultiStepPhotoUploader({
   useEffect(() => {
     if (step > 1) window.scrollTo(0, 0);
   }, [step]);
-
-  const fileInputRef = useRef(null);
 
   // --- helpers ---
   const findFirstEmpty = useCallback(() => {
@@ -84,15 +87,19 @@ export default function MultiStepPhotoUploader({
   }, []);
 
   const handleSubmit = async () => {
-    if (!userId || !selectedFile || !croppedAreaPixels) return;
+    if (!userId) {
+      console.error('uploadPhotoStep: userId is undefined!');
+      return;
+    }
+    if (!selectedFile || !croppedAreaPixels) return;
     try {
       const form = new FormData();
       form.append('photo', selectedFile);
-      form.append('slot', slot);
-      form.append('cropX', croppedAreaPixels.x);
-      form.append('cropY', croppedAreaPixels.y);
-      form.append('cropWidth', croppedAreaPixels.width);
-      form.append('cropHeight', croppedAreaPixels.height);
+      form.append('slot', slot.toString());
+      form.append('cropX', croppedAreaPixels.x.toString());
+      form.append('cropY', croppedAreaPixels.y.toString());
+      form.append('cropWidth', croppedAreaPixels.width.toString());
+      form.append('cropHeight', croppedAreaPixels.height.toString());
       if (caption) form.append('caption', caption);
 
       const result = await uploadPhotoStep(userId, form);
@@ -111,6 +118,7 @@ export default function MultiStepPhotoUploader({
       setCrop({ x: 0, y: 0 });
       setZoom(1);
       setCroppedAreaPixels(null);
+      setSlot(findFirstEmpty());
     } catch (err) {
       onError(err);
     }
@@ -121,9 +129,28 @@ export default function MultiStepPhotoUploader({
     setBulkFiles(Array.from(e.target.files || []));
   };
   const handleBulkUpload = async () => {
-    if (!bulkFiles.length || !userId) return;
+    if (!userId) {
+      console.error('uploadPhotos: userId is undefined!');
+      return;
+    }
+    if (!bulkFiles.length) return;
     try {
-      const result = await uploadPhotos(userId, bulkFiles);
+      const form = new FormData();
+      // Preserve existing images to avoid orphaning
+      localImages.forEach((img) => {
+        if (img) {
+          const url = img.startsWith('http')
+            ? img
+            : `${BACKEND_BASE_URL}${img}`;
+          form.append('existing[]', url);
+        }
+      });
+      // Append new files
+      bulkFiles.forEach((file) => {
+        form.append('photos[]', file);
+      });
+
+      const result = await uploadPhotos(userId, form);
       if (result?.extraImages) {
         const padded = Array.from(
           { length: maxSlots },
@@ -132,7 +159,9 @@ export default function MultiStepPhotoUploader({
         setLocalImages(padded);
       }
       onSuccess(result);
+      // reset bulk files and input
       setBulkFiles([]);
+      if (bulkInputRef.current) bulkInputRef.current.value = '';
     } catch (err) {
       onError(err);
     }
@@ -140,7 +169,10 @@ export default function MultiStepPhotoUploader({
 
   // --- delete slot ---
   const handleDelete = async (i) => {
-    if (!userId) return;
+    if (!userId) {
+      console.error('deletePhotoSlot: userId is undefined!');
+      return;
+    }
     try {
       const result = await deletePhotoSlot(userId, i);
       if (result?.extraImages) {
@@ -164,13 +196,14 @@ export default function MultiStepPhotoUploader({
           htmlFor="bulk-input"
           className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 cursor-pointer"
         >
-          Add photo
+          Add photos
         </label>
         <input
           id="bulk-input"
           type="file"
           multiple
           accept="image/*"
+          ref={bulkInputRef}
           onChange={handleBulkChange}
           className="hidden"
         />
@@ -202,7 +235,7 @@ export default function MultiStepPhotoUploader({
             <div key={i} className="flex flex-col items-center">
               <div className="border p-2 flex items-center justify-center w-32 h-32 bg-gray-100 hover:bg-gray-200">
                 <img
-                  src={`${BACKEND_BASE_URL}${src}`}
+                  src={src.startsWith('http') ? src : `${BACKEND_BASE_URL}${src}`}
                   alt={`Slot ${i + 1}`}
                   className="object-cover w-full h-full"
                 />
@@ -302,3 +335,18 @@ export default function MultiStepPhotoUploader({
     </div>
   );
 }
+
+MultiStepPhotoUploader.propTypes = {
+  userId: PropTypes.string.isRequired,
+  isPremium: PropTypes.bool,
+  extraImages: PropTypes.arrayOf(PropTypes.string),
+  onSuccess: PropTypes.func,
+  onError: PropTypes.func,
+};
+
+MultiStepPhotoUploader.defaultProps = {
+  isPremium: false,
+  extraImages: [],
+  onSuccess: () => {},
+  onError: () => {},
+};

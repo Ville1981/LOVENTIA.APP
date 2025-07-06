@@ -7,34 +7,47 @@ const Register = () => {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
   const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Client-side validation
+    if (password !== confirmPassword) {
+      setMessage("Salasanat eivät täsmää");
+      return;
+    }
+    if (password.length < 8) {
+      setMessage("Salasanan tulee olla vähintään 8 merkkiä pitkä");
+      return;
+    }
+
     try {
-      // 1. Luo käyttäjä
+      // 1. Create user
       await api.post("/auth/register", {
         username,
         email,
         password,
       });
 
-      // 2. Kirjaudu heti luodulla tunnuksella
+      // 2. Log in immediately
       const loginRes = await api.post("/auth/login", {
         email,
         password,
       });
 
-      // 3. Tallenna token kontekstiin (ja localStorageen)
-      login(loginRes.data.token);
+      // 3. Save token to context and localStorage
+      login(loginRes.data.accessToken);
 
-      // 4. Ohjaa profiilin täyttöön
+      // 4. Redirect to profile setup
       setMessage("Tili luotu ja kirjautuminen onnistui!");
       navigate("/profile");
     } catch (err) {
-      setMessage(err.response?.data?.error || "Virhe rekisteröinnissä");
+      const errMsg = err.response?.data?.error;
+      setMessage(errMsg || "Virhe rekisteröinnissä");
     }
   };
 
@@ -68,13 +81,24 @@ const Register = () => {
         className="w-full border p-2 rounded"
         required
       />
+      <input
+        type="password"
+        value={confirmPassword}
+        onChange={(e) => setConfirmPassword(e.target.value)}
+        placeholder="Vahvista salasana"
+        className="w-full border p-2 rounded"
+        required
+      />
       <button
         type="submit"
-        className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
+        className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 disabled:opacity-50"
+        disabled={!username || !email || !password || !confirmPassword}
       >
         Luo tili
       </button>
-      {message && <p className="text-sm text-red-600">{message}</p>}
+      {message && (
+        <p className="text-sm text-red-600">{message}</p>
+      )}
     </form>
   );
 };

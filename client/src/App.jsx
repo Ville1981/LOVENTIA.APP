@@ -1,5 +1,9 @@
+// src/App.jsx
+
 import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import ErrorBoundary from "./components/ErrorBoundary";
+import { AuthProvider } from "./context/AuthContext";
 
 // Slick‐karusellin tyylit
 import "slick-carousel/slick/slick.css";
@@ -22,39 +26,28 @@ import Upgrade from "./pages/Upgrade";
 // Uudet sivut
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import WhoLikedMe from "./pages/WhoLikedMe";
-import MapPage from "./pages/MapPage";  // suora import ilman aliasia
-import Settings from "./pages/Settings"; // Lisätty Settings-sivu
+import MapPage from "./pages/MapPage";
+import Settings from "./pages/Settings";
 
 const AppContent = () => (
   <Routes>
-    {/* Kaikki nämä näyttävät nav‐baarin + outletin MainLayoutista */}
     <Route path="/" element={<MainLayout />}>
       <Route index element={<Etusivu />} />
       <Route path="discover" element={<Discover />} />
-
-      {/* Profiili */}
       <Route path="profile" element={<ProfileHub />} />
       <Route path="profile/:userId" element={<ProfileHub />} />
-
       <Route path="matches" element={<MatchPage />} />
       <Route path="cancel" element={<PremiumCancel />} />
       <Route path="chat/:userId" element={<ChatPage />} />
       <Route path="admin" element={<AdminPanel />} />
       <Route path="login" element={<Login />} />
       <Route path="register" element={<Register />} />
-
-      {/* Premium‐upgrade */}
       <Route path="upgrade" element={<Upgrade />} />
-
-      {/* Uudet sivut */}
       <Route path="privacy" element={<PrivacyPolicy />} />
       <Route path="who-liked-me" element={<WhoLikedMe />} />
       <Route path="map" element={<MapPage />} />
-      {/* Settings-sivu */}
       <Route path="settings" element={<Settings />} />
     </Route>
-
-    {/* 404, jos mikään ei matchaa */}
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
@@ -63,15 +56,19 @@ const App = () => {
   useEffect(() => {
     // Estetään scroll‐restoration-bugit
     if ("scrollRestoration" in window.history) {
-      window.history.scrollRestoration = "auto";
+      window.history.scrollRestoration = "manual";
     }
     document.documentElement.style.overflowAnchor = "none";
   }, []);
 
   return (
-    <Router>
-      <AppContent />
-    </Router>
+    <ErrorBoundary>
+      <AuthProvider>
+        <Router>
+          <AppContent />
+        </Router>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 };
 
