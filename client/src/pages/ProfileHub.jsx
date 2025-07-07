@@ -1,3 +1,4 @@
+// src/pages/ProfileHub.jsx
 import React, { useEffect, useState, useCallback } from "react";
 import { Link, useParams } from "react-router-dom";
 import axios from "axios";
@@ -21,7 +22,7 @@ const ProfileHub = () => {
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState(false);
 
-  // Lomakkeen kentät
+  // Lomakkeen kentät (initial defaultValues)
   const [values, setValues] = useState({
     username: "",
     email: "",
@@ -46,12 +47,14 @@ const ProfileHub = () => {
     smoke: "",
     drink: "",
     drugs: "",
-    height: "",
-    weight: "",
+    height: null,
+    weight: null,
     bodyType: "",
     activityLevel: "",
     nutritionPreferences: [],
-    healthInfo: ""
+    healthInfo: "",
+    latitude: null,
+    longitude: null,
   });
 
   // Profiilin edistymis‐statistiikat
@@ -62,7 +65,7 @@ const ProfileHub = () => {
   const t = (key) => {
     const translations = {
       "profile.saved": "Profiili tallennettu",
-      "profile.saveChanges": "Tallenna muutokset"
+      "profile.saveChanges": "Tallenna muutokset",
     };
     return translations[key] || key;
   };
@@ -74,7 +77,7 @@ const ProfileHub = () => {
         ? `${BACKEND_BASE_URL}/api/users/${userIdParam}`
         : `${BACKEND_BASE_URL}/api/auth/me`;
       const res = await axios.get(url, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       const u = res.data.user || res.data;
       setUser(u);
@@ -105,14 +108,16 @@ const ProfileHub = () => {
           smoke: u.smoke || "",
           drink: u.drink || "",
           drugs: u.drugs || "",
-          height: u.height || "",
-          weight: u.weight || "",
+          height: u.height || null,
+          weight: u.weight || null,
           bodyType: u.bodyType || "",
           activityLevel: u.activityLevel || "",
           nutritionPreferences: Array.isArray(u.nutritionPreferences)
             ? u.nutritionPreferences
             : [],
-          healthInfo: u.healthInfo || ""
+          healthInfo: u.healthInfo || "",
+          latitude: u.latitude || null,
+          longitude: u.longitude || null,
         });
       }
     } catch (err) {
@@ -128,15 +133,16 @@ const ProfileHub = () => {
     return <div className="text-center mt-12">Ladataan profiilia…</div>;
   }
 
-  const profileUserId = userIdParam || authUser?._id || user._id || user.id;
+  const profileUserId =
+    userIdParam || authUser?._id || user._id || user.id;
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  // Lomakkeen lähetysfunktio (data, ei event)
+  const handleFormSubmit = async (formData) => {
     if (userIdParam) return;
     try {
       const res = await axios.put(
         `${BACKEND_BASE_URL}/api/users/profile`,
-        values,
+        formData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const updated = res.data.user || res.data;
@@ -144,6 +150,43 @@ const ProfileHub = () => {
       setMessage(t("profile.saved"));
       setUser(updated);
       setAuthUser(updated);
+      setValues({
+        username: updated.username || "",
+        email: updated.email || "",
+        age: updated.age || "",
+        gender: updated.gender || "",
+        orientation: updated.orientation || "",
+        country: updated.country || "",
+        region: updated.region || "",
+        city: updated.city || "",
+        customCountry: updated.customCountry || "",
+        customRegion: updated.customRegion || "",
+        customCity: updated.customCity || "",
+        education: updated.education || "",
+        profession: updated.profession || "",
+        religion: updated.religion || "",
+        religionImportance: updated.religionImportance || "",
+        children: updated.children || "",
+        pets: updated.pets || "",
+        summary: updated.summary || "",
+        goal: updated.goal || "",
+        lookingFor: updated.lookingFor || "",
+        smoke: updated.smoke || "",
+        drink: updated.drink || "",
+        drugs: updated.drugs || "",
+        height: updated.height || null,
+        weight: updated.weight || "",
+        bodyType: updated.bodyType || "",
+        activityLevel: updated.activityLevel || "",
+        nutritionPreferences: Array.isArray(
+          updated.nutritionPreferences
+        )
+          ? updated.nutritionPreferences
+          : [],
+        healthInfo: updated.healthInfo || "",
+        latitude: updated.latitude || null,
+        longitude: updated.longitude || null,
+      });
     } catch (err) {
       console.error("Päivitys epäonnistui:", err);
       setSuccess(false);
@@ -153,6 +196,7 @@ const ProfileHub = () => {
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-6">
+      {/* Tab buttons */}
       <div className="flex bg-gray-900 rounded-lg overflow-hidden">
         <button
           onClick={() => setActiveTab("preferences")}
@@ -176,8 +220,21 @@ const ProfileHub = () => {
         </button>
       </div>
 
+      {/* Preferences tab content */}
       {activeTab === "preferences" && (
         <div className="space-y-6">
+          {/* Manage Photos button */}
+          <div className="flex justify-end">
+            <Link
+              to="/profile/photos"
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              data-cy="ProfileHub__photosButton"
+            >
+              Manage Photos
+            </Link>
+          </div>
+
+          {/* Steps to success section */}
           <div className="bg-white rounded-lg shadow p-4">
             <h2 className="font-semibold mb-2">Steps to success</h2>
             <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
@@ -191,6 +248,7 @@ const ProfileHub = () => {
             </p>
           </div>
 
+          {/* Answer More Questions section */}
           <div className="bg-white rounded-lg shadow p-4">
             <h2 className="font-semibold mb-2">Answer More Questions</h2>
             <div className="flex items-center space-x-4">
@@ -205,20 +263,32 @@ const ProfileHub = () => {
               </span>
             </div>
             <p className="mt-2 text-sm text-gray-600">
-              Your highest possible match: <span className="font-bold">{highestMatch}%</span>
+              Your highest possible match:{" "}
+              <span className="font-bold">{highestMatch}%</span>
             </p>
             <div className="mt-4 flex space-x-2">
-              <button className="flex-1 py-2 border border-blue-600 rounded-lg">NO</button>
-              <button className="flex-1 py-2 bg-blue-600 text-white rounded-lg">YES</button>
+              <button className="flex-1 py-2 border border-blue-600 rounded-lg">
+                NO
+              </button>
+              <button className="flex-1 py-2 bg-blue-600 text-white rounded-lg">
+                YES
+              </button>
             </div>
             <div className="mt-2 text-center">
-              <button className="text-sm text-gray-500 underline">Skip</button> •{' '}
-              <Link to="/questions/answered" className="text-sm text-blue-600">
+              <button className="text-sm text-gray-500 underline">
+                Skip
+              </button>{" "}
+              •{" "}
+              <Link
+                to="/questions/answered"
+                className="text-sm text-blue-600"
+              >
                 See answered questions
               </Link>
             </div>
           </div>
 
+          {/* Profile form (only settings, avatar & photos hidden) */}
           <ProfileForm
             userId={profileUserId}
             user={user}
@@ -230,33 +300,47 @@ const ProfileHub = () => {
             t={t}
             message={message}
             success={success}
-            onSubmit={handleSubmit}
-            hideAvatarSection={false}
+            onSubmit={handleFormSubmit}
+            hideAvatarSection={true}
+            hidePhotoSection={true}
           />
         </div>
       )}
 
+      {/* Settings tab content */}
       {activeTab === "settings" && (
         <div className="bg-white rounded-lg shadow p-6 space-y-4">
           <h2 className="font-semibold text-xl">Settings</h2>
           <ul className="space-y-2">
             <li>
-              <Link to="/settings/account" className="text-blue-600 hover:underline">
+              <Link
+                to="/settings/account"
+                className="text-blue-600 hover:underline"
+              >
                 Account settings
               </Link>
             </li>
             <li>
-              <Link to="/settings/notifications" className="text-blue-600 hover:underline">
+              <Link
+                to="/settings/notifications"
+                className="text-blue-600 hover:underline"
+              >
                 Notification preferences
               </Link>
             </li>
             <li>
-              <Link to="/settings/privacy" className="text-blue-600 hover:underline">
+              <Link
+                to="/settings/privacy"
+                className="text-blue-600 hover:underline"
+              >
                 Privacy & blocked profiles
               </Link>
             </li>
             <li>
-              <Link to="/settings/subscriptions" className="text-blue-600 hover:underline">
+              <Link
+                to="/settings/subscriptions"
+                className="text-blue-600 hover:underline"
+              >
                 Subscriptions & billing
               </Link>
             </li>

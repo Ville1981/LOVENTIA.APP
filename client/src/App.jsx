@@ -13,6 +13,7 @@ import "slick-carousel/slick/slick-theme.css";
 import Etusivu from "./pages/Etusivu";
 import Discover from "./pages/Discover";
 import ProfileHub from "./pages/ProfileHub";
+import ExtraPhotosPage from "./pages/ExtraPhotosPage";
 import MatchPage from "./pages/MatchPage";
 import PremiumCancel from "./pages/PremiumCancel";
 import ChatPage from "./pages/ChatPage";
@@ -34,8 +35,14 @@ const AppContent = () => (
     <Route path="/" element={<MainLayout />}>
       <Route index element={<Etusivu />} />
       <Route path="discover" element={<Discover />} />
+
+      {/* Profiilisivu ja profiilitiedot */}
       <Route path="profile" element={<ProfileHub />} />
       <Route path="profile/:userId" element={<ProfileHub />} />
+
+      {/* Erotettu kuvasivu */}
+      <Route path="profile/photos" element={<ExtraPhotosPage />} />
+
       <Route path="matches" element={<MatchPage />} />
       <Route path="cancel" element={<PremiumCancel />} />
       <Route path="chat/:userId" element={<ChatPage />} />

@@ -59,7 +59,9 @@ const ProfileForm = ({
   onUserUpdate,
   onSubmit: onSubmitProp,
   hideAvatarSection = false,
+  hidePhotoSection = false,
 }) => {
+  // React Hook Form -asetukset
   const methods = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
@@ -143,12 +145,7 @@ const ProfileForm = ({
   }, [user, reset, getValues]);
 
   // Extra images state
-  const [localExtraImages, setLocalExtraImages] = useState(
-    user.extraImages || []
-  );
-  useEffect(() => {
-    setLocalExtraImages(user.extraImages || []);
-  }, [user.extraImages]);
+  const [localExtraImages, setLocalExtraImages] = useState(user.extraImages || []);
 
   // Avatar
   const [avatarFile, setAvatarFile] = useState(null);
@@ -160,6 +157,17 @@ const ProfileForm = ({
       : null
   );
   const [avatarError, setAvatarError] = useState(null);
+
+  // Kun profiilikuva backendista päivittyy, päivitetään preview’n
+  useEffect(() => {
+    setAvatarPreview(
+      user.profilePicture
+        ? user.profilePicture.startsWith("http")
+          ? user.profilePicture
+          : `${BACKEND_BASE_URL}${user.profilePicture}`
+        : null
+    );
+  }, [user.profilePicture]);
 
   const handleAvatarChange = (e) => {
     const file = e.target.files[0] || null;
@@ -173,22 +181,10 @@ const ProfileForm = ({
 
   const handleAvatarSubmit = async (e) => {
     e.preventDefault();
-    if (!avatarFile) return;
-    if (!userId) {
-      console.error("uploadAvatar: userId is undefined!");
-      setAvatarError(t("profile.avatarUploadFailed"));
-      return;
-    }
+    if (!avatarFile || !userId) return;
     setAvatarError(null);
     try {
       const updatedUser = await uploadAvatar(userId, avatarFile);
-      if (updatedUser.profilePicture) {
-        setAvatarPreview(
-          updatedUser.profilePicture.startsWith("http")
-            ? updatedUser.profilePicture
-            : `${BACKEND_BASE_URL}${updatedUser.profilePicture}`
-        );
-      }
       onUserUpdate(updatedUser);
     } catch (err) {
       setAvatarError(err.message || t("profile.avatarUploadFailed"));
@@ -226,8 +222,7 @@ const ProfileForm = ({
                   alt="Profile"
                   className="w-full h-full object-cover object-center"
                   onError={(e) => {
-                    e.currentTarget.src =
-                      "/placeholder-avatar-male.png";
+                    e.currentTarget.src = "/placeholder-avatar-male.png";
                   }}
                 />
               )}
@@ -250,17 +245,14 @@ const ProfileForm = ({
               </button>
             </div>
             {avatarError && (
-              <p
-                data-cy="ProfileForm__avatarError"
-                className="text-red-600"
-              >
+              <p data-cy="ProfileForm__avatarError" className="text-red-600">
                 {avatarError}
               </p>
             )}
           </div>
         )}
 
-        {/* Lomakeosiot RHF:n kautta */}
+        {/* Lomakeosiot */}
         <FormBasicInfo t={t} />
         <FormLocation t={t} />
         <FormEducation t={t} />
@@ -270,21 +262,22 @@ const ProfileForm = ({
         <FormLookingFor t={t} />
 
         {/* Photo Uploader */}
-        <MultiStepPhotoUploader
-          data-cy="ProfileForm__photoUploader"
-          userId={userId}
-          isPremium={isPremium}
-          extraImages={localExtraImages}
-          onSuccess={(res) => {
-            setLocalExtraImages(res.extraImages || []);
-            onUserUpdate({ ...user, extraImages: res.extraImages });
-          }}
-          onError={(err) =>
-            console.error("Photo uploader error:", err)
-          }
-        />
+        {!hidePhotoSection && userId && (
+          <MultiStepPhotoUploader
+            data-cy="ProfileForm__photoUploader"
+            userId={userId}
+            isPremium={isPremium}
+            extraImages={localExtraImages}
+            onSuccess={(res) => {
+              const newImgs = res.extraImages || [];
+              setLocalExtraImages(newImgs);
+              onUserUpdate({ ...user, extraImages: newImgs });
+            }}
+            onError={(err) => console.error("Photo uploader error:", err)}
+          />
+        )}
 
-        {/* Lähetä */}
+        {/* Tallenna */}
         <button
           data-cy="ProfileForm__saveButton"
           type="submit"
@@ -299,19 +292,12 @@ const ProfileForm = ({
           type="button"
           className="w-full mt-4 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
           onClick={async () => {
-            if (!window.confirm(t("profile.confirmDelete")))
-              return;
+            if (!window.confirm(t("profile.confirmDelete"))) return;
             try {
-              const token =
-                localStorage.getItem("token");
-              await axios.delete(
-                `${BACKEND_BASE_URL}/api/users/profile`,
-                {
-                  headers: {
-                    Authorization: `Bearer ${token}`,
-                  },
-                }
-              );
+              const token = localStorage.getItem("token");
+              await axios.delete(`${BACKEND_BASE_URL}/api/users/profile`, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
               window.location.href = "/";
             } catch (err) {
               console.error(err);
@@ -322,7 +308,7 @@ const ProfileForm = ({
           🗑️ {t("profile.deleteAccount")}
         </button>
 
-        {/* Admin: piilota / näytä */}
+        {/* Admin: piilota/näytä */}
         {user.isAdmin && (
           <button
             data-cy="ProfileForm__adminToggleButton"
@@ -330,16 +316,11 @@ const ProfileForm = ({
             className="w-full mt-2 px-6 py-2 bg-yellow-500 text-black rounded-lg hover:bg-yellow-600"
             onClick={async () => {
               try {
-                const token =
-                  localStorage.getItem("token");
+                const token = localStorage.getItem("token");
                 const res = await axios.put(
                   `${BACKEND_BASE_URL}/api/users/admin/hide/${userId}`,
                   {},
-                  {
-                    headers: {
-                      Authorization: `Bearer ${token}`,
-                    },
-                  }
+                  { headers: { Authorization: `Bearer ${token}` } }
                 );
                 alert(res.data.message);
               } catch (err) {
