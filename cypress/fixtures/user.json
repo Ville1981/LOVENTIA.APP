@@ -1,8 +1,12 @@
 {
-  "username": "testuser",
+  "_id": "68299a8053efc4150129cb61",
+  "username": "tester",
   "email": "test@example.com",
   "age": 30,
-  "gender": "Mies",
-  "orientation": "Hetero"
-  
+  "gender": "female",
+  "profilePicture": "/uploads/profiles/initial-avatar.jpg",
+  "extraImages": [
+    "/uploads/extra/initial1.jpg",
+    "/uploads/extra/initial2.jpg"
+  ]
 }

@@ -1,3 +1,4 @@
+// src/routes/imageRoutes.js
 const express = require("express");
 const router = express.Router();
 const path = require("path");
@@ -11,8 +12,8 @@ const { upload } = require("../config/multer");
 
 /**
  * POST /api/users/:userId/upload-avatar
- * - Tallentaa yhden avatar-kuvan käyttäjälle
- * - Korvaa mahdollisen aiemman avatarin
+ * Korvaa olemassa olevan avatar-kuvan.
+ * Vastaa { profilePicture: string }
  */
 router.post(
   "/:userId/upload-avatar",
@@ -20,40 +21,39 @@ router.post(
   upload.single("profilePhoto"),
   async (req, res) => {
     try {
-      console.log(`⛔ Avatar upload: user=${req.userId}, param=${req.params.userId}`);
-      console.log("📦 req.file:", req.file);
-
-      if (req.userId !== req.params.userId)
+      const { userId } = req.params;
+      if (req.userId !== userId) {
         return res.status(403).json({ error: "Forbidden" });
-
-      if (!req.file)
+      }
+      if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
-
-      // 1) Poistetaan vanha avatar sekä levystä että tietokannasta
-      const oldAvatars = await Image.find({ owner: req.userId, isAvatar: true });
-      for (const old of oldAvatars) {
-        const filePath = path.join(__dirname, "..", old.url.replace(/^\//, ""));
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-        }
-        await old.deleteOne();
       }
 
-      // 2) Luodaan uusi avatar‐dokumentti
-      const newAvatar = await Image.create({
-        owner: req.userId,
-        url: `/uploads/profiles/${req.file.filename}`,
+      // Poistetaan vanhat avatar-tietueet ja kuvat
+      const oldAvatars = await Image.find({ owner: userId, isAvatar: true });
+      await Promise.all(
+        oldAvatars.map(async (old) => {
+          const fileOnDisk = path.join(__dirname, "..", old.url.replace(/^\//, ""));
+          if (fs.existsSync(fileOnDisk)) fs.unlinkSync(fileOnDisk);
+          await old.deleteOne();
+        })
+      );
+
+      // Tallennetaan uusi avatar
+      const avatarUrl = `/uploads/profiles/${req.file.filename}`;
+      await Image.create({
+        owner: userId,
+        url: avatarUrl,
         uploaded: new Date(),
         isAvatar: true,
       });
 
-      // 3) Päivitetään käyttäjän profiilikuva‐kenttä
-      const user = await User.findById(req.userId);
-      user.profilePicture = newAvatar.url;
+      // Päivitetään käyttäjän profiilikuva-kenttä
+      const user = await User.findById(userId);
+      user.profilePicture = avatarUrl;
       await user.save();
 
-      console.log("✅ Avatar upload success, updated user profilePicture to", newAvatar.url);
-      return res.status(201).json({ user });
+      return res.status(200).json({ profilePicture: avatarUrl });
     } catch (err) {
       console.error("Upload avatar error:", err);
       return res.status(500).json({ error: "Avatar upload failed" });
@@ -63,8 +63,8 @@ router.post(
 
 /**
  * POST /api/users/:userId/upload-photos
- * - Tallentaa useita lisäkuvia
- * - Rajoitus: profiilikuvan jälkeen enintään 6 kuvaa (Premium: 20)
+ * Bulk-lataa lisäkuvat (max 6 tai 20 premiumille).
+ * Vastaa { extraImages: string[] }
  */
 router.post(
   "/:userId/upload-photos",
@@ -72,65 +72,44 @@ router.post(
   upload.array("photos", 20),
   async (req, res) => {
     try {
-      console.log(`⛔ Photos upload: user=${req.userId}, param=${req.params.userId}`);
-      console.log("📦 req.files:", req.files);
-      console.log("📦 req.body.slots:", req.body.slots);
-
-      if (req.userId !== req.params.userId)
+      const { userId } = req.params;
+      if (req.userId !== userId) {
         return res.status(403).json({ error: "Forbidden" });
+      }
 
-      const user = await User.findById(req.userId);
-      if (!user) return res.status(404).json({ error: "Käyttäjää ei löydy." });
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
 
-      const existingImgs = Array.isArray(user.extraImages) ? [...user.extraImages] : [];
-      const existingCount = existingImgs.filter(Boolean).length;
-      const incomingCount = req.files.length;
-      const maxExtra = user.isPremium ? 20 : 6;
+      const maxSlots = user.isPremium ? 20 : 6;
+      const existing = Array.isArray(user.extraImages) ? [...user.extraImages] : [];
+      const files = req.files || [];
 
-      if (existingCount + incomingCount > maxExtra) {
-        return res.status(403).json({
-          error: `Lisäkuvien kokonaismäärä ei saa ylittää ${maxExtra} kuvaa (nyt ${existingCount + incomingCount}).`
+      if (existing.filter(Boolean).length + files.length > maxSlots) {
+        return res.status(400).json({
+          error: `Max ${maxSlots} extra images allowed`,
         });
       }
 
-      // Valmista taulukko, jossa paikka jokaiselle slottiin (null = tyhjä)
-      const updatedImgs = Array.from({ length: maxExtra }, (_, i) => existingImgs[i] || null);
-
-      // Slot‐indeksit slot‐parametrista
-      let slots = [];
-      const raw = req.body.slots;
-      if (Array.isArray(raw)) {
-        slots = raw.map((s) => parseInt(s, 10));
-      } else if (raw !== undefined) {
-        slots = [parseInt(raw, 10)];
-      }
-
-      // Luodaan Image‐dokumentit ja sijoitetaan URL‐osoitteet taulukkoon
-      for (let i = 0; i < req.files.length; i++) {
-        const file = req.files[i];
-        const newUrl = `/uploads/extra/${file.filename}`;
-        await Image.create({
-          owner: req.userId,
-          url: newUrl,
+      // Täytetään null-slotit ja sijoitetaan kuvat peräkkäin
+      const updated = Array.from({ length: maxSlots }, (_, i) => existing[i] || null);
+      files.forEach((file) => {
+        const url = `/uploads/extra/${file.filename}`;
+        const idx = updated.findIndex((img) => !img);
+        if (idx !== -1) updated[idx] = url;
+        Image.create({
+          owner: userId,
+          url,
           uploaded: new Date(),
-          isAvatar: false
+          isAvatar: false,
         });
+      });
 
-        // Jos client lähettää slotin, käytä sitä, muussa tapauksessa etsi ensimmäinen null
-        const slotIndex = Number.isInteger(slots[i]) && slots[i] >= 0 && slots[i] < maxExtra
-          ? slots[i]
-          : updatedImgs.findIndex((src) => !src);
-
-        if (slotIndex !== -1) {
-          updatedImgs[slotIndex] = newUrl;
-        }
-      }
-
-      user.extraImages = updatedImgs;
+      user.extraImages = updated;
       await user.save();
 
-      console.log("✅ Photos upload success, updated extraImages:", user.extraImages);
-      return res.status(201).json({ user });
+      return res.status(200).json({ extraImages: updated });
     } catch (err) {
       console.error("Upload photos error:", err);
       return res.status(500).json({ error: "Photos upload failed" });
@@ -140,7 +119,8 @@ router.post(
 
 /**
  * POST /api/users/:userId/upload-photo-step
- * - Tallentaa yhden kuvan vaiheittain crop, caption ja slot
+ * Yksittäisen kuvan lataus crop+slot+caption.
+ * Vastaa { extraImages: string[] }
  */
 router.post(
   "/:userId/upload-photo-step",
@@ -148,60 +128,60 @@ router.post(
   upload.single("photo"),
   async (req, res) => {
     try {
-      console.log(`⛔ Step upload: user=${req.userId}, param=${req.params.userId}`);
-      if (req.userId !== req.params.userId) return res.status(403).json({ error: "Forbidden" });
-      if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+      const { userId } = req.params;
+      if (req.userId !== userId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
 
       const { slot, cropX, cropY, cropWidth, cropHeight, caption } = req.body;
-      const user = await User.findById(req.userId);
-      if (!user) return res.status(404).json({ error: "User not found" });
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
 
-      const maxExtra = user.isPremium ? 20 : 6;
-      // Varmista aina taulukon pituus
-      user.extraImages = Array.isArray(user.extraImages)
+      const maxSlots = user.isPremium ? 20 : 6;
+      // Luo taulukko null-paikoilla jos puuttuu
+      const arr = Array.isArray(user.extraImages)
         ? [...user.extraImages]
-        : Array(maxExtra).fill(null);
-      while (user.extraImages.length < maxExtra) user.extraImages.push(null);
+        : Array(maxSlots).fill(null);
 
-      // Crop & save
-      const inputPath = path.join(__dirname, "..", "uploads", "extra", req.file.filename);
-      const outputFilename = `crop_${Date.now()}_${req.file.filename}`;
-      const outputPath = path.join(__dirname, "..", "uploads", "extra", outputFilename);
+      // Cropataan ja tallennetaan uusi tiedosto
+      const input = path.join(__dirname, "..", "uploads", "extra", req.file.filename);
+      const outputName = `crop_${Date.now()}_${req.file.filename}`;
+      const output = path.join(__dirname, "..", "uploads", "extra", outputName);
 
-      await sharp(inputPath)
+      await sharp(input)
         .extract({
           left: parseInt(cropX, 10),
           top: parseInt(cropY, 10),
           width: parseInt(cropWidth, 10),
           height: parseInt(cropHeight, 10),
         })
-        .toFile(outputPath);
+        .toFile(output);
+      fs.unlinkSync(input);
 
-      fs.unlink(inputPath, (err) => {
-        if (err) console.warn("Failed to remove original file", err);
-      });
-
-      const newUrl = `/uploads/extra/${outputFilename}`;
-      await Image.create({
-        owner: req.userId,
-        url: newUrl,
+      const url = `/uploads/extra/${outputName}`;
+      Image.create({
+        owner: userId,
+        url,
         uploaded: new Date(),
         isAvatar: false,
         caption,
       });
 
-      const slotIndex = Number.isInteger(parseInt(slot, 10)) && parseInt(slot, 10) >= 0 && parseInt(slot, 10) < maxExtra
-        ? parseInt(slot, 10)
-        : user.extraImages.findIndex((src) => !src);
+      // Sijoitetaan kuv URL slot-osion mukaisesti
+      const idx = Number.isInteger(+slot) && slot >= 0 && slot < maxSlots
+        ? +slot
+        : arr.findIndex((i) => !i);
+      if (idx !== -1) arr[idx] = url;
 
-      if (slotIndex !== -1) {
-        user.extraImages[slotIndex] = newUrl;
-      }
-
+      user.extraImages = arr;
       await user.save();
-      console.log(`✅ Step upload success, slot ${slotIndex}, url ${newUrl}`);
-      console.log("✅ After step upload, extraImages:", user.extraImages);
-      return res.status(201).json({ user });
+
+      return res.status(200).json({ extraImages: arr });
     } catch (err) {
       console.error("Step upload error:", err);
       return res.status(500).json({ error: "Step upload failed" });
@@ -211,7 +191,7 @@ router.post(
 
 /**
  * DELETE /api/users/:userId/photos/:slot
- * - Asettaa käyttäjän extraImages[slot] = null, säilyttää taulukon pituuden
+ * Poistaa slotissa olevan kuvan ja palauttaa { extraImages: string[] }
  */
 router.delete(
   "/:userId/photos/:slot",
@@ -219,50 +199,37 @@ router.delete(
   async (req, res) => {
     try {
       const { userId, slot } = req.params;
-      const idx = parseInt(slot, 10);
-
       if (req.userId !== userId) {
         return res.status(403).json({ error: "Forbidden" });
       }
 
+      const idx = parseInt(slot, 10);
       const user = await User.findById(userId);
-      if (!user) return res.status(404).json({ error: "User not found" });
-
-      const max = user.isPremium ? 20 : 6;
-      if (!Array.isArray(user.extraImages)) user.extraImages = Array(max).fill(null);
-      while (user.extraImages.length < max) user.extraImages.push(null);
-
-      if (idx < 0 || idx >= user.extraImages.length) {
-        return res.status(400).json({ error: "Invalid slot index" });
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
       }
 
-      user.extraImages[idx] = null;
-      await user.save();
-      console.log(`✅ Deleted slot ${idx}, current extraImages:`, user.extraImages);
+      const maxSlots = user.isPremium ? 20 : 6;
+      const arr = Array.isArray(user.extraImages)
+        ? [...user.extraImages]
+        : Array(maxSlots).fill(null);
 
-      return res.status(200).json({ user });
+      if (idx < 0 || idx >= arr.length) {
+        return res.status(400).json({ error: "Invalid slot index" });
+      }
+      if (arr[idx]) {
+        const filePath = path.join(__dirname, "..", arr[idx].replace(/^\//, ""));
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      }
+      arr[idx] = null;
+
+      user.extraImages = arr;
+      await user.save();
+
+      return res.status(200).json({ extraImages: arr });
     } catch (err) {
       console.error("Delete photo slot error:", err);
       return res.status(500).json({ error: "Failed to delete photo slot" });
-    }
-  }
-);
-
-/**
- * Diagnostic endpoint to inspect images stored in DB
- */
-router.get(
-  "/:userId/images",
-  authenticateToken,
-  async (req, res) => {
-    try {
-      if (req.userId !== req.params.userId) return res.status(403).json({ error: "Forbidden" });
-      const images = await Image.find({ owner: req.userId });
-      console.log(`⛔ Diagnostic fetch: found ${images.length} documents`);
-      return res.status(200).json({ images });
-    } catch (err) {
-      console.error("Fetch images error:", err);
-      return res.status(500).json({ error: "Failed to fetch images" });
     }
   }
 );
