@@ -37,7 +37,7 @@ export default function MultiStepPhotoUploader({
       (_, i) => extraImages[i] || null
     )
     setLocalImages(padded)
-    const firstEmpty = padded.findIndex(img => !img)
+    const firstEmpty = padded.findIndex((img) => !img)
     setSlot(firstEmpty !== -1 ? firstEmpty : 0)
   }, [extraImages, maxSlots])
 
@@ -83,15 +83,16 @@ export default function MultiStepPhotoUploader({
       form.append('cropHeight', croppedAreaPixels.height.toString())
       if (caption) form.append('caption', caption)
 
-      // destructure response object
+      // Upload a single photo step
       const { extraImages: images } = await uploadPhotoStep(userId, form)
       const padded = Array.from(
         { length: maxSlots },
         (_, i) => images[i] || null
       )
       setLocalImages(padded)
-      onSuccess({ extraImages: images })
+      onSuccess(images)
 
+      // Reset state
       setStep(1)
       setSelectedFile(null)
       setCaption('')
@@ -113,15 +114,13 @@ export default function MultiStepPhotoUploader({
     try {
       const form = new FormData()
       bulkFiles.forEach((file) => form.append('photos', file))
-
       const { extraImages: images } = await uploadPhotos(userId, form)
       const padded = Array.from(
         { length: maxSlots },
         (_, i) => images[i] || null
       )
       setLocalImages(padded)
-      onSuccess({ extraImages: images })
-
+      onSuccess(images)
       setBulkFiles([])
       if (bulkInputRef.current) bulkInputRef.current.value = ''
     } catch (err) {
@@ -138,7 +137,7 @@ export default function MultiStepPhotoUploader({
         (_, idx) => images[idx] || null
       )
       setLocalImages(padded)
-      onSuccess({ extraImages: images })
+      onSuccess(images)
     } catch (err) {
       onError(err)
     }
@@ -168,7 +167,7 @@ export default function MultiStepPhotoUploader({
           onClick={handleBulkUpload}
           className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
         >
-          Save photos
+          Save extra photos
         </button>
       </div>
 
@@ -184,7 +183,7 @@ export default function MultiStepPhotoUploader({
         {localImages.map((src, i) => (
           <div key={i} className="flex flex-col items-center">
             <div
-              className="border p-2 flex items-center justify-center w-32 h-32 bg-gray-100 hover:bg-gray-200 cursor-pointer"
+              className="border p-2 flex items-center justify-center w-full h-48 bg-gray-100 hover:bg-gray-200 cursor-pointer"
               onClick={() => openSlot(i)}
             >
               {src ? (
@@ -196,9 +195,7 @@ export default function MultiStepPhotoUploader({
                   }
                   alt={`Slot ${i + 1}`}
                   className="object-cover w-full h-full"
-                  onError={(e) => {
-                    e.currentTarget.src = PLACEHOLDER_IMAGE
-                  }}
+                  onError={(e) => { e.currentTarget.src = PLACEHOLDER_IMAGE }}
                 />
               ) : (
                 <span className="text-gray-500 text-xl">+</span>
