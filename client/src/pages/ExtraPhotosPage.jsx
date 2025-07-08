@@ -1,6 +1,6 @@
 // src/pages/ExtraPhotosPage.jsx
 import React, { useEffect, useState, useCallback } from "react";
-import "../global.css"; // varmista, että globaalit tyylit tulevat käyttöön
+import "../global.css";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
@@ -17,54 +17,60 @@ export default function ExtraPhotosPage() {
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [avatarError, setAvatarError] = useState(null);
+  const [avatarMessage, setAvatarMessage] = useState("");
 
   const userId = paramId || authUser?._id;
   const isOwner = !paramId || authUser?._id === paramId;
 
-  // Haetaan käyttäjätiedot (sis. profilePicture & extraImages)
+  // Fetch user data (profilePicture & extraImages)
   const fetchUser = useCallback(async () => {
     if (!userId) return;
     try {
       const url = paramId
         ? `${BACKEND_BASE_URL}/api/users/${paramId}`
-        : `${BACKEND_BASE_URL}/api/auth/me`;  // <-- oikea endpoint
+        : `${BACKEND_BASE_URL}/api/auth/me`;
       const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       const u = res.data.user || res.data;
       setUser(u);
-
-      if (u.profilePicture) {
-        setAvatarPreview(
-          u.profilePicture.startsWith("http")
-            ? u.profilePicture
-            : `${BACKEND_BASE_URL}${u.profilePicture}`
-        );
-      }
+      // Set avatar preview or placeholder
+      const pic = u.profilePicture;
+      setAvatarPreview(
+        pic && typeof pic === "string"
+          ? pic.startsWith("http")
+            ? pic
+            : `${BACKEND_BASE_URL}${pic}`
+          : "/placeholder-avatar.png"
+      );
     } catch (err) {
-      console.error("Error fetching user for photos page:", err);
+      console.error("Error fetching user:", err);
     }
   }, [paramId, userId]);
 
+  // Initial load and refresh
   useEffect(() => {
     fetchUser();
   }, [fetchUser]);
 
-  // Päivitetään local- ja context-tila kuvien päivityksen jälkeen
-  const handleUserUpdate = (updated) => {
-    setUser(updated);
-    if (!paramId) setAuthUser(updated);
-    if (updated.profilePicture) {
-      setAvatarPreview(
-        updated.profilePicture.startsWith("http")
-          ? updated.profilePicture
-          : `${BACKEND_BASE_URL}${updated.profilePicture}`
-      );
-    }
+  // Update local/context state after updates
+  const handleUserUpdate = (updatedUser) => {
+    setUser(updatedUser);
+    if (!paramId) setAuthUser(updatedUser);
+    const pic = updatedUser.profilePicture;
+    setAvatarPreview(
+      pic && typeof pic === "string"
+        ? pic.startsWith("http")
+          ? pic
+          : `${BACKEND_BASE_URL}${pic}`
+        : "/placeholder-avatar.png"
+    );
   };
 
-  // Avatar‐valinta
+  // Avatar file change
   const handleAvatarChange = (e) => {
+    setAvatarError(null);
+    setAvatarMessage("");
     const file = e.target.files[0] || null;
     setAvatarFile(file);
     if (file) {
@@ -74,17 +80,20 @@ export default function ExtraPhotosPage() {
     }
   };
 
-  // Avatar‐lähetys
+  // Avatar upload
   const handleAvatarSubmit = async (e) => {
     e.preventDefault();
     if (!avatarFile || !userId) return;
     setAvatarError(null);
+    setAvatarMessage("");
     try {
-      const updatedUrl = await uploadAvatar(userId, avatarFile);
-      handleUserUpdate({ ...user, profilePicture: updatedUrl });
+      const result = await uploadAvatar(userId, avatarFile);
+      const newUrl = typeof result === 'string' ? result : result.profilePicture;
+      handleUserUpdate({ ...user, profilePicture: newUrl });
       setAvatarFile(null);
+      setAvatarMessage("Image saved");
     } catch (err) {
-      setAvatarError(err.message || "Avatar upload failed");
+      setAvatarError("Failed to save image");
     }
   };
 
@@ -96,22 +105,19 @@ export default function ExtraPhotosPage() {
     <div className="max-w-3xl mx-auto p-6 space-y-6">
       <h1 className="text-2xl font-semibold">Manage Photos</h1>
 
-      {/* Avatar upload -lomake */}
+      {/* Avatar upload form */}
       {isOwner && (
-        <form onSubmit={handleAvatarSubmit} className="flex items-center space-x-4">
+        <form
+          onSubmit={handleAvatarSubmit}
+          className="flex items-center space-x-4"
+        >
           <div className="w-16 h-16 rounded-full overflow-hidden border">
-            {avatarPreview ? (
-              <img
-                src={avatarPreview}
-                alt="Avatar"
-                className="w-full h-full object-cover"
-                onError={(e) => (e.currentTarget.src = "/placeholder-avatar.png")}
-              />
-            ) : (
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <span className="text-gray-500">?</span>
-              </div>
-            )}
+            <img
+              src={avatarPreview}
+              alt="Avatar"
+              className="w-full h-full object-cover"
+              onError={(e) => (e.currentTarget.src = "/placeholder-avatar.png")}
+            />
           </div>
           <input
             type="file"
@@ -125,6 +131,9 @@ export default function ExtraPhotosPage() {
           >
             Save Avatar
           </button>
+          {avatarMessage && (
+            <p className="text-green-600">{avatarMessage}</p>
+          )}
           {avatarError && <p className="text-red-600">{avatarError}</p>}
         </form>
       )}
@@ -135,19 +144,29 @@ export default function ExtraPhotosPage() {
           userId={userId}
           isPremium={user.isPremium}
           extraImages={user.extraImages || []}
-          onSuccess={(images) => handleUserUpdate({ ...user, extraImages: images })}
-          onError={(err) => console.error("Photo uploader error:", err)}
+          onSuccess={(images) =>
+            handleUserUpdate({ ...user, extraImages: images })
+          }
+          onError={() => {}}
         />
       ) : (
         <div className="grid grid-cols-3 gap-4">
-          {user.extraImages?.map((src, i) => (
-            <img
-              key={i}
-              src={src.startsWith("http") ? src : `${BACKEND_BASE_URL}${src}`}
-              alt={`Extra ${i + 1}`}
-              className="object-cover w-full h-32 rounded"
-            />
-          ))}
+          {user.extraImages?.map((src, i) => {
+            const imgSrc =
+              src && typeof src === 'string'
+                ? src.startsWith('http')
+                  ? src
+                  : `${BACKEND_BASE_URL}${src}`
+                : "/placeholder-avatar.png";
+            return (
+              <img
+                key={i}
+                src={imgSrc}
+                alt={`Extra ${i + 1}`}
+                className="object-cover w-full h-48 rounded"
+              />
+            );
+          })}
         </div>
       )}
 
