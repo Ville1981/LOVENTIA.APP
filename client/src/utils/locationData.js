@@ -1,85 +1,101 @@
 // 📁 File: src/utils/locationData.js
 
-// 📁 File: src/utils/locationData.jsee   
-
-
-
+// Translated static data: country and region names in English
 export const countryRegions = {
-  
-  "Alankomaat": ["Pohjois-Hollanti", "Etelä-Hollanti", "Utrecht", "Groningen", "Limburg"],
-  "Argentiina": ["Buenos Aires", "Córdoba"],
+  "Argentina": ["Buenos Aires", "Córdoba"],
   "Australia": ["New South Wales", "Victoria", "Queensland", "Western Australia", "South Australia"],
+  "Austria": ["Vienna", "Lower Austria", "Upper Austria", "Tyrol", "Styria"],
   "Bangladesh": ["Dhaka", "Chittagong", "Khulna", "Rajshahi", "Sylhet"],
-  "Belgia": ["Flanderi", "Vallonia", "Brysselin pääkaupunkialue"],
-  "Brasilia": ["São Paulo", "Rio de Janeiro", "Bahia"],
+  "Belgium": ["Flanders", "Wallonia", "Brussels-Capital Region"],
+  "Brazil": ["São Paulo", "Rio de Janeiro", "Bahia"],
   "Bulgaria": ["Sofia", "Plovdiv", "Varna", "Burgas"],
+  "Canada": ["Ontario", "Québec", "British Columbia", "Alberta", "Manitoba", "Saskatchewan", "Nova Scotia", "Newfoundland"],
   "Chile": ["Santiago Metropolitan", "Valparaíso"],
-  "Egypti": ["Kairo", "Alexandria", "Giza", "Luxor", "Aswan"],
-  "Espanja": ["Madridin alue", "Katalonia", "Andalusia"],
-  "Etelä-Afrikka": ["Gauteng", "Western Cape", "KwaZulu-Natal", "Eastern Cape"],
-  "Etelä-Korea": ["Seoul", "Busan", "Incheon", "Daegu", "Daejeon"],
-  "Filippiinit": ["Metro Manila", "Cebu", "Davao Region", "Western Visayas"],
+  "China": ["Beijing", "Shanghai", "Guangdong", "Sichuan", "Zhejiang", "Hubei", "Shandong", "Yunnan"],
+  "Colombia": ["Bogotá", "Antioquia", "Valle del Cauca", "Atlántico"],
+  "Croatia": ["Zagreb", "Split-Dalmatia", "Rijeka", "Osijek-Baranja"],
+  "Czech Republic": ["Prague", "Brno", "Ostrava", "Pilsen"],
+  "Denmark": ["Capital Region", "Central Denmark", "Southern Denmark", "North Denmark"],
+  "Egypt": ["Cairo", "Alexandria", "Giza", "Luxor", "Aswan"],
+  "Finland": ["Uusimaa", "Pirkanmaa", "Southwest Finland", "Lapland", "Ostrobothnia", "Kymenlaakso", "Päijät-Häme", "South Karelia"],
+  "France": ["Île-de-France", "Provence", "Alsace", "Normandy", "Brittany", "Pays de la Loire", "Nouvelle-Aquitaine", "Occitanie"],
+  "Germany": ["Bavaria", "Berlin", "North Rhine-Westphalia", "Hesse", "Saxony", "Brandenburg", "Baden-Württemberg", "Hamburg"],
+  "Greece": ["Attica", "Central Macedonia", "Crete", "West Greece", "Thessaly"],
+  "Hungary": ["Budapest", "Debrecen", "Szeged", "Miskolc"],
   "India": ["Maharashtra", "Delhi", "Tamil Nadu", "Karnataka"],
   "Indonesia": ["Jakarta", "West Java", "Central Java", "East Java", "Bali"],
-  "Irak": ["Baghdad", "Basra", "Erbil", "Kirkuk", "Mosul"],
   "Iran": ["Tehran", "Isfahan", "Shiraz", "Tabriz", "Mashhad", "Qom"],
-  "Irlanti": ["Dublin", "Cork", "Limerick", "Galway"],
-  "Iso-Britannia": ["England", "Scotland", "Wales", "Northern Ireland", "Greater London", "West Midlands", "Yorkshire", "Kent"],
+  "Iraq": ["Baghdad", "Basra", "Erbil", "Kirkuk", "Mosul"],
+  "Ireland": ["Dublin", "Cork", "Limerick", "Galway"],
   "Israel": ["Beersheba", "Haifa", "Jerusalem", "Tel Aviv"],
-  "Italia": ["Lazio", "Lombardia", "Veneto", "Toscana", "Sicilia", "Puglia", "Piemonte", "Emilia-Romagna"],
-  "Italia": ["Lazio", "Lombardia", "Veneto", "Toscana", "Sicilia"],
-  "Itävalta": ["Wien", "Ala-Itävalta", "Ylä-Itävalta", "Tirol", "Styria"],
-  "Japani": ["Tokyo", "Osaka", "Kyoto", "Hokkaido", "Fukuoka", "Okinawa", "Aichi", "Hiroshima"],
-  "Kanada": ["Ontario", "Québec", "British Columbia", "Alberta", "Manitoba", "Saskatchewan", "Nova Scotia", "Newfoundland"],
-  "Kazakstan": ["Almaty", "Astana", "Shymkent", "Karaganda"],
-  "Kiina": ["Peking", "Shanghai", "Guangdong", "Sichuan", "Zhejiang", "Hubei", "Shandong", "Yunnan"],
-  "Kolumbia": ["Bogotá", "Antioquia", "Valle del Cauca", "Atlántico"],
-  "Kreikka": ["Attika", "Keskinen Makedonia", "Kreeta", "Länsi-Kreikka", "Thessalia"],
-  "Kroatia": ["Zagreb", "Split-Dalmaatia", "Rijeka", "Osijek-Baranja"],
-  "Latvia": ["Riika", "Latgale", "Kurzeme", "Zemgale"],
-  "Liettua": ["Vilna", "Kaunas", "Klaipeda", "Šiauliai"],
-  "Malesia": ["Kuala Lumpur", "Selangor", "Johor", "Penang", "Sabah"],
-  "Meksiko": ["Mexico City", "Jalisco", "Nuevo León", "Puebla", "Yucatán", "Chiapas", "Guanajuato", "Baja California"],
+  "Italy": ["Lazio", "Lombardia", "Veneto", "Toscana", "Sicilia", "Puglia", "Piemonte", "Emilia-Romagna"],
+  "Japan": ["Tokyo", "Osaka", "Kyoto", "Hokkaido", "Fukuoka", "Okinawa", "Aichi", "Hiroshima"],
+  "Kazakhstan": ["Almaty", "Astana", "Shymkent", "Karaganda"],
+  "Latvia": ["Riga", "Latgale", "Kurzeme", "Zemgale"],
+  "Lithuania": ["Vilnius", "Kaunas", "Klaipėda", "Šiauliai"],
+  "Malaysia": ["Kuala Lumpur", "Selangor", "Johor", "Penang", "Sabah"],
+  "Mexico": ["Mexico City", "Jalisco", "Nuevo León", "Puebla", "Yucatán", "Chiapas", "Guanajuato", "Baja California"],
+  "Netherlands": ["North Holland", "South Holland", "Utrecht", "Groningen", "Limburg"],
   "Nigeria": ["Lagos", "Abuja", "Kano", "Ibadan", "Port Harcourt"],
-  "Norja": ["Oslo", "Bergen", "Trøndelag", "Troms og Finnmark", "Vestland", "Innlandet", "Agder", "Nordland"],
+  "Norway": ["Oslo", "Bergen", "Trøndelag", "Troms og Finnmark", "Vestland", "Innlandet", "Agder", "Nordland"],
   "Pakistan": ["Punjab", "Sindh", "Khyber Pakhtunkhwa", "Balochistan", "Islamabad"],
-  "Portugali": ["Lissabonin alue", "Porton alue"],
-  "Puola": ["Masovia", "Pien-Puola", "Sleesia", "Pommers", "Lublinin alue"],
-  "Ranska": ["Île-de-France", "Provence", "Alsace", "Normandie", "Bretagne", "Pays de la Loire", "Nouvelle-Aquitaine", "Occitanie"],
-  "Romania": ["Bukarest", "Cluj", "Timiș", "Iași"],
-  "Ruotsi": ["Stockholm", "Skåne", "Västra Götaland", "Uppsala", "Örebro", "Värmland", "Dalarna", "Jämtland"],
-  "Saksa": ["Bayern", "Berlin", "Nordrhein-Westfalen", "Hessen", "Sachsen", "Brandenburg", "Baden-Württemberg", "Hamburg"],
-  "Saudi-Arabia": ["Riyadh", "Mecca", "Medina", "Jeddah", "Dammam"],
+  "Philippines": ["Metro Manila", "Cebu", "Davao Region", "Western Visayas"],
+  "Poland": ["Masovian", "Lesser Poland", "Silesia", "Pomerania", "Lublin Voivodeship"],
+  "Portugal": ["Lisbon District", "Porto District"],
+  "Romania": ["Bucharest", "Cluj", "Timiș", "Iași"],
+  "Russia": ["Moscow", "Saint Petersburg", "Siberia"],
+  "Saudi Arabia": ["Riyadh", "Mecca", "Medina", "Jeddah", "Dammam"],
   "Slovakia": ["Bratislava", "Košice", "Prešov", "Žilina"],
   "Slovenia": ["Ljubljana", "Maribor", "Celje", "Koper"],
   "South Africa": ["Gauteng", "Western Cape", "KwaZulu-Natal", "Eastern Cape"],
-  "Suomi": ["Uusimaa", "Pirkanmaa", "Varsinais-Suomi", "Lappi", "Pohjanmaa", "Kymenlaakso", "Päijät-Häme", "Etelä-Karjala"],
-  "Sveitsi": ["Zürich", "Geneve", "Vaud", "Ticino"],
-  "Tanska": ["Pääkaupunkialue", "Keski-Tanska", "Etelä-Tanska", "Pohjois-Tanska"],
-  "Thaimaa": ["Bangkok", "Chiang Mai", "Phuket", "Pattaya", "Isan", "Krabi"],
-  "Tšekki": ["Praha", "Brno", "Ostrava", "Pilsen"],
-  "Turkki": ["Istanbul", "Ankara", "Izmir", "Antalya", "Bursa", "Gaziantep"],
-  "Ukraina": ["Kiovan alue", "Länsi-Ukraina"],
-  "Unkari": ["Budapest", "Debrecen", "Szeged", "Miskolc"],
-  "Vatikaani": ["Vatikaani"],
-  "Venäjä": ["Moskova", "Pietari", "Siperia"],
+  "South Korea": ["Seoul", "Busan", "Incheon", "Daegu", "Daejeon"],
+  "Spain": ["Madrid Region", "Catalonia", "Andalusia"],
+  "Sweden": ["Stockholm", "Skåne", "Västra Götaland", "Uppsala", "Örebro", "Värmland", "Dalarna", "Jämtland"],
+  "Switzerland": ["Zürich", "Geneva", "Vaud", "Ticino"],
+  "Thailand": ["Bangkok", "Chiang Mai", "Phuket", "Pattaya", "Isan", "Krabi"],
+  "Turkey": ["Istanbul", "Ankara", "Izmir", "Antalya", "Bursa", "Gaziantep"],
+  "United Kingdom": ["England", "Scotland", "Wales", "Northern Ireland", "Greater London", "West Midlands", "Yorkshire", "Kent"],
+  "United States": ["California", "Texas", "New York", "Florida", "Illinois", "Washington", "Georgia", "Ohio", "Washington, D.C."],
+  "Vatican City": ["Vatican City"],
   "Vietnam": ["Hanoi", "Ho Chi Minh City", "Da Nang", "Can Tho"],
-  "Yhdysvallat": ["California", "Texas", "New York", "Florida", "Illinois", "Washington", "Georgia", "Ohio", "Washington D.C."],
-
 };
 
+
 export const regionCities = {
-    "Alankomaat": {
-    "Pohjois-Hollanti": ["Amsterdam", "Haarlem"],
-    "Etelä-Hollanti": ["Rotterdam", "Haag"],
+  "Netherlands": {
+    "North Holland": ["Amsterdam", "Haarlem"],
+    "South Holland": ["Rotterdam", "The Hague"],
     "Utrecht": ["Utrecht"],
     "Groningen": ["Groningen"],
     "Limburg": ["Maastricht"]
   },
-  "Belgia": {
-    "Flanderi": ["Antwerpen", "Gent"],
-    "Vallonia": ["Liège", "Namur"],
-    "Brysselin pääkaupunkialue": ["Bryssel"]
+  "Argentina": {
+    "Buenos Aires": ["Avellaneda", "Buenos Aires", "La Plata", "Morón"],
+    "Córdoba": ["Córdoba", "Río Cuarto", "San Francisco", "Villa María"]
+  },
+  "Australia": {
+    "New South Wales": ["Newcastle", "Parramatta", "Sydney", "Wollongong"],
+    "Victoria": ["Ballarat", "Bendigo", "Geelong", "Melbourne"],
+    "Queensland": ["Brisbane", "Cairns", "Gold Coast", "Townsville"],
+    "Western Australia": ["Albany", "Bunbury", "Fremantle", "Perth"],
+    "South Australia": ["Adelaide", "Mount Gambier", "Port Augusta", "Whyalla"]
+  },
+  "Bangladesh": {
+    "Dhaka": ["Banani", "Dhaka", "Gulshan", "Mirpur"],
+    "Chittagong": ["Bandarban", "Chittagong", "Cox's Bazar", "Rangamati"],
+    "Khulna": ["Bagerhat", "Jessore", "Khulna", "Satkhira"],
+    "Rajshahi": ["Bogra", "Natore", "Pabna", "Rajshahi"],
+    "Sylhet": ["Sylhet", "Moulvibazar", "Habiganj"]
+  },
+  "Belgium": {
+    "Flanders": ["Antwerp", "Ghent"],
+    "Wallonia": ["Liège", "Namur"],
+    "Brussels-Capital Region": ["Brussels"]
+  },
+  "Brazil": {
+    "São Paulo": ["São Paulo", "Campinas", "Santos", "São Bernardo do Campo"],
+    "Rio de Janeiro": ["Rio de Janeiro", "Niterói", "Nova Iguaçu", "Duque de Caxias"],
+    "Bahia": ["Salvador", "Feira de Santana", "Vitória da Conquista", "Ilhéus"]
   },
   "Bulgaria": {
     "Sofia": ["Sofia"],
@@ -87,98 +103,58 @@ export const regionCities = {
     "Varna": ["Varna"],
     "Burgas": ["Burgas"]
   },
-  "Irlanti": {
-    "Dublin": ["Dublin"],
-    "Cork": ["Cork"],
-    "Limerick": ["Limerick"],
-    "Galway": ["Galway"]
+  "Chile": {
+    "Santiago Metropolitan": ["Santiago", "Maipú", "Puente Alto", "La Florida"],
+    "Valparaíso": ["Valparaíso", "Viña del Mar", "Quilpué", "Villa Alemana"]
   },
-  "Italia": {
-    "Lazio": ["Rooma"],
-    "Lombardia": ["Milano"],
-    "Veneto": ["Venetsia"],
-    "Toscana": ["Firenze"],
-    "Sicilia": ["Palermo"]
+  "China": {
+    "Beijing": ["Haidian", "Chaoyang", "Fengtai"],
+    "Shanghai": ["Pudong", "Xuhui", "Jingan"],
+    "Guangdong": ["Guangzhou", "Shenzhen", "Dongguan"],
+    "Sichuan": ["Chengdu", "Mianyang", "Leshan"],
+    "Zhejiang": ["Hangzhou", "Ningbo", "Wenzhou"],
+    "Hubei": ["Wuhan", "Huangshi", "Xiangyang"],
+    "Shandong": ["Jinan", "Qingdao", "Weifang"],
+    "Yunnan": ["Kunming", "Dali", "Lijiang"]
   },
-  "Itävalta": {
-    "Wien": ["Wien"],
-    "Ala-Itävalta": ["St. Pölten"],
-    "Ylä-Itävalta": ["Linz"],
-    "Tirol": ["Innsbruck"],
-    "Styria": ["Graz"]
+  "Colombia": {
+    "Bogotá": ["Bogotá", "Suba", "Chapinero"],
+    "Antioquia": ["Medellín", "Envigado", "Bello"],
+    "Valle del Cauca": ["Cali", "Palmira", "Buenaventura"],
+    "Atlántico": ["Barranquilla", "Soledad", "Malambo"]
   },
-  "Kroatia": {
-    "Zagreb": ["Zagreb"],
-    "Split-Dalmaatia": ["Split"],
-    "Rijeka": ["Rijeka"],
-    "Osijek-Baranja": ["Osijek"]
-  },
-  "Latvia": {
-    "Riika": ["Riika"],
-    "Latgale": ["Daugavpils"],
-    "Kurzeme": ["Liepāja"],
-    "Zemgale": ["Jelgava"]
-  },
-  "Liettua": {
-    "Vilna": ["Vilna"],
-    "Kaunas": ["Kaunas"],
-    "Klaipeda": ["Klaipeda"],
-    "Šiauliai": ["Šiauliai"]
-  },
-  "Puola": {
-    "Masovia": ["Varsova"],
-    "Pien-Puola": ["Krakova"],
-    "Sleesia": ["Katowice"],
-    "Pommers": ["Gdańsk"],
-    "Lublinin alue": ["Lublin"]
-  },
-  "Romania": {
-    "Bukarest": ["Bukarest"],
-    "Cluj": ["Cluj-Napoca"],
-    "Timiș": ["Timișoara"],
-    "Iași": ["Iași"]
-  },
-  "Slovakia": {
-    "Bratislava": ["Bratislava"],
-    "Košice": ["Košice"],
-    "Prešov": ["Prešov"],
-    "Žilina": ["Žilina"]
-  },
-  "Slovenia": {
-    "Ljubljana": ["Ljubljana"],
-    "Maribor": ["Maribor"],
-    "Celje": ["Celje"],
-    "Koper": ["Koper"]
-  },
-  "Sveitsi": {
-    "Zürich": ["Zürich"],
-    "Geneve": ["Geneve"],
-    "Vaud": ["Lausanne"],
-    "Ticino": ["Lugano"]
-  },
-  "Tanska": {
-    "Pääkaupunkialue": ["Kööpenhamina"],
-    "Keski-Tanska": ["Aarhus"],
-    "Etelä-Tanska": ["Odense"],
-    "Pohjois-Tanska": ["Aalborg"]
-  },
-  "Tšekki": {
-    "Praha": ["Praha"],
+  "Czech Republic": {
+    "Prague": ["Prague"],
     "Brno": ["Brno"],
     "Ostrava": ["Ostrava"],
-    "Pilsen": ["Plzeň"]
+    "Pilsen": ["Pilsen"]
   },
-  "Unkari": {
+  "Denmark": {
+    "Capital Region": ["Copenhagen", "Frederiksberg"],
+    "Central Denmark": ["Aarhus", "Randers"],
+    "Southern Denmark": ["Odense", "Vejle"],
+    "North Denmark": ["Aalborg", "Hjørring"]
+  },
+
+  // Translated tail of src/utils/locationData.js
+
+
+  "Czech Republic": {
+    "Prague": ["Prague"],
+    "Brno": ["Brno"],
+    "Ostrava": ["Ostrava"],
+    "Pilsen": ["Pilsen"]
+  },
+  "Hungary": {
     "Budapest": ["Budapest"],
     "Debrecen": ["Debrecen"],
     "Szeged": ["Szeged"],
     "Miskolc": ["Miskolc"]
   },
-  "Vatikaani": {
-    "Vatikaani": ["Vatikaani"]
+  "Vatican City": {
+    "Vatican City": ["Vatican City"]
   },
-
-  "Argentiina": {
+  "Argentina": {
     "Buenos Aires": ["Avellaneda", "Buenos Aires", "La Plata", "Morón"],
     "Córdoba": ["Córdoba", "Río Cuarto", "San Francisco", "Villa María"]
   },
@@ -196,7 +172,7 @@ export const regionCities = {
     "Khulna": ["Bagerhat", "Jessore", "Khulna", "Satkhira"],
     "Rajshahi": ["Bogra", "Natore", "Pabna", "Rajshahi"]
   },
-  "Brasilia": {
+  "Brazil": {
     "Bahia": ["Salvador", "Feira de Santana", "Vitória da Conquista", "Ilhéus"],
     "Rio de Janeiro": ["Rio de Janeiro", "Niterói", "Nova Iguaçu", "Duque de Caxias"],
     "São Paulo": ["São Paulo", "Campinas", "Santos", "São Bernardo do Campo"]
@@ -205,24 +181,24 @@ export const regionCities = {
     "Santiago Metropolitan": ["Santiago", "Maipú", "Puente Alto", "La Florida"],
     "Valparaíso": ["Valparaíso", "Viña del Mar", "Quilpué", "Villa Alemana"]
   },
-  "Egypti": {
+  "Egypt": {
     "Alexandria": ["Agami", "Alexandria", "Borg El Arab", "Sidi Bishr"],
-    "Kairo": ["Helwan", "Kairo", "Maadi", "Nasr City"]
+    "Cairo": ["Helwan", "Cairo", "Maadi", "Nasr City"]
   },
-  "Etelä-Afrikka": {
+  "South Africa": {
     "Eastern Cape": ["Port Elizabeth", "East London", "Mthatha", "Uitenhage"],
     "Gauteng": ["Johannesburg", "Pretoria", "Soweto", "Benoni"],
     "KwaZulu-Natal": ["Durban", "Pietermaritzburg", "Newcastle", "Richards Bay"],
     "Western Cape": ["Cape Town", "Stellenbosch", "George", "Paarl"]
   },
-  "Etelä-Korea": {
+  "South Korea": {
     "Busan": ["Haeundae", "Nampo", "Seomyeon", "Yeonje"],
     "Daegu": ["Buk", "Dalseo", "Jung", "Suseong"],
     "Daejeon": ["Dong", "Jung", "Seo", "Yuseong"],
     "Incheon": ["Bupyeong", "Gyeyang", "Namdong", "Yeonsu"],
     "Seoul": ["Gangnam", "Jongno", "Mapo", "Yongsan"]
   },
-  "Filippiinit": {
+  "Philippines": {
     "Metro Manila": ["Quezon City", "Manila", "Makati", "Taguig"],
     "Cebu": ["Cebu City", "Lapu-Lapu", "Mandaue", "Toledo"],
     "Davao Region": ["Davao City", "Tagum", "Panabo", "Digos"],
@@ -235,10 +211,7 @@ export const regionCities = {
     "East Java": ["Surabaya", "Malang", "Kediri", "Madiun"],
     "Bali": ["Denpasar", "Ubud", "Kuta", "Singaraja"]
   },
-  "India-Maharashtra": ["Mumbai", "Pune", "Nagpur", "Nashik", "Aurangabad"],
-  "India-Delhi": ["New Delhi", "Dwarka", "Rohini", "Karol Bagh", "Saket"],
-  "India-Tamil Nadu": ["Chennai", "Coimbatore", "Madurai", "Salem", "Tiruchirappalli"],
-  "India-Karnataka": ["Bangalore", "Mysore", "Hubli", "Mangalore", "Belgaum"],
+
   "Iran": {
     "Isfahan": ["Isfahan", "Najafabad", "Khomeini Shahr", "Shahin Shahr"],
     "Mashhad": ["Mashhad", "Sabzevar", "Neyshabur", "Torbat-e Heydarieh"],
@@ -247,7 +220,7 @@ export const regionCities = {
     "Tabriz": ["Tabriz", "Marand", "Ahar", "Bonab"],
     "Tehran": ["Tehran", "Rey", "Eslamshahr", "Shemiran"]
   },
-  "Irak": {
+  "Iraq": {
     "Baghdad": ["Baghdad", "Sadr City", "Karrada", "Adhamiyah"],
     "Basra": ["Basra", "Zubair", "Abu Al-Khaseeb", "Shatt Al-Arab"],
     "Erbil": ["Erbil", "Shaqlawa", "Koya", "Soran"],
@@ -270,12 +243,12 @@ export const regionCities = {
   "Israel-Haifa": ["Haifa", "Kiryat Ata", "Nesher", "Tirat Carmel"],
   "Israel-Jerusalem": ["Jerusalem", "Mevaseret Zion", "Ma'ale Adumim", "Bethlehem"],
   "Israel-Tel Aviv": ["Tel Aviv", "Ramat Gan", "Holon", "Bat Yam"],
-  "Iso-Britannia": {
+  "United Kingdom": {
     "England": ["London", "Manchester", "Birmingham", "Liverpool"],
     "Scotland": ["Edinburgh", "Glasgow", "Aberdeen", "Dundee"],
     "Wales": ["Cardiff", "Swansea", "Newport", "Wrexham"]
   },
-    "Japani": {
+  "Japan": {
     "Tokyo": ["Tokyo", "Shibuya", "Shinjuku", "Minato"],
     "Osaka": ["Osaka", "Sakai", "Higashiosaka", "Toyonaka"],
     "Kyoto": ["Kyoto", "Uji", "Kameoka", "Fukuchiyama"],
@@ -285,7 +258,7 @@ export const regionCities = {
     "Aichi": ["Nagoya", "Toyota", "Okazaki", "Ichinomiya"],
     "Hiroshima": ["Hiroshima", "Fukuyama", "Kure", "Onomichi"]
   },
-  "Kanada": {
+  "Canada": {
     "Ontario": ["Toronto", "Ottawa", "Hamilton", "London"],
     "Québec": ["Montréal", "Québec City", "Laval", "Gatineau"],
     "British Columbia": ["Vancouver", "Victoria", "Surrey", "Kelowna"],
@@ -295,13 +268,13 @@ export const regionCities = {
     "Nova Scotia": ["Halifax", "Sydney", "Truro", "Dartmouth"],
     "Newfoundland": ["St. John's", "Mount Pearl", "Corner Brook", "Gander"]
   },
-  "Kazakstan": {
+  "Kazakhstan": {
     "Almaty": ["Almaty", "Taldykorgan", "Kaskelen", "Esik"],
     "Astana": ["Astana", "Karaganda", "Temirtau", "Shchuchinsk"],
     "Shymkent": ["Shymkent", "Arys", "Lenger", "Turkistan"],
     "Karaganda": ["Karaganda", "Balkhash", "Temirtau", "Zhezkazgan"]
   },
-  "Kiina": {
+  "China": {
     "Peking": ["Peking", "Haidian", "Chaoyang", "Fengtai"],
     "Shanghai": ["Shanghai", "Pudong", "Xuhui", "Jingan"],
     "Guangdong": ["Guangzhou", "Shenzhen", "Dongguan", "Foshan"],
@@ -311,29 +284,27 @@ export const regionCities = {
     "Shandong": ["Jinan", "Qingdao", "Yantai", "Weifang"],
     "Yunnan": ["Kunming", "Dali", "Lijiang", "Baoshan"]
   },
-  "Kolumbia": {
+  "Colombia": {
     "Bogotá": ["Bogotá", "Suba", "Chapinero", "Usaquén"],
     "Antioquia": ["Medellín", "Envigado", "Bello", "Itagüí"],
     "Valle del Cauca": ["Cali", "Palmira", "Buenaventura", "Tuluá"],
     "Atlántico": ["Barranquilla", "Soledad", "Malambo", "Puerto Colombia"]
   },
-  "Kreikka": {
-  "Attika": ["Ateena", "Pireus", "Marousi", "Glyfada"],
-  "Keskinen Makedonia": ["Thessaloniki", "Katerini", "Serres", "Veria"],
-  "Kreeta": ["Heraklion", "Chania", "Rethymno", "Agios Nikolaos"],
-  "Länsi-Kreikka": ["Patras", "Agrinio", "Pyrgos", "Messolonghi"],
-  "Thessalia": ["Larisa", "Volos", "Trikala", "Karditsa"]
-},
-
-
-  "Malesia": {
+  "Greece": {
+    "Attika": ["Ateena", "Pireus", "Marousi", "Glyfada"],
+    "Central Macedonia": ["Thessaloniki", "Katerini", "Serres", "Veria"],
+    "Crete": ["Heraklion", "Chania", "Rethymno", "Agios Nikolaos"],
+    "West Greece": ["Patras", "Agrinio", "Pyrgos", "Messolonghi"],
+    "Thessaly": ["Larisa", "Volos", "Trikala", "Karditsa"]
+  },
+  "Malaysia": {
     "Kuala Lumpur": ["Ampang", "Cheras", "Kuala Lumpur", "Setapak"],
     "Selangor": ["Klang", "Petaling Jaya", "Shah Alam", "Subang Jaya"],
     "Johor": ["Johor Bahru", "Batu Pahat", "Muar", "Kluang"],
     "Penang": ["George Town", "Bayan Lepas", "Butterworth", "Ayer Itam"],
     "Sabah": ["Kota Kinabalu", "Sandakan", "Tawau", "Lahad Datu"]
   },
-  "Meksiko": {
+  "Mexico": {
     "Mexico City": ["Ciudad de México", "Coyoacán", "Iztapalapa", "Tlalpan"],
     "Jalisco": ["Guadalajara", "Zapopan", "Tlaquepaque", "Tonalá"],
     "Nuevo León": ["Monterrey", "San Nicolás", "Apodaca", "Guadalupe"],
@@ -343,14 +314,14 @@ export const regionCities = {
     "Guanajuato": ["León", "Irapuato", "Celaya", "Guanajuato"],
     "Baja California": ["Tijuana", "Mexicali", "Ensenada", "Rosarito"]
   },
-    "Nigeria": {
+  "Nigeria": {
     "Abuja": ["Abuja", "Bwari", "Gwagwalada", "Karu"],
     "Lagos": ["Ikeja", "Lagos", "Lekki", "Surulere"],
     "Kano": ["Kano", "Wudil", "Gwarzo", "Dambatta"],
     "Ibadan": ["Ibadan", "Moniya", "Egbeda", "Apata"],
     "Port Harcourt": ["Port Harcourt", "Bonny", "Eleme", "Omoku"]
   },
-  "Norja": {
+  "Norway": {
     "Oslo": ["Oslo", "Bærum", "Asker", "Oppegård"],
     "Bergen": ["Bergen", "Askøy", "Øygarden", "Lindås"],
     "Trøndelag": ["Trondheim", "Stjørdal", "Steinkjer", "Verdal"],
@@ -367,21 +338,21 @@ export const regionCities = {
     "Balochistan": ["Quetta", "Gwadar", "Turbat", "Khuzdar"],
     "Islamabad": ["Islamabad"]
   },
-  "Portugali": {
-    "Lissabonin alue": ["Lissabon", "Sintra", "Cascais", "Amadora"],
-    "Porton alue": ["Porto", "Vila Nova de Gaia", "Matosinhos", "Braga"]
+  "Portugal": {
+    "Lisbon District": ["Lisbon", "Sintra", "Cascais", "Amadora"],
+    "Porto District": ["Porto", "Vila Nova de Gaia", "Matosinhos", "Braga"]
   },
-  "Ranska": {
-    "Île-de-France": ["Pariisi", "Versailles", "Boulogne-Billancourt", "Nanterre"],
+  "France": {
+    "Île-de-France": ["Paris", "Versailles", "Boulogne-Billancourt", "Nanterre"],
     "Provence": ["Marseille", "Nice", "Toulon", "Avignon"],
     "Alsace": ["Strasbourg", "Mulhouse", "Colmar", "Haguenau"],
-    "Normandie": ["Rouen", "Caen", "Le Havre", "Cherbourg"],
-    "Bretagne": ["Rennes", "Brest", "Quimper", "Lorient"],
+    "Normandy": ["Rouen", "Caen", "Le Havre", "Cherbourg"],
+    "Brittany": ["Rennes", "Brest", "Quimper", "Lorient"],
     "Pays de la Loire": ["Nantes", "Angers", "Le Mans", "Cholet"],
     "Nouvelle-Aquitaine": ["Bordeaux", "Limoges", "Poitiers", "Bayonne"],
     "Occitanie": ["Toulouse", "Montpellier", "Perpignan", "Nîmes"]
   },
-  "Ruotsi": {
+  "Sweden": {
     "Stockholm": ["Stockholm", "Solna", "Sundbyberg", "Täby"],
     "Skåne": ["Malmö", "Lund", "Helsingborg", "Kristianstad"],
     "Västra Götaland": ["Göteborg", "Borås", "Trollhättan", "Skövde"],
@@ -391,38 +362,38 @@ export const regionCities = {
     "Dalarna": ["Falun", "Borlänge", "Avesta", "Leksand"],
     "Jämtland": ["Östersund", "Strömsund", "Bräcke", "Åre"]
   },
-  "Saksa": {
-    "Bayern": ["München", "Nürnberg", "Augsburg", "Regensburg"],
+  "Germany": {
+    "Bavaria": ["Munich", "Nuremberg", "Augsburg", "Regensburg"],
     "Berlin": ["Berlin", "Spandau", "Charlottenburg", "Pankow"],
-    "Nordrhein-Westfalen": ["Köln", "Düsseldorf", "Dortmund", "Essen"],
-    "Hessen": ["Frankfurt", "Wiesbaden", "Darmstadt", "Kassel"],
-    "Sachsen": ["Leipzig", "Dresden", "Chemnitz", "Zwickau"],
+    "North Rhine-Westphalia": ["Cologne", "Düsseldorf", "Dortmund", "Essen"],
+    "Hesse": ["Frankfurt", "Wiesbaden", "Darmstadt", "Kassel"],
+    "Saxony": ["Leipzig", "Dresden", "Chemnitz", "Zwickau"],
     "Brandenburg": ["Potsdam", "Cottbus", "Brandenburg an der Havel", "Oranienburg"],
     "Baden-Württemberg": ["Stuttgart", "Mannheim", "Karlsruhe", "Freiburg"],
     "Hamburg": ["Hamburg", "Altona", "Harburg", "Wandsbek"]
   },
-  "Saudi-Arabia": {
+  "Saudi Arabia": {
     "Riyadh": ["Riyadh", "Al Kharj", "Al Majma'ah", "Shaqra"],
     "Mecca": ["Mecca", "Ta'if", "Al Lith", "Rabigh"],
     "Medina": ["Medina", "Yanbu", "Al-Ula", "Badr"],
     "Jeddah": ["Jeddah", "Abhur", "Al-Khomrah", "Al-Safa"],
     "Dammam": ["Dammam", "Al Khobar", "Dhahran", "Qatif"]
   },
-  "Suomi": {
+  "Finland": {
     "Uusimaa": ["Helsinki", "Espoo", "Vantaa", "Porvoo"],
     "Pirkanmaa": ["Tampere", "Nokia", "Ylöjärvi", "Kangasala"],
-    "Varsinais-Suomi": ["Turku", "Salo", "Kaarina", "Raisio"],
-    "Lappi": ["Rovaniemi", "Kemi", "Tornio", "Sodankylä"],
-    "Pohjanmaa": ["Vaasa", "Seinäjoki", "Kokkola", "Pietarsaari"],
+    "Southwest Finland": ["Turku", "Salo", "Kaarina", "Raisio"],
+    "Lapland": ["Rovaniemi", "Kemi", "Tornio", "Sodankylä"],
+    "Ostrobothnia": ["Vaasa", "Seinäjoki", "Kokkola", "Pietarsaari"],
     "Kymenlaakso": ["Kotka", "Kouvola", "Hamina", "Miehikkälä"],
     "Päijät-Häme": ["Lahti", "Hollola", "Heinola", "Orimattila"],
-    "Etelä-Karjala": ["Lappeenranta", "Imatra", "Ruokolahti", "Parikkala"]
+    "South Karelia": ["Lappeenranta", "Imatra", "Ruokolahti", "Parikkala"]
   },
-   "South Africa-Gauteng": ["Johannesburg", "Pretoria", "Soweto", "Benoni", "Boksburg"],
+  "South Africa-Gauteng": ["Johannesburg", "Pretoria", "Soweto", "Benoni", "Boksburg"],
   "South Africa-Western Cape": ["Cape Town", "Stellenbosch", "Paarl", "George", "Worcester"],
   "South Africa-KwaZulu-Natal": ["Durban", "Pietermaritzburg", "Umlazi", "Newcastle", "Richards Bay"],
   "South Africa-Eastern Cape": ["Port Elizabeth", "East London", "Mthatha", "Uitenhage", "Queenstown"],
-  "Thaimaa": {
+  "Thailand": {
     "Bangkok": ["Bangkok", "Pathum Wan", "Chatuchak", "Lat Phrao"],
     "Chiang Mai": ["Chiang Mai", "Hang Dong", "Mae Rim", "San Sai"],
     "Phuket": ["Phuket Town", "Patong", "Karon", "Kata"],
@@ -430,7 +401,7 @@ export const regionCities = {
     "Isan": ["Udon Thani", "Khon Kaen", "Nakhon Ratchasima", "Ubon Ratchathani"],
     "Krabi": ["Krabi Town", "Ao Nang", "Ko Lanta", "Klong Muang"]
   },
-  "Turkki": {
+  "Turkey": {
     "Istanbul": ["Istanbul", "Üsküdar", "Kadıköy", "Bakırköy"],
     "Ankara": ["Ankara", "Çankaya", "Keçiören", "Yenimahalle"],
     "Izmir": ["Izmir", "Konak", "Bornova", "Karşıyaka"],
@@ -438,14 +409,14 @@ export const regionCities = {
     "Bursa": ["Bursa", "Osmangazi", "Nilüfer", "Yıldırım"],
     "Gaziantep": ["Gaziantep", "Şahinbey", "Şehitkamil", "Nizip"]
   },
-  "Ukraina": {
-    "Kiovan alue": ["Kiova", "Bila Tserkva", "Brovary", "Irpin"],
-    "Länsi-Ukraina": ["Lviv", "Ternopil", "Ivano-Frankivsk", "Uzhhorod"]
+  "Ukraine": {
+    "Kyiv Region": ["Kyiv", "Bila Tserkva", "Brovary", "Irpin"],
+    "Western Ukraine": ["Lviv", "Ternopil", "Ivano-Frankivsk", "Uzhhorod"]
   },
-  "Venäjä": {
-    "Moskova": ["Moskova", "Zelenograd", "Khimki", "Odintsovo"],
-    "Pietari": ["Pietari", "Pushkin", "Kolpino", "Vyborg"],
-    "Siperia": ["Novosibirsk", "Omsk", "Tomsk", "Barnaul"]
+  "Russia": {
+    "Moscow": ["Moscow", "Zelenograd", "Khimki", "Odintsovo"],
+    "Saint Petersburg": ["Saint Petersburg", "Pushkin", "Kolpino", "Vyborg"],
+    "Siberia": ["Novosibirsk", "Omsk", "Tomsk", "Barnaul"]
   },
   "Vietnam": {
     "Hanoi": ["Hanoi", "Dong Da", "Ba Dinh", "Cau Giay"],
@@ -453,7 +424,7 @@ export const regionCities = {
     "Da Nang": ["Da Nang", "Hai Chau", "Thanh Khe", "Lien Chieu"],
     "Can Tho": ["Can Tho", "Ninh Kieu", "Binh Thuy", "Cai Rang"]
   },
-  "Yhdysvallat": {
+  "United States": {
     "California": ["Los Angeles", "San Francisco", "San Diego", "Sacramento"],
     "Texas": ["Houston", "Dallas", "Austin", "San Antonio"],
     "Florida": ["Miami", "Orlando", "Tampa", "Jacksonville"],
@@ -464,7 +435,55 @@ export const regionCities = {
     "Ohio": ["Cleveland", "Columbus", "Cincinnati", "Toledo"],
     "Washington D.C.": ["Washington D.C."]
   }
+
+
+
+
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
