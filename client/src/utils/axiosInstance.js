@@ -1,4 +1,5 @@
 import axios from "axios";
+import { BACKEND_BASE_URL } from "./config";
 
 // Alustetaan accessToken joko localStoragesta tai nulliksi
 let accessToken = localStorage.getItem("token") || null;
@@ -17,9 +18,20 @@ export const setAccessToken = (token) => {
   }
 };
 
-// Luo Axios-instanssi: kehityksessä käyttää Vite-proxya ("/api"), tuotannossa tarvittaessa VITE_API_URL
+// Määritetään Axios-instanssin baseURL siten,
+// että kaikki kutsut esim. "/auth/..." päätyvät "/api/auth/..."
+const baseURL = (() => {
+  if (BACKEND_BASE_URL) {
+    // Fronttiin asetettu BACKEND_BASE_URL (VITE_BACKEND_URL) takaa, että päätepisteeksi tulee http://.../api
+    return `${BACKEND_BASE_URL}/api`;
+  }
+  // Muussa tapauksessa hyödynnä Vite-proxya (/api) tai suoraa /api-polku
+  return import.meta.env.VITE_API_URL || "/api";
+})();
+
+// Luo Axios-instanssi
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "/api",
+  baseURL,
   withCredentials: true, // lähettää ja vastaanottaa httpOnly-cookiet
 });
 
@@ -48,7 +60,7 @@ api.interceptors.response.use(
     ) {
       originalRequest._retry = true;
       try {
-        // Kutsutaan refresh-endpointia samaan instanssiin (polku /api/auth/refresh proxyn kautta)
+        // Kutsutaan refresh-endpointia samaan instanssiin
         const { data } = await api.post("/auth/refresh");
 
         // Päivitetään token sekä closureen että localStorageen
@@ -59,7 +71,6 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         console.error("🔄 Refresh token epäonnistui:", refreshError);
-        // Tyhjennetään token ja ohjataan käyttäjä kirjautumissivulle
         setAccessToken(null);
         window.location.href = "/login";
         return Promise.reject(refreshError);

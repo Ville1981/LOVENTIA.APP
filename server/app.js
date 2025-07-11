@@ -91,8 +91,13 @@ app.get("/api/users", (req, res) => {
 
 // Mount application routes
 app.use("/api/auth",    authRoutes);
-app.use("/api/users",   imageRoutes);
+
+// Ensure image routes do not override user profile routes
+app.use("/api/users/photos", imageRoutes);
+
+// User routes including PUT /api/users/profile
 app.use("/api/users",   userRoutes);
+
 app.use("/api/messages",messageRoutes);
 app.use("/api/payment", paymentRoutes);
 

@@ -26,26 +26,27 @@ const Register = () => {
     }
 
     try {
-      // 1. Create user
+      // 1. Luo käyttäjä /api/auth/register
       await api.post("/auth/register", {
         username,
         email,
         password,
       });
 
-      // 2. Log in immediately
+      // 2. Kirjaudu heti: /api/auth/login
       const loginRes = await api.post("/auth/login", {
         email,
         password,
       });
 
-      // 3. Save token to context and localStorage
+      // 3. Tallenna access token kontekstiin ja localStorageen
       login(loginRes.data.accessToken);
 
-      // 4. Redirect to profile setup
+      // 4. Ilmoita ja siirry profiilisivulle
       setMessage("Tili luotu ja kirjautuminen onnistui!");
       navigate("/profile");
     } catch (err) {
+      // Näytä backendin antama virheilmoitus tai yleinen
       const errMsg = err.response?.data?.error;
       setMessage(errMsg || "Virhe rekisteröinnissä");
     }

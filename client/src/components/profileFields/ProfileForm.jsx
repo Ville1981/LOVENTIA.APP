@@ -14,13 +14,16 @@ import MultiStepPhotoUploader from "./MultiStepPhotoUploader";
 import { uploadAvatar } from "../../api/images";
 import { BACKEND_BASE_URL } from "../../config";
 
-// Yup-skeema validointiin
+// validation schema
 const schema = yup.object().shape({
-  username: yup.string().required("Pakollinen kenttä"),
-  email: yup.string().email("Virheellinen sähköposti").required("Pakollinen kenttä"),
-  age: yup.number().required("Pakollinen kenttä"),
-  gender: yup.string().required("Pakollinen kenttä"),
-  orientation: yup.string().required("Pakollinen kenttä"),
+  username: yup.string().required("Required field"),
+  email: yup.string().email("Invalid email address").required("Required field"),
+  age: yup
+    .number()
+    .typeError("Age must be a number")
+    .required("Required field"),
+  gender: yup.string().required("Required field"),
+  orientation: yup.string().required("Required field"),
   country: yup.string(),
   region: yup.string(),
   city: yup.string(),
@@ -36,8 +39,15 @@ const schema = yup.object().shape({
   smoke: yup.string(),
   drink: yup.string(),
   drugs: yup.string(),
-  height: yup.number(),
-  weight: yup.number(),
+  // Optional numeric fields – allow blank as null
+  height: yup
+    .number()
+    .nullable()
+    .transform((value, originalValue) => (originalValue === "" ? null : value)),
+  weight: yup
+    .number()
+    .nullable()
+    .transform((value, originalValue) => (originalValue === "" ? null : value)),
   bodyType: yup.string(),
   activityLevel: yup.string(),
   nutritionPreferences: yup.array().of(yup.string()),
@@ -45,8 +55,15 @@ const schema = yup.object().shape({
   summary: yup.string(),
   goal: yup.string(),
   lookingFor: yup.string(),
-  latitude: yup.number(),
-  longitude: yup.number(),
+  // Optional coordinates
+  latitude: yup
+    .number()
+    .nullable()
+    .transform((value, originalValue) => (originalValue === "" ? null : value)),
+  longitude: yup
+    .number()
+    .nullable()
+    .transform((value, originalValue) => (originalValue === "" ? null : value)),
 });
 
 const ProfileForm = ({
@@ -61,7 +78,7 @@ const ProfileForm = ({
   hideAvatarSection = false,
   hidePhotoSection = false,
 }) => {
-  // React Hook Form -asetukset
+  // React Hook Form setup
   const methods = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
@@ -85,8 +102,8 @@ const ProfileForm = ({
       smoke: user.smoke || "",
       drink: user.drink || "",
       drugs: user.drugs || "",
-      height: user.height || "",
-      weight: user.weight || "",
+      height: user.height ?? null,
+      weight: user.weight ?? null,
       bodyType: user.bodyType || "",
       activityLevel: user.activityLevel || "",
       nutritionPreferences: user.nutritionPreferences || [],
@@ -94,8 +111,9 @@ const ProfileForm = ({
       summary: user.summary || "",
       goal: user.goal || "",
       lookingFor: user.lookingFor || "",
-      latitude: user.latitude || null,
-      longitude: user.longitude || null,
+      latitude: user.latitude ?? null,
+      longitude: user.longitude ?? null,
+      extraImages: user.extraImages || [],
     },
   });
 
@@ -106,48 +124,15 @@ const ProfileForm = ({
     getValues,
   } = methods;
 
-  // Päivitä lomake, kun user-prop muuttuu
+  // reset form whenever `user` updates
   useEffect(() => {
-    reset({
-      ...getValues(),
-      username: user.username,
-      email: user.email,
-      age: user.age,
-      gender: user.gender,
-      orientation: user.orientation,
-      country: user.country,
-      region: user.region,
-      city: user.city,
-      customCountry: user.customCountry,
-      customRegion: user.customRegion,
-      customCity: user.customCity,
-      education: user.education,
-      profession: user.profession,
-      religion: user.religion,
-      religionImportance: user.religionImportance,
-      children: user.children,
-      pets: user.pets,
-      smoke: user.smoke,
-      drink: user.drink,
-      drugs: user.drugs,
-      height: user.height,
-      weight: user.weight,
-      bodyType: user.bodyType,
-      activityLevel: user.activityLevel,
-      nutritionPreferences: user.nutritionPreferences,
-      healthInfo: user.healthInfo,
-      summary: user.summary,
-      goal: user.goal,
-      lookingFor: user.lookingFor,
-      latitude: user.latitude,
-      longitude: user.longitude,
-    });
+    reset({ ...getValues(), ...user, extraImages: user.extraImages || [] });
   }, [user, reset, getValues]);
 
-  // Extra images state
+  // extra images state
   const [localExtraImages, setLocalExtraImages] = useState(user.extraImages || []);
 
-  // Avatar
+  // avatar state & preview
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(
     user.profilePicture
@@ -158,7 +143,6 @@ const ProfileForm = ({
   );
   const [avatarError, setAvatarError] = useState(null);
 
-  // Kun profiilikuva backendista päivittyy, päivitetään preview’n
   useEffect(() => {
     setAvatarPreview(
       user.profilePicture
@@ -191,39 +175,45 @@ const ProfileForm = ({
     }
   };
 
-  // Lomakkeen lähetys
+  // real form submit
   const onFormSubmit = async (data) => {
     const payload = { ...data, extraImages: localExtraImages };
     try {
       await onSubmitProp(payload);
+      alert("Profile saved successfully!");
     } catch (err) {
-      console.error("Profile save failed:", err);
+      console.error(err);
+      alert("Failed to save profile. Please try again.");
     }
   };
 
   return (
     <FormProvider {...methods}>
+      {/* Form wrapper */}
       <form
         data-cy="ProfileForm__form"
-        onSubmit={handleSubmit(onFormSubmit)}
+        onSubmit={handleSubmit(
+          (data) => {
+            console.log("✅ Submitting profile:", data);
+            onFormSubmit(data);
+          },
+          (errors) => {
+            console.warn("⛔ Validation errors:", errors);
+          }
+        )}
         className="bg-white shadow rounded-lg p-6 space-y-6"
       >
-        {/* Avatar section */}
+        {/* Avatar Section */}
         {!hideAvatarSection && (
-          <div
-            className="flex flex-col items-center space-y-4"
-            data-cy="ProfileForm__avatarSection"
-          >
-            <div className="w-12 h-12 rounded-full overflow-hidden border mx-auto">
+          <div data-cy="ProfileForm__avatarSection" className="flex flex-col items-center space-y-4">
+            <div className="w-12 h-12 rounded-full overflow-hidden border">
               {avatarPreview && (
                 <img
                   data-cy="ProfileForm__avatarPreview"
                   src={avatarPreview}
                   alt="Profile"
                   className="w-full h-full object-cover object-center"
-                  onError={(e) => {
-                    e.currentTarget.src = "/placeholder-avatar-male.png";
-                  }}
+                  onError={(e) => (e.currentTarget.src = "/placeholder-avatar-male.png")}
                 />
               )}
             </div>
@@ -241,27 +231,23 @@ const ProfileForm = ({
                 onClick={handleAvatarSubmit}
                 className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
               >
-                🎨 {t("profile.saveAvatar")}
+                🎨 Save changes
               </button>
             </div>
-            {avatarError && (
-              <p data-cy="ProfileForm__avatarError" className="text-red-600">
-                {avatarError}
-              </p>
-            )}
+            {avatarError && <p className="text-red-600">{avatarError}</p>}
           </div>
         )}
 
-        {/* Lomakeosiot */}
-        <FormBasicInfo t={t} />
-        <FormLocation t={t} />
-        <FormEducation t={t} />
-        <FormChildrenPets t={t} />
-        <FormLifestyle t={t} />
-        <FormGoalSummary t={t} />
-        <FormLookingFor t={t} />
+        {/* All other form sections */}
+        <FormBasicInfo t={t} errors={errors} />
+        <FormLocation t={t} errors={errors} />
+        <FormEducation t={t} errors={errors} />
+        <FormChildrenPets t={t} errors={errors} />
+        <FormLifestyle t={t} errors={errors} />
+        <FormGoalSummary t={t} errors={errors} />
+        <FormLookingFor t={t} errors={errors} />
 
-        {/* Photo Uploader */}
+        {/* Photo uploader */}
         {!hidePhotoSection && userId && (
           <MultiStepPhotoUploader
             data-cy="ProfileForm__photoUploader"
@@ -272,21 +258,22 @@ const ProfileForm = ({
               const newImgs = res.extraImages || [];
               setLocalExtraImages(newImgs);
               onUserUpdate({ ...user, extraImages: newImgs });
-            }}
+            }
+            }
             onError={(err) => console.error("Photo uploader error:", err)}
           />
         )}
 
-        {/* Tallenna */}
+        {/* Save Button */}
         <button
           data-cy="ProfileForm__saveButton"
           type="submit"
           className="w-full px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
         >
-          💾 {t("profile.saveChanges")}
+          💾 Save changes
         </button>
 
-        {/* Poista tili */}
+        {/* Delete Account */}
         <button
           data-cy="ProfileForm__deleteButton"
           type="button"
@@ -301,14 +288,14 @@ const ProfileForm = ({
               window.location.href = "/";
             } catch (err) {
               console.error(err);
-              alert(t("profile.deleteFailed"));
+              alert("Failed to delete account.");
             }
           }}
         >
           🗑️ {t("profile.deleteAccount")}
         </button>
 
-        {/* Admin: piilota/näytä */}
+        {/* Admin toggle */}
         {user.isAdmin && (
           <button
             data-cy="ProfileForm__adminToggleButton"
@@ -325,7 +312,7 @@ const ProfileForm = ({
                 alert(res.data.message);
               } catch (err) {
                 console.error(err);
-                alert(t("profile.hideFailed"));
+                alert("Failed to toggle visibility.");
               }
             }}
           >
@@ -333,17 +320,12 @@ const ProfileForm = ({
           </button>
         )}
 
-        {/* Viestit */}
-        {message && (
-          <p
-            data-cy="ProfileForm__message"
-            className={`text-center ${
-              success ? "text-green-600" : "text-red-600"
-            }`}
-          >
-            {message}
-          </p>
-        )}
+        {/* Inline feedback */}
+        {success ? (
+          <p className="text-center text-green-600">Profile saved successfully!</p>
+        ) : message ? (
+          <p className="text-center text-red-600">Error saving profile.</p>
+        ) : null}
       </form>
     </FormProvider>
   );

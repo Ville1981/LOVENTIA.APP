@@ -71,19 +71,16 @@ const ProfileHub = () => {
   };
 
   // --- käyttäjätiedon haku ---
-  // --- käyttäjätiedon haku ---
-const fetchUser = useCallback(async () => {
-  try {
-    const url = userIdParam
-      ? `${BACKEND_BASE_URL}/api/users/${userIdParam}`
-      : `${BACKEND_BASE_URL}/api/users/profile`;
-    const res = await api.get(url, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const u = res.data.user || res.data;
-    setUser(u);
-    // … jatkuu …
-
+  const fetchUser = useCallback(async () => {
+    try {
+      const url = userIdParam
+        ? `${BACKEND_BASE_URL}/api/users/${userIdParam}`
+        : `${BACKEND_BASE_URL}/api/auth/me`;
+      const res = await api.get(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const u = res.data.user || res.data;
+      setUser(u);
 
       if (!userIdParam) {
         setAuthUser(u);

@@ -4,7 +4,7 @@ import PropTypes from "prop-types";
 
 /**
  * FormBasicInfo
- * Lomakeosio: käyttäjän perus­tiedot sekä suodatinikävalinnat
+ * Lomakeosio: käyttäjän perus­tiedot
  * Käyttää RHF-kontekstia kenttien rekisteröintiin ja virheiden näyttöön.
  *
  * Props:
@@ -14,14 +14,11 @@ import PropTypes from "prop-types";
 const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
   const {
     register,
-    formState: { errors },
+    formState: { errors }
   } = useFormContext();
 
   // Ikävaihtoehdot 18–99
-  const ageOptions = [];
-  for (let i = 18; i <= 99; i++) {
-    ageOptions.push(i);
-  }
+  const ageOptions = Array.from({ length: 82 }, (_, i) => i + 18);
 
   return (
     <div className="flex flex-col gap-4 w-full text-left" data-cy="FormBasicInfo__section">
@@ -95,52 +92,6 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
             {errors.age.message}
           </p>
         )}
-      </div>
-
-      {/* Suodatin: minAge & maxAge */}
-      <div className="flex gap-4">
-        <div className="w-full">
-          <label
-            htmlFor="minAgeSelect"
-            className="block font-medium mb-1"
-            data-cy="FormBasicInfo__minAgeLabel"
-          >
-            {t("discover.minAge")}
-          </label>
-          <select
-            id="minAgeSelect"
-            {...register("minAge")}
-            className="p-2 border rounded w-full"
-            data-cy="FormBasicInfo__minAgeSelect"
-          >
-            {ageOptions.map((num) => (
-              <option key={num} value={num}>
-                {num}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="w-full">
-          <label
-            htmlFor="maxAgeSelect"
-            className="block font-medium mb-1"
-            data-cy="FormBasicInfo__maxAgeLabel"
-          >
-            {t("discover.maxAge")}
-          </label>
-          <select
-            id="maxAgeSelect"
-            {...register("maxAge")}
-            className="p-2 border rounded w-full"
-            data-cy="FormBasicInfo__maxAgeSelect"
-          >
-            {ageOptions.map((num) => (
-              <option key={num} value={num}>
-                {num}
-              </option>
-            ))}
-          </select>
-        </div>
       </div>
 
       {/* Sukupuoli */}
