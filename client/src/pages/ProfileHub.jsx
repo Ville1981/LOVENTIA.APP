@@ -1,4 +1,5 @@
 // src/pages/ProfileHub.jsx
+
 import React, { useEffect, useState, useCallback } from "react";
 import { Link, useParams } from "react-router-dom";
 import api from "../utils/axiosInstance";
@@ -8,8 +9,10 @@ import { BACKEND_BASE_URL } from "../config";
 
 /**
  * ProfileHub handles user profile display and editing,
- * including tab navigation, profile completion stats,
- * question prompts, and delegates image upload/delete to ProfileForm.
+ * including profile completion stats, question prompts,
+ * and delegates image upload/delete to ProfileForm.
+ * Tab navigation is commented out, only the Preferences
+ * tab (profile form) renders.
  */
 const ProfileHub = () => {
   const token = localStorage.getItem("token");
@@ -71,20 +74,16 @@ const ProfileHub = () => {
   };
 
   // --- käyttäjätiedon haku ---
-  // --- käyttäjätiedon haku ---
-const fetchUser = useCallback(async () => {
-  try {
-    const url = userIdParam
-      ? `${BACKEND_BASE_URL}/api/users/${userIdParam}`
-      : `${BACKEND_BASE_URL}/api/users/profile`;
-    const res = await api.get(url, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const u = res.data.user || res.data;
-    setUser(u);
-    // … jatkuu …
-
-
+  const fetchUser = useCallback(async () => {
+    try {
+      const url = userIdParam
+        ? `${BACKEND_BASE_URL}/api/users/${userIdParam}`
+        : `${BACKEND_BASE_URL}/api/users/profile`;
+      const res = await api.get(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const u = res.data.user || res.data;
+      setUser(u);
       if (!userIdParam) {
         setAuthUser(u);
         setValues({
@@ -139,7 +138,7 @@ const fetchUser = useCallback(async () => {
   const profileUserId =
     userIdParam || authUser?._id || user._id || user.id;
 
-  // Lomakkeen lähetysfunktio (data, ei event)
+  // Lomakkeen lähetysfunktio (data)
   const handleFormSubmit = async (formData) => {
     if (userIdParam) return;
     try {
@@ -153,41 +152,6 @@ const fetchUser = useCallback(async () => {
       setMessage(t("profile.saved"));
       setUser(updated);
       setAuthUser(updated);
-      setValues({
-        username: updated.username || "",
-        email: updated.email || "",
-        age: updated.age || "",
-        gender: updated.gender || "",
-        orientation: updated.orientation || "",
-        country: updated.country || "",
-        region: updated.region || "",
-        city: updated.city || "",
-        customCountry: updated.customCountry || "",
-        customRegion: updated.customRegion || "",
-        customCity: updated.customCity || "",
-        education: updated.education || "",
-        profession: updated.profession || "",
-        religion: updated.religion || "",
-        religionImportance: updated.religionImportance || "",
-        children: updated.children || "",
-        pets: updated.pets || "",
-        summary: updated.summary || "",
-        goal: updated.goal || "",
-        lookingFor: updated.lookingFor || "",
-        smoke: updated.smoke || "",
-        drink: updated.drink || "",
-        drugs: updated.drugs || "",
-        height: updated.height || null,
-        weight: updated.weight || null,
-        bodyType: updated.bodyType || "",
-        activityLevel: updated.activityLevel || "",
-        nutritionPreferences: Array.isArray(updated.nutritionPreferences)
-          ? updated.nutritionPreferences
-          : [],
-        healthInfo: updated.healthInfo || "",
-        latitude: updated.latitude || null,
-        longitude: updated.longitude || null,
-      });
     } catch (err) {
       console.error("Päivitys epäonnistui:", err);
       setSuccess(false);
@@ -197,159 +161,49 @@ const fetchUser = useCallback(async () => {
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-6">
-      {/* Tab buttons */}
+      {/* Tab buttons (removed) */}
+      {/**
       <div className="flex bg-gray-900 rounded-lg overflow-hidden">
-        <button
-          onClick={() => setActiveTab("preferences")}
-          className={`flex-1 py-2 text-center font-medium ${
-            activeTab === "preferences"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-800 text-gray-400"
-          }`}
-        >
-          Preferences
-        </button>
-        <button
-          onClick={() => setActiveTab("settings")}
-          className={`flex-1 py-2 text-center font-medium ${
-            activeTab === "settings"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-800 text-gray-400"
-          }`}
-        >
-          Settings
-        </button>
+        …
       </div>
+      **/}
 
       {/* Preferences tab content */}
-      {activeTab === "preferences" && (
-        <div className="space-y-6">
-          {/* Manage Photos button */}
-          <div className="flex justify-end">
-            <Link
-              to="/profile/photos"
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              data-cy="ProfileHub__photosButton"
-            >
-              Manage Photos
-            </Link>
-          </div>
+      <div className="space-y-6">
+        {/* Manage Photos button */}
+<div className="flex justify-end">
+  <Link
+    to="/profile/photos"
+    className="flex items-center px-5 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 text-2xl font-bold"
+    data-cy="ProfileHub__photosButton"
+  >
+    {/* pencil icon from ok-icon font */}
+    <i className="i-pencil mr-3 text-2xl" aria-hidden="true" />
+    Manage Photos
+  </Link>
+</div>
 
-          {/* Steps to success section */}
-          <div className="bg-white rounded-lg shadow p-4">
-            <h2 className="font-semibold mb-2">Steps to success</h2>
-            <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-              <div
-                className="h-3 rounded-full bg-pink-500"
-                style={{ width: `${profileCompletion}%` }}
-              />
-            </div>
-            <p className="mt-2 text-sm text-gray-600">
-              Complete your profile to be seen more & get more matches!
-            </p>
-          </div>
 
-          {/* Answer More Questions section */}
-          <div className="bg-white rounded-lg shadow p-4">
-            <h2 className="font-semibold mb-2">Answer More Questions</h2>
-            <div className="flex items-center space-x-4">
-              <div className="flex-1 bg-gray-200 h-2 rounded-full overflow-hidden">
-                <div
-                  className="h-2 rounded-full bg-pink-500"
-                  style={{ width: `${(questionsAnswered / 500) * 100}%` }}
-                />
-              </div>
-              <span className="text-sm font-bold text-pink-500">
-                {questionsAnswered}
-              </span>
-            </div>
-            <p className="mt-2 text-sm text-gray-600">
-              Your highest possible match:{" "}
-              <span className="font-bold">{highestMatch}%</span>
-            </p>
-            <div className="mt-4 flex space-x-2">
-              <button className="flex-1 py-2 border border-blue-600 rounded-lg">
-                NO
-              </button>
-              <button className="flex-1 py-2 bg-blue-600 text-white rounded-lg">
-                YES
-              </button>
-            </div>
-            <div className="mt-2 text-center">
-              <button className="text-sm text-gray-500 underline">
-                Skip
-              </button>{" "}
-              •{" "}
-              <Link
-                to="/questions/answered"
-                className="text-sm text-blue-600"
-              >
-                See answered questions
-              </Link>
-            </div>
-          </div>
-
-          {/* Profile form (only settings, avatar & photos hidden) */}
-          <ProfileForm
-            userId={profileUserId}
-            user={user}
-            onUserUpdate={(u) => {
-              setUser(u);
-              setAuthUser(u);
-            }}
-            isPremium={user.isPremium}
-            t={t}
-            message={message}
-            success={success}
-            onSubmit={handleFormSubmit}
-            hideAvatarSection={true}
-            hidePhotoSection={true}
-          />
-        </div>
-      )}
-
-      {/* Settings tab content */}
-      {activeTab === "settings" && (
-        <div className="bg-white rounded-lg shadow p-6 space-y-4">
-          <h2 className="font-semibold text-xl">Settings</h2>
-          <ul className="space-y-2">
-            <li>
-              <Link
-                to="/settings/account"
-                className="text-blue-600 hover:underline"
-              >
-                Account settings
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/settings/notifications"
-                className="text-blue-600 hover:underline"
-              >
-                Notification preferences
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/settings/privacy"
-                className="text-blue-600 hover:underline"
-              >
-                Privacy & blocked profiles
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/settings/subscriptions"
-                className="text-blue-600 hover:underline"
-              >
-                Subscriptions & billing
-              </Link>
-            </li>
-          </ul>
-        </div>
-      )}
+        {/* Profile form (avatar-osio näkyvissä, photo uploader piilotettu) */}
+        <ProfileForm
+          userId={profileUserId}
+          user={user}
+          onUserUpdate={(u) => {
+            setUser(u);
+            setAuthUser(u);
+          }}
+          isPremium={user.isPremium}
+          t={t}
+          message={message}
+          success={success}
+          onSubmit={handleFormSubmit}
+          hidePhotoSection={true}
+        />
+      </div>
     </div>
   );
 };
 
 export default ProfileHub;
+
+

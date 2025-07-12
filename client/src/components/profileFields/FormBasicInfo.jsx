@@ -1,3 +1,4 @@
+// src/components/profileFields/FormBasicInfo.jsx
 import React from "react";
 import { useFormContext } from "react-hook-form";
 import PropTypes from "prop-types";
@@ -14,7 +15,7 @@ import PropTypes from "prop-types";
 const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
   const {
     register,
-    formState: { errors }
+    formState: { errors },
   } = useFormContext();
 
   // Ikävaihtoehdot 18–99
@@ -110,9 +111,9 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
           data-cy="FormBasicInfo__genderSelect"
         >
           <option value="">{t("common.select")}</option>
-          <option value="Mies">{t("profile.male")}</option>
-          <option value="Nainen">{t("profile.female")}</option>
-          <option value="Muu">{t("profile.other")}</option>
+          <option value="Male">{t("profile.male")}</option>
+          <option value="Female">{t("profile.female")}</option>
+          <option value="Other">{t("profile.other")}</option>
         </select>
         {errors.gender && (
           <p
@@ -124,7 +125,7 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
         )}
       </div>
 
-      {/* Suuntautuminen */}
+      {/* Orientation */}
       <div className="w-full">
         <label
           htmlFor="orientationSelect"
@@ -140,10 +141,10 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
           data-cy="FormBasicInfo__orientationSelect"
         >
           <option value="">{t("common.select")}</option>
-          <option value="Hetero">{t("profile.hetero")}</option>
-          <option value="Homo">{t("profile.homo")}</option>
+          <option value="Straight">{t("profile.straight")}</option>
+          <option value="Gay">{t("profile.gay")}</option>
           <option value="Bi">{t("profile.bi")}</option>
-          <option value="Muu">{t("profile.other")}</option>
+          <option value="Other">{t("profile.other")}</option>
         </select>
         {errors.orientation && (
           <p
@@ -164,3 +165,4 @@ FormBasicInfo.propTypes = {
 };
 
 export default FormBasicInfo;
+

@@ -1,8 +1,16 @@
-import React, { useState, useEffect } from "react";
+// src/components/profileFields/ProfileForm.jsx
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+} from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import { useForm, FormProvider } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
+
 import FormBasicInfo from "./FormBasicInfo";
 import FormLocation from "./FormLocation";
 import FormEducation from "./FormEducation";
@@ -14,14 +22,13 @@ import MultiStepPhotoUploader from "./MultiStepPhotoUploader";
 import { uploadAvatar } from "../../api/images";
 import { BACKEND_BASE_URL } from "../../config";
 
-// validation schema
+// =============================================
+// Validation schema
+// =============================================
 const schema = yup.object().shape({
   username: yup.string().required("Required field"),
   email: yup.string().email("Invalid email address").required("Required field"),
-  age: yup
-    .number()
-    .typeError("Age must be a number")
-    .required("Required field"),
+  age: yup.number().typeError("Age must be a number").required("Required field"),
   gender: yup.string().required("Required field"),
   orientation: yup.string().required("Required field"),
   country: yup.string(),
@@ -39,15 +46,14 @@ const schema = yup.object().shape({
   smoke: yup.string(),
   drink: yup.string(),
   drugs: yup.string(),
-  // Optional numeric fields – allow blank as null
   height: yup
     .number()
     .nullable()
-    .transform((value, originalValue) => (originalValue === "" ? null : value)),
+    .transform((v, ov) => (ov === "" ? null : v)),
   weight: yup
     .number()
     .nullable()
-    .transform((value, originalValue) => (originalValue === "" ? null : value)),
+    .transform((v, ov) => (ov === "" ? null : v)),
   bodyType: yup.string(),
   activityLevel: yup.string(),
   nutritionPreferences: yup.array().of(yup.string()),
@@ -55,15 +61,14 @@ const schema = yup.object().shape({
   summary: yup.string(),
   goal: yup.string(),
   lookingFor: yup.string(),
-  // Optional coordinates
   latitude: yup
     .number()
     .nullable()
-    .transform((value, originalValue) => (originalValue === "" ? null : value)),
+    .transform((v, ov) => (ov === "" ? null : v)),
   longitude: yup
     .number()
     .nullable()
-    .transform((value, originalValue) => (originalValue === "" ? null : value)),
+    .transform((v, ov) => (ov === "" ? null : v)),
 });
 
 const ProfileForm = ({
@@ -124,15 +129,15 @@ const ProfileForm = ({
     getValues,
   } = methods;
 
-  // reset form whenever `user` updates
+  // reset on user change
   useEffect(() => {
     reset({ ...getValues(), ...user, extraImages: user.extraImages || [] });
   }, [user, reset, getValues]);
 
-  // extra images state
-  const [localExtraImages, setLocalExtraImages] = useState(user.extraImages || []);
-
-  // avatar state & preview
+  // Local state: extra images & avatar
+  const [localExtraImages, setLocalExtraImages] = useState(
+    user.extraImages || []
+  );
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(
     user.profilePicture
@@ -166,7 +171,6 @@ const ProfileForm = ({
   const handleAvatarSubmit = async (e) => {
     e.preventDefault();
     if (!avatarFile || !userId) return;
-    setAvatarError(null);
     try {
       const updatedUser = await uploadAvatar(userId, avatarFile);
       onUserUpdate(updatedUser);
@@ -175,56 +179,92 @@ const ProfileForm = ({
     }
   };
 
-  // real form submit
   const onFormSubmit = async (data) => {
     const payload = { ...data, extraImages: localExtraImages };
     try {
       await onSubmitProp(payload);
       alert("Profile saved successfully!");
-    } catch (err) {
-      console.error(err);
+    } catch {
       alert("Failed to save profile. Please try again.");
     }
   };
 
-  return (
+  // Carousel logic
+  const [slideIndex, setSlideIndex] = useState(0);
+  const intervalRef = useRef(null);
+
+  const slideshowImages = useMemo(() => {
+    const arr = [];
+    if (avatarPreview) arr.push(avatarPreview);
+    localExtraImages.forEach((src) => {
+      const full =
+        typeof src === "string" && !src.startsWith("http")
+          ? `${BACKEND_BASE_URL}${src}`
+          : src;
+      arr.push(full);
+    });
+    return arr;
+  }, [avatarPreview, localExtraImages]);
+
+  const startSlideshow = () => {
+    clearInterval(intervalRef.current);
+    if (slideshowImages.length < 2) return;
+    intervalRef.current = setInterval(
+      () => setSlideIndex((i) => (i + 1) % slideshowImages.length),
+      3000
+    );
+  };
+  const stopSlideshow = () => {
+    clearInterval(intervalRef.current);
+    setSlideIndex(0);
+  };
+  useEffect(() => {
+    return () => clearInterval(intervalRef.current);
+  }, []);
+    return (
     <FormProvider {...methods}>
-      {/* Form wrapper */}
       <form
         data-cy="ProfileForm__form"
-        onSubmit={handleSubmit(
-          (data) => {
-            console.log("✅ Submitting profile:", data);
-            onFormSubmit(data);
-          },
-          (errors) => {
-            console.warn("⛔ Validation errors:", errors);
-          }
-        )}
+        onSubmit={handleSubmit(onFormSubmit)}
         className="bg-white shadow rounded-lg p-6 space-y-6"
       >
-        {/* Avatar Section */}
+        {/* Avatar-osio */}
         {!hideAvatarSection && (
-          <div data-cy="ProfileForm__avatarSection" className="flex flex-col items-center space-y-4">
-            <div className="w-12 h-12 rounded-full overflow-hidden border">
-              {avatarPreview && (
-                <img
-                  data-cy="ProfileForm__avatarPreview"
-                  src={avatarPreview}
-                  alt="Profile"
-                  className="w-full h-full object-cover object-center"
-                  onError={(e) => (e.currentTarget.src = "/placeholder-avatar-male.png")}
-                />
-              )}
-            </div>
-            <div className="flex space-x-4">
-              <input
-                data-cy="ProfileForm__avatarInput"
-                type="file"
-                accept="image/*"
-                onChange={handleAvatarChange}
-                className="block"
+          <div className="flex flex-col items-center space-y-6">
+            <div
+              className="relative inline-block w-64 h-64 rounded-full overflow-hidden border-4 border-blue-500 mx-auto cursor-pointer"
+              onMouseEnter={startSlideshow}
+              onMouseLeave={stopSlideshow}
+            >
+              <img
+                data-cy="ProfileForm__avatarPreview"
+                src={slideshowImages[slideIndex]}
+                alt="Profile"
+                className="w-full h-full object-cover object-center"
+                onError={(e) =>
+                  (e.currentTarget.src = "/placeholder-avatar-male.png")
+                }
               />
+              <Link
+                to="/profile/photos"
+                className="absolute inset-0 flex items-center justify-center bg-blue-600 bg-opacity-90 px-6 py-2 text-white text-lg font-semibold rounded"
+                aria-label="Manage Photos"
+              >
+                ADD
+              </Link>
+            </div>
+
+            <div className="flex space-x-4">
+              <label className="px-4 py-2 bg-green-600 text-white rounded cursor-pointer hover:bg-green-700">
+                Add Avatar
+                <input
+                  data-cy="ProfileForm__avatarInput"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarChange}
+                  className="hidden"
+                />
+              </label>
               <button
                 data-cy="ProfileForm__avatarSaveButton"
                 type="button"
@@ -238,16 +278,26 @@ const ProfileForm = ({
           </div>
         )}
 
-        {/* All other form sections */}
+        {/* Muut lomakekentät */}
         <FormBasicInfo t={t} errors={errors} />
-        <FormLocation t={t} errors={errors} />
+        <FormLocation
+          t={t}
+          errors={errors}
+          countryFieldName="country"
+          regionFieldName="region"
+          cityFieldName="city"
+          customCountryFieldName="customCountry"
+          customRegionFieldName="customRegion"
+          customCityFieldName="customCity"
+          includeAllOption={true}
+        />
         <FormEducation t={t} errors={errors} />
         <FormChildrenPets t={t} errors={errors} />
         <FormLifestyle t={t} errors={errors} />
         <FormGoalSummary t={t} errors={errors} />
         <FormLookingFor t={t} errors={errors} />
 
-        {/* Photo uploader */}
+        {/* Extra-kuvien uploader */}
         {!hidePhotoSection && userId && (
           <MultiStepPhotoUploader
             data-cy="ProfileForm__photoUploader"
@@ -258,13 +308,12 @@ const ProfileForm = ({
               const newImgs = res.extraImages || [];
               setLocalExtraImages(newImgs);
               onUserUpdate({ ...user, extraImages: newImgs });
-            }
-            }
+            }}
             onError={(err) => console.error("Photo uploader error:", err)}
           />
         )}
 
-        {/* Save Button */}
+        {/* Save & Delete */}
         <button
           data-cy="ProfileForm__saveButton"
           type="submit"
@@ -272,8 +321,6 @@ const ProfileForm = ({
         >
           💾 Save changes
         </button>
-
-        {/* Delete Account */}
         <button
           data-cy="ProfileForm__deleteButton"
           type="button"
@@ -310,8 +357,7 @@ const ProfileForm = ({
                   { headers: { Authorization: `Bearer ${token}` } }
                 );
                 alert(res.data.message);
-              } catch (err) {
-                console.error(err);
+              } catch {
                 alert("Failed to toggle visibility.");
               }
             }}
@@ -320,9 +366,11 @@ const ProfileForm = ({
           </button>
         )}
 
-        {/* Inline feedback */}
+        {/* Inline‐viestit */}
         {success ? (
-          <p className="text-center text-green-600">Profile saved successfully!</p>
+          <p className="text-center text-green-600">
+            Profile saved successfully!
+          </p>
         ) : message ? (
           <p className="text-center text-red-600">Error saving profile.</p>
         ) : null}
@@ -332,3 +380,7 @@ const ProfileForm = ({
 };
 
 export default ProfileForm;
+
+
+
+
