@@ -8,15 +8,19 @@ import PropTypes from "prop-types";
  * FormEducation
  * Lomakeosio: koulutus, ammatti, uskonto ja uskonnon merkitys
  * Käyttää RHF-kontekstia kenttien rekisteröintiin ja virheiden näyttöön.
+ *
+ * Props:
+ *   t: lokalisointifunktio (required)
+ *   includeAllOption: lisää "All"–valinnan ylös (oletus: false)
  */
-const FormEducation = ({ t }) => {
+const FormEducation = ({ t, includeAllOption = false }) => {
   const {
     register,
     formState: { errors },
   } = useFormContext();
 
   return (
-    <div className="flex flex-col gap-4 w-full text-left">
+    <div className="flex flex-col gap-4 w-full text-left" data-cy="FormEducation__section">
       {/* Koulutustaso */}
       <div className="w-full">
         <label htmlFor="education" className="block font-medium mb-1">
@@ -26,7 +30,9 @@ const FormEducation = ({ t }) => {
           id="education"
           {...register("education")}
           className="p-2 border rounded w-full"
+          data-cy="FormEducation__educationSelect"
         >
+          {includeAllOption && <option value="">{t("common.all")}</option>}
           <option value="">{t("common.select")}</option>
           <option value="Peruskoulu">{t("education.basic")}</option>
           <option value="Toinen aste">{t("education.secondary")}</option>
@@ -36,7 +42,7 @@ const FormEducation = ({ t }) => {
           <option value="Muu">{t("common.other")}</option>
         </select>
         {errors.education && (
-          <p className="mt-1 text-sm text-red-600">
+          <p className="mt-1 text-sm text-red-600" data-cy="FormEducation__educationError">
             {errors.education.message}
           </p>
         )}
@@ -47,15 +53,18 @@ const FormEducation = ({ t }) => {
         <label htmlFor="profession" className="block font-medium mb-1">
           💼 {t("profile.profession")}
         </label>
-        <input
-          type="text"
+        <select
           id="profession"
           {...register("profession")}
-          placeholder={t("profile.profession")}
           className="p-2 border rounded w-full"
-        />
+          data-cy="FormEducation__professionSelect"
+        >
+          {includeAllOption && <option value="">{t("common.all")}</option>}
+          <option value="">{t("common.select")}</option>
+          {/* Voit lisätä ammattivalinnat täältä */}
+        </select>
         {errors.profession && (
-          <p className="mt-1 text-sm text-red-600">
+          <p className="mt-1 text-sm text-red-600" data-cy="FormEducation__professionError">
             {errors.profession.message}
           </p>
         )}
@@ -70,7 +79,9 @@ const FormEducation = ({ t }) => {
           id="religion"
           {...register("religion")}
           className="p-2 border rounded w-full"
+          data-cy="FormEducation__religionSelect"
         >
+          {includeAllOption && <option value="">{t("common.all")}</option>}
           <option value="">{t("common.select")}</option>
           <option value="Kristinusko">{t("religion.christianity")}</option>
           <option value="Islam">{t("religion.islam")}</option>
@@ -81,7 +92,7 @@ const FormEducation = ({ t }) => {
           <option value="Muu">{t("common.other")}</option>
         </select>
         {errors.religion && (
-          <p className="mt-1 text-sm text-red-600">
+          <p className="mt-1 text-sm text-red-600" data-cy="FormEducation__religionError">
             {errors.religion.message}
           </p>
         )}
@@ -96,7 +107,9 @@ const FormEducation = ({ t }) => {
           id="religionImportance"
           {...register("religionImportance")}
           className="p-2 border rounded w-full"
+          data-cy="FormEducation__religionImportanceSelect"
         >
+          {includeAllOption && <option value="">{t("common.all")}</option>}
           <option value="">{t("common.select")}</option>
           <option value="Ei tärkeä">{t("religionImportance.notImportant")}</option>
           <option value="Jonkin verran tärkeä">
@@ -105,7 +118,10 @@ const FormEducation = ({ t }) => {
           <option value="Erittäin tärkeä">{t("religionImportance.veryImportant")}</option>
         </select>
         {errors.religionImportance && (
-          <p className="mt-1 text-sm text-red-600">
+          <p
+            className="mt-1 text-sm text-red-600"
+            data-cy="FormEducation__religionImportanceError"
+          >
             {errors.religionImportance.message}
           </p>
         )}
@@ -116,6 +132,7 @@ const FormEducation = ({ t }) => {
 
 FormEducation.propTypes = {
   t: PropTypes.func.isRequired,
+  includeAllOption: PropTypes.bool,
 };
 
 export default FormEducation;

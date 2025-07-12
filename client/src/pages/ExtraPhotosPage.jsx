@@ -1,7 +1,5 @@
-// src/pages/ExtraPhotosPage.jsx
 import React, { useEffect, useState, useCallback } from "react";
-import "../global.css";
-import { useParams, useNavigate } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import MultiStepPhotoUploader from "../components/profileFields/MultiStepPhotoUploader";
@@ -22,7 +20,7 @@ export default function ExtraPhotosPage() {
   const userId = paramId || authUser?._id;
   const isOwner = !paramId || authUser?._id === paramId;
 
-  // Fetch user data (profilePicture & extraImages)
+  // Fetch user data
   const fetchUser = useCallback(async () => {
     if (!userId) return;
     try {
@@ -34,7 +32,6 @@ export default function ExtraPhotosPage() {
       });
       const u = res.data.user || res.data;
       setUser(u);
-      // Set avatar preview or placeholder
       const pic = u.profilePicture;
       setAvatarPreview(
         pic && typeof pic === "string"
@@ -48,12 +45,11 @@ export default function ExtraPhotosPage() {
     }
   }, [paramId, userId]);
 
-  // Initial load and refresh
   useEffect(() => {
     fetchUser();
   }, [fetchUser]);
 
-  // Update local/context state after updates
+  // Update both local and context
   const handleUserUpdate = (updatedUser) => {
     setUser(updatedUser);
     if (!paramId) setAuthUser(updatedUser);
@@ -67,7 +63,7 @@ export default function ExtraPhotosPage() {
     );
   };
 
-  // Avatar file change
+  // Avatar selection
   const handleAvatarChange = (e) => {
     setAvatarError(null);
     setAvatarMessage("");
@@ -80,7 +76,7 @@ export default function ExtraPhotosPage() {
     }
   };
 
-  // Avatar upload
+  // Submit avatar
   const handleAvatarSubmit = async (e) => {
     e.preventDefault();
     if (!avatarFile || !userId) return;
@@ -88,12 +84,12 @@ export default function ExtraPhotosPage() {
     setAvatarMessage("");
     try {
       const result = await uploadAvatar(userId, avatarFile);
-      const newUrl = typeof result === 'string' ? result : result.profilePicture;
+      const newUrl = typeof result === "string" ? result : result.profilePicture;
       handleUserUpdate({ ...user, profilePicture: newUrl });
       setAvatarFile(null);
-      setAvatarMessage("Image saved");
+      setAvatarMessage("Avatar saved");
     } catch (err) {
-      setAvatarError("Failed to save image");
+      setAvatarError("Failed to save avatar");
     }
   };
 
@@ -103,15 +99,13 @@ export default function ExtraPhotosPage() {
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-6">
+      {/* Page title */}
       <h1 className="text-2xl font-semibold">Manage Photos</h1>
 
-      {/* Avatar upload form */}
       {isOwner && (
-        <form
-          onSubmit={handleAvatarSubmit}
-          className="flex items-center space-x-4"
-        >
-          <div className="w-16 h-16 rounded-full overflow-hidden border">
+        <form onSubmit={handleAvatarSubmit} className="flex flex-col items-center space-y-6">
+          {/* Static avatar preview */}
+          <div className="w-64 h-64 rounded-full overflow-hidden border-4 border-blue-500 mx-auto">
             <img
               src={avatarPreview}
               alt="Avatar"
@@ -119,60 +113,55 @@ export default function ExtraPhotosPage() {
               onError={(e) => (e.currentTarget.src = "/placeholder-avatar.png")}
             />
           </div>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleAvatarChange}
-            className="block"
-          />
-          <button
-            type="submit"
-            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
-          >
-            Save Avatar
-          </button>
-          {avatarMessage && (
-            <p className="text-green-600">{avatarMessage}</p>
-          )}
+
+          {/* Avatar upload controls */}
+          <div className="flex space-x-4">
+            <label className="px-4 py-2 bg-green-600 text-white rounded cursor-pointer hover:bg-green-700">
+              Add Avatar
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarChange}
+                className="hidden"
+              />
+            </label>
+            <button type="submit" className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+              Save Avatar
+            </button>
+          </div>
+
+          {/* Avatar status messages */}
+          {avatarMessage && <p className="text-green-600">{avatarMessage}</p>}
           {avatarError && <p className="text-red-600">{avatarError}</p>}
         </form>
       )}
 
-      {/* Photo Uploader */}
       {isOwner ? (
         <MultiStepPhotoUploader
           userId={userId}
           isPremium={user.isPremium}
           extraImages={user.extraImages || []}
-          onSuccess={(images) =>
-            handleUserUpdate({ ...user, extraImages: images })
-          }
+          onSuccess={(images) => handleUserUpdate({ ...user, extraImages: images })}
           onError={() => {}}
         />
       ) : (
         <div className="grid grid-cols-3 gap-4">
           {user.extraImages?.map((src, i) => {
             const imgSrc =
-              src && typeof src === 'string'
-                ? src.startsWith('http')
+              src && typeof src === "string"
+                ? src.startsWith("http")
                   ? src
                   : `${BACKEND_BASE_URL}${src}`
                 : "/placeholder-avatar.png";
-            return (
-              <img
-                key={i}
-                src={imgSrc}
-                alt={`Extra ${i + 1}`}
-                className="object-cover w-full h-48 rounded"
-              />
-            );
+            return <img key={i} src={imgSrc} alt={`Extra ${i + 1}`} className="object-cover w-full h-48 rounded" />;
           })}
         </div>
       )}
 
+      {/* Back button */}
       <button
         onClick={() => navigate(-1)}
-        className="mt-6 px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+        className="mt-6 px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 text-sm"
       >
         Back to Profile
       </button>

@@ -1,18 +1,20 @@
-import React, { memo } from "react";
+import React from "react";
 import { useForm, FormProvider } from "react-hook-form";
-import FormBasicInfo from "./profileFields/FormBasicInfo";
-import FormLocation from "./profileFields/FormLocation";
-import FormEducation from "./profileFields/FormEducation";
+import PropTypes from "prop-types";
+
+import FormBasicInfo    from "./profileFields/FormBasicInfo";
+import FormLocation     from "./profileFields/FormLocation";
+import FormEducation    from "./profileFields/FormEducation";
 import FormChildrenPets from "./profileFields/FormChildrenPets";
-import FormGoalSummary from "./profileFields/FormGoalSummary";
-import FormLookingFor from "./profileFields/FormLookingFor";
-import FormLifestyle from "./profileFields/FormLifestyle";
+import FormLifestyle    from "./profileFields/FormLifestyle";
+import FormGoalSummary  from "./profileFields/FormGoalSummary";
+import FormLookingFor   from "./profileFields/FormLookingFor";
 
 /**
  * DiscoverFilters
  * Haku- ja suodatuskomponentti React Hook Formilla
  */
-const DiscoverFilters = ({ values, handleFilter, t }) => {
+const DiscoverFilters = ({ values, setters, handleFilter, t }) => {
   const methods = useForm({
     defaultValues: values,
     mode: "onSubmit",
@@ -29,61 +31,140 @@ const DiscoverFilters = ({ values, handleFilter, t }) => {
         >
           {/* Otsikko ja ohjeet */}
           <div className="text-center">
-            <h2
-              data-cy="DiscoverFilters__title"
-              className="text-3xl font-bold mb-2"
-            >
+            <h2 data-cy="DiscoverFilters__title" className="text-3xl font-bold mb-2">
               {t("discover.title")}
             </h2>
-            <p
-              data-cy="DiscoverFilters__instructions"
-              className="text-gray-600"
-            >
+            <p data-cy="DiscoverFilters__instructions" className="text-gray-600">
               {t("discover.instructions")}
             </p>
           </div>
 
-          {/* Ikähaitari */}
-          <div className="flex flex-col items-start gap-2">
-            <label
-              htmlFor="ageRangeSlider"
-              data-cy="DiscoverFilters__ageSliderLabel"
-              className="font-medium"
-            >
+          {/* Ikähaitari: minAge ja maxAge */}
+          <div className="flex flex-col gap-2">
+            <label htmlFor="minAge" className="font-medium">
               {t("discover.ageRange")}
             </label>
+            <div className="flex space-x-2">
+              <input
+                id="minAge"
+                type="number"
+                {...register("minAge")}
+                min={18}
+                max={120}
+                className="p-2 border rounded w-1/2"
+              />
+              <input
+                id="maxAge"
+                type="number"
+                {...register("maxAge")}
+                min={18}
+                max={120}
+                className="p-2 border rounded w-1/2"
+              />
+            </div>
+          </div>
+
+          {/* Käyttäjänimi (vain hakuperusteena) */}
+          <div>
+            <label className="block font-medium mb-1">
+              {t("discover.username")}
+            </label>
             <input
-              id="ageRangeSlider"
-              type="range"
-              min="18"
-              max="99"
-              {...register("ageRange")}
-              data-cy="DiscoverFilters__ageSlider"
+              type="text"
+              {...register("username")}
+              className="w-full p-2 border rounded"
             />
           </div>
 
-          {/* Perustiedot (ilman käyttäjätunnus/sähköposti) */}
-          <FormBasicInfo t={t} hideUsernameEmail />
+          {/* Sukupuoli */}
+          <div>
+            <label className="block font-medium mb-1">
+              {t("discover.gender")}
+            </label>
+            <select {...register("gender")} className="w-full p-2 border rounded">
+              <option value="">{t("common.all")}</option>
+              <option value="Male">{t("profile.male")}</option>
+              <option value="Female">{t("profile.female")}</option>
+              <option value="Other">{t("profile.other")}</option>
+            </select>
+          </div>
 
-          {/* Sijainti */}
-          <FormLocation t={t} />
+          {/* Seksuaalinen suuntautuminen */}
+          <div>
+            <label className="block font-medium mb-1">
+              ❤️ {t("discover.orientation")}
+            </label>
+            <select {...register("orientation")} className="w-full p-2 border rounded">
+              <option value="">{t("common.all")}</option>
+              <option value="Straight">{t("profile.straight")}</option>
+              <option value="Gay">{t("profile.gay")}</option>
+              <option value="Bi">{t("profile.bi")}</option>
+              <option value="Other">{t("profile.other")}</option>
+            </select>
+          </div>
 
-          {/* Koulutus ym. */}
-          <FormEducation t={t} />
+          {/* Sijainti (country/region/city + manual) */}
+          <FormLocation
+            t={t}
+            countryFieldName="country"
+            regionFieldName="region"
+            cityFieldName="city"
+            customCountryFieldName="customCountry"
+            customRegionFieldName="customRegion"
+            customCityFieldName="customCity"
+            includeAllOption
+          />
+
+          {/* Koulutus */}
+          <FormEducation t={t} includeAllOption />
+
+          {/* Ammatti */}
+          <div>
+            <label className="block font-medium mb-1">
+              {t("discover.profession")}
+            </label>
+            <select {...register("profession")} className="w-full p-2 border rounded">
+              <option value="">{t("common.all")}</option>
+              {/* …ammattilistaus… */}
+            </select>
+          </div>
+
+          {/* Uskonto & sen tärkeys */}
+          <div>
+            <label className="block font-medium mb-1">
+              🛐 {t("discover.religion")}
+            </label>
+            <select {...register("religion")} className="w-full p-2 border rounded">
+              <option value="">{t("common.all")}</option>
+              {/* …uskonnot… */}
+            </select>
+          </div>
+          <div>
+            <label className="block font-medium mb-1">
+              {t("discover.religionImportance")}
+            </label>
+            <select
+              {...register("religionImportance")}
+              className="w-full p-2 border rounded"
+            >
+              <option value="">{t("common.all")}</option>
+              {/* …tärkeysasteet… */}
+            </select>
+          </div>
 
           {/* Lapset & lemmikit */}
-          <FormChildrenPets t={t} />
+          <FormChildrenPets t={t} includeAllOption />
 
           {/* Elämäntavat */}
-          <FormLifestyle t={t} />
+          <FormLifestyle t={t} includeAllOption />
 
-          {/* Tavoitteet & yhteenveto */}
-          <FormGoalSummary t={t} />
+          {/* Tavoitteet & Yhteenveto */}
+          <FormGoalSummary t={t} includeAllOption />
 
-          {/* Hakuperusteet */}
-          <FormLookingFor t={t} />
+          {/* Mitä etsit? */}
+          <FormLookingFor t={t} includeAllOption />
 
-          {/* Lähetä nappi */}
+          {/* Lähetä-nappi */}
           <div className="text-center pt-3">
             <button
               data-cy="DiscoverFilters__submitButton"
@@ -99,4 +180,11 @@ const DiscoverFilters = ({ values, handleFilter, t }) => {
   );
 };
 
-export default memo(DiscoverFilters);
+DiscoverFilters.propTypes = {
+  values: PropTypes.object.isRequired,
+  setters: PropTypes.object.isRequired,
+  handleFilter: PropTypes.func.isRequired,
+  t: PropTypes.func.isRequired,
+};
+
+export default React.memo(DiscoverFilters);

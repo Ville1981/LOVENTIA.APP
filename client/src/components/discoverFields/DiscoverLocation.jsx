@@ -1,8 +1,14 @@
-// src/components/discoverFields/DiscoverLocation.jsx
 import React from "react";
 import PropTypes from "prop-types";
 import { countryRegions, regionCities } from "../../utils/locationData";
 
+/**
+ * DiscoverLocation
+ * DiscoverFilters-sivulla käytettävä sijaintikomponentti.
+ * Props:
+ *  - country, region, city, customCountry, customRegion, customCity: string
+ *  - setCountry, setRegion, setCity, setCustomCountry, setCustomRegion, setCustomCity: functions
+ */
 const DiscoverLocation = ({
   country, setCountry,
   region,  setRegion,
@@ -11,7 +17,7 @@ const DiscoverLocation = ({
   customRegion,  setCustomRegion,
   customCity,    setCustomCity,
 }) => {
-  const regionOptions = country ? countryRegions[country] : [];
+  const regionOptions = country ? countryRegions[country] || [] : [];
   const cityOptions   = country && region
     ? regionCities[country]?.[region] || []
     : [];
@@ -26,7 +32,7 @@ const DiscoverLocation = ({
           onChange={e => setCountry(e.target.value)}
           className="p-2 border rounded w-full"
         >
-          <option value="">Select country</option>
+          <option value="">{/* “All” */}All countries</option>
           {Object.keys(countryRegions).map(c => (
             <option key={c} value={c}>{c}</option>
           ))}
@@ -39,6 +45,7 @@ const DiscoverLocation = ({
           className="mt-2 p-2 border rounded w-full"
         />
       </div>
+
       {/* Region */}
       <div>
         <label className="block font-medium mb-1">🗺 Region</label>
@@ -48,7 +55,7 @@ const DiscoverLocation = ({
           disabled={!country}
           className="p-2 border rounded w-full"
         >
-          <option value="">Select region</option>
+          <option value="">{/* “All” */}All regions</option>
           {regionOptions.map(r => (
             <option key={r} value={r}>{r}</option>
           ))}
@@ -61,6 +68,7 @@ const DiscoverLocation = ({
           className="mt-2 p-2 border rounded w-full"
         />
       </div>
+
       {/* City */}
       <div>
         <label className="block font-medium mb-1">🏩 City</label>
@@ -70,9 +78,9 @@ const DiscoverLocation = ({
           disabled={!region}
           className="p-2 border rounded w-full"
         >
-          <option value="">Select city</option>
-          {cityOptions.map(c => (
-            <option key={c} value={c}>{c}</option>
+          <option value="">{/* “All” */}All cities</option>
+          {cityOptions.map(ct => (
+            <option key={ct} value={ct}>{ct}</option>
           ))}
         </select>
         <input
@@ -88,18 +96,18 @@ const DiscoverLocation = ({
 };
 
 DiscoverLocation.propTypes = {
-  country: PropTypes.string.isRequired,
-  setCountry: PropTypes.func.isRequired,
-  region: PropTypes.string.isRequired,
-  setRegion: PropTypes.func.isRequired,
-  city: PropTypes.string.isRequired,
-  setCity: PropTypes.func.isRequired,
-  customCountry: PropTypes.string.isRequired,
-  setCustomCountry: PropTypes.func.isRequired,
-  customRegion: PropTypes.string.isRequired,
-  setCustomRegion: PropTypes.func.isRequired,
-  customCity: PropTypes.string.isRequired,
-  setCustomCity: PropTypes.func.isRequired,
+  country:           PropTypes.string.isRequired,
+  setCountry:        PropTypes.func.isRequired,
+  region:            PropTypes.string.isRequired,
+  setRegion:         PropTypes.func.isRequired,
+  city:              PropTypes.string.isRequired,
+  setCity:           PropTypes.func.isRequired,
+  customCountry:     PropTypes.string.isRequired,
+  setCustomCountry:  PropTypes.func.isRequired,
+  customRegion:      PropTypes.string.isRequired,
+  setCustomRegion:   PropTypes.func.isRequired,
+  customCity:        PropTypes.string.isRequired,
+  setCustomCity:     PropTypes.func.isRequired,
 };
 
 export default DiscoverLocation;
