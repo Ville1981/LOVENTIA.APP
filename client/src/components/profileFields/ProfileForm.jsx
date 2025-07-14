@@ -1,12 +1,7 @@
+
 // src/components/profileFields/ProfileForm.jsx
-import React, {
-  useState,
-  useEffect,
-  useRef,
-  useMemo,
-} from "react";
-import { Link } from "react-router-dom";
-import axios from "axios";
+
+import React, { useState, useEffect, useMemo } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -25,12 +20,54 @@ import { BACKEND_BASE_URL } from "../../config";
 // =============================================
 // Validation schema
 // =============================================
+const professionCategories = [
+  "Administration",
+  "Finance",
+  "Military",
+  "Technical",
+  "Healthcare",
+  "Education",
+  "Entrepreneur",
+  "Law",
+  "Farmer/Forest worker",
+  "Theologian/Priest",
+  "Service",
+  "Artist",
+  "DivineServant",
+  "Homeparent",
+  "FoodIndustry",
+  "Retail",
+  "Arts",
+  "Government",
+  "Retired",
+  "Athlete",
+  "Other",
+];
+
+const dietOptions = [
+  "none",
+  "omnivore",
+  "vegetarian",
+  "vegan",
+  "pescatarian",
+  "flexitarian",
+  "keto",
+  "other",
+];
+
 const schema = yup.object().shape({
-  username: yup.string().required("Required field"),
-  email: yup.string().email("Invalid email address").required("Required field"),
-  age: yup.number().typeError("Age must be a number").required("Required field"),
-  gender: yup.string().required("Required field"),
-  orientation: yup.string().required("Required field"),
+  // required fields
+  username: yup.string().required("Required"),
+  email: yup.string().email("Invalid email").required("Required"),
+  age: yup
+    .number()
+    .typeError("Age must be a number")
+    .min(18, "Must be at least 18")
+    .required("Required"),
+  gender: yup.string().required("Required"),
+  orientation: yup.string().required("Required"),
+
+  // optional text fields
   country: yup.string(),
   region: yup.string(),
   city: yup.string(),
@@ -38,7 +75,14 @@ const schema = yup.object().shape({
   customRegion: yup.string(),
   customCity: yup.string(),
   education: yup.string(),
-  profession: yup.string(),
+
+  // profession category must match front-end options
+  professionCategory: yup
+    .string()
+    .oneOf(["", ...professionCategories], "Invalid profession category"),
+  profession: yup.string().required("Required"),
+
+  // other optional selects
   religion: yup.string(),
   religionImportance: yup.string(),
   children: yup.string(),
@@ -46,32 +90,33 @@ const schema = yup.object().shape({
   smoke: yup.string(),
   drink: yup.string(),
   drugs: yup.string(),
-  height: yup
-    .number()
-    .nullable()
-    .transform((v, ov) => (ov === "" ? null : v)),
-  weight: yup
-    .number()
-    .nullable()
-    .transform((v, ov) => (ov === "" ? null : v)),
+
+  // numeric with empty string transform
+  height: yup.number().nullable().transform((v, o) => (o === "" ? null : v)),
+  heightUnit: yup.string().oneOf(["", "Cm", "FtIn"], "Invalid unit"),
+  weight: yup.number().nullable().transform((v, o) => (o === "" ? null : v)),
+
   bodyType: yup.string(),
   activityLevel: yup.string(),
-  nutritionPreferences: yup.array().of(yup.string()),
+
+  nutritionPreferences: yup
+    .string()
+    .oneOf(["", ...dietOptions], "Invalid diet"),
   healthInfo: yup.string(),
+
+  // free text
   summary: yup.string(),
   goal: yup.string(),
   lookingFor: yup.string(),
-  latitude: yup
-    .number()
-    .nullable()
-    .transform((v, ov) => (ov === "" ? null : v)),
-  longitude: yup
-    .number()
-    .nullable()
-    .transform((v, ov) => (ov === "" ? null : v)),
+
+  // coordinates
+  latitude: yup.number().nullable().transform((v, o) => (o === "" ? null : v)),
+  longitude: yup.number().nullable().transform((v, o) => (o === "" ? null : v)),
+
+  extraImages: yup.array().of(yup.string()),
 });
 
-const ProfileForm = ({
+export default function ProfileForm({
   userId,
   user,
   isPremium,
@@ -82,8 +127,7 @@ const ProfileForm = ({
   onSubmit: onSubmitProp,
   hideAvatarSection = false,
   hidePhotoSection = false,
-}) => {
-  // React Hook Form setup
+}) {
   const methods = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
@@ -99,6 +143,7 @@ const ProfileForm = ({
       customRegion: user.customRegion || "",
       customCity: user.customCity || "",
       education: user.education || "",
+      professionCategory: user.professionCategory || "",
       profession: user.profession || "",
       religion: user.religion || "",
       religionImportance: user.religionImportance || "",
@@ -108,10 +153,13 @@ const ProfileForm = ({
       drink: user.drink || "",
       drugs: user.drugs || "",
       height: user.height ?? null,
+      heightUnit: user.heightUnit || "",
       weight: user.weight ?? null,
       bodyType: user.bodyType || "",
       activityLevel: user.activityLevel || "",
-      nutritionPreferences: user.nutritionPreferences || [],
+      nutritionPreferences: Array.isArray(user.nutritionPreferences)
+        ? user.nutritionPreferences[0]
+        : user.nutritionPreferences || "",
       healthInfo: user.healthInfo || "",
       summary: user.summary || "",
       goal: user.goal || "",
@@ -129,15 +177,13 @@ const ProfileForm = ({
     getValues,
   } = methods;
 
-  // reset on user change
+  // sync updates
   useEffect(() => {
     reset({ ...getValues(), ...user, extraImages: user.extraImages || [] });
   }, [user, reset, getValues]);
 
-  // Local state: extra images & avatar
-  const [localExtraImages, setLocalExtraImages] = useState(
-    user.extraImages || []
-  );
+  // avatar and extra images
+  const [localExtraImages, setLocalExtraImages] = useState(user.extraImages || []);
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(
     user.profilePicture
@@ -149,13 +195,13 @@ const ProfileForm = ({
   const [avatarError, setAvatarError] = useState(null);
 
   useEffect(() => {
-    setAvatarPreview(
-      user.profilePicture
-        ? user.profilePicture.startsWith("http")
+    if (user.profilePicture) {
+      setAvatarPreview(
+        user.profilePicture.startsWith("http")
           ? user.profilePicture
           : `${BACKEND_BASE_URL}${user.profilePicture}`
-        : null
-    );
+      );
+    }
   }, [user.profilePicture]);
 
   const handleAvatarChange = (e) => {
@@ -168,219 +214,133 @@ const ProfileForm = ({
     }
   };
 
-  const handleAvatarSubmit = async (e) => {
-    e.preventDefault();
+  const handleAvatarSubmit = async () => {
     if (!avatarFile || !userId) return;
     try {
-      const updatedUser = await uploadAvatar(userId, avatarFile);
-      onUserUpdate(updatedUser);
+      const updated = await uploadAvatar(userId, avatarFile);
+      onUserUpdate(updated);
     } catch (err) {
-      setAvatarError(err.message || t("profile.avatarUploadFailed"));
+      setAvatarError(err.message || t("profile.uploadAvatarFailed"));
     }
   };
 
   const onFormSubmit = async (data) => {
-    const payload = { ...data, extraImages: localExtraImages };
-    try {
-      await onSubmitProp(payload);
-      alert("Profile saved successfully!");
-    } catch {
-      alert("Failed to save profile. Please try again.");
-    }
+    const payload = {
+      ...data,
+      nutritionPreferences: data.nutritionPreferences ? [data.nutritionPreferences] : [],
+      extraImages: localExtraImages,
+    };
+    await onSubmitProp(payload);
   };
-
-  // Carousel logic
-  const [slideIndex, setSlideIndex] = useState(0);
-  const intervalRef = useRef(null);
 
   const slideshowImages = useMemo(() => {
     const arr = [];
     if (avatarPreview) arr.push(avatarPreview);
     localExtraImages.forEach((src) => {
-      const full =
+      arr.push(
         typeof src === "string" && !src.startsWith("http")
           ? `${BACKEND_BASE_URL}${src}`
-          : src;
-      arr.push(full);
+          : src
+      );
     });
     return arr;
   }, [avatarPreview, localExtraImages]);
 
-  const startSlideshow = () => {
-    clearInterval(intervalRef.current);
-    if (slideshowImages.length < 2) return;
-    intervalRef.current = setInterval(
-      () => setSlideIndex((i) => (i + 1) % slideshowImages.length),
-      3000
-    );
-  };
-  const stopSlideshow = () => {
-    clearInterval(intervalRef.current);
-    setSlideIndex(0);
-  };
+  const [slideIndex, setSlideIndex] = useState(0);
   useEffect(() => {
-    return () => clearInterval(intervalRef.current);
-  }, []);
-    return (
-    <FormProvider {...methods}>
-      <form
-        data-cy="ProfileForm__form"
-        onSubmit={handleSubmit(onFormSubmit)}
-        className="bg-white shadow rounded-lg p-6 space-y-6"
-      >
-        {/* Avatar-osio */}
-        {!hideAvatarSection && (
-          <div className="flex flex-col items-center space-y-6">
-            <div
-              className="relative inline-block w-64 h-64 rounded-full overflow-hidden border-4 border-blue-500 mx-auto cursor-pointer"
-              onMouseEnter={startSlideshow}
-              onMouseLeave={stopSlideshow}
-            >
-              <img
-                data-cy="ProfileForm__avatarPreview"
-                src={slideshowImages[slideIndex]}
-                alt="Profile"
-                className="w-full h-full object-cover object-center"
-                onError={(e) =>
-                  (e.currentTarget.src = "/placeholder-avatar-male.png")
-                }
-              />
-              <Link
-                to="/profile/photos"
-                className="absolute inset-0 flex items-center justify-center bg-blue-600 bg-opacity-90 px-6 py-2 text-white text-lg font-semibold rounded"
-                aria-label="Manage Photos"
-              >
-                ADD
-              </Link>
-            </div>
+    const iv = setInterval(() => {
+      if (slideshowImages.length > 1) {
+        setSlideIndex((i) => (i + 1) % slideshowImages.length);
+      }
+    }, 3000);
+    return () => clearInterval(iv);
+  }, [slideshowImages]);
 
-            <div className="flex space-x-4">
-              <label className="px-4 py-2 bg-green-600 text-white rounded cursor-pointer hover:bg-green-700">
-                Add Avatar
-                <input
-                  data-cy="ProfileForm__avatarInput"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAvatarChange}
-                  className="hidden"
-                />
+  return (
+    <FormProvider {...methods}>
+      <form onSubmit={handleSubmit(onFormSubmit)} className="bg-white shadow rounded-lg p-6 space-y-6" data-cy="ProfileForm__form">
+        {/* Avatar carousel */}
+        {!hideAvatarSection && slideshowImages.length > 0 && (
+          <div className="flex flex-col items-center space-y-4">
+            <img
+              src={slideshowImages[slideIndex]}
+              alt={`Avatar ${slideIndex + 1}`}
+              className="w-32 h-32 rounded-full object-cover cursor-pointer"
+              onMouseEnter={() => setSlideIndex((i) => (i + 1) % slideshowImages.length)}
+            />
+            <div className="flex items-center space-x-2">
+              <label htmlFor="avatar-input" className="px-4 py-2 bg-gray-200 border rounded cursor-pointer">
+                {avatarFile ? avatarFile.name : t("profile.browse")}
               </label>
-              <button
-                data-cy="ProfileForm__avatarSaveButton"
-                type="button"
-                onClick={handleAvatarSubmit}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-              >
-                🎨 Save changes
-              </button>
+              <input id="avatar-input" type="file" className="hidden" onChange={handleAvatarChange} />
+              <span className="text-sm text-gray-500">
+                {avatarFile ? "" : t("profile.noFileChosen")}
+              </span>
             </div>
+            <button type="button" onClick={handleAvatarSubmit} className="px-4 py-2 bg-blue-600 text-white rounded">
+              {t("profile.uploadAvatar")}
+            </button>
             {avatarError && <p className="text-red-600">{avatarError}</p>}
           </div>
         )}
 
-        {/* Muut lomakekentät */}
+        {/* Basic Info */}
         <FormBasicInfo t={t} errors={errors} />
-        <FormLocation
-          t={t}
-          errors={errors}
-          countryFieldName="country"
-          regionFieldName="region"
-          cityFieldName="city"
-          customCountryFieldName="customCountry"
-          customRegionFieldName="customRegion"
-          customCityFieldName="customCity"
-          includeAllOption={true}
-        />
-        <FormEducation t={t} errors={errors} />
+        {/* Location */}
+        <FormLocation t={t} errors={errors} countryFieldName="country" regionFieldName="region" cityFieldName="city" customCountryFieldName="customCountry" customRegionFieldName="customRegion" customCityFieldName="customCity" />
+        {/* Education */}
+        <FormEducation t={t} />
+        {/* Profession + Religion */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">{t("profile.professionCategory")}</label>
+            <select {...methods.register("professionCategory")} className="w-full border rounded px-3 py-2 text-sm">
+              <option value="">{t("common.select")}</option>
+              {professionCategories.map((opt) => (
+                <option key={opt} value={opt}>{t(`profile.professionCategory.${opt}`) || opt}</option>
+              ))}
+            </select>
+            {errors.professionCategory && <p className="mt-1 text-red-600">{errors.professionCategory.message}</p>}
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">💼 {t("profile.profession")}</label>
+            <input type="text" {...methods.register("profession")} className="w-full border rounded px-3 py-2 text-sm" placeholder={t("profile.professionPlaceholder")} />
+            {errors.profession && <p className="mt-1 text-red-600">{errors.profession.message}</p>}
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">🕊 {t("profile.religion")}</label>
+            <select {...methods.register("religion")} className="w-full border rounded px-3 py-2 text-sm">
+              <option value="">{t("common.select")}</option>
+              <option value="Christianity">{t("religion.christianity")}</option>
+              <option value="Islam">{t("religion.islam")}</option>
+              <option value="Hinduism">{t("religion.hinduism")}</option>
+              <option value="Buddhism">{t("religion.buddhism")}</option>
+              <option value="Folk">{t("religion.folk")}</option>
+              <option value="None">{t("religion.none")}</option>
+              <option value="Other">{t("common.other")}</option>
+            </select>
+            {errors.religion && <p className="mt-1 text-red-600">{errors.religion.message}</p>}
+          </div>
+        </div>
+        {/* Children & Pets */}
         <FormChildrenPets t={t} errors={errors} />
-        <FormLifestyle t={t} errors={errors} />
+        {/* Lifestyle */}
+        <FormLifestyle t={t} includeAllOption />
+        {/* Goal & Summary */}
         <FormGoalSummary t={t} errors={errors} />
+        {/* Looking For */}
         <FormLookingFor t={t} errors={errors} />
-
-        {/* Extra-kuvien uploader */}
-        {!hidePhotoSection && userId && (
-          <MultiStepPhotoUploader
-            data-cy="ProfileForm__photoUploader"
-            userId={userId}
-            isPremium={isPremium}
-            extraImages={localExtraImages}
-            onSuccess={(res) => {
-              const newImgs = res.extraImages || [];
-              setLocalExtraImages(newImgs);
-              onUserUpdate({ ...user, extraImages: newImgs });
-            }}
-            onError={(err) => console.error("Photo uploader error:", err)}
-          />
-        )}
-
-        {/* Save & Delete */}
-        <button
-          data-cy="ProfileForm__saveButton"
-          type="submit"
-          className="w-full px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-        >
-          💾 Save changes
-        </button>
-        <button
-          data-cy="ProfileForm__deleteButton"
-          type="button"
-          className="w-full mt-4 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-          onClick={async () => {
-            if (!window.confirm(t("profile.confirmDelete"))) return;
-            try {
-              const token = localStorage.getItem("token");
-              await axios.delete(`${BACKEND_BASE_URL}/api/users/profile`, {
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              window.location.href = "/";
-            } catch (err) {
-              console.error(err);
-              alert("Failed to delete account.");
-            }
-          }}
-        >
-          🗑️ {t("profile.deleteAccount")}
-        </button>
-
-        {/* Admin toggle */}
-        {user.isAdmin && (
-          <button
-            data-cy="ProfileForm__adminToggleButton"
-            type="button"
-            className="w-full mt-2 px-6 py-2 bg-yellow-500 text-black rounded-lg hover:bg-yellow-600"
-            onClick={async () => {
-              try {
-                const token = localStorage.getItem("token");
-                const res = await axios.put(
-                  `${BACKEND_BASE_URL}/api/users/admin/hide/${userId}`,
-                  {},
-                  { headers: { Authorization: `Bearer ${token}` } }
-                );
-                alert(res.data.message);
-              } catch {
-                alert("Failed to toggle visibility.");
-              }
-            }}
-          >
-            👁️ {user.hidden ? t("profile.unhideUser") : t("profile.hideUser")}
-          </button>
-        )}
-
-        {/* Inline‐viestit */}
-        {success ? (
-          <p className="text-center text-green-600">
-            Profile saved successfully!
-          </p>
-        ) : message ? (
-          <p className="text-center text-red-600">Error saving profile.</p>
-        ) : null}
+        {/* Photo Uploader */}
+        {!hidePhotoSection && userId && <MultiStepPhotoUploader data-cy="ProfileForm__photoUploader" userId={userId} isPremium={isPremium} extraImages={localExtraImages} onSuccess={(res) => { setLocalExtraImages(res.extraImages || []); onUserUpdate({ ...user, extraImages: res.extraImages || [] }); }} onError={(err) => console.error(err)} />}
+        {/* Save */}
+        <div className="flex justify-end"><button type="submit" className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700">{t("profile.save")}</button></div>
+        {/* Status */}
+        {success && <p className="text-center text-green-600">{t("profile.saveSuccess")}</p>}
+        {!success && message && <p className="text-center text-red-600">{message}</p>}
       </form>
     </FormProvider>
   );
-};
-
-export default ProfileForm;
-
+}
 
 
 

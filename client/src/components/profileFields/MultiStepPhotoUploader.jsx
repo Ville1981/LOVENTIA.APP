@@ -1,8 +1,8 @@
-// src/components/profileFields/MultiStepPhotoUploader.jsx
 import React, { useState, useRef, useCallback, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import Cropper from 'react-easy-crop'
 import 'react-easy-crop/react-easy-crop.css'
+import { useTranslation } from 'react-i18next'
 import { uploadPhotoStep, deletePhotoSlot, uploadPhotos } from '../../api/images'
 import { BACKEND_BASE_URL, PLACEHOLDER_IMAGE } from '../../config'
 
@@ -13,6 +13,7 @@ export default function MultiStepPhotoUploader({
   onSuccess = () => {},
   onError = () => {},
 }) {
+  const { t } = useTranslation()
   const maxSlots = isPremium ? 20 : 6
 
   const [step, setStep] = useState(1)
@@ -30,7 +31,7 @@ export default function MultiStepPhotoUploader({
   const fileInputRef = useRef(null)
   const bulkInputRef = useRef(null)
 
-  // Synkronoi localImages aina, kun extraImages-prop muuttuu
+  // Sync images when prop changes
   useEffect(() => {
     const padded = Array.from(
       { length: maxSlots },
@@ -83,7 +84,6 @@ export default function MultiStepPhotoUploader({
       form.append('cropHeight', croppedAreaPixels.height.toString())
       if (caption) form.append('caption', caption)
 
-      // Upload a single photo step
       const { extraImages: images } = await uploadPhotoStep(userId, form)
       const padded = Array.from(
         { length: maxSlots },
@@ -145,12 +145,13 @@ export default function MultiStepPhotoUploader({
 
   return (
     <div>
+      {/* Bulk upload */}
       <div className="mb-4 flex items-center space-x-2">
         <label
           htmlFor="bulk-input"
-          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 cursor-pointer"
+          className="px-4 py-2 bg-gray-200 border rounded cursor-pointer"
         >
-          Add photos
+          {t("profile.browse")}
         </label>
         <input
           id="bulk-input"
@@ -161,24 +162,28 @@ export default function MultiStepPhotoUploader({
           onChange={handleBulkChange}
           className="hidden"
         />
+        <span className="text-sm text-gray-500">
+          {bulkFiles.length > 0 ? "" : t("profile.noFileChosen")}
+        </span>
         <button
           type="button"
           disabled={!bulkFiles.length}
           onClick={handleBulkUpload}
           className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
         >
-          Save extra photos
+          {t("profile.saveExtraPhotos")}
         </button>
       </div>
-
+      {/* Single slot upload trigger */}
       <input
+        id="single-input"
         type="file"
         accept="image/*"
         ref={fileInputRef}
-        className="hidden"
         onChange={handleFileChange}
+        className="hidden"
       />
-
+      {/* Slot grid */}
       <div className="grid grid-cols-3 gap-4 mt-4">
         {localImages.map((src, i) => (
           <div key={i} className="flex flex-col items-center">
@@ -189,9 +194,7 @@ export default function MultiStepPhotoUploader({
               {src ? (
                 <img
                   src={
-                    src.startsWith('http')
-                      ? src
-                      : `${BACKEND_BASE_URL}${src}`
+                    src.startsWith('http') ? src : `${BACKEND_BASE_URL}${src}`
                   }
                   alt={`Slot ${i + 1}`}
                   className="object-cover w-full h-full"
@@ -207,17 +210,51 @@ export default function MultiStepPhotoUploader({
                 onClick={() => handleDelete(i)}
                 className="mt-2 text-sm text-red-600 hover:underline"
               >
-                Remove picture
+                {t("profile.removePicture")}
               </button>
             )}
           </div>
         ))}
       </div>
-
+      {/* Cropping modal */}
       {step > 1 && selectedFile && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg w-96">
-            {/* ...crop UI sekä back/next/submit-napit */}
+            <Cropper
+              image={URL.createObjectURL(selectedFile)}
+              crop={crop}
+              zoom={zoom}
+              aspect={1}
+              onCropChange={setCrop}
+              onZoomChange={setZoom}
+              onCropComplete={onCropComplete}
+            />
+            <textarea
+              placeholder={t("profile.addCaption")}
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              className="w-full border rounded mt-4 p-2 text-sm"
+            />
+            <div className="flex justify-between mt-4">
+              <button
+                onClick={handleBack}
+                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+              >
+                {t("common.back")}
+              </button>
+              <button
+                onClick={handleNext}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                {t("common.next")}
+              </button>
+            </div>
+            <button
+              onClick={handleSubmit}
+              className="mt-4 w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+            >
+              {t("profile.saveCropped")}
+            </button>
           </div>
         </div>
       )}

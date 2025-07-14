@@ -29,9 +29,7 @@ const UserProfile = () => {
     const fetchUser = async () => {
       try {
         // GET /users/me tai /users/:userId
-        const apiPath = userIdParam
-          ? `/users/${userIdParam}`
-          : "/users/me";
+        const apiPath = userIdParam ? `/users/${userIdParam}` : "/users/me";
         const res = await api.get(apiPath);
         const u = res.data.user || res.data;
         setUser(u);

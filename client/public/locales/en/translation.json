@@ -53,6 +53,12 @@
 
   "profile": {
     "username": "Username",
+    "noFileChosen": "No file chosen",
+    "browse": "Browse…",
+    "saveExtraPhotos": "Save extra photos",
+    "removePicture": "Remove picture",
+    "addCaption": "Add a caption…",
+    "saveCropped": "Save photo",
     "location": "Location",
     "interests": "Interests",
     "images": "Additional images",
@@ -83,29 +89,20 @@
     "upperUni": "Higher university degree",
     "phd": "Doctorate (PhD)",
     "profession": "Profession",
+    "professionPlaceholder": "Enter your profession…",
+    "professionCategory": "Profession category",
+    "categories": {
+      "Technical": "Technical",
+      "Healthcare": "Healthcare",
+      "Education": "Education",
+      "Entrepreneur": "Entrepreneur",
+      "Other": "Other"
+    },
+    "religion": "Religion or values",
     "religionImportance": "How important is your religion?",
     "notImportant": "Not important",
     "somewhatImportant": "Somewhat important",
     "veryImportant": "Very important",
-    "about": "About me",
-    "goals": "Goals / wishes",
-    "searchingFor": "What are you looking for?",
-    "mainImage": "Main profile image",
-    "saveChanges": "Save changes",
-    "deleteAccount": "Delete account",
-    "saved": "✅ Profile updated!",
-    "fetchError": "❌ Failed to load profile.",
-    "updateError": "❌ Failed to update profile.",
-    "confirmDelete": "Are you sure you want to permanently delete your account?",
-    "premiumMember": "You are a premium member 🎉",
-    "title": "Profile",
-    "name": "Name",
-    "email": "Email",
-    "age": "Age",
-    "height": "Height (cm)",
-    "weight": "Weight (kg)",
-    "status": "Relationship status",
-    "religion": "Religion or values",
     "children": "Do you have children?",
     "pets": "Do you have pets?",
     "lookingFor": "What are you looking for?",
@@ -113,12 +110,24 @@
     "goal": "Goals / aspirations",
     "profilePicture": "Profile Picture",
     "extraImages": "Extra Images (max 6)",
+    "height": "Height",
+    "heightUnit": "Height unit",
+    "weight": "Weight",
+    "weightUnit": "Weight unit",
+    "bodyType": "Body type",
+    "bodyType.thin": "Thin",
+    "bodyType.normal": "Normal",
+    "bodyType.athletic": "Athletic",
+    "bodyType.overweight": "Overweight",
+    "bodyType.obese": "Obese",
+    "status": "Relationship status",
     "save": "Save changes",
     "delete": "Delete account",
-    "saveSuccess": "✅ Profile updated successfully!"
+    "saveSuccess": "✅ Profile updated successfully!",
+    "deleteAccount": "Delete account",
+    "confirmDelete": "Are you sure you want to permanently delete your account?"
   },
-
-  "hero": {
+    "hero": {
     "0": "Find love that lasts.",
     "1": "Meet people who share your values.",
     "2": "Your next match is one click away."
@@ -157,7 +166,7 @@
     "superlike": "Superlike",
     "viewProfile": "View profile",
     "premium": "Premium user",
-    "noResults": "Ei hakutuloksia",
+    "noResults": "No results",
     "minAge": "Minimum age",
     "maxAge": "Maximum age",
     "instructions": "Select filter criteria to find matching profiles.",
@@ -167,7 +176,6 @@
   "common": {
     "select": "Select",
     "filter": "Filter"
-    
   },
 
   "chat": {
@@ -251,17 +259,14 @@
   },
 
   "lifestyle": {
-  "title": "Lifestyle",
-  "smoke": "Smoking",
-  "drink": "Alcohol",
-  "drugs": "Drugs",
-  "no": "None",
-  "little": "A little",
-  "average": "Average",
-  "much": "A lot",
-  "sober": "Free from addiction"
-}
-
-
-
+    "title": "Lifestyle",
+    "smoke": "Smoking",
+    "drink": "Alcohol",
+    "drugs": "Drugs",
+    "no": "None",
+    "little": "A little",
+    "average": "Average",
+    "much": "A lot",
+    "sober": "Free from addiction"
+  }
 }

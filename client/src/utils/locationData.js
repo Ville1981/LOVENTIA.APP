@@ -17,7 +17,7 @@ export const countryRegions = {
   "Czech Republic": ["Prague", "Brno", "Ostrava", "Pilsen"],
   "Denmark": ["Capital Region", "Central Denmark", "Southern Denmark", "North Denmark"],
   "Egypt": ["Cairo", "Alexandria", "Giza", "Luxor", "Aswan"],
-  "Finland": ["Uusimaa", "Pirkanmaa", "Southwest Finland", "East Finland", "Lapland", "Ostrobothnia", "Kymenlaakso", "Päijät-Häme", "South Karelia"],
+  "Finland": ["Uusimaa", "Pirkanmaa", "Southwest Finland", "East Finland and Savo", "North Karelia", "Lapland", "Ostrobothnia", "Kymenlaakso", "Päijät-Häme", "South Karelia"],
   "France": ["Île-de-France", "Provence", "Alsace", "Normandy", "Brittany", "Pays de la Loire", "Nouvelle-Aquitaine", "Occitanie"],
   "Germany": ["Bavaria", "Berlin", "North Rhine-Westphalia", "Hesse", "Saxony", "Brandenburg", "Baden-Württemberg", "Hamburg"],
   "Greece": ["Attica", "Central Macedonia", "Crete", "West Greece", "Thessaly"],
@@ -380,14 +380,15 @@ export const regionCities = {
     "Dammam": ["Dammam", "Al Khobar", "Dhahran", "Qatif"]
   },
   "Finland": {
-    "Uusimaa": ["Helsinki", "Espoo", "Vantaa", "Porvoo"],
+    "Uusimaa": ["Helsinki", "Espoo", "Vantaa", "Porvoo", "Mäntsälä", "Järvenpää", "Kerava", "Tuusula"],
     "Pirkanmaa": ["Tampere", "Nokia", "Ylöjärvi", "Kangasala"],
     "Southwest Finland": ["Turku", "Salo", "Kaarina", "Raisio"],
-    "East Finland": ["Kuopio", "Varkaus", "Siilinjärvi", "Pieksämäki", "Joensuu"],
+    "East Finland and Savo": ["Kuopio", "Varkaus", "Siilinjärvi", "Pieksämäki", "Mikkeli"],
     "Lapland": ["Rovaniemi", "Kemi", "Tornio", "Sodankylä"],
     "Ostrobothnia": ["Vaasa", "Seinäjoki", "Kokkola", "Pietarsaari"],
     "Kymenlaakso": ["Kotka", "Kouvola", "Hamina", "Miehikkälä"],
     "Päijät-Häme": ["Lahti", "Hollola", "Heinola", "Orimattila"],
+    "North Karelia": ["Joensuu", "Kitee", "Nurmes", "Lieksa", "Outokumpu"],
     "South Karelia": ["Lappeenranta", "Imatra", "Ruokolahti", "Parikkala"]
     
   },

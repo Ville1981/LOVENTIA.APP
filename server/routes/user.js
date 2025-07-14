@@ -1,3 +1,5 @@
+// routes/userRoutes.js
+
 const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
@@ -16,7 +18,7 @@ const path = require("path");
 const fs = require("fs");
 const { body, validationResult } = require("express-validator");
 
-// 🔐 Middleware: varmista tokenin aitous
+// 🔐 Middleware: ensure token validity
 function authenticateToken(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -35,10 +37,11 @@ function authenticateToken(req, res, next) {
 // 🎯 JSON-body parser
 router.use(express.json());
 
-// 🔧 Multer storage + tiedostonpoisto
+// 🔧 Multer storage + file removal helper
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "uploads/"),
-  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),
+  filename: (req, file, cb) =>
+    cb(null, Date.now() + path.extname(file.originalname)),
 });
 const upload = multer({ storage });
 
@@ -49,47 +52,8 @@ function removeFile(filePath) {
 }
 
 // =====================
-// ✅ Rekisteröinti / login
+// ✅ Profile update with validation
 // =====================
-router.post("/register", registerUser);
-router.post("/login", loginUser);
-
-// =====================
-// ✅ Hae oma profiili
-// =====================
-router.get("/me", authenticateToken, async (req, res) => {
-  try {
-    const user = await User.findById(req.userId).select("-password");
-    res.json(user);
-  } catch {
-    res.status(401).json({ error: "Invalid token" });
-  }
-});
-
-// =====================
-// ✅ Profiilin päivitys with validation
-// =====================
-const profileValidation = [
-  authenticateToken,
-  body('username').optional().notEmpty().withMessage('Username is required'),
-  body('email').optional().isEmail().withMessage('Invalid email'),
-  body('age').optional().isInt({ min: 18 }).withMessage('Age must be at least 18'),
-  body('gender').optional().notEmpty().withMessage('Gender is required'),
-  body('orientation').optional().notEmpty().withMessage('Orientation is required'),
-  body('height').optional().isNumeric().withMessage('Height must be a number'),
-  body('weight').optional().isNumeric().withMessage('Weight must be a number'),
-  body('latitude').optional().isFloat({ min: -90, max: 90 }).withMessage('Invalid latitude'),
-  body('longitude').optional().isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude'),
-  body('nutritionPreferences').optional().isArray().withMessage('Nutrition preferences must be an array'),
-  (req, res, next) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-    next();
-  }
-];
-
 router.put(
   "/profile",
   authenticateToken,
@@ -97,49 +61,107 @@ router.put(
     { name: "profilePhoto", maxCount: 1 },
     { name: "extraImages", maxCount: 20 },
   ]),
-  profileValidation,
+  [
+    body('username').optional().notEmpty().withMessage('Username is required'),
+    body('email').optional().isEmail().withMessage('Invalid email'),
+    body('age').optional().isInt({ min: 18 }).withMessage('Age must be at least 18'),
+    body('gender').optional().notEmpty().withMessage('Gender is required'),
+    body('orientation').optional().notEmpty().withMessage('Orientation is required'),
+    body('height').optional().isNumeric().withMessage('Height must be a number'),
+    body('weight').optional().isNumeric().withMessage('Weight must be a number'),
+    body('latitude').optional().isFloat({ min: -90, max: 90 }).withMessage('Invalid latitude'),
+    body('longitude').optional().isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude'),
+    body('professionCategory')
+      .optional({ checkFalsy: true })
+      .isIn([
+        '',
+        'Administration',
+        'Finance',
+        'Military',
+        'Technical',
+        'Healthcare',
+        'Education',
+        'Entrepreneur',
+        'Law',
+        'Farmer/Forest worker',
+        'Theologian/Priest',
+        'Service',
+        'Artist',
+        'DivineServant',
+        'Homeparent',
+        'Service',
+        'FoodIndustry',
+        'Retail',
+        'Arts',
+        'Government',
+        'Retired',
+        'Athlete',
+        'Other',
+      ])
+      .withMessage('Invalid profession category'),
+    body('nutritionPreferences')
+      .optional()
+      .isArray().withMessage('Nutrition preferences must be an array'),
+  ],
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    next();
+  },
   async (req, res) => {
     try {
       const user = await User.findById(req.userId);
       if (!user) return res.status(404).json({ error: "User not found" });
 
-      // Lista kaikista päivitettävistä kentistä
+      // Fields to update
       const fields = [
         "username", "email", "age", "gender", "orientation",
         "education", "height", "weight", "status", "religion",
         "religionImportance", "children", "pets", "summary", "goal",
-        "lookingFor", "profession", "location", "country", "region",
-        "city", "latitude", "longitude",
+        "lookingFor", "profession", "professionCategory",
+        "heightUnit",
+        "country", "region", "city",
+        "latitude", "longitude",
         "smoke", "drink", "drugs",
         "bodyType", "activityLevel",
         "nutritionPreferences", "healthInfo",
         "interests", "preferredGender", "preferredMinAge",
         "preferredMaxAge", "preferredInterests", "preferredCountry",
         "preferredReligion", "preferredReligionImportance",
-        "preferredEducation", "preferredProfession"
+        "preferredEducation", "preferredProfession", "preferredChildren"
       ];
 
       fields.forEach((field) => {
         if (req.body[field] !== undefined) {
-          if (["interests", "preferredInterests", "nutritionPreferences"].includes(field)) {
+          if (["interests", "preferredInterests"].includes(field)) {
             user[field] = Array.isArray(req.body[field])
               ? req.body[field]
               : typeof req.body[field] === "string"
                 ? req.body[field].split(",").map((s) => s.trim())
                 : [];
+          } else if (field === "nutritionPreferences") {
+            if (Array.isArray(req.body[field])) {
+              user[field] = req.body[field];
+            } else if (typeof req.body[field] === "string") {
+              user[field] = [req.body[field]];
+            } else {
+              user[field] = [];
+            }
           } else {
             user[field] = req.body[field];
           }
         }
       });
 
-      // Profiilikuva
+      // Profile picture
       if (req.files?.profilePhoto?.length) {
         removeFile(user.profilePicture);
         user.profilePicture = req.files.profilePhoto[0].path;
       }
 
-      // Lisäkuvat
+      // Extra images
       if (req.files?.extraImages?.length) {
         (user.extraImages || []).forEach(removeFile);
         user.extraImages = req.files.extraImages.map((f) => f.path);
@@ -149,13 +171,13 @@ router.put(
       res.json(updated);
     } catch (err) {
       console.error("Profile update error:", err);
-      res.status(500).json({ error: "Profile update failed" });
+      res.status(500).json({ error: "Profile update failed", details: err.message });
     }
   }
 );
 
 // =====================
-// ✅ Profiili ID:llä
+// ✅ Public profile by ID
 // =====================
 router.get("/:id", async (req, res) => {
   try {
@@ -170,7 +192,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // =====================
-// ✅ Kaikki muut käyttäjät (kotiin, Discoveriin)
+// ✅ All other users (for home, discover)
 // =====================
 router.get("/users/all", authenticateToken, async (req, res) => {
   try {
@@ -183,9 +205,7 @@ router.get("/users/all", authenticateToken, async (req, res) => {
   }
 });
 
-// =====================
 // ❤️ Like
-// =====================
 router.post("/like/:id", authenticateToken, async (req, res) => {
   try {
     const current = await User.findById(req.userId);
@@ -200,9 +220,7 @@ router.post("/like/:id", authenticateToken, async (req, res) => {
   }
 });
 
-// =====================
 // 🌟 Superlike
-// =====================
 router.post("/superlike/:id", authenticateToken, async (req, res) => {
   try {
     const current = await User.findById(req.userId);
@@ -226,9 +244,7 @@ router.post("/superlike/:id", authenticateToken, async (req, res) => {
   }
 });
 
-// =====================
-// 🚫 Estä käyttäjä
-// =====================
+// 🚫 Block user
 router.post("/block/:id", authenticateToken, async (req, res) => {
   try {
     const me = await User.findById(req.userId);
@@ -245,14 +261,10 @@ router.post("/block/:id", authenticateToken, async (req, res) => {
   }
 });
 
-// =====================
-// 💎 Premium
-// =====================
+// 💎 Premium upgrade
 router.post("/upgrade-premium", authenticateToken, upgradeToPremium);
 
-// =====================
-// 👀 Kuka tykkäsi minusta
-// =====================
+// 👀 Who liked me
 router.get("/who-liked-me", authenticateToken, async (req, res) => {
   try {
     const me = await User.findById(req.userId);
@@ -266,9 +278,7 @@ router.get("/who-liked-me", authenticateToken, async (req, res) => {
   }
 });
 
-// =====================
-// 📍 Lähialueen käyttäjät (koordinaattien perusteella)
-// =====================
+// 📍 Nearby users (by coordinates)
 router.get("/nearby", authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.userId);
@@ -306,9 +316,7 @@ router.get("/nearby", authenticateToken, async (req, res) => {
   }
 });
 
-// =====================
-// 🖼 Kuvien käsittely
-// =====================
+// 🖼 Image handling
 router.post(
   "/:id/upload-avatar",
   authenticateToken,
@@ -355,36 +363,6 @@ router.delete(
 );
 
 module.exports = router;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

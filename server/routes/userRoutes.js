@@ -96,6 +96,14 @@ const profileValidation = [
   body('orientation').optional().notEmpty().withMessage('Orientation is required'),
   body('height').optional().isNumeric().withMessage('Height must be a number'),
   body('weight').optional().isNumeric().withMessage('Weight must be a number'),
+  body('heightUnit')
+    .optional({ checkFalsy: true })
+    .isIn(['Cm','FtIn'])
+    .withMessage('Invalid height unit'),
+  body('professionCategory')
+    .optional({ checkFalsy: true })
+    .isIn(['Technical','Healthcare','Education','Entrepreneur','Other'])
+    .withMessage('Invalid profession category'),
   body('latitude').optional().isFloat({ min: -90, max: 90 }).withMessage('Invalid latitude'),
   body('longitude').optional().isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude'),
   body('nutritionPreferences').optional().isArray().withMessage('Nutrition preferences must be an array'),
@@ -123,27 +131,29 @@ router.put(
 
       // Lista kaikista päivitettävistä kentistä
       const fields = [
-        "username", "email", "age", "gender", "orientation",
-        "education", "height", "weight", "status", "religion",
-        "religionImportance", "children", "pets", "summary", "goal",
-        "lookingFor", "profession", "location", "country", "region",
-        "city", "latitude", "longitude",
-        "smoke", "drink", "drugs",
-        "bodyType", "activityLevel",
-        "nutritionPreferences", "healthInfo",
-        "interests", "preferredGender", "preferredMinAge",
-        "preferredMaxAge", "preferredInterests", "preferredCountry",
-        "preferredReligion", "preferredReligionImportance",
-        "preferredEducation", "preferredProfession"
+        "username","email","age","gender","orientation",
+        "education","height","weight","status","religion",
+        "religionImportance","children","pets","summary","goal",
+        "lookingFor","profession",
+        "professionCategory","heightUnit",
+        "country","region","city",
+        "latitude","longitude",
+        "smoke","drink","drugs",
+        "bodyType","activityLevel",
+        "nutritionPreferences","healthInfo",
+        "interests","preferredGender","preferredMinAge",
+        "preferredMaxAge","preferredInterests","preferredCountry",
+        "preferredReligion","preferredReligionImportance",
+        "preferredEducation","preferredProfession"
       ];
 
       fields.forEach((field) => {
         if (req.body[field] !== undefined) {
-          if (["interests", "preferredInterests", "nutritionPreferences"].includes(field)) {
+          if (["interests","preferredInterests","nutritionPreferences"].includes(field)) {
             user[field] = Array.isArray(req.body[field])
               ? req.body[field]
               : typeof req.body[field] === "string"
-                ? req.body[field].split(",").map((s) => s.trim())
+                ? req.body[field].split(",").map(s => s.trim())
                 : [];
           } else {
             user[field] = req.body[field];
@@ -160,7 +170,7 @@ router.put(
       // Lisäkuvat handling
       if (req.files?.extraImages?.length) {
         (user.extraImages || []).forEach(removeFile);
-        user.extraImages = req.files.extraImages.map((f) => f.path);
+        user.extraImages = req.files.extraImages.map(f => f.path);
       }
 
       const updated = await user.save();
@@ -215,7 +225,7 @@ router.post("/superlike/:id", authenticateToken, async (req, res) => {
     const target = req.params.id;
     const now = new Date();
     current.superLikeTimestamps = (current.superLikeTimestamps || []).filter(
-      (ts) => now - new Date(ts) < 48 * 60 * 60 * 1000
+      ts => now - new Date(ts) < 48 * 60 * 60 * 1000
     );
     const limit = current.isPremium ? 3 : 1;
     if (current.superLikeTimestamps.length >= limit) {
@@ -285,13 +295,16 @@ router.get("/nearby", authenticateToken, async (req, res) => {
       return res.status(400).json({ error: "User location is missing" });
     }
     const allUsers = await User.find({ _id: { $ne: req.userId } }).select("-password");
-    const toRad = (deg) => (deg * Math.PI) / 180;
+    const toRad = deg => (deg * Math.PI) / 180;
     const earthRadius = 6371;
-    const nearby = allUsers.filter((u) => {
+    const nearby = allUsers.filter(u => {
       if (!u.latitude || !u.longitude) return false;
       const dLat = toRad(u.latitude - user.latitude);
       const dLon = toRad(u.longitude - user.longitude);
-      const a = Math.sin(dLat/2)**2 + Math.cos(toRad(user.latitude)) * Math.cos(toRad(u.latitude)) * Math.sin(dLon/2)**2;
+      const a = Math.sin(dLat/2)**2 +
+                Math.cos(toRad(user.latitude)) *
+                Math.cos(toRad(u.latitude)) *
+                Math.sin(dLon/2)**2;
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
       const d = earthRadius * c;
       return d <= 50;

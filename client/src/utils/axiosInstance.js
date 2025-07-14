@@ -18,36 +18,39 @@ export const setAccessToken = (token) => {
   }
 };
 
-// Määritetään Axios-instanssin baseURL siten,
-// että kaikki kutsut esim. "/auth/..." päätyvät "/api/auth/..."
+// Määritetään Axios-instanssin baseURL
 const baseURL = (() => {
   if (BACKEND_BASE_URL) {
-    // Fronttiin asetettu BACKEND_BASE_URL (VITE_BACKEND_URL) takaa, että päätepisteeksi tulee http://.../api
     return `${BACKEND_BASE_URL}/api`;
   }
-  // Muussa tapauksessa hyödynnä Vite-proxya (/api) tai suoraa /api-polku
+  // Vite-proxyn tai ympäristömuuttujan kautta
   return import.meta.env.VITE_API_URL || "/api";
 })();
 
 // Luo Axios-instanssi
 const api = axios.create({
   baseURL,
-  withCredentials: true, // lähettää ja vastaanottaa httpOnly-cookiet
+  withCredentials: true,
 });
 
-// --- Request interceptor: lisätään Authorization-header ---------------------------------
+// --- Request interceptor: lisätään Authorization-header ja Content-Type ----------------
 api.interceptors.request.use(
   (config) => {
+    // Lisätään Bearer-token
     const token = accessToken || localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    // Aseta Content-Type oletuksena JSON:ille, mutta FormData:lle annetaan axiosin hoitaa se
+    if (config.data && !(config.data instanceof FormData)) {
+      config.headers["Content-Type"] = "application/json";
     }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// --- Response interceptor: jos 401, yritä refresh ja uudelleenlähetä alkuperäinen pyyntö -----
+// --- Response interceptor: jos 401, yritä refresh ja uudelleenlähetä alkuperäinen pyyntö ----
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -60,18 +63,14 @@ api.interceptors.response.use(
     ) {
       originalRequest._retry = true;
       try {
-        // Kutsutaan refresh-endpointia samaan instanssiin
         const { data } = await api.post("/auth/refresh");
-
-        // Päivitetään token sekä closureen että localStorageen
         setAccessToken(data.accessToken);
-
-        // Lisää header ja toista alkuperäinen pyyntö
         originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
         return api(originalRequest);
       } catch (refreshError) {
-        console.error("🔄 Refresh token epäonnistui:", refreshError);
+        console.error("🔄 Refresh-token epäonnistui:", refreshError);
         setAccessToken(null);
+        // Uudelleenohjaa login-sivulle
         window.location.href = "/login";
         return Promise.reject(refreshError);
       }

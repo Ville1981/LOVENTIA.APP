@@ -81,7 +81,13 @@ const loginUser = async (req, res) => {
 
     return res.json({
       accessToken,
-      user: { id: user._id, username: user.username, email: user.email, isPremium: user.isPremium, role: user.role },
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        isPremium: user.isPremium,
+        role: user.role,
+      },
     });
   } catch (err) {
     console.error(`Login error: ${err.message}`);
@@ -114,27 +120,37 @@ const getMatchesWithScore = async (req, res) => {
       return res.status(404).json({ error: "Käyttäjää ei löydy" });
     }
 
-    const blockedByMe = Array.isArray(currentUser.blockedUsers) ? currentUser.blockedUsers : [];
-    const interests = Array.isArray(currentUser.preferredInterests) ? currentUser.preferredInterests : [];
+    const blockedByMe = Array.isArray(currentUser.blockedUsers)
+      ? currentUser.blockedUsers
+      : [];
+    const interests = Array.isArray(currentUser.preferredInterests)
+      ? currentUser.preferredInterests
+      : [];
 
     const allUsers = await User.find({ _id: { $ne: currentUser._id } });
     let matches = allUsers
-      .filter(u => {
+      .filter((u) => {
         const blockedThem = Array.isArray(u.blockedUsers) ? u.blockedUsers : [];
-        return !blockedByMe.includes(u._id) && !blockedThem.includes(currentUser._id);
+        return (
+          !blockedByMe.includes(u._id) && !blockedThem.includes(currentUser._id)
+        );
       })
-      .map(u => {
+      .map((u) => {
         let score = 0;
         if (
           currentUser.preferredGender === "any" ||
-          (u.gender && u.gender.toLowerCase() === currentUser.preferredGender?.toLowerCase())
-        ) score += 20;
+          (u.gender &&
+            u.gender.toLowerCase() ===
+              currentUser.preferredGender?.toLowerCase())
+        )
+          score += 20;
         if (
           u.age >= (currentUser.preferredMinAge || 18) &&
           u.age <= (currentUser.preferredMaxAge || 100)
-        ) score += 20;
+        )
+          score += 20;
         const userInterests = Array.isArray(u.interests) ? u.interests : [];
-        const common = interests.filter(i => userInterests.includes(i));
+        const common = interests.filter((i) => userInterests.includes(i));
         score += Math.min(common.length * 10, 60);
 
         return {
@@ -173,14 +189,18 @@ const uploadExtraPhotos = async (req, res) => {
       return res.status(400).json({ error: "Kuvia ei ladattu" });
     }
 
-    user.extraImages = Array.isArray(user.extraImages) ? user.extraImages : [];
+    user.extraImages = Array.isArray(user.extraImages)
+      ? user.extraImages
+      : [];
     const existingCount = user.extraImages.filter(Boolean).length;
     const maxAllowed = user.isPremium ? 20 : 6;
     if (existingCount + files.length > maxAllowed) {
-      return res.status(400).json({ error: `Kuvien enimmäismäärä on ${maxAllowed}` });
+      return res
+        .status(400)
+        .json({ error: `Kuvien enimmäismäärä on ${maxAllowed}` });
     }
 
-    files.forEach(f => user.extraImages.push(f.path));
+    files.forEach((f) => user.extraImages.push(f.path));
     await user.save();
     return res.json({ extraImages: user.extraImages });
   } catch (err) {
