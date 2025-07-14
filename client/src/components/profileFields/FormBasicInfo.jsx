@@ -1,16 +1,17 @@
 // src/components/profileFields/FormBasicInfo.jsx
+
 import React from "react";
 import { useFormContext } from "react-hook-form";
 import PropTypes from "prop-types";
 
 /**
  * FormBasicInfo
- * Lomakeosio: käyttäjän perus­tiedot
- * Käyttää RHF-kontekstia kenttien rekisteröintiin ja virheiden näyttöön.
+ * Form section: user's basic info.
+ * Uses RHF-context for register & error display.
  *
  * Props:
- *   t: lokalisointifunktio (required)
- *   hideUsernameEmail: piilota käyttäjänimi ja sähköposti (oletus: false)
+ *   t: translation function (required)
+ *   hideUsernameEmail: hide username & email (default: false)
  */
 const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
   const {
@@ -18,12 +19,12 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
     formState: { errors },
   } = useFormContext();
 
-  // Ikävaihtoehdot 18–99
+  // Age options 18–99
   const ageOptions = Array.from({ length: 82 }, (_, i) => i + 18);
 
   return (
     <div className="flex flex-col gap-4 w-full text-left" data-cy="FormBasicInfo__section">
-      {/* Käyttäjänimi ja sähköposti */}
+      {/* Username & Email */}
       {!hideUsernameEmail && (
         <>
           <div>
@@ -63,7 +64,7 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
         </>
       )}
 
-      {/* Tarkka ikä */}
+      {/* Age */}
       <div className="w-full">
         <label
           htmlFor="ageSelect"
@@ -95,7 +96,7 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
         )}
       </div>
 
-      {/* Sukupuoli */}
+      {/* Gender */}
       <div className="w-full">
         <label
           htmlFor="genderSelect"
@@ -155,6 +156,147 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
           </p>
         )}
       </div>
+
+      {/* Height & Unit */}
+      <div className="w-full grid grid-cols-2 gap-4">
+        <div>
+          <label
+            htmlFor="heightInput"
+            className="block font-medium mb-1"
+          >
+            {t("profile.height")}
+          </label>
+          <input
+            id="heightInput"
+            type="number"
+            step="1"
+            placeholder="e.g. 180"
+            {...register("height")}
+            className="p-2 border rounded w-full"
+            data-cy="FormBasicInfo__heightInput"
+          />
+          {errors.height && (
+            <p
+              className="text-red-600 text-sm mt-1"
+              data-cy="FormBasicInfo__heightError"
+            >
+              {errors.height.message}
+            </p>
+          )}
+        </div>
+        <div>
+          <label
+            htmlFor="heightUnitSelect"
+            className="block font-medium mb-1"
+          >
+            {t("profile.heightUnit")}
+          </label>
+          <select
+            id="heightUnitSelect"
+            {...register("heightUnit")}
+            className="p-2 border rounded w-full"
+            data-cy="FormBasicInfo__heightUnitSelect"
+          >
+            <option value="">{t("common.select")}</option>
+            <option value="Cm">cm</option>
+            <option value="FtIn">ft/in</option>
+          </select>
+          {errors.heightUnit && (
+            <p
+              className="text-red-600 text-sm mt-1"
+              data-cy="FormBasicInfo__heightUnitError"
+            >
+              {errors.heightUnit.message}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Weight & Unit */}
+      <div className="w-full grid grid-cols-2 gap-4">
+        <div>
+          <label
+            htmlFor="weightInput"
+            className="block font-medium mb-1"
+          >
+            {t("profile.weight")}
+          </label>
+          <input
+            id="weightInput"
+            type="number"
+            step="1"
+            placeholder="e.g. 70"
+            {...register("weight")}
+            className="p-2 border rounded w-full"
+            data-cy="FormBasicInfo__weightInput"
+          />
+          {errors.weight && (
+            <p
+              className="text-red-600 text-sm mt-1"
+              data-cy="FormBasicInfo__weightError"
+            >
+              {errors.weight.message}
+            </p>
+          )}
+        </div>
+        <div>
+          <label
+            htmlFor="weightUnitSelect"
+            className="block font-medium mb-1"
+          >
+            {t("profile.weightUnit")}
+          </label>
+          <select
+            id="weightUnitSelect"
+            {...register("weightUnit")}
+            className="p-2 border rounded w-full"
+            data-cy="FormBasicInfo__weightUnitSelect"
+          >
+            <option value="">{t("common.select")}</option>
+            <option value="Kg">kg</option>
+            <option value="Lb">lb</option>
+          </select>
+          {errors.weightUnit && (
+            <p
+              className="text-red-600 text-sm mt-1"
+              data-cy="FormBasicInfo__weightUnitError"
+            >
+              {errors.weightUnit.message}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Body Type */}
+      <div className="w-full">
+        <label
+          htmlFor="bodyTypeSelect"
+          className="block font-medium mb-1"
+        >
+          {t("profile.bodyType")}
+        </label>
+        <select
+          id="bodyTypeSelect"
+          {...register("bodyType")}
+          className="p-2 border rounded w-full"
+          data-cy="FormBasicInfo__bodyTypeSelect"
+        >
+          <option value="">{t("common.select")}</option>
+          <option value="Thin">{t("profile.bodyType.thin")}</option>
+          <option value="Normal">{t("profile.bodyType.normal")}</option>
+          <option value="Athletic">{t("profile.bodyType.athletic")}</option>
+          <option value="Overweight">{t("profile.bodyType.overweight")}</option>
+          <option value="Obese">{t("profile.bodyType.obese")}</option>
+        </select>
+        {errors.bodyType && (
+          <p
+            className="text-red-600 text-sm mt-1"
+            data-cy="FormBasicInfo__bodyTypeError"
+          >
+            {errors.bodyType.message}
+          </p>
+        )}
+      </div>
     </div>
   );
 };
@@ -165,4 +307,3 @@ FormBasicInfo.propTypes = {
 };
 
 export default FormBasicInfo;
-
