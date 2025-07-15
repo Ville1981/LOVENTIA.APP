@@ -29,6 +29,32 @@ export const uploadAvatar = async (userId, file) => {
 }
 
 /**
+ * Poistaa profiilikuvan (asettaa sen takaisin placeholderiksi):
+ * Tämä endpoint pitää toteuttaa backendissä esim. DELETE /api/users/:id/upload-avatar
+ * Palauttaa objektin { profilePicture: null } tai vastaavan
+ */
+export const removeAvatar = async (userId) => {
+  const token = localStorage.getItem("token")
+  if (!token) throw new Error("Kirjaudu sisään poistaaksesi profiilikuvan")
+
+  try {
+    const { data } = await axios.delete(
+      `${BACKEND_BASE_URL}/api/users/${userId}/upload-avatar`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
+      }
+    )
+    // Palautetaan uusi profilePicture-arvo (todennäköisesti null tai tyhjä string)
+    return { profilePicture: data.profilePicture }
+  } catch (err) {
+    console.error("removeAvatar error:", err.response || err)
+    const msg = err.response?.data?.error || "Avatarin poisto epäonnistui"
+    throw new Error(msg)
+  }
+}
+
+/**
  * Lisäkuvien lataus (bulk-upload):
  * Palauttaa objektin { extraImages: string[] }
  */
@@ -51,7 +77,6 @@ export const uploadPhotos = async (userId, filesOrFormData) => {
       formData,
       { headers: { Authorization: `Bearer ${token}` }, withCredentials: true }
     )
-    // Palautetaan aina objektina, ei pelkkä array
     return { extraImages: data.extraImages }
   } catch (err) {
     console.error("uploadPhotos error:", err.response || err)

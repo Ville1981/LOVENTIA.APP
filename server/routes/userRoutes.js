@@ -1,3 +1,5 @@
+// routes/userRoutes.js
+
 const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
@@ -38,7 +40,7 @@ router.use(express.json());
 // 🔧 Multer storage + tiedostonpoisto
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "uploads/"),
-  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),
+  filename:    (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),
 });
 const upload = multer({ storage });
 
@@ -52,7 +54,7 @@ function removeFile(filePath) {
 // ✅ Rekisteröinti / login
 // =====================
 router.post("/register", registerUser);
-router.post("/login", loginUser);
+router.post("/login",    loginUser);
 
 // =====================
 // ✅ Hae oma profiili (/api/users/me)
@@ -69,51 +71,98 @@ router.get("/me", authenticateToken, async (req, res) => {
 // =====================
 // ✅ Hae oman profiilin tiedot (/api/users/profile)
 // =====================
-router.get(
-  "/profile",
-  authenticateToken,
-  async (req, res) => {
-    try {
-      const user = await User.findById(req.userId).select("-password");
-      if (!user) return res.status(404).json({ error: "User not found" });
-      res.json(user);
-    } catch (err) {
-      console.error("GET /profile failed:", err);
-      res.status(500).json({ error: "Server error" });
-    }
+router.get("/profile", authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).select("-password");
+    if (!user) return res.status(404).json({ error: "User not found" });
+    res.json(user);
+  } catch (err) {
+    console.error("GET /profile failed:", err);
+    res.status(500).json({ error: "Server error" });
   }
-);
+});
 
 // =====================
 // ✅ Profiilin päivitys with validation (/api/users/profile)
 // =====================
 const profileValidation = [
   authenticateToken,
-  body('username').optional().notEmpty().withMessage('Username is required'),
-  body('email').optional().isEmail().withMessage('Invalid email'),
-  body('age').optional().isInt({ min: 18 }).withMessage('Age must be at least 18'),
-  body('gender').optional().notEmpty().withMessage('Gender is required'),
-  body('orientation').optional().notEmpty().withMessage('Orientation is required'),
-  body('height').optional().isNumeric().withMessage('Height must be a number'),
-  body('weight').optional().isNumeric().withMessage('Weight must be a number'),
-  body('heightUnit')
+
+  // Basic required
+  body("username")   .optional().notEmpty().withMessage("Username is required"),
+  body("email")      .optional().isEmail().withMessage("Invalid email"),
+  body("age")        .optional().isInt({ min: 18 }).withMessage("Age must be at least 18"),
+  body("gender")     .optional().notEmpty().withMessage("Gender is required"),
+  body("orientation").optional().notEmpty().withMessage("Orientation is required"),
+
+  // Numeric fields
+  body("height")     .optional().isNumeric().withMessage("Height must be a number"),
+  body("weight")     .optional().isNumeric().withMessage("Weight must be a number"),
+  body("heightUnit")
     .optional({ checkFalsy: true })
-    .isIn(['Cm','FtIn'])
-    .withMessage('Invalid height unit'),
-  body('professionCategory')
+    .isIn(["Cm", "FtIn"])
+    .withMessage("Invalid height unit"),
+
+  // Profession categories from front-end
+  body("professionCategory")
     .optional({ checkFalsy: true })
-    .isIn(['Technical','Healthcare','Education','Entrepreneur','Other'])
-    .withMessage('Invalid profession category'),
-  body('latitude').optional().isFloat({ min: -90, max: 90 }).withMessage('Invalid latitude'),
-  body('longitude').optional().isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude'),
-  body('nutritionPreferences').optional().isArray().withMessage('Nutrition preferences must be an array'),
+    .isIn([
+      "",
+      "Administration","Finance","Military","Technical","Healthcare",
+      "Education","Entrepreneur","Law","Service","Other",
+      "Farmer/Forest worker","Theologian/Priest","Artist","Athlete",
+      "DivineServant","Homeparent","FoodIndustry","Retail","Arts",
+      "Government","Retired"
+    ])
+    .withMessage("Invalid profession category"),
+
+  // Religion + importance
+  body("religion")
+    .optional({ checkFalsy: true })
+    .isIn([
+      "", "Christianity","Islam","Hinduism","Buddhism","Folk",
+      "None","Other","Atheism"
+    ])
+    .withMessage("Invalid religion"),
+  body("religionImportance")
+    .optional({ checkFalsy: true })
+    .isIn([
+      "", "Not at all important","Somewhat important",
+      "Very important","Essential"
+    ])
+    .withMessage("Invalid religion importance"),
+
+  // Coordinates
+  body("latitude") .optional().isFloat({ min: -90,  max: 90 }).withMessage("Invalid latitude"),
+  body("longitude").optional().isFloat({ min: -180, max: 180 }).withMessage("Invalid longitude"),
+
+  // Lifestyle enums
+  body("smoke") .optional().isIn(["","no","little","average","much","sober"]),
+  body("drink") .optional().isIn(["","no","little","average","much","sober"]),
+  body("drugs") .optional().isIn(["","no","little","average","much","sober"]),
+
+  // Activity level
+  body("activityLevel")
+    .optional({ checkFalsy: true })
+    .isIn([
+      "sedentary","light","moderate","active","veryActive",
+      "never","occasionally","weekly","daily"
+    ])
+    .withMessage("Invalid activity level"),
+
+  // Nutrition preferences must come in as array
+  body("nutritionPreferences")
+    .optional()
+    .isArray().withMessage("Nutrition preferences must be an array"),
+
+  // Wrap up validation
   (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
     next();
-  }
+  },
 ];
 
 router.put(
@@ -121,7 +170,7 @@ router.put(
   authenticateToken,
   upload.fields([
     { name: "profilePhoto", maxCount: 1 },
-    { name: "extraImages", maxCount: 20 },
+    { name: "extraImages",  maxCount: 20 },
   ]),
   profileValidation,
   async (req, res) => {
@@ -129,25 +178,24 @@ router.put(
       const user = await User.findById(req.userId);
       if (!user) return res.status(404).json({ error: "User not found" });
 
-      // Lista kaikista päivitettävistä kentistä
+      // All updatable fields
       const fields = [
         "username","email","age","gender","orientation",
-        "education","height","weight","status","religion",
-        "religionImportance","children","pets","summary","goal",
-        "lookingFor","profession",
-        "professionCategory","heightUnit",
-        "country","region","city",
+        "education","height","heightUnit","weight","status",
+        "religion","religionImportance","children","pets",
+        "summary","goal","lookingFor","profession",
+        "professionCategory",
+        "country","region","city","customCountry","customRegion","customCity",
         "latitude","longitude",
-        "smoke","drink","drugs",
-        "bodyType","activityLevel",
-        "nutritionPreferences","healthInfo",
-        "interests","preferredGender","preferredMinAge",
-        "preferredMaxAge","preferredInterests","preferredCountry",
-        "preferredReligion","preferredReligionImportance",
-        "preferredEducation","preferredProfession"
+        "smoke","drink","drugs","bodyType","activityLevel",
+        "nutritionPreferences","healthInfo","interests",
+        "preferredGender","preferredMinAge","preferredMaxAge",
+        "preferredInterests","preferredCountry","preferredReligion",
+        "preferredReligionImportance","preferredEducation",
+        "preferredProfession","preferredChildren"
       ];
 
-      fields.forEach((field) => {
+      fields.forEach(field => {
         if (req.body[field] !== undefined) {
           if (["interests","preferredInterests","nutritionPreferences"].includes(field)) {
             user[field] = Array.isArray(req.body[field])
@@ -161,13 +209,13 @@ router.put(
         }
       });
 
-      // Profiilikuva handling
+      // Profile photo
       if (req.files?.profilePhoto?.length) {
         removeFile(user.profilePicture);
         user.profilePicture = req.files.profilePhoto[0].path;
       }
 
-      // Lisäkuvat handling
+      // Extra images
       if (req.files?.extraImages?.length) {
         (user.extraImages || []).forEach(removeFile);
         user.extraImages = req.files.extraImages.map(f => f.path);
@@ -183,13 +231,39 @@ router.put(
 );
 
 // =====================
+// DELETE Avatar (/api/users/:id/upload-avatar)
+// =====================
+router.delete(
+  "/:id/upload-avatar",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      if (req.userId !== id) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      const user = await User.findById(id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      // Remove file and clear field
+      removeFile(user.profilePicture);
+      user.profilePicture = "";
+      await user.save();
+      res.json({ profilePicture: "" });
+    } catch (err) {
+      console.error("DELETE /:id/upload-avatar failed:", err);
+      res.status(500).json({ error: "Failed to remove avatar" });
+    }
+  }
+);
+// =====================
 // ✅ Julkinen profiili (/:id)
 // =====================
 router.get("/:id", async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select(
-      "-password -email -likes -superLikes -blockedUsers"
-    );
+    const user = await User.findById(req.params.id)
+      .select("-password -email -likes -superLikes -blockedUsers");
     if (!user) return res.status(404).json({ error: "User not found" });
     res.json(user);
   } catch (err) {
@@ -204,7 +278,7 @@ router.get("/:id", async (req, res) => {
 router.post("/like/:id", authenticateToken, async (req, res) => {
   try {
     const current = await User.findById(req.userId);
-    const target = req.params.id;
+    const target  = req.params.id;
     if (!current.likes.includes(target)) {
       current.likes.push(target);
       await current.save();
@@ -222,8 +296,9 @@ router.post("/like/:id", authenticateToken, async (req, res) => {
 router.post("/superlike/:id", authenticateToken, async (req, res) => {
   try {
     const current = await User.findById(req.userId);
-    const target = req.params.id;
-    const now = new Date();
+    const target  = req.params.id;
+    const now     = new Date();
+
     current.superLikeTimestamps = (current.superLikeTimestamps || []).filter(
       ts => now - new Date(ts) < 48 * 60 * 60 * 1000
     );
@@ -248,7 +323,7 @@ router.post("/superlike/:id", authenticateToken, async (req, res) => {
 // =====================
 router.post("/block/:id", authenticateToken, async (req, res) => {
   try {
-    const me = await User.findById(req.userId);
+    const me      = await User.findById(req.userId);
     const blockId = req.params.id;
     if (me._id.equals(blockId))
       return res.status(400).json({ message: "Cannot block yourself" });
@@ -295,19 +370,18 @@ router.get("/nearby", authenticateToken, async (req, res) => {
       return res.status(400).json({ error: "User location is missing" });
     }
     const allUsers = await User.find({ _id: { $ne: req.userId } }).select("-password");
-    const toRad = deg => (deg * Math.PI) / 180;
-    const earthRadius = 6371;
-    const nearby = allUsers.filter(u => {
+    const toRad   = deg => (deg * Math.PI) / 180;
+    const R       = 6371;
+    const nearby  = allUsers.filter(u => {
       if (!u.latitude || !u.longitude) return false;
-      const dLat = toRad(u.latitude - user.latitude);
+      const dLat = toRad(u.latitude  - user.latitude);
       const dLon = toRad(u.longitude - user.longitude);
       const a = Math.sin(dLat/2)**2 +
                 Math.cos(toRad(user.latitude)) *
                 Math.cos(toRad(u.latitude)) *
                 Math.sin(dLon/2)**2;
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      const d = earthRadius * c;
-      return d <= 50;
+      return R * c <= 50;
     });
     res.json(nearby);
   } catch (err) {
@@ -361,5 +435,3 @@ router.delete(
 );
 
 module.exports = router;
-
-

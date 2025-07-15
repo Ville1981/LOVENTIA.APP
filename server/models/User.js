@@ -1,5 +1,3 @@
-
-
 // models/User.js
 
 const mongoose = require("mongoose");
@@ -49,22 +47,47 @@ const userSchema = new mongoose.Schema(
         "Theologian/Priest",
         "Artist",
         "Athlete",
-        // legacy slash-style or front-end values
-        "Farmer",
-        "Leader",
-        "ForestWorker",
-        "DivineService",
+        "DivineServant",
         "Homeparent",
         "FoodIndustry",
         "Retail",
         "Arts",
         "Government",
         "Retired",
+        // legacy variations
+        "Farmer",
+        "Leader",
+        "ForestWorker",
+        "DivineService",
       ],
       default: "",
     },
-    religion:           String,
-    religionImportance: String,
+    religion: {
+      type: String,
+      enum: [
+        "", // no selection
+        "Christianity",
+        "Islam",
+        "Hinduism",
+        "Buddhism",
+        "Folk",
+        "None",
+        "Other",
+        "Atheism",
+      ],
+      default: "",
+    },
+    religionImportance: {
+      type: String,
+      enum: [
+        "", // no selection
+        "Not at all important",
+        "Somewhat important",
+        "Very important",
+        "Essential",
+      ],
+      default: "",
+    },
     children:           String,
     pets:               String,
     summary:            String,
@@ -152,7 +175,6 @@ const userSchema = new mongoose.Schema(
       default: [],
       set: function (incoming) {
         let arr = [];
-        // if it's a JSON-stringified array
         if (
           typeof incoming === "string" &&
           incoming.trim().startsWith("[") &&
@@ -163,16 +185,11 @@ const userSchema = new mongoose.Schema(
           } catch {
             arr = [incoming];
           }
-        }
-        // if it's a single plain string
-        else if (typeof incoming === "string") {
+        } else if (typeof incoming === "string") {
           arr = [incoming];
-        }
-        // if it's already an array
-        else if (Array.isArray(incoming)) {
+        } else if (Array.isArray(incoming)) {
           arr = incoming;
         }
-        // strip any extra quotes around each entry
         return arr.map((it) =>
           typeof it === "string" ? it.replace(/^"+|"+$/g, "") : it
         );
