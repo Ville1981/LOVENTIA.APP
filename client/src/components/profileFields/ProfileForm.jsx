@@ -1,7 +1,7 @@
-
 // src/components/profileFields/ProfileForm.jsx
 
 import React, { useState, useEffect, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { useForm, FormProvider } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -18,84 +18,67 @@ import { uploadAvatar } from "../../api/images";
 import { BACKEND_BASE_URL } from "../../config";
 
 // =============================================
-// Validation schema
+// Constants for selects
 // =============================================
 const professionCategories = [
-  "Administration",
-  "Finance",
-  "Military",
-  "Technical",
-  "Healthcare",
-  "Education",
-  "Entrepreneur",
-  "Law",
-  "Farmer/Forest worker",
-  "Theologian/Priest",
-  "Service",
-  "Artist",
-  "DivineServant",
-  "Homeparent",
-  "FoodIndustry",
-  "Retail",
-  "Arts",
-  "Government",
-  "Retired",
-  "Athlete",
-  "Other",
+  "Administration","Finance","Military","Technical","Healthcare",
+  "Education","Entrepreneur","Law","Farmer/Forest worker","Theologian/Priest",
+  "Service","Artist","DivineServant","Homeparent","FoodIndustry",
+  "Retail","Arts","Government","Retired","Athlete","Other",
 ];
 
 const dietOptions = [
-  "none",
-  "omnivore",
-  "vegetarian",
-  "vegan",
-  "pescatarian",
-  "flexitarian",
-  "keto",
-  "other",
+  "none","omnivore","vegetarian","vegan","pescatarian","flexitarian","keto","other",
 ];
 
+const religionOptions = [
+  "", "Christianity","Islam","Hinduism","Buddhism","Folk","None","Other","Atheism"
+];
+const religionImportanceOptions = [
+  "", "Not at all important","Somewhat important","Very important","Essential"
+];
+
+// =============================================
+// Validation schema
+// =============================================
 const schema = yup.object().shape({
-  // required fields
   username: yup.string().required("Required"),
   email: yup.string().email("Invalid email").required("Required"),
   age: yup
-    .number()
-    .typeError("Age must be a number")
+    .number().typeError("Age must be a number")
     .min(18, "Must be at least 18")
     .required("Required"),
   gender: yup.string().required("Required"),
   orientation: yup.string().required("Required"),
 
-  // optional text fields
   country: yup.string(),
   region: yup.string(),
   city: yup.string(),
   customCountry: yup.string(),
   customRegion: yup.string(),
   customCity: yup.string(),
+
   education: yup.string(),
 
-  // profession category must match front-end options
   professionCategory: yup
     .string()
     .oneOf(["", ...professionCategories], "Invalid profession category"),
   profession: yup.string().required("Required"),
 
-  // other optional selects
-  religion: yup.string(),
-  religionImportance: yup.string(),
+  religion: yup.string().oneOf(religionOptions, "Invalid religion"),
+  religionImportance: yup
+    .string()
+    .oneOf(religionImportanceOptions, "Invalid importance"),
+
   children: yup.string(),
   pets: yup.string(),
   smoke: yup.string(),
   drink: yup.string(),
   drugs: yup.string(),
 
-  // numeric with empty string transform
-  height: yup.number().nullable().transform((v, o) => (o === "" ? null : v)),
-  heightUnit: yup.string().oneOf(["", "Cm", "FtIn"], "Invalid unit"),
-  weight: yup.number().nullable().transform((v, o) => (o === "" ? null : v)),
-
+  height: yup.number().nullable().transform((v,o)=>(o===""?null:v)),
+  heightUnit: yup.string().oneOf(["","Cm","FtIn"], "Invalid unit"),
+  weight: yup.number().nullable().transform((v,o)=>(o===""?null:v)),
   bodyType: yup.string(),
   activityLevel: yup.string(),
 
@@ -104,14 +87,12 @@ const schema = yup.object().shape({
     .oneOf(["", ...dietOptions], "Invalid diet"),
   healthInfo: yup.string(),
 
-  // free text
   summary: yup.string(),
   goal: yup.string(),
   lookingFor: yup.string(),
 
-  // coordinates
-  latitude: yup.number().nullable().transform((v, o) => (o === "" ? null : v)),
-  longitude: yup.number().nullable().transform((v, o) => (o === "" ? null : v)),
+  latitude: yup.number().nullable().transform((v,o)=>(o===""?null:v)),
+  longitude: yup.number().nullable().transform((v,o)=>(o===""?null:v)),
 
   extraImages: yup.array().of(yup.string()),
 });
@@ -177,14 +158,20 @@ export default function ProfileForm({
     getValues,
   } = methods;
 
-  // sync updates
+  // ─── Sync remote → form and unwrap diet-array ───────────────────────────────
   useEffect(() => {
-    reset({ ...getValues(), ...user, extraImages: user.extraImages || [] });
+    reset({
+      ...getValues(),
+      ...user,
+      nutritionPreferences: Array.isArray(user.nutritionPreferences)
+        ? user.nutritionPreferences[0]
+        : user.nutritionPreferences,
+      extraImages: user.extraImages || [],
+    });
   }, [user, reset, getValues]);
 
-  // avatar and extra images
+  // ─── Local extra-images & avatar-preview ───────────────────────────────────
   const [localExtraImages, setLocalExtraImages] = useState(user.extraImages || []);
-  const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(
     user.profilePicture
       ? user.profilePicture.startsWith("http")
@@ -192,8 +179,6 @@ export default function ProfileForm({
         : `${BACKEND_BASE_URL}${user.profilePicture}`
       : null
   );
-  const [avatarError, setAvatarError] = useState(null);
-
   useEffect(() => {
     if (user.profilePicture) {
       setAvatarPreview(
@@ -204,45 +189,29 @@ export default function ProfileForm({
     }
   }, [user.profilePicture]);
 
-  const handleAvatarChange = (e) => {
-    const file = e.target.files[0] || null;
-    setAvatarFile(file);
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => setAvatarPreview(ev.target.result);
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleAvatarSubmit = async () => {
-    if (!avatarFile || !userId) return;
-    try {
-      const updated = await uploadAvatar(userId, avatarFile);
-      onUserUpdate(updated);
-    } catch (err) {
-      setAvatarError(err.message || t("profile.uploadAvatarFailed"));
-    }
-  };
-
+  // ─── On form submit, re-wrap diet into array ───────────────────────────────
   const onFormSubmit = async (data) => {
     const payload = {
       ...data,
-      nutritionPreferences: data.nutritionPreferences ? [data.nutritionPreferences] : [],
+      nutritionPreferences: data.nutritionPreferences
+        ? [data.nutritionPreferences]
+        : [],
       extraImages: localExtraImages,
     };
     await onSubmitProp(payload);
   };
 
+  // ─── Slideshow for avatar + extra-images ───────────────────────────────────
   const slideshowImages = useMemo(() => {
     const arr = [];
     if (avatarPreview) arr.push(avatarPreview);
-    localExtraImages.forEach((src) => {
+    localExtraImages.forEach((src) =>
       arr.push(
         typeof src === "string" && !src.startsWith("http")
           ? `${BACKEND_BASE_URL}${src}`
           : src
-      );
-    });
+      )
+    );
     return arr;
   }, [avatarPreview, localExtraImages]);
 
@@ -258,89 +227,177 @@ export default function ProfileForm({
 
   return (
     <FormProvider {...methods}>
-      <form onSubmit={handleSubmit(onFormSubmit)} className="bg-white shadow rounded-lg p-6 space-y-6" data-cy="ProfileForm__form">
-        {/* Avatar carousel */}
+      <form
+        onSubmit={handleSubmit(onFormSubmit)}
+        className="bg-white shadow rounded-lg p-6 space-y-6"
+        data-cy="ProfileForm__form"
+      >
+        {/* Avatar slideshow + Manage Photos link */}
         {!hideAvatarSection && slideshowImages.length > 0 && (
-          <div className="flex flex-col items-center space-y-4">
+          <div className="flex flex-col items-center space-y-2">
             <img
               src={slideshowImages[slideIndex]}
               alt={`Avatar ${slideIndex + 1}`}
               className="w-32 h-32 rounded-full object-cover cursor-pointer"
-              onMouseEnter={() => setSlideIndex((i) => (i + 1) % slideshowImages.length)}
+              onMouseEnter={() =>
+                setSlideIndex((i) => (i + 1) % slideshowImages.length)
+              }
             />
-            <div className="flex items-center space-x-2">
-              <label htmlFor="avatar-input" className="px-4 py-2 bg-gray-200 border rounded cursor-pointer">
-                {avatarFile ? avatarFile.name : t("profile.browse")}
-              </label>
-              <input id="avatar-input" type="file" className="hidden" onChange={handleAvatarChange} />
-              <span className="text-sm text-gray-500">
-                {avatarFile ? "" : t("profile.noFileChosen")}
-              </span>
-            </div>
-            <button type="button" onClick={handleAvatarSubmit} className="px-4 py-2 bg-blue-600 text-white rounded">
-              {t("profile.uploadAvatar")}
-            </button>
-            {avatarError && <p className="text-red-600">{avatarError}</p>}
+            <Link
+              to="/profile/photos"
+              className="mt-2 text-blue-600 hover:underline"
+            >
+              {t("profile.managePhotos") || "Manage Photos"}
+            </Link>
           </div>
         )}
 
         {/* Basic Info */}
         <FormBasicInfo t={t} errors={errors} />
+
         {/* Location */}
-        <FormLocation t={t} errors={errors} countryFieldName="country" regionFieldName="region" cityFieldName="city" customCountryFieldName="customCountry" customRegionFieldName="customRegion" customCityFieldName="customCity" />
+        <FormLocation
+          t={t}
+          errors={errors}
+          countryFieldName="country"
+          regionFieldName="region"
+          cityFieldName="city"
+          customCountryFieldName="customCountry"
+          customRegionFieldName="customRegion"
+          customCityFieldName="customCity"
+        />
+
         {/* Education */}
         <FormEducation t={t} />
+
         {/* Profession + Religion */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1">{t("profile.professionCategory")}</label>
-            <select {...methods.register("professionCategory")} className="w-full border rounded px-3 py-2 text-sm">
+            <label className="block text-sm font-medium mb-1">
+              {t("profile.professionCategory")}
+            </label>
+            <select
+              {...methods.register("professionCategory")}
+              className="w-full border rounded px-3 py-2 text-sm"
+            >
               <option value="">{t("common.select")}</option>
               {professionCategories.map((opt) => (
-                <option key={opt} value={opt}>{t(`profile.professionCategory.${opt}`) || opt}</option>
+                <option key={opt} value={opt}>
+                  {t(`profile.professionCategory.${opt}`) || opt}
+                </option>
               ))}
             </select>
-            {errors.professionCategory && <p className="mt-1 text-red-600">{errors.professionCategory.message}</p>}
+            {errors.professionCategory && (
+              <p className="mt-1 text-red-600">
+                {errors.professionCategory.message}
+              </p>
+            )}
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">💼 {t("profile.profession")}</label>
-            <input type="text" {...methods.register("profession")} className="w-full border rounded px-3 py-2 text-sm" placeholder={t("profile.professionPlaceholder")} />
-            {errors.profession && <p className="mt-1 text-red-600">{errors.profession.message}</p>}
+            <label className="block text-sm font-medium mb-1">
+              💼 {t("profile.profession")}
+            </label>
+            <input
+              type="text"
+              {...methods.register("profession")}
+              className="w-full border rounded px-3 py-2 text-sm"
+              placeholder={t("profile.professionPlaceholder")}
+            />
+            {errors.profession && (
+              <p className="mt-1 text-red-600">{errors.profession.message}</p>
+            )}
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">🕊 {t("profile.religion")}</label>
-            <select {...methods.register("religion")} className="w-full border rounded px-3 py-2 text-sm">
-              <option value="">{t("common.select")}</option>
-              <option value="Christianity">{t("religion.christianity")}</option>
-              <option value="Islam">{t("religion.islam")}</option>
-              <option value="Hinduism">{t("religion.hinduism")}</option>
-              <option value="Buddhism">{t("religion.buddhism")}</option>
-              <option value="Folk">{t("religion.folk")}</option>
-              <option value="None">{t("religion.none")}</option>
-              <option value="Other">{t("common.other")}</option>
+            <label className="block text-sm font-medium mb-1">
+              🕊 {t("profile.religion")}
+            </label>
+            <select
+              {...methods.register("religion")}
+              className="w-full border rounded px-3 py-2 text-sm"
+            >
+              {religionOptions.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt
+                    ? t(`religion.${opt.toLowerCase()}`) || opt
+                    : t("common.select")}
+                </option>
+              ))}
             </select>
-            {errors.religion && <p className="mt-1 text-red-600">{errors.religion.message}</p>}
+            {errors.religion && (
+              <p className="mt-1 text-red-600">{errors.religion.message}</p>
+            )}
           </div>
         </div>
+
+        {/* Religion importance */}
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            {t("profile.religionImportance")}
+          </label>
+          <select
+            {...methods.register("religionImportance")}
+            className="w-full border rounded px-3 py-2 text-sm"
+          >
+            {religionImportanceOptions.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt || t("common.select")}
+              </option>
+            ))}
+          </select>
+          {errors.religionImportance && (
+            <p className="mt-1 text-red-600">
+              {errors.religionImportance.message}
+            </p>
+          )}
+        </div>
+
         {/* Children & Pets */}
         <FormChildrenPets t={t} errors={errors} />
+
         {/* Lifestyle */}
         <FormLifestyle t={t} includeAllOption />
-        {/* Goal & Summary */}
+
+        {/* Goals & Summary */}
         <FormGoalSummary t={t} errors={errors} />
+
         {/* Looking For */}
         <FormLookingFor t={t} errors={errors} />
-        {/* Photo Uploader */}
-        {!hidePhotoSection && userId && <MultiStepPhotoUploader data-cy="ProfileForm__photoUploader" userId={userId} isPremium={isPremium} extraImages={localExtraImages} onSuccess={(res) => { setLocalExtraImages(res.extraImages || []); onUserUpdate({ ...user, extraImages: res.extraImages || [] }); }} onError={(err) => console.error(err)} />}
+
+        {/* Extra Photo Uploader */}
+        {!hidePhotoSection && userId && (
+          <MultiStepPhotoUploader
+            data-cy="ProfileForm__photoUploader"
+            userId={userId}
+            isPremium={isPremium}
+            extraImages={localExtraImages}
+            onSuccess={(res) => {
+              setLocalExtraImages(res.extraImages || []);
+              onUserUpdate({ ...user, extraImages: res.extraImages || [] });
+            }}
+            onError={(err) => console.error(err)}
+          />
+        )}
+
         {/* Save */}
-        <div className="flex justify-end"><button type="submit" className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700">{t("profile.save")}</button></div>
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+          >
+            {t("profile.save")}
+          </button>
+        </div>
+
         {/* Status */}
-        {success && <p className="text-center text-green-600">{t("profile.saveSuccess")}</p>}
-        {!success && message && <p className="text-center text-red-600">{message}</p>}
+        {success && (
+          <p className="text-center text-green-600">
+            {t("profile.saveSuccess")}
+          </p>
+        )}
+        {!success && message && (
+          <p className="text-center text-red-600">{message}</p>
+        )}
       </form>
     </FormProvider>
   );
 }
-
-
-
