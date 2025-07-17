@@ -134,6 +134,7 @@ const userSchema = new mongoose.Schema(
       default: "",
     },
     weight: Number,
+<<<<<<< HEAD
 
     // ← TÄHÄN LISÄTTY: weightUnit with setter to normalize casing
     weightUnit: {
@@ -149,6 +150,8 @@ const userSchema = new mongoose.Schema(
       },
     },
 
+=======
+>>>>>>> 8f0979e965914ead7256fcb8048518221a968678
     bodyType: {
       type: String,
       enum: ["Slim", "Normal", "Athletic", "Overweight", "Obese", ""],
@@ -243,10 +246,13 @@ const userSchema = new mongoose.Schema(
       default: "user",
       required: true,
     },
+<<<<<<< HEAD
 
     // 🛠️ Password reset fields
     passwordResetToken:   { type: String },
     passwordResetExpires: { type: Date }
+=======
+>>>>>>> 8f0979e965914ead7256fcb8048518221a968678
   },
   { timestamps: true }
 );

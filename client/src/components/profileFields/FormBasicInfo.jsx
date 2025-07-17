@@ -1,3 +1,8 @@
+<<<<<<< HEAD
+=======
+// src/components/profileFields/FormBasicInfo.jsx
+
+>>>>>>> 8f0979e965914ead7256fcb8048518221a968678
 import React from "react";
 import { useFormContext } from "react-hook-form";
 import PropTypes from "prop-types";
@@ -158,7 +163,14 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
       {/* Height & Unit */}
       <div className="w-full grid grid-cols-2 gap-4">
         <div>
+<<<<<<< HEAD
           <label htmlFor="heightInput" className="block font-medium mb-1">
+=======
+          <label
+            htmlFor="heightInput"
+            className="block font-medium mb-1"
+          >
+>>>>>>> 8f0979e965914ead7256fcb8048518221a968678
             {t("profile.height")}
           </label>
           <input
@@ -180,7 +192,14 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
           )}
         </div>
         <div>
+<<<<<<< HEAD
           <label htmlFor="heightUnitSelect" className="block font-medium mb-1">
+=======
+          <label
+            htmlFor="heightUnitSelect"
+            className="block font-medium mb-1"
+          >
+>>>>>>> 8f0979e965914ead7256fcb8048518221a968678
             {t("profile.heightUnit")}
           </label>
           <select
@@ -207,7 +226,14 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
       {/* Weight & Unit */}
       <div className="w-full grid grid-cols-2 gap-4">
         <div>
+<<<<<<< HEAD
           <label htmlFor="weightInput" className="block font-medium mb-1">
+=======
+          <label
+            htmlFor="weightInput"
+            className="block font-medium mb-1"
+          >
+>>>>>>> 8f0979e965914ead7256fcb8048518221a968678
             {t("profile.weight")}
           </label>
           <input
@@ -229,7 +255,14 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
           )}
         </div>
         <div>
+<<<<<<< HEAD
           <label htmlFor="weightUnitSelect" className="block font-medium mb-1">
+=======
+          <label
+            htmlFor="weightUnitSelect"
+            className="block font-medium mb-1"
+          >
+>>>>>>> 8f0979e965914ead7256fcb8048518221a968678
             {t("profile.weightUnit")}
           </label>
           <select
@@ -239,8 +272,13 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
             data-cy="FormBasicInfo__weightUnitSelect"
           >
             <option value="">{t("common.select")}</option>
+<<<<<<< HEAD
             <option value="kg">kg</option>
             <option value="lb">lb</option>
+=======
+            <option value="Kg">kg</option>
+            <option value="Lb">lb</option>
+>>>>>>> 8f0979e965914ead7256fcb8048518221a968678
           </select>
           {errors.weightUnit && (
             <p
@@ -255,7 +293,14 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
 
       {/* Body Type */}
       <div className="w-full">
+<<<<<<< HEAD
         <label htmlFor="bodyTypeSelect" className="block font-medium mb-1">
+=======
+        <label
+          htmlFor="bodyTypeSelect"
+          className="block font-medium mb-1"
+        >
+>>>>>>> 8f0979e965914ead7256fcb8048518221a968678
           {t("profile.bodyType")}
         </label>
         <select
@@ -265,7 +310,11 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
           data-cy="FormBasicInfo__bodyTypeSelect"
         >
           <option value="">{t("common.select")}</option>
+<<<<<<< HEAD
           <option value="Slim">{t("profile.bodyType.slim")}</option>
+=======
+          <option value="Thin">{t("profile.bodyType.thin")}</option>
+>>>>>>> 8f0979e965914ead7256fcb8048518221a968678
           <option value="Normal">{t("profile.bodyType.normal")}</option>
           <option value="Athletic">{t("profile.bodyType.athletic")}</option>
           <option value="Overweight">{t("profile.bodyType.overweight")}</option>
