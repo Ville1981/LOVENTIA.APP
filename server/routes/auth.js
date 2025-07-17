@@ -1,12 +1,19 @@
+<<<<<<< HEAD
 // routes/auth.js
 
+=======
+>>>>>>> 8f0979e965914ead7256fcb8048518221a968678
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
+<<<<<<< HEAD
 const crypto = require('crypto');
 const User = require('../models/User');
 const sendEmail = require('../utils/sendEmail');
+=======
+const User = require('../models/User');
+>>>>>>> 8f0979e965914ead7256fcb8048518221a968678
 
 const {
   registerUser,
@@ -53,12 +60,19 @@ router.post('/refresh', (req, res) => {
 // ─── LOGOUT ───────────────────────────────────────────────────────────────────────
 router.post('/logout', (req, res) => {
   try {
+<<<<<<< HEAD
     // Clear only the HttpOnly cookie; omit domain for localhost compatibility
+=======
+>>>>>>> 8f0979e965914ead7256fcb8048518221a968678
     res.clearCookie('refreshToken', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'Strict',
       path: '/',
+<<<<<<< HEAD
+=======
+      domain: process.env.COOKIE_DOMAIN || req.hostname,
+>>>>>>> 8f0979e965914ead7256fcb8048518221a968678
     });
     return res.json({ message: 'Logout successful' });
   } catch (err) {
@@ -81,6 +95,7 @@ router.post(
   loginUser
 );
 
+<<<<<<< HEAD
 // ─── FORGOT PASSWORD ───────────────────────────────────────────────────────────────
 router.post('/forgot-password', async (req, res) => {
   const { email } = req.body;
@@ -183,26 +198,42 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
+=======
+>>>>>>> 8f0979e965914ead7256fcb8048518221a968678
 // ─── GET CURRENT USER ─────────────────────────────────────────────────────────────
 router.get(
   '/me',
   authenticate,
   async (req, res) => {
     try {
+<<<<<<< HEAD
       const user = await User.findById(req.user.id)
         .select(
           '_id email role profilePicture extraImages isPremium'
         )
+=======
+      // Return full user object including images and premium flag
+      const user = await User.findById(req.user.id)
+        .select(' _id email role profilePicture extraImages isPremium')
+>>>>>>> 8f0979e965914ead7256fcb8048518221a968678
         .lean();
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
+<<<<<<< HEAD
       return res.json({ user });
     } catch (err) {
       console.error('Fetch /me error:', err);
       return res
         .status(500)
         .json({ error: 'Failed to fetch user' });
+=======
+      // Respond with user wrapped in 'user'
+      return res.json({ user });
+    } catch (err) {
+      console.error('Fetch /me error:', err);
+      return res.status(500).json({ error: 'Failed to fetch user' });
+>>>>>>> 8f0979e965914ead7256fcb8048518221a968678
     }
   }
 );
@@ -213,12 +244,17 @@ router.put(
   authenticate,
   sanitizeFields,
   upload.fields([
+<<<<<<< HEAD
     { name: 'image', maxCount: 1 },
+=======
+    { name: 'image',       maxCount: 1 },
+>>>>>>> 8f0979e965914ead7256fcb8048518221a968678
     { name: 'extraImages', maxCount: 6 },
   ]),
   async (req, res) => {
     try {
       const updateData = {};
+<<<<<<< HEAD
 
       // ─── Coordinates ───────────────────────────────────────────────────────────────
       if (req.body.latitude !== undefined) {
@@ -242,6 +278,8 @@ router.put(
       }
 
       // ─── Other allowed fields ────────────────────────────────────────────────────
+=======
+>>>>>>> 8f0979e965914ead7256fcb8048518221a968678
       [
         'name',
         'email',
@@ -255,23 +293,34 @@ router.put(
         'summary',
         'goal',
         'lookingFor',
+<<<<<<< HEAD
         'bodyType',           // persist bodyType
         'weightUnit',         // persist weightUnit
         'profession',         // persist profession
         'professionCategory', // persist professionCategory
       ].forEach((field) => {
+=======
+      ].forEach(field => {
+>>>>>>> 8f0979e965914ead7256fcb8048518221a968678
         if (req.body[field] !== undefined) {
           updateData[field] = req.body[field];
         }
       });
 
+<<<<<<< HEAD
       // ─── File uploads ────────────────────────────────────────────────────────────
+=======
+>>>>>>> 8f0979e965914ead7256fcb8048518221a968678
       if (req.files?.image) {
         updateData.profilePicture = `uploads/${req.files.image[0].filename}`;
       }
       if (req.files?.extraImages) {
         updateData.extraImages = req.files.extraImages.map(
+<<<<<<< HEAD
           (f) => `uploads/${f.filename}`
+=======
+          file => `uploads/${file.filename}`
+>>>>>>> 8f0979e965914ead7256fcb8048518221a968678
         );
       }
 
@@ -284,9 +333,13 @@ router.put(
       return res.json(updatedUser);
     } catch (err) {
       console.error('Profile update error:', err);
+<<<<<<< HEAD
       return res
         .status(500)
         .json({ error: 'Profile update failed' });
+=======
+      return res.status(500).json({ error: 'Profile update failed' });
+>>>>>>> 8f0979e965914ead7256fcb8048518221a968678
     }
   }
 );
@@ -298,6 +351,7 @@ router.delete(
   async (req, res) => {
     try {
       await User.findByIdAndDelete(req.user.id);
+<<<<<<< HEAD
       return res.json({
         message: 'Account deleted successfully',
       });
@@ -306,6 +360,12 @@ router.delete(
       return res
         .status(500)
         .json({ error: 'Account deletion failed' });
+=======
+      return res.json({ message: 'Account deleted successfully' });
+    } catch (err) {
+      console.error('Account deletion error:', err);
+      return res.status(500).json({ error: 'Account deletion failed' });
+>>>>>>> 8f0979e965914ead7256fcb8048518221a968678
     }
   }
 );

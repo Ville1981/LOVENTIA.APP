@@ -16,16 +16,23 @@
     "axios": "^1.9.0",
     "express": "^5.1.0",
     "express-validator": "^7.2.1",
+<<<<<<< HEAD
     "i18next": "^25.3.2",
+=======
+>>>>>>> 8f0979e965914ead7256fcb8048518221a968678
     "i18next-browser-languagedetector": "^8.1.0",
     "i18next-http-backend": "^3.0.2",
     "leaflet": "^1.9.4",
     "prop-types": "^15.8.1",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
+<<<<<<< HEAD
     "react-easy-crop": "^5.5.0",
     "react-hook-form": "^7.59.0",
     "react-i18next": "^15.6.0",
+=======
+    "react-hook-form": "^7.59.0",
+>>>>>>> 8f0979e965914ead7256fcb8048518221a968678
     "react-leaflet": "^4.2.1",
     "react-router-dom": "^6.0.0",
     "react-slick": "^0.30.3",
@@ -33,7 +40,10 @@
     "yup": "^1.6.1"
   },
   "devDependencies": {
+<<<<<<< HEAD
     "@tailwindcss/line-clamp": "^0.4.4",
+=======
+>>>>>>> 8f0979e965914ead7256fcb8048518221a968678
     "@tailwindcss/postcss": "^4.1.11",
     "@types/express": "^5.0.3",
     "@vitejs/plugin-react": "^4.0.0",
@@ -41,6 +51,11 @@
     "cypress": "^14.5.1",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.11",
+<<<<<<< HEAD
     "vite": "^4.0.0"
+=======
+    "vite": "^4.0.0",
+    "@tailwindcss/line-clamp": "^0.4.4"
+>>>>>>> 8f0979e965914ead7256fcb8048518221a968678
   }
 }

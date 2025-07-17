@@ -9,10 +9,13 @@ import { AuthProvider } from "./context/AuthContext";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
+<<<<<<< HEAD
 // Komponentit salasanan unohtamis- ja nollauslomakkeille
 import { ForgotPassword } from "./components/ForgotPassword";
 import { ResetPassword } from "./components/ResetPassword";
 
+=======
+>>>>>>> 8f0979e965914ead7256fcb8048518221a968678
 // Sivut
 import Etusivu from "./pages/Etusivu";
 import Discover from "./pages/Discover";
@@ -58,12 +61,16 @@ const AppContent = () => (
       <Route path="who-liked-me" element={<WhoLikedMe />} />
       <Route path="map" element={<MapPage />} />
       <Route path="settings" element={<Settings />} />
+<<<<<<< HEAD
 
       {/* Salasanan nollausreitit */}
       <Route path="forgot-password" element={<ForgotPassword />} />
       <Route path="reset-password" element={<ResetPassword />} />
     </Route>
 
+=======
+    </Route>
+>>>>>>> 8f0979e965914ead7256fcb8048518221a968678
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
