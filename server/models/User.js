@@ -31,68 +31,27 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: [
         "", // no category
-        // original categories
-        "Administration",
-        "Finance",
-        "Military",
-        "Technical",
-        "Healthcare",
-        "Education",
-        "Entrepreneur",
-        "Law",
-        "Service",
-        "Other",
-        // front-end values
-        "Farmer/Forest worker",
-        "Theologian/Priest",
-        "Artist",
-        "Athlete",
-        "DivineServant",
-        "Homeparent",
-        "FoodIndustry",
-        "Retail",
-        "Arts",
-        "Government",
-        "Retired",
-        // legacy variations
-        "Farmer",
-        "Leader",
-        "ForestWorker",
-        "DivineService",
+        "Administration","Finance","Military","Technical","Healthcare","Education","Entrepreneur","Law","Service","Other",
+        "Farmer/Forest worker","Theologian/Priest","Artist","Athlete","DivineServant","Homeparent","FoodIndustry","Retail","Arts","Government","Retired",
+        "Farmer","Leader","ForestWorker","DivineService",
       ],
       default: "",
     },
     religion: {
       type: String,
-      enum: [
-        "", // no selection
-        "Christianity",
-        "Islam",
-        "Hinduism",
-        "Buddhism",
-        "Folk",
-        "None",
-        "Other",
-        "Atheism",
-      ],
+      enum: ["","Christianity","Islam","Hinduism","Buddhism","Folk","None","Other","Atheism"],
       default: "",
     },
     religionImportance: {
       type: String,
-      enum: [
-        "", // no selection
-        "Not at all important",
-        "Somewhat important",
-        "Very important",
-        "Essential",
-      ],
+      enum: ["","Not at all important","Somewhat important","Very important","Essential"],
       default: "",
     },
     children:           String,
     pets:               String,
     summary:            String,
     goal:               String,
-    goals:              String, // legacy
+    goals:              String,
     lookingFor:         String,
     interests:          [String],
     status:             String,
@@ -110,36 +69,17 @@ const userSchema = new mongoose.Schema(
     longitude: Number,
 
     // 🚭 Lifestyle
-    smoke: {
-      type: String,
-      enum: ["", "no", "little", "average", "much", "sober"],
-      default: "",
-    },
-    drink: {
-      type: String,
-      enum: ["", "no", "little", "average", "much", "sober"],
-      default: "",
-    },
-    drugs: {
-      type: String,
-      enum: ["", "no", "little", "average", "much", "sober"],
-      default: "",
-    },
+    smoke: { type: String, enum: ["","no","little","average","much","sober"], default: "" },
+    drink: { type: String, enum: ["","no","little","average","much","sober"], default: "" },
+    drugs: { type: String, enum: ["","no","little","average","much","sober"], default: "" },
 
     // ⚖️ Metrics & Health
     height: Number,
-    heightUnit: {
-      type: String,
-      enum: ["", "Cm", "FtIn"],
-      default: "",
-    },
+    heightUnit: { type: String, enum: ["","Cm","FtIn"], default: "" },
     weight: Number,
-<<<<<<< HEAD
-
-    // ← TÄHÄN LISÄTTY: weightUnit with setter to normalize casing
     weightUnit: {
       type: String,
-      enum: ["", "kg", "lb", "Kg", "Lb"],
+      enum: ["","kg","lb","Kg","Lb"],
       default: "",
       set(val) {
         if (typeof val !== "string") return "";
@@ -149,76 +89,34 @@ const userSchema = new mongoose.Schema(
         return "";
       },
     },
-
-=======
->>>>>>> 8f0979e965914ead7256fcb8048518221a968678
-    bodyType: {
-      type: String,
-      enum: ["Slim", "Normal", "Athletic", "Overweight", "Obese", ""],
-      default: "",
-    },
+    bodyType: { type: String, enum: ["Slim","Normal","Athletic","Overweight","Obese",""], default: "" },
     activityLevel: {
       type: String,
-      enum: [
-        // legacy
-        "sedentary", "light", "moderate", "active", "veryActive",
-        // new
-        "never", "occasionally", "weekly", "daily",
-        "",
-      ],
+      enum: ["sedentary","light","moderate","active","veryActive","never","occasionally","weekly","daily",""],
       default: "sedentary",
     },
     nutritionPreferences: {
       type: [String],
-      enum: [
-        "none",
-        "omnivore",
-        "vegetarian",
-        "vegan",
-        "pescatarian",
-        "flexitarian",
-        "glutenFree",
-        "gluten-free",
-        "dairyFree",
-        "dairy-free",
-        "nutFree",
-        "nut-free",
-        "halal",
-        "kosher",
-        "paleo",
-        "keto",
-        "mediterranean",
-        "other",
-      ],
+      enum: ["none","omnivore","vegetarian","vegan","pescatarian","flexitarian","glutenFree","gluten-free","dairyFree","dairy-free","nutFree","nut-free","halal","kosher","paleo","keto","mediterranean","other"],
       default: [],
-      set: function (incoming) {
+      set(incoming) {
         let arr = [];
-        if (
-          typeof incoming === "string" &&
-          incoming.trim().startsWith("[") &&
-          incoming.trim().endsWith("]")
-        ) {
-          try {
-            arr = JSON.parse(incoming);
-          } catch {
-            arr = [incoming];
-          }
+        if (typeof incoming === "string" && incoming.trim().startsWith("[") && incoming.trim().endsWith("]")) {
+          try { arr = JSON.parse(incoming); } catch { arr = [incoming]; }
         } else if (typeof incoming === "string") {
           arr = [incoming];
         } else if (Array.isArray(incoming)) {
           arr = incoming;
         }
-        return arr.map((it) =>
-          typeof it === "string" ? it.replace(/^"+|"+$/g, "") : it
-        );
+        return arr.map(it => typeof it === "string" ? it.replace(/^"+|"+$/g, "") : it);
       },
     },
     healthInfo: { type: String, default: "" },
 
     // 💬 Interactions
-    likes:               [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-    superLikes:          [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-    blockedUsers:        [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    superLikes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     superLikeTimestamps: [Date],
 
     // 💖 Match Preferences
@@ -240,19 +138,11 @@ const userSchema = new mongoose.Schema(
     hidden:    { type: Boolean, default: false },
 
     // 🎛️ Role-Based Access
-    role: {
-      type: String,
-      enum: ["user", "admin"],
-      default: "user",
-      required: true,
-    },
-<<<<<<< HEAD
+    role: { type: String, enum: ["user","admin"], default: "user", required: true },
 
     // 🛠️ Password reset fields
     passwordResetToken:   { type: String },
     passwordResetExpires: { type: Date }
-=======
->>>>>>> 8f0979e965914ead7256fcb8048518221a968678
   },
   { timestamps: true }
 );

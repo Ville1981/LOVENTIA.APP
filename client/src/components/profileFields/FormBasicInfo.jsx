@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-=======
 // src/components/profileFields/FormBasicInfo.jsx
-
->>>>>>> 8f0979e965914ead7256fcb8048518221a968678
 import React from "react";
 import { useFormContext } from "react-hook-form";
 import PropTypes from "prop-types";
@@ -22,7 +18,7 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
     formState: { errors },
   } = useFormContext();
 
-  // Age options 18–99
+  // Age options: 18–99
   const ageOptions = Array.from({ length: 82 }, (_, i) => i + 18);
 
   return (
@@ -39,10 +35,7 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
               data-cy="FormBasicInfo__usernameInput"
             />
             {errors.username && (
-              <p
-                className="text-red-600 text-sm mt-1"
-                data-cy="FormBasicInfo__usernameError"
-              >
+              <p className="text-red-600 text-sm mt-1" data-cy="FormBasicInfo__usernameError">
                 {errors.username.message}
               </p>
             )}
@@ -56,10 +49,7 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
               data-cy="FormBasicInfo__emailInput"
             />
             {errors.email && (
-              <p
-                className="text-red-600 text-sm mt-1"
-                data-cy="FormBasicInfo__emailError"
-              >
+              <p className="text-red-600 text-sm mt-1" data-cy="FormBasicInfo__emailError">
                 {errors.email.message}
               </p>
             )}
@@ -69,11 +59,7 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
 
       {/* Age */}
       <div className="w-full">
-        <label
-          htmlFor="ageSelect"
-          className="block font-medium mb-1"
-          data-cy="FormBasicInfo__ageLabel"
-        >
+        <label htmlFor="ageSelect" className="block font-medium mb-1" data-cy="FormBasicInfo__ageLabel">
           {t("profile.age")}
         </label>
         <select
@@ -90,10 +76,7 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
           ))}
         </select>
         {errors.age && (
-          <p
-            className="text-red-600 text-sm mt-1"
-            data-cy="FormBasicInfo__ageError"
-          >
+          <p className="text-red-600 text-sm mt-1" data-cy="FormBasicInfo__ageError">
             {errors.age.message}
           </p>
         )}
@@ -101,11 +84,7 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
 
       {/* Gender */}
       <div className="w-full">
-        <label
-          htmlFor="genderSelect"
-          className="block font-medium mb-1"
-          data-cy="FormBasicInfo__genderLabel"
-        >
+        <label htmlFor="genderSelect" className="block font-medium mb-1" data-cy="FormBasicInfo__genderLabel">
           {t("profile.gender")}
         </label>
         <select
@@ -120,10 +99,7 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
           <option value="Other">{t("profile.other")}</option>
         </select>
         {errors.gender && (
-          <p
-            className="text-red-600 text-sm mt-1"
-            data-cy="FormBasicInfo__genderError"
-          >
+          <p className="text-red-600 text-sm mt-1" data-cy="FormBasicInfo__genderError">
             {errors.gender.message}
           </p>
         )}
@@ -131,11 +107,7 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
 
       {/* Orientation */}
       <div className="w-full">
-        <label
-          htmlFor="orientationSelect"
-          className="block font-medium mb-1"
-          data-cy="FormBasicInfo__orientationLabel"
-        >
+        <label htmlFor="orientationSelect" className="block font-medium mb-1" data-cy="FormBasicInfo__orientationLabel">
           ❤️ {t("profile.orientation")}
         </label>
         <select
@@ -151,10 +123,7 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
           <option value="Other">{t("profile.other")}</option>
         </select>
         {errors.orientation && (
-          <p
-            className="text-red-600 text-sm mt-1"
-            data-cy="FormBasicInfo__orientationError"
-          >
+          <p className="text-red-600 text-sm mt-1" data-cy="FormBasicInfo__orientationError">
             {errors.orientation.message}
           </p>
         )}
@@ -163,14 +132,7 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
       {/* Height & Unit */}
       <div className="w-full grid grid-cols-2 gap-4">
         <div>
-<<<<<<< HEAD
           <label htmlFor="heightInput" className="block font-medium mb-1">
-=======
-          <label
-            htmlFor="heightInput"
-            className="block font-medium mb-1"
-          >
->>>>>>> 8f0979e965914ead7256fcb8048518221a968678
             {t("profile.height")}
           </label>
           <input
@@ -183,23 +145,13 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
             data-cy="FormBasicInfo__heightInput"
           />
           {errors.height && (
-            <p
-              className="text-red-600 text-sm mt-1"
-              data-cy="FormBasicInfo__heightError"
-            >
+            <p className="text-red-600 text-sm mt-1" data-cy="FormBasicInfo__heightError">
               {errors.height.message}
             </p>
           )}
         </div>
         <div>
-<<<<<<< HEAD
           <label htmlFor="heightUnitSelect" className="block font-medium mb-1">
-=======
-          <label
-            htmlFor="heightUnitSelect"
-            className="block font-medium mb-1"
-          >
->>>>>>> 8f0979e965914ead7256fcb8048518221a968678
             {t("profile.heightUnit")}
           </label>
           <select
@@ -213,10 +165,7 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
             <option value="FtIn">ft/in</option>
           </select>
           {errors.heightUnit && (
-            <p
-              className="text-red-600 text-sm mt-1"
-              data-cy="FormBasicInfo__heightUnitError"
-            >
+            <p className="text-red-600 text-sm mt-1" data-cy="FormBasicInfo__heightUnitError">
               {errors.heightUnit.message}
             </p>
           )}
@@ -226,14 +175,7 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
       {/* Weight & Unit */}
       <div className="w-full grid grid-cols-2 gap-4">
         <div>
-<<<<<<< HEAD
           <label htmlFor="weightInput" className="block font-medium mb-1">
-=======
-          <label
-            htmlFor="weightInput"
-            className="block font-medium mb-1"
-          >
->>>>>>> 8f0979e965914ead7256fcb8048518221a968678
             {t("profile.weight")}
           </label>
           <input
@@ -246,23 +188,13 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
             data-cy="FormBasicInfo__weightInput"
           />
           {errors.weight && (
-            <p
-              className="text-red-600 text-sm mt-1"
-              data-cy="FormBasicInfo__weightError"
-            >
+            <p className="text-red-600 text-sm mt-1" data-cy="FormBasicInfo__weightError">
               {errors.weight.message}
             </p>
           )}
         </div>
         <div>
-<<<<<<< HEAD
           <label htmlFor="weightUnitSelect" className="block font-medium mb-1">
-=======
-          <label
-            htmlFor="weightUnitSelect"
-            className="block font-medium mb-1"
-          >
->>>>>>> 8f0979e965914ead7256fcb8048518221a968678
             {t("profile.weightUnit")}
           </label>
           <select
@@ -272,19 +204,11 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
             data-cy="FormBasicInfo__weightUnitSelect"
           >
             <option value="">{t("common.select")}</option>
-<<<<<<< HEAD
             <option value="kg">kg</option>
             <option value="lb">lb</option>
-=======
-            <option value="Kg">kg</option>
-            <option value="Lb">lb</option>
->>>>>>> 8f0979e965914ead7256fcb8048518221a968678
           </select>
           {errors.weightUnit && (
-            <p
-              className="text-red-600 text-sm mt-1"
-              data-cy="FormBasicInfo__weightUnitError"
-            >
+            <p className="text-red-600 text-sm mt-1" data-cy="FormBasicInfo__weightUnitError">
               {errors.weightUnit.message}
             </p>
           )}
@@ -293,14 +217,7 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
 
       {/* Body Type */}
       <div className="w-full">
-<<<<<<< HEAD
         <label htmlFor="bodyTypeSelect" className="block font-medium mb-1">
-=======
-        <label
-          htmlFor="bodyTypeSelect"
-          className="block font-medium mb-1"
-        >
->>>>>>> 8f0979e965914ead7256fcb8048518221a968678
           {t("profile.bodyType")}
         </label>
         <select
@@ -310,21 +227,14 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
           data-cy="FormBasicInfo__bodyTypeSelect"
         >
           <option value="">{t("common.select")}</option>
-<<<<<<< HEAD
           <option value="Slim">{t("profile.bodyType.slim")}</option>
-=======
-          <option value="Thin">{t("profile.bodyType.thin")}</option>
->>>>>>> 8f0979e965914ead7256fcb8048518221a968678
           <option value="Normal">{t("profile.bodyType.normal")}</option>
           <option value="Athletic">{t("profile.bodyType.athletic")}</option>
           <option value="Overweight">{t("profile.bodyType.overweight")}</option>
           <option value="Obese">{t("profile.bodyType.obese")}</option>
         </select>
         {errors.bodyType && (
-          <p
-            className="text-red-600 text-sm mt-1"
-            data-cy="FormBasicInfo__bodyTypeError"
-          >
+          <p className="text-red-600 text-sm mt-1" data-cy="FormBasicInfo__bodyTypeError">
             {errors.bodyType.message}
           </p>
         )}
