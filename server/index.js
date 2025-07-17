@@ -1,8 +1,5 @@
-<<<<<<< HEAD
 // server/index.js
 
-=======
->>>>>>> 8f0979e965914ead7256fcb8048518221a968678
 const express = require("express");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
@@ -10,21 +7,13 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const path = require("path");
 
-<<<<<<< HEAD
 // Load environment variables from .env (must be at top)
-=======
-// Load environment variables from .env
->>>>>>> 8f0979e965914ead7256fcb8048518221a968678
 dotenv.config();
 
 const app = express();
 
 // ── Stripe & PayPal webhooks ───────────────────────────────────────────────────
-<<<<<<< HEAD
-// These need raw body, so register before express.json()
-=======
 // These need to see the raw body, so they must be registered *before* express.json()
->>>>>>> 8f0979e965914ead7256fcb8048518221a968678
 const stripeWebhookRouter = require("./routes/stripeWebhook");
 const paypalWebhookRouter = require("./routes/paypalWebhook");
 
@@ -45,10 +34,7 @@ app.use(
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-<<<<<<< HEAD
     exposedHeaders: ["Authorization"]
-=======
->>>>>>> 8f0979e965914ead7256fcb8048518221a968678
   })
 );
 app.use(express.json());
@@ -61,7 +47,6 @@ app.use(
 );
 
 // ── Mount application routes ────────────────────────────────────────────────────
-<<<<<<< HEAD
 const authRoutes     = require("./routes/auth");
 const imageRoutes    = require("./routes/imageRoutes");
 const userRoutes     = require("./routes/userRoutes");
@@ -70,22 +55,9 @@ const paymentRoutes  = require("./routes/payment");
 const discoverRoutes = require("./routes/discover");
 
 app.use("/api/auth",       authRoutes);
-// ← swap: userRoutes must come before imageRoutes
+// ← userRoutes must come before imageRoutes
 app.use("/api/users",      userRoutes);
 app.use("/api/users",      imageRoutes);
-
-=======
-const authRoutes    = require("./routes/auth");
-const imageRoutes   = require("./routes/imageRoutes");
-const userRoutes    = require("./routes/userRoutes");
-const messageRoutes = require("./routes/messageRoutes");
-const paymentRoutes = require("./routes/payment");
-const discoverRoutes = require("./routes/discover");
-
-app.use("/api/auth",       authRoutes);
-app.use("/api/users",      imageRoutes);
-app.use("/api/users",      userRoutes);
->>>>>>> 8f0979e965914ead7256fcb8048518221a968678
 app.use("/api/messages",   messageRoutes);
 app.use("/api/payment",    paymentRoutes);
 app.use("/api/discover",   discoverRoutes);
@@ -126,11 +98,7 @@ app.use((err, req, res, next) => {
 });
 
 // ── 404 Not Found handler ──────────────────────────────────────────────────────
-<<<<<<< HEAD
 app.use((req, res) => {
-=======
-app.use((req, res, next) => {
->>>>>>> 8f0979e965914ead7256fcb8048518221a968678
   res.status(404).json({ error: "Not Found" });
 });
 
@@ -149,18 +117,11 @@ mongoose
   .then(() => {
     console.log("✅ MongoDB connected");
     console.log("🛣️ Registered routes:");
-<<<<<<< HEAD
-    app._router.stack.forEach((layer) => {
-      if (layer.route && layer.route.path) {
-        const methods = Object.keys(layer.route.methods)
-          .map((m) => m.toUpperCase())
-          .join(", ");
-=======
     app._router.stack.forEach(layer => {
       if (layer.route && layer.route.path) {
         const methods = Object.keys(layer.route.methods)
-          .map(m => m.toUpperCase()).join(", ");
->>>>>>> 8f0979e965914ead7256fcb8048518221a968678
+          .map(m => m.toUpperCase())
+          .join(", ");
         console.log(`  ${methods.padEnd(6)} ${layer.route.path}`);
       }
     });
@@ -168,10 +129,6 @@ mongoose
       console.log(`✅ Server running on http://localhost:${PORT}`)
     );
   })
-<<<<<<< HEAD
-  .catch((err) => console.error("❌ MongoDB connection error:", err));
-=======
   .catch(err => console.error("❌ MongoDB connection error:", err));
->>>>>>> 8f0979e965914ead7256fcb8048518221a968678
 
 module.exports = app;
