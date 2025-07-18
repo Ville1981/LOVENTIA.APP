@@ -43,20 +43,17 @@ const religionImportanceOptions = [
 // =============================================
 const schema = yup.object().shape({
   username: yup.string().required("Required"),
-  email: yup.string().email("Invalid email").required("Required"),
-  age: yup
-    .number().typeError("Age must be a number")
-    .min(18, "Must be at least 18")
-    .required("Required"),
-  gender: yup.string().required("Required"),
-  orientation: yup.string().required("Required"),
+  email:    yup.string().email("Invalid email").required("Required"),
+  age:      yup.number().typeError("Age must be a number").min(18, "Must be at least 18").required("Required"),
+  gender:       yup.string().required("Required"),
+  orientation:  yup.string().required("Required"),
 
-  country: yup.string(),
-  region: yup.string(),
-  city: yup.string(),
+  country:       yup.string(),
+  region:        yup.string(),
+  city:          yup.string(),
   customCountry: yup.string(),
-  customRegion: yup.string(),
-  customCity: yup.string(),
+  customRegion:  yup.string(),
+  customCity:    yup.string(),
 
   education: yup.string(),
 
@@ -65,21 +62,19 @@ const schema = yup.object().shape({
     .oneOf(["", ...professionCategories], "Invalid profession category"),
   profession: yup.string().required("Required"),
 
-  religion: yup.string().oneOf(religionOptions, "Invalid religion"),
-  religionImportance: yup
-    .string()
-    .oneOf(religionImportanceOptions, "Invalid importance"),
+  religion:           yup.string().oneOf(religionOptions, "Invalid religion"),
+  religionImportance: yup.string().oneOf(religionImportanceOptions, "Invalid importance"),
 
   children: yup.string(),
-  pets: yup.string(),
-  smoke: yup.string(),
-  drink: yup.string(),
-  drugs: yup.string(),
+  pets:     yup.string(),
+  smoke:    yup.string(),
+  drink:    yup.string(),
+  drugs:    yup.string(),
 
-  height: yup.number().nullable().transform((v,o)=>(o===""?null:v)),
+  height:     yup.number().nullable().transform((v,o)=> o===""? null : v),
   heightUnit: yup.string().oneOf(["","Cm","FtIn"], "Invalid unit"),
-  weight: yup.number().nullable().transform((v,o)=>(o===""?null:v)),
-  bodyType: yup.string(),
+  weight:     yup.number().nullable().transform((v,o)=> o===""? null : v),
+  bodyType:     yup.string(),
   activityLevel: yup.string(),
 
   nutritionPreferences: yup
@@ -87,12 +82,14 @@ const schema = yup.object().shape({
     .oneOf(["", ...dietOptions], "Invalid diet"),
   healthInfo: yup.string(),
 
-  summary: yup.string(),
-  goal: yup.string(),
+  summary:    yup.string(),
+  goal:       yup.string(),
   lookingFor: yup.string(),
 
-  latitude: yup.number().nullable().transform((v,o)=>(o===""?null:v)),
-  longitude: yup.number().nullable().transform((v,o)=>(o===""?null:v)),
+  profilePhoto: yup.string(),         // new hidden field
+
+  latitude:  yup.number().nullable().transform((v,o)=> o===""? null : v),
+  longitude: yup.number().nullable().transform((v,o)=> o===""? null : v),
 
   extraImages: yup.array().of(yup.string()),
 });
@@ -107,46 +104,58 @@ export default function ProfileForm({
   onUserUpdate,
   onSubmit: onSubmitProp,
   hideAvatarSection = false,
-  hidePhotoSection = false,
+  hidePhotoSection  = false,
 }) {
   const methods = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
       username: user.username || "",
-      email: user.email || "",
-      age: user.age || "",
-      gender: user.gender || "",
-      orientation: user.orientation || "",
-      country: user.country || "",
-      region: user.region || "",
-      city: user.city || "",
+      email:    user.email    || "",
+      age:      user.age       || "",
+      gender:       user.gender      || "",
+      orientation:  user.orientation || "",
+
+      country:       user.country       || "",
+      region:        user.region        || "",
+      city:          user.city          || "",
       customCountry: user.customCountry || "",
-      customRegion: user.customRegion || "",
-      customCity: user.customCity || "",
+      customRegion:  user.customRegion  || "",
+      customCity:    user.customCity    || "",
+
       education: user.education || "",
+
       professionCategory: user.professionCategory || "",
-      profession: user.profession || "",
-      religion: user.religion || "",
+      profession:         user.profession         || "",
+
+      religion:           user.religion           || "",
       religionImportance: user.religionImportance || "",
+
       children: user.children || "",
-      pets: user.pets || "",
-      smoke: user.smoke || "",
-      drink: user.drink || "",
-      drugs: user.drugs || "",
-      height: user.height ?? null,
-      heightUnit: user.heightUnit || "",
-      weight: user.weight ?? null,
-      bodyType: user.bodyType || "",
+      pets:     user.pets     || "",
+      smoke:    user.smoke    || "",
+      drink:    user.drink    || "",
+      drugs:    user.drugs    || "",
+
+      height:     user.height      ?? null,
+      heightUnit: user.heightUnit  || "",
+      weight:     user.weight      ?? null,
+      bodyType:     user.bodyType     || "",
       activityLevel: user.activityLevel || "",
+
       nutritionPreferences: Array.isArray(user.nutritionPreferences)
         ? user.nutritionPreferences[0]
         : user.nutritionPreferences || "",
       healthInfo: user.healthInfo || "",
-      summary: user.summary || "",
-      goal: user.goal || "",
+
+      summary:    user.summary    || "",
+      goal:       user.goal       || "",
       lookingFor: user.lookingFor || "",
-      latitude: user.latitude ?? null,
+
+      profilePhoto: user.profilePicture || "",  // sync existing avatar path
+
+      latitude:  user.latitude  ?? null,
       longitude: user.longitude ?? null,
+
       extraImages: user.extraImages || [],
     },
   });
@@ -158,7 +167,7 @@ export default function ProfileForm({
     getValues,
   } = methods;
 
-  // ─── Sync remote → form and unwrap diet-array ───────────────────────────────
+  // ─── Keep form in sync with remote & avatar unwrap ───────────────────────────
   useEffect(() => {
     reset({
       ...getValues(),
@@ -167,6 +176,7 @@ export default function ProfileForm({
         ? user.nutritionPreferences[0]
         : user.nutritionPreferences,
       extraImages: user.extraImages || [],
+      profilePhoto: user.profilePicture || "",
     });
   }, [user, reset, getValues]);
 
@@ -189,14 +199,13 @@ export default function ProfileForm({
     }
   }, [user.profilePicture]);
 
-  // ─── On form submit, re-wrap diet into array ───────────────────────────────
+  // ─── On form submit, re-wrap diet into array & include profilePhoto ─────────
   const onFormSubmit = async (data) => {
     const payload = {
       ...data,
-      nutritionPreferences: data.nutritionPreferences
-        ? [data.nutritionPreferences]
-        : [],
+      nutritionPreferences: data.nutritionPreferences ? [data.nutritionPreferences] : [],
       extraImages: localExtraImages,
+      profilePhoto: data.profilePhoto,    // now always defined
     };
     await onSubmitProp(payload);
   };
@@ -232,6 +241,9 @@ export default function ProfileForm({
         className="bg-white shadow rounded-lg p-6 space-y-6"
         data-cy="ProfileForm__form"
       >
+        {/* Hidden field so backend always sees profilePhoto */}
+        <input type="hidden" {...methods.register("profilePhoto")} />
+
         {/* Avatar slideshow + Manage Photos link */}
         {!hideAvatarSection && slideshowImages.length > 0 && (
           <div className="flex flex-col items-center space-y-2">
@@ -272,6 +284,7 @@ export default function ProfileForm({
 
         {/* Profession + Religion */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Profession Category */}
           <div>
             <label className="block text-sm font-medium mb-1">
               {t("profile.professionCategory")}
@@ -293,6 +306,8 @@ export default function ProfileForm({
               </p>
             )}
           </div>
+
+          {/* Profession */}
           <div>
             <label className="block text-sm font-medium mb-1">
               💼 {t("profile.profession")}
@@ -307,6 +322,8 @@ export default function ProfileForm({
               <p className="mt-1 text-red-600">{errors.profession.message}</p>
             )}
           </div>
+
+          {/* Religion */}
           <div>
             <label className="block text-sm font-medium mb-1">
               🕊 {t("profile.religion")}
@@ -358,10 +375,19 @@ export default function ProfileForm({
         <FormLifestyle t={t} includeAllOption />
 
         {/* Goals & Summary */}
-        <FormGoalSummary t={t} errors={errors} />
+        <FormGoalSummary
+          t={t}
+          errors={errors}
+          fieldName="goal"             // new prop
+          summaryField="summary"
+        />
 
         {/* Looking For */}
-        <FormLookingFor t={t} errors={errors} />
+        <FormLookingFor
+          t={t}
+          errors={errors}
+          fieldName="lookingFor"       // new prop
+        />
 
         {/* Extra Photo Uploader */}
         {!hidePhotoSection && userId && (
