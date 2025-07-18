@@ -1,60 +1,78 @@
-// src/components/profileFields/FormGoalSummary.jsx
-
 import React from "react";
+import PropTypes from "prop-types";
 import { useFormContext } from "react-hook-form";
 
 /**
  * FormGoalSummary
- * Lomakeosio: profiilin kuvaus ja tavoitteet
- * Käyttää RHF-kontekstia kenttien rekisteröintiin ja virheiden näyttöön.
+ * Section for profile summary and goals.
+ * Uses React Hook Form context to register fields and display errors.
  *
  * Props:
- *   t: lokalisointifunktio (required)
+ *   t: localization function (required)
+ *   summaryField: the field name for the summary textarea (default: "summary")
+ *   goalField: the field name for the goals textarea (default: "goal")
  */
-const FormGoalSummary = ({ t }) => {
+const FormGoalSummary = ({ t, summaryField = "summary", goalField = "goal" }) => {
   const {
     register,
     formState: { errors },
   } = useFormContext();
 
   return (
-    <div className="flex flex-col gap-4 w-full text-left" data-cy="FormGoalSummary__section">
-      {/* Kuvaus */}
+    <div
+      className="flex flex-col gap-4 w-full text-left"
+      data-cy="FormGoalSummary__section"
+    >
+      {/* Profile summary */}
       <div className="w-full">
-        <label htmlFor="summary" className="block font-medium mb-1" data-cy="FormGoalSummary__summaryLabel">
+        <label
+          htmlFor={summaryField}
+          className="block font-medium mb-1"
+          data-cy="FormGoalSummary__summaryLabel"
+        >
           📄 {t("profile.about")}
         </label>
         <textarea
-          id="summary"
-          {...register("summary")}
+          id={summaryField}
+          {...register(summaryField)}
           placeholder={t("profile.about")}
           className="p-2 border rounded w-full"
           rows={3}
           data-cy="FormGoalSummary__summaryInput"
         />
-        {errors.summary && (
-          <p className="mt-1 text-sm text-red-600" data-cy="FormGoalSummary__summaryError">
-            {errors.summary.message}
+        {errors[summaryField] && (
+          <p
+            className="mt-1 text-sm text-red-600"
+            data-cy="FormGoalSummary__summaryError"
+          >
+            {errors[summaryField].message}
           </p>
         )}
       </div>
 
-      {/* Tavoitteet */}
+      {/* Profile goals */}
       <div className="w-full">
-        <label htmlFor="goal" className="block font-medium mb-1" data-cy="FormGoalSummary__goalLabel">
+        <label
+          htmlFor={goalField}
+          className="block font-medium mb-1"
+          data-cy="FormGoalSummary__goalLabel"
+        >
           🎯 {t("profile.goals")}
         </label>
         <textarea
-          id="goal"
-          {...register("goal")}
+          id={goalField}
+          {...register(goalField)}
           placeholder={t("profile.goals")}
           className="p-2 border rounded w-full"
           rows={3}
           data-cy="FormGoalSummary__goalInput"
         />
-        {errors.goal && (
-          <p className="mt-1 text-sm text-red-600" data-cy="FormGoalSummary__goalError">
-            {errors.goal.message}
+        {errors[goalField] && (
+          <p
+            className="mt-1 text-sm text-red-600"
+            data-cy="FormGoalSummary__goalError"
+          >
+            {errors[goalField].message}
           </p>
         )}
       </div>
@@ -62,6 +80,10 @@ const FormGoalSummary = ({ t }) => {
   );
 };
 
+FormGoalSummary.propTypes = {
+  t: PropTypes.func.isRequired,
+  summaryField: PropTypes.string,
+  goalField: PropTypes.string,
+};
+
 export default FormGoalSummary;
-
-

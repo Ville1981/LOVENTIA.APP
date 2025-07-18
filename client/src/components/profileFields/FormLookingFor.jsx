@@ -1,26 +1,24 @@
-// src/components/profileFields/FormLookingFor.jsx
-
 import React from "react";
 import { useFormContext } from "react-hook-form";
 import PropTypes from "prop-types";
 
 /**
  * FormLookingFor
- * Lomakeosio: mitä etsit profiilissasi
- * Käyttää RHF-kontekstia kenttien rekisteröintiin ja virheiden näyttöön.
+ * Section for "what you are looking for" in your profile.
+ * Uses React Hook Form context to register fields and display errors.
  *
  * Props:
- *   t: lokalisointifunktio (required)
+ *   t: localization function (required)
+ *   fieldName: the field name for the select input (default: "lookingFor")
  */
-const FormLookingFor = ({ t }) => {
+const FormLookingFor = ({ t, fieldName = "lookingFor" }) => {
   const {
     register,
     formState: { errors },
   } = useFormContext();
 
-  const name = "lookingFor";
+  // Options for what the user is looking for
   const options = [
-    // Lisätty "All" -vaihtoehto
     { value: "", label: t("common.all") },
     { value: "Friendship", label: t("looking.friendship") },
     { value: "Getting to Know", label: t("looking.gettingToKnow") },
@@ -35,25 +33,35 @@ const FormLookingFor = ({ t }) => {
   ];
 
   return (
-    <div className="flex flex-col gap-4 w-full text-left" data-cy="FormLookingFor__section">
-      <label htmlFor={name} className="block font-medium mb-1" data-cy="FormLookingFor__label">
+    <div
+      className="flex flex-col gap-4 w-full text-left"
+      data-cy="FormLookingFor__section"
+    >
+      <label
+        htmlFor={fieldName}
+        className="block font-medium mb-1"
+        data-cy="FormLookingFor__label"
+      >
         🔍 {t("profile.searchingFor")}
       </label>
       <select
-        id={name}
-        {...register(name)}
+        id={fieldName}
+        {...register(fieldName)}
         className="p-2 border rounded w-full"
         data-cy="FormLookingFor__select"
       >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
           </option>
         ))}
       </select>
-      {errors[name] && (
-        <p className="mt-1 text-sm text-red-600" data-cy="FormLookingFor__error">
-          {errors[name].message}
+      {errors[fieldName] && (
+        <p
+          className="mt-1 text-sm text-red-600"
+          data-cy="FormLookingFor__error"
+        >
+          {errors[fieldName].message}
         </p>
       )}
     </div>
@@ -62,6 +70,7 @@ const FormLookingFor = ({ t }) => {
 
 FormLookingFor.propTypes = {
   t: PropTypes.func.isRequired,
+  fieldName: PropTypes.string,
 };
 
 export default FormLookingFor;

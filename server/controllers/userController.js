@@ -12,7 +12,9 @@ const path = require("path");
 // Configuration
 const SALT_ROUNDS = parseInt(process.env.SALT_ROUNDS, 10) || 10;
 
-// Utility: remove a file from disk
+/**
+ * Utility: remove a file from disk
+ */
 function removeFile(filePath) {
   if (!filePath) return;
   try {
@@ -25,7 +27,9 @@ function removeFile(filePath) {
   }
 }
 
-// Register a new user with hashed password
+/**
+ * Register a new user with hashed password
+ */
 const registerUser = async (req, res) => {
   const { username, email, password } = req.body;
   try {
@@ -55,7 +59,9 @@ const registerUser = async (req, res) => {
   }
 };
 
-// Log in a user by comparing password and issuing tokens
+/**
+ * Log in a user by comparing password and issuing tokens
+ */
 const loginUser = async (req, res) => {
   const { email, password } = req.body;
 
@@ -114,7 +120,9 @@ const loginUser = async (req, res) => {
   }
 };
 
-// Activate premium status for the user
+/**
+ * Activate premium status for the user
+ */
 const upgradeToPremium = async (req, res) => {
   try {
     const user = await User.findById(req.userId);
@@ -130,21 +138,21 @@ const upgradeToPremium = async (req, res) => {
   }
 };
 
-// Get possible matches with a computed score
+/**
+ * Get possible matches with a computed score
+ */
 const getMatchesWithScore = async (req, res) => {
   try {
     const currentUser = await User.findById(req.userId);
     if (!currentUser) {
       return res.status(404).json({ error: "User not found" });
     }
-
     const blockedByMe = Array.isArray(currentUser.blockedUsers)
       ? currentUser.blockedUsers.map((id) => id.toString())
       : [];
     const interests = Array.isArray(currentUser.preferredInterests)
       ? currentUser.preferredInterests
       : [];
-
     const allUsers = await User.find({ _id: { $ne: currentUser._id } });
     const matches = allUsers
       .filter((u) => {
@@ -161,8 +169,7 @@ const getMatchesWithScore = async (req, res) => {
         if (
           currentUser.preferredGender === "any" ||
           (u.gender &&
-            u.gender.toLowerCase() ===
-              currentUser.preferredGender.toLowerCase())
+            u.gender.toLowerCase() === currentUser.preferredGender.toLowerCase())
         ) {
           score += 20;
         }
@@ -174,7 +181,6 @@ const getMatchesWithScore = async (req, res) => {
         }
         const common = interests.filter((i) => u.interests.includes(i));
         score += Math.min(common.length * 10, 60);
-
         return {
           id: u._id,
           username: u.username,
@@ -187,7 +193,6 @@ const getMatchesWithScore = async (req, res) => {
         };
       })
       .sort((a, b) => b.matchScore - a.matchScore);
-
     return res.json(matches);
   } catch (err) {
     console.error("Match score error:", err);
@@ -195,7 +200,9 @@ const getMatchesWithScore = async (req, res) => {
   }
 };
 
-// Bulk upload extra photos
+/**
+ * Bulk upload extra photos
+ */
 const uploadExtraPhotos = async (req, res) => {
   try {
     const user = await User.findById(req.userId);
@@ -206,15 +213,11 @@ const uploadExtraPhotos = async (req, res) => {
     if (!Array.isArray(files) || !files.length) {
       return res.status(400).json({ error: "No images uploaded" });
     }
-
     const maxAllowed = user.isPremium ? 20 : 6;
     const existingCount = user.extraImages.filter(Boolean).length;
     if (existingCount + files.length > maxAllowed) {
-      return res
-        .status(400)
-        .json({ error: `Max ${maxAllowed} images allowed` });
+      return res.status(400).json({ error: `Max ${maxAllowed} images allowed` });
     }
-
     files.forEach((f) => user.extraImages.push(f.path));
     await user.save();
     return res.json({ extraImages: user.extraImages });
@@ -224,7 +227,9 @@ const uploadExtraPhotos = async (req, res) => {
   }
 };
 
-// Upload single photo into a slot
+/**
+ * Upload single photo into a slot
+ */
 const uploadPhotoStep = async (req, res) => {
   try {
     const user = await User.findById(req.userId);
@@ -244,13 +249,13 @@ const uploadPhotoStep = async (req, res) => {
     return res.json({ extraImages: user.extraImages });
   } catch (err) {
     console.error("uploadPhotoStep error:", err);
-    return res
-      .status(500)
-      .json({ error: "Server error during photo step upload" });
+    return res.status(500).json({ error: "Server error during photo step upload" });
   }
 };
 
-// Delete a specific photo slot
+/**
+ * Delete a specific photo slot
+ */
 const deletePhotoSlot = async (req, res) => {
   try {
     const user = await User.findById(req.userId);
@@ -270,9 +275,7 @@ const deletePhotoSlot = async (req, res) => {
     return res.json({ extraImages: user.extraImages });
   } catch (err) {
     console.error("deletePhotoSlot error:", err);
-    return res
-      .status(500)
-      .json({ error: "Server error during photo deletion" });
+    return res.status(500).json({ error: "Server error during photo deletion" });
   }
 };
 

@@ -1,5 +1,3 @@
-// server/routes/userRoutes.js
-
 const express = require('express');
 const router = express.Router();
 const path = require('path');
@@ -100,7 +98,7 @@ router.put(
   authenticate,
   upload.fields([
     { name: 'profilePhoto', maxCount: 1 },
-    { name: 'extraImages', maxCount: 20 },
+    { name: 'extraImages',   maxCount: 20 },
   ]),
   handleValidation,
   async (req, res) => {
@@ -110,22 +108,30 @@ router.put(
         return res.status(404).json({ error: 'User not found' });
       }
 
-      // Update text fields
+      // Update text fields (only existing user schema paths)
       Object.entries(req.body).forEach(([key, value]) => {
         if (value !== undefined && key in user) {
           user[key] = value;
         }
       });
 
-      // Update profile picture
-      if (req.files.profilePhoto) {
+      // If front-end sent profilePhoto path in JSON body, update it
+      if (req.body.profilePhoto) {
+        user.profilePicture = req.body.profilePhoto;
+      }
+
+      // Handle multipart uploads only if files are present
+      if (req.files && req.files.profilePhoto) {
+        // Remove old photo
         if (user.profilePicture) removeFile(user.profilePicture);
+        // Assign new upload
         user.profilePicture = req.files.profilePhoto[0].path;
       }
 
-      // Update extra images
-      if (req.files.extraImages) {
+      if (req.files && req.files.extraImages) {
+        // Remove old extra images
         user.extraImages.forEach((img) => removeFile(img));
+        // Assign new uploads
         user.extraImages = req.files.extraImages.map((f) => f.path);
       }
 
