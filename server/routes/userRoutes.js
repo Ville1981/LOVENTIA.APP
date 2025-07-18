@@ -1,15 +1,16 @@
-// routes/userRoutes.js
+// server/routes/userRoutes.js
 
-const express           = require("express");
-const router            = express.Router();
-const path              = require("path");
-const fs                = require("fs");
-const jwt               = require("jsonwebtoken");
-const mongoose          = require("mongoose");
-const multer            = require("multer");
-const { body, validationResult } = require("express-validator");
-const User              = require("../models/User");
+const express = require('express');
+const router = express.Router();
+const path = require('path');
+const fs = require('fs');
+const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
+const multer = require('multer');
+const { body, validationResult } = require('express-validator');
 
+// Import the User model and controller functions
+const User = require('../models/User');
 const {
   registerUser,
   loginUser,
@@ -18,195 +19,239 @@ const {
   uploadExtraPhotos,
   uploadPhotoStep,
   deletePhotoSlot,
-} = require("../controllers/userController");
+} = require('../controllers/userController');
 
-// 🔐 Middleware: ensure token validity and attach user
-const authenticateToken = async (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "No token provided" });
-  }
-  const token = authHeader.split(" ")[1];
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (!decoded?.id) {
-      return res.status(401).json({ error: "Invalid token payload" });
-    }
-    const user = await User.findById(decoded.id).select("-password");
-    if (!user) {
-      return res.status(401).json({ error: "User not found" });
-    }
-    req.userId = user._id;
-    req.user   = user;
-    next();
-  } catch (err) {
-    console.error("Authentication error:", err);
-    return res.status(401).json({ error: "Invalid or expired token" });
-  }
-};
+// Import authentication middleware
+const { authenticate } = require('../middleware/authMiddleware');
 
-// 🔧 Multer storage + helper
+// Configure Multer for file uploads
 const storage = multer.diskStorage({
-  destination: (req, file, cb) =>
-    cb(null, "uploads/"),
-  filename: (req, file, cb) =>
-    cb(null, Date.now() + path.extname(file.originalname)),
+  destination: (req, file, cb) => cb(null, 'uploads/'),
+  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),
 });
-const upload     = multer({ storage });
-const removeFile = filePath => {
+const upload = multer({ storage });
+
+// Helper to remove files from disk
+const removeFile = (filePath) => {
   if (filePath && fs.existsSync(filePath)) {
     fs.unlinkSync(filePath);
   }
 };
 
-// 🎯 Body parsers
+// Validation error handler
+const handleValidation = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+  next();
+};
+
+// Parse JSON and URL-encoded bodies
 router.use(express.json());
 router.use(express.urlencoded({ extended: true }));
 
 // =====================
-// 🚪 Authentication routes
+// Authentication Routes
 // =====================
-router.post("/register", registerUser);
-router.post("/login",    loginUser);
+
+// Register a new user
+router.post(
+  '/register',
+  [
+    body('username').notEmpty().withMessage('Username is required'),
+    body('email').isEmail().withMessage('Valid email required'),
+    body('password')
+      .isLength({ min: 6 })
+      .withMessage('Password must be at least 6 characters'),
+  ],
+  handleValidation,
+  registerUser
+);
+
+// Login a user
+router.post(
+  '/login',
+  [
+    body('email').isEmail().withMessage('Valid email required'),
+    body('password').notEmpty().withMessage('Password is required'),
+  ],
+  handleValidation,
+  loginUser
+);
 
 // =====================
-// 👤 Get current user (/api/users/me)
+// Protected User Routes
 // =====================
-router.get("/me", authenticateToken, (req, res) => {
+
+// Get current authenticated user
+router.get('/me', authenticate, (req, res) => {
   res.json(req.user);
 });
 
-// =====================
-// 🆔 Alias for current user (/api/users/profile)
-// =====================
-router.get("/profile", authenticateToken, (req, res) => {
+// Alias for profile
+router.get('/profile', authenticate, (req, res) => {
   res.json(req.user);
 });
 
-// =====================
-// ✏️ Update profile (/api/users/profile)
-// =====================
-const profileValidation = [
-  // add your express-validator checks here, e.g.:
-  // body("username").isLength({ min: 3 }).withMessage("Username too short"),
-  (req, res, next) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty())
-      return res.status(400).json({ errors: errors.array() });
-    next();
-  }
-];
+// Update user profile
 router.put(
-  "/profile",
-  authenticateToken,
+  '/profile',
+  authenticate,
   upload.fields([
-    { name: "profilePhoto", maxCount: 1 },
-    { name: "extraImages",  maxCount: 20 }
+    { name: 'profilePhoto', maxCount: 1 },
+    { name: 'extraImages', maxCount: 20 },
   ]),
-  profileValidation,
+  handleValidation,
   async (req, res) => {
     try {
-      const user = await User.findById(req.userId);
-      if (!user) return res.status(404).json({ error: "User not found" });
-      // ... apply updates from req.body/file uploads ...
-      const updated = await user.save();
-      res.json(updated);
+      const user = await User.findById(req.user.id);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Update text fields
+      Object.entries(req.body).forEach(([key, value]) => {
+        if (value !== undefined && key in user) {
+          user[key] = value;
+        }
+      });
+
+      // Update profile picture
+      if (req.files.profilePhoto) {
+        if (user.profilePicture) removeFile(user.profilePicture);
+        user.profilePicture = req.files.profilePhoto[0].path;
+      }
+
+      // Update extra images
+      if (req.files.extraImages) {
+        user.extraImages.forEach((img) => removeFile(img));
+        user.extraImages = req.files.extraImages.map((f) => f.path);
+      }
+
+      const updatedUser = await user.save();
+      res.json(updatedUser);
     } catch (err) {
-      console.error("Profile update error:", err);
-      res.status(500).json({ error: "Profile update failed" });
+      console.error('Profile update error:', err);
+      res.status(500).json({ error: 'Profile update failed' });
     }
   }
 );
 
 // =====================
-// ❤️ Like another user
+// Social Interaction Routes
 // =====================
-router.post("/like/:id", authenticateToken, async (req, res) => {
-  // ...
+
+// Like another user
+router.post('/like/:id', authenticate, async (req, res) => {
+  // TODO: implement like logic
+  res.json({ message: 'User liked' });
+});
+
+// Superlike another user
+router.post('/superlike/:id', authenticate, async (req, res) => {
+  // TODO: implement superlike logic
+  res.json({ message: 'User superliked' });
+});
+
+// Block a user
+router.post('/block/:id', authenticate, async (req, res) => {
+  // TODO: implement block logic
+  res.json({ message: 'User blocked' });
 });
 
 // =====================
-// 🌟 Superlike another user
+// Premium and Matches
 // =====================
-router.post("/superlike/:id", authenticateToken, async (req, res) => {
-  // ...
+
+// Upgrade to premium
+router.post('/upgrade-premium', authenticate, upgradeToPremium);
+
+// Get match suggestions with score
+router.get('/matches', authenticate, getMatchesWithScore);
+
+// =====================
+// Additional User Info
+// =====================
+
+// Who liked me
+router.get('/who-liked-me', authenticate, async (req, res) => {
+  // TODO: implement logic
+  res.json([]);
 });
 
-// 🚫 Block user
-router.post("/block/:id", authenticateToken, async (req, res) => {
-  // ...
+// Nearby users
+router.get('/nearby', authenticate, async (req, res) => {
+  // TODO: implement logic
+  res.json([]);
 });
 
-// 💎 Upgrade to premium
-router.post("/upgrade-premium", authenticateToken, async (req, res) => {
-  await upgradeToPremium(req, res);
-});
+// =====================
+// Photo Upload Routes
+// =====================
 
-// 👀 Who liked me
-router.get("/who-liked-me", authenticateToken, async (req, res) => {
-  // ...
-});
-
-// 📍 Nearby users
-router.get("/nearby", authenticateToken, async (req, res) => {
-  // ...
-});
-
-// 🖼 Upload avatar
+// Upload or replace profile avatar
 router.post(
-  "/:id/upload-avatar",
-  authenticateToken,
-  upload.single("profilePhoto"),
+  '/:id/upload-avatar',
+  authenticate,
+  upload.single('profilePhoto'),
   async (req, res) => {
-    // ...
+    try {
+      const user = await User.findById(req.user.id);
+      if (!user) return res.status(404).json({ error: 'User not found' });
+      if (user.profilePicture) removeFile(user.profilePicture);
+      user.profilePicture = req.file.path;
+      await user.save();
+      res.json({ profilePicture: user.profilePicture });
+    } catch (err) {
+      console.error('Upload-avatar error:', err);
+      res.status(500).json({ error: 'Failed to upload avatar' });
+    }
   }
 );
 
-// 🖼 Upload photos
+// Bulk upload extra photos
 router.post(
-  "/:id/upload-photos",
-  authenticateToken,
-  upload.array("photos", 20),
+  '/:id/upload-photos',
+  authenticate,
+  upload.array('photos', 20),
   uploadExtraPhotos
 );
 
-// 🖼 Upload single photo step
+// Upload a single photo step
 router.post(
-  "/:id/upload-photo-step",
-  authenticateToken,
-  upload.single("photo"),
+  '/:id/upload-photo-step',
+  authenticate,
+  upload.single('photo'),
   uploadPhotoStep
 );
 
-// 🖼 Delete photo slot
-router.delete(
-  "/:id/photos/:slot",
-  authenticateToken,
-  deletePhotoSlot
-);
+// Delete a specific photo slot
+router.delete('/:id/photos/:slot', authenticate, deletePhotoSlot);
 
 // =====================
-// 💡 Param validator: catch invalid ObjectIds early
+// Param Validation
 // =====================
-router.param("id", (req, res, next, id) => {
+router.param('id', (req, res, next, id) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ error: "Invalid user ID" });
+    return res.status(400).json({ error: 'Invalid user ID' });
   }
   next();
 });
 
 // =====================
-// 🆔 Public profile by ID (always last)
+// Public Profile by ID
 // =====================
-router.get("/:id", async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const user = await User.findById(req.params.id)
-      .select("-password -email -likes -superLikes -blockedUsers");
-    if (!user) return res.status(404).json({ error: "User not found" });
+    const user = await User.findById(req.params.id).select(
+      '-password -email -blockedUsers'
+    );
+    if (!user) return res.status(404).json({ error: 'User not found' });
     res.json(user);
   } catch (err) {
-    console.error("GET /:id failed:", err);
-    res.status(500).json({ error: "Server error" });
+    console.error('Public profile fetch error:', err);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 

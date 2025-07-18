@@ -1,30 +1,26 @@
 // server/index.js
 
+// Load environment variables from .env (must be at top)
+require("dotenv").config();
+
 const express = require("express");
 const mongoose = require("mongoose");
-const dotenv = require("dotenv");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const path = require("path");
 
-// Load environment variables from .env (must be at top)
-dotenv.config();
+// Ensure User model is registered before middleware/routes
+require("./models/User");
 
 const app = express();
 
 // ── Stripe & PayPal webhooks ───────────────────────────────────────────────────
-// These need to see the raw body, so they must be registered *before* express.json()
+// These need to see the raw body, so they must come before express.json()
 const stripeWebhookRouter = require("./routes/stripeWebhook");
 const paypalWebhookRouter = require("./routes/paypalWebhook");
 
-app.use(
-  "/api/payment/stripe-webhook",
-  stripeWebhookRouter
-);
-app.use(
-  "/api/payment/paypal-webhook",
-  paypalWebhookRouter
-);
+app.use("/api/payment/stripe-webhook", stripeWebhookRouter);
+app.use("/api/payment/paypal-webhook", paypalWebhookRouter);
 
 // ── Common middleware ───────────────────────────────────────────────────────────
 app.use(cookieParser());
@@ -34,36 +30,34 @@ app.use(
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-    exposedHeaders: ["Authorization"]
+    exposedHeaders: ["Authorization"],
   })
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ── Serve uploads folder as static files ────────────────────────────────────────
-app.use(
-  "/uploads",
-  express.static(path.join(__dirname, "uploads"))
-);
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // ── Mount application routes ────────────────────────────────────────────────────
 const authRoutes     = require("./routes/auth");
-const imageRoutes    = require("./routes/imageRoutes");
 const userRoutes     = require("./routes/userRoutes");
+const imageRoutes    = require("./routes/imageRoutes");
 const messageRoutes  = require("./routes/messageRoutes");
 const paymentRoutes  = require("./routes/payment");
 const discoverRoutes = require("./routes/discover");
 
 app.use("/api/auth",       authRoutes);
-// ← userRoutes must come before imageRoutes
+// Mount user profile, preferences, matching, etc.
 app.use("/api/users",      userRoutes);
-app.use("/api/users",      imageRoutes);
+// Mount image uploads under a separate path to avoid overlap with userRoutes
+app.use("/api/users/images", imageRoutes);
+
 app.use("/api/messages",   messageRoutes);
 app.use("/api/payment",    paymentRoutes);
 app.use("/api/discover",   discoverRoutes);
 
 // ── Temporary mock users endpoint (for development/testing) ────────────────────
-// NOTE: this is mounted *after* your real /api/users routes, so it won't override them.
 app.get("/api/mock-users", (req, res) => {
   const user = {
     _id: "1",
@@ -83,7 +77,7 @@ app.get("/api/mock-users", (req, res) => {
     agreeCount: 6,
     disagreeCount: 3,
     findOutCount: 4,
-    summary: "Positive mindset, self develop …",
+    summary: "Positive mindset, self-development …",
     details: {},
   };
   return res.json([user]);
@@ -117,10 +111,10 @@ mongoose
   .then(() => {
     console.log("✅ MongoDB connected");
     console.log("🛣️ Registered routes:");
-    app._router.stack.forEach(layer => {
+    app._router.stack.forEach((layer) => {
       if (layer.route && layer.route.path) {
         const methods = Object.keys(layer.route.methods)
-          .map(m => m.toUpperCase())
+          .map((m) => m.toUpperCase())
           .join(", ");
         console.log(`  ${methods.padEnd(6)} ${layer.route.path}`);
       }
@@ -129,6 +123,6 @@ mongoose
       console.log(`✅ Server running on http://localhost:${PORT}`)
     );
   })
-  .catch(err => console.error("❌ MongoDB connection error:", err));
+  .catch((err) => console.error("❌ MongoDB connection error:", err));
 
 module.exports = app;
