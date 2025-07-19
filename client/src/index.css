@@ -1,54 +1,55 @@
+/* stylelint-disable at-rule-no-unknown */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/\* ==================================================
-Mukautetut base-tyylit Tailwindin päälle
-\================================================== */
+/* ==================================================
+   Custom base styles on top of Tailwind defaults
+   ================================================== */
 @layer base {
-html,
-body,
-\#root {
-height: 100%;
-margin: 0;
-padding: 0;
-/* Sammutetaan selaimen scroll anchoring koko dokumentissa */
-overflow-anchor: none !important;
-/* Poistetaan selaimen oletus smooth-scroll-asetukset \*/
-scroll-behavior: auto !important;
-}
-}
-
-/\* ==================================================
-Tekstisuunta luettavuuden takaamiseksi
-\================================================== \*/
-@layer utilities {
-.direction-ltr {
-direction: ltr;
-}
+  html,
+  body,
+  #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    /* Disable browser scroll anchoring throughout the document */
+    overflow-anchor: none !important;
+    /* Remove browser default smooth-scroll settings */
+    scroll-behavior: auto !important;
+  }
 }
 
-/\* ==================================================
-Slick‐karusellin outline‐poisto
-\================================================== \*/
+/* ==================================================
+   Utility to enforce left-to-right text direction
+   ================================================== */
 @layer utilities {
-.slick-slide\:focus,
-.slick-slide \*:focus {
-outline: none !important;
-}
+  .direction-ltr {
+    direction: ltr;
+  }
 }
 
-/\* ==================================================
-Scroll-anchoringin esto Slick-komponenteille
-\================================================== \*/
+/* ==================================================
+   Remove focus outline for Slick carousel slides
+   ================================================== */
 @layer utilities {
-.slick-slider,
-.slick-list,
-.slick-track,
-.profile-carousel,
-.profile-carousel \*,
-.slick-prev,
-.slick-next {
-overflow-anchor: none !important;
+  .slick-slide:focus,
+  .slick-slide *:focus {
+    outline: none !important;
+  }
 }
+
+/* ==================================================
+   Disable scroll anchoring for Slick components and custom carousel
+   ================================================== */
+@layer utilities {
+  .slick-slider,
+  .slick-list,
+  .slick-track,
+  .profile-carousel,
+  .profile-carousel *,
+  .slick-prev,
+  .slick-next {
+    overflow-anchor: none !important;
+  }
 }

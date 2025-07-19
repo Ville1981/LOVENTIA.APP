@@ -1,4 +1,5 @@
 // src/components/ui/ControlBar.jsx
+
 import React from 'react'
 import PropTypes from 'prop-types'
 
@@ -13,17 +14,23 @@ import PropTypes from 'prop-types'
  *   <button>Action</button>
  *   <label>…</label>
  * </ControlBar>
+ *
+ * Props:
+ * - children: elements to render inside this control bar
+ * - className: additional Tailwind CSS classes to customize styling
  */
 export default function ControlBar({ children = null, className = '' }) {
   const baseClasses = [
     'flex items-center space-x-2',
     'border border-gray-300 p-2 rounded-lg',
-    'bg-gray-100',            // default gray background for consistency
+    'bg-gray-100',            // default gray background for controls
   ]
 
   return (
     <div
-      className={[...baseClasses, className].filter(Boolean).join(' ')}
+      className={[...baseClasses, className]
+        .filter(Boolean)
+        .join(' ')}
     >
       {children}
     </div>
@@ -37,4 +44,4 @@ ControlBar.propTypes = {
   className: PropTypes.string,
 }
 
-// Note: Default props are handled via function parameter defaults above.
+// Note: default props are handled via function parameter defaults above.

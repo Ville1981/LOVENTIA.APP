@@ -1,3 +1,5 @@
+// src/components/ui/Button.jsx
+
 import React from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
@@ -6,12 +8,12 @@ import classNames from 'classnames';
  * Button
  * 
  * A styled button supporting variant and disabled states.
- * Wraps native <button> or accepts "as" prop for custom elements (e.g., label).
+ * Wraps native <button> or accepts an "as" prop for custom elements (e.g., label).
  *
  * Props:
  * - variant: one of 'green', 'purple', 'red', 'gray', 'blue'
  * - disabled: boolean
- * - as: string or component (e.g. 'button', 'label')
+ * - as: string or component (e.g., 'button', 'label')
  * - className: additional classes
  */
 export default function Button({
@@ -22,7 +24,8 @@ export default function Button({
   className = '',
   ...rest
 }) {
-  const baseClasses = 'px-3 py-1 text-white rounded hover:opacity-90 disabled:opacity-50 focus:outline-none';
+  const baseClasses =
+    'px-3 py-1 text-white rounded hover:opacity-90 disabled:opacity-50 focus:outline-none';
   const variantClasses = {
     green: 'bg-green-600 hover:bg-green-700',
     purple: 'bg-purple-600 hover:bg-purple-700',

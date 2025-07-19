@@ -14,7 +14,6 @@ import FormLifestyle from "./FormLifestyle";
 import FormGoalSummary from "./FormGoalSummary";
 import FormLookingFor from "./FormLookingFor";
 import MultiStepPhotoUploader from "./MultiStepPhotoUploader";
-import { uploadAvatar } from "../../api/images";
 import { BACKEND_BASE_URL } from "../../config";
 
 // =============================================
@@ -86,7 +85,7 @@ const schema = yup.object().shape({
   goal:       yup.string(),
   lookingFor: yup.string(),
 
-  profilePhoto: yup.string(),         // new hidden field
+  profilePhoto: yup.string(),
 
   latitude:  yup.number().nullable().transform((v,o)=> o===""? null : v),
   longitude: yup.number().nullable().transform((v,o)=> o===""? null : v),
@@ -151,7 +150,7 @@ export default function ProfileForm({
       goal:       user.goal       || "",
       lookingFor: user.lookingFor || "",
 
-      profilePhoto: user.profilePicture || "",  // sync existing avatar path
+      profilePhoto: user.profilePicture || "",
 
       latitude:  user.latitude  ?? null,
       longitude: user.longitude ?? null,
@@ -167,7 +166,7 @@ export default function ProfileForm({
     getValues,
   } = methods;
 
-  // ─── Keep form in sync with remote & avatar unwrap ───────────────────────────
+  // Keep form in sync with remote data & unwrap avatar
   useEffect(() => {
     reset({
       ...getValues(),
@@ -180,7 +179,7 @@ export default function ProfileForm({
     });
   }, [user, reset, getValues]);
 
-  // ─── Local extra-images & avatar-preview ───────────────────────────────────
+  // Local state for extra-images & avatar preview
   const [localExtraImages, setLocalExtraImages] = useState(user.extraImages || []);
   const [avatarPreview, setAvatarPreview] = useState(
     user.profilePicture
@@ -199,37 +198,47 @@ export default function ProfileForm({
     }
   }, [user.profilePicture]);
 
-  // ─── On form submit, re-wrap diet into array & include profilePhoto ─────────
+  // On form submit, wrap diet into array & include chosen profilePhoto
   const onFormSubmit = async (data) => {
     const payload = {
       ...data,
       nutritionPreferences: data.nutritionPreferences ? [data.nutritionPreferences] : [],
       extraImages: localExtraImages,
-      profilePhoto: data.profilePhoto,    // now always defined
+      profilePhoto: data.profilePhoto,
     };
     await onSubmitProp(payload);
   };
 
-  // ─── Slideshow for avatar + extra-images ───────────────────────────────────
+  // Build filtered slideshow array: avatar first, then extra images
   const slideshowImages = useMemo(() => {
     const arr = [];
-    if (avatarPreview) arr.push(avatarPreview);
-    localExtraImages.forEach((src) =>
-      arr.push(
-        typeof src === "string" && !src.startsWith("http")
-          ? `${BACKEND_BASE_URL}${src}`
-          : src
-      )
-    );
-    return arr;
+    if (avatarPreview) {
+      arr.push(avatarPreview);
+    }
+    localExtraImages.forEach((src) => {
+      if (src) {
+        arr.push(
+          typeof src === "string" && !src.startsWith("http")
+            ? `${BACKEND_BASE_URL}${src}`
+            : src
+        );
+      }
+    });
+    // Filter out any empty or invalid entries
+    return arr.filter((src) => !!src);
   }, [avatarPreview, localExtraImages]);
 
+  // Reset slide index to 0 whenever the number of slideshow images changes
   const [slideIndex, setSlideIndex] = useState(0);
   useEffect(() => {
+    setSlideIndex(0);
+  }, [slideshowImages.length]);
+
+  // Auto-advance slideshow every 3s if more than one image
+  useEffect(() => {
+    if (slideshowImages.length < 2) return;
     const iv = setInterval(() => {
-      if (slideshowImages.length > 1) {
-        setSlideIndex((i) => (i + 1) % slideshowImages.length);
-      }
+      setSlideIndex((i) => (i + 1) % slideshowImages.length);
     }, 3000);
     return () => clearInterval(iv);
   }, [slideshowImages]);
@@ -378,7 +387,7 @@ export default function ProfileForm({
         <FormGoalSummary
           t={t}
           errors={errors}
-          fieldName="goal"             // new prop
+          fieldName="goal"
           summaryField="summary"
         />
 
@@ -386,7 +395,7 @@ export default function ProfileForm({
         <FormLookingFor
           t={t}
           errors={errors}
-          fieldName="lookingFor"       // new prop
+          fieldName="lookingFor"
         />
 
         {/* Extra Photo Uploader */}
