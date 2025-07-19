@@ -21,9 +21,10 @@ export default function MultiStepPhotoUploader({
   onError = () => {},
 }) {
   const { t } = useTranslation()
-  const maxSlots = isPremium ? 20 : 6
+  // Increase free-user slot count to 7; premium remains 20
+  const maxSlots = isPremium ? 20 : 7
 
-  // --- Cropper workflow ---
+  // --- Cropper workflow state ---
   const [step, setStep] = useState(1)
   const [selectedFile, setSelectedFile] = useState(null)
   const [crop, setCrop] = useState({ x: 0, y: 0 })
@@ -36,7 +37,7 @@ export default function MultiStepPhotoUploader({
   const [bulkFiles, setBulkFiles] = useState([])
   const [bulkError, setBulkError] = useState('')
 
-  // --- Grid images & staged single-slot files ---
+  // --- Grid images & staged files ---
   const [localImages, setLocalImages] = useState(
     Array.from({ length: maxSlots }, (_, i) => extraImages[i] || null)
   )
@@ -45,7 +46,7 @@ export default function MultiStepPhotoUploader({
   const fileInputRef = useRef(null)
   const bulkInputRef = useRef(null)
 
-  // Sync incoming images
+  // Sync incoming images into padded array
   useEffect(() => {
     const padded = Array.from(
       { length: maxSlots },
@@ -54,25 +55,25 @@ export default function MultiStepPhotoUploader({
     setLocalImages(padded)
   }, [extraImages, maxSlots])
 
-  // Scroll to top when entering crop step
+  // Scroll to top on entering crop step
   useEffect(() => {
     if (step > 1) window.scrollTo(0, 0)
   }, [step])
 
-  // Helpers
+  // Find first empty slot or default to 0
   const findFirstEmpty = useCallback(() => {
     const idx = localImages.findIndex((img) => !img)
     return idx !== -1 ? idx : 0
   }, [localImages])
 
-  // Open file picker for cropping flow
+  // Open cropping flow for a given slot
   const openSlot = useCallback((idx) => {
     setSlot(idx)
     if (fileInputRef.current) fileInputRef.current.value = ''
     fileInputRef.current.click()
   }, [])
 
-  // Cropping flow: file selected
+  // Handle file selection for cropping
   const handleFileChange = useCallback((e) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -81,13 +82,14 @@ export default function MultiStepPhotoUploader({
     }
   }, [])
 
+  // Capture cropped area pixel coords
   const onCropComplete = useCallback((_, pixels) => {
     setCroppedAreaPixels(pixels)
   }, [])
   const handleNext = useCallback(() => setStep((s) => Math.min(s + 1, 4)), [])
   const handleBack = useCallback(() => setStep((s) => Math.max(s - 1, 1)), [])
 
-  // Submit from cropper modal
+  // Submit cropped image to backend
   const handleSubmitCrop = async () => {
     if (!userId || !selectedFile || !croppedAreaPixels) return
     try {
@@ -104,7 +106,7 @@ export default function MultiStepPhotoUploader({
       setLocalImages(images.map((img) => img || null).slice(0, maxSlots))
       onSuccess(images)
 
-      // reset cropper flow
+      // Reset cropper state
       setStep(1)
       setSelectedFile(null)
       setCaption('')
@@ -117,7 +119,7 @@ export default function MultiStepPhotoUploader({
     }
   }
 
-  // --- Direct per-slot save (no manual crop) ---
+  // Direct per-slot save without manual crop
   const handleSlotFileChange = (idx, e) => {
     const file = e.target.files?.[0] || null
     setStagedFiles((prev) => ({ ...prev, [idx]: file }))
@@ -143,7 +145,7 @@ export default function MultiStepPhotoUploader({
         setLocalImages(images.map((img) => img || null).slice(0, maxSlots))
         onSuccess(images)
 
-        // clear staged
+        // Clear staged file
         setStagedFiles((prev) => {
           const copy = { ...prev }
           delete copy[idx]
@@ -159,7 +161,7 @@ export default function MultiStepPhotoUploader({
     img.src = url
   }
 
-  // --- Delete slot ---
+  // Delete photo in slot
   const handleDelete = async (idx) => {
     if (!userId) return
     try {
@@ -171,7 +173,7 @@ export default function MultiStepPhotoUploader({
     }
   }
 
-  // --- Bulk upload handlers ---
+  // Bulk upload handlers
   const handleBulkChange = (e) => {
     setBulkError('')
     setBulkFiles(Array.from(e.target.files || []))
@@ -192,8 +194,21 @@ export default function MultiStepPhotoUploader({
     }
   }
 
+  // Calculate number of slots to display: filled slots + next empty, capped
+  const filledCount = localImages.filter((img) => img).length
+  const visibleSlotsCount = Math.min(filledCount + 1, maxSlots)
+
   return (
     <div>
+      {/* Hidden input for cropping file picker */}
+      <input
+        type="file"
+        accept="image/*"
+        ref={fileInputRef}
+        className="hidden"
+        onChange={handleFileChange}
+      />
+
       {/* Avatar slot */}
       <div className="border border-gray-300 rounded-lg p-4 bg-gray-50 flex flex-col items-center mb-4">
         {localImages[0] ? (
@@ -213,17 +228,8 @@ export default function MultiStepPhotoUploader({
           </div>
         )}
 
-        {/* Hidden per-slot file input */}
-        <input
-          id="slot-input-0"
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => handleSlotFileChange(0, e)}
-        />
-
         <ControlBar className="bg-gray-100">
-          <Button as="label" variant="green" htmlFor="slot-input-0">
+          <Button variant="green" onClick={() => openSlot(0)}>
             Add Photo
           </Button>
           <div className="px-2 py-1 bg-white border border-gray-300 rounded text-gray-700 text-sm">
@@ -279,7 +285,7 @@ export default function MultiStepPhotoUploader({
 
       {/* Remaining slots */}
       <div className="grid grid-cols-3 gap-4 mt-4">
-        {localImages.slice(1).map((src, idx) => {
+        {localImages.slice(1, visibleSlotsCount).map((src, idx) => {
           const i = idx + 1
           return (
             <div
@@ -308,19 +314,10 @@ export default function MultiStepPhotoUploader({
                 )}
               </div>
 
-              <input
-                id={`slot-input-${i}`}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => handleSlotFileChange(i, e)}
-              />
-
               <ControlBar className="bg-gray-100">
                 <Button
-                  as="label"
                   variant="green"
-                  htmlFor={`slot-input-${i}`}
+                  onClick={() => openSlot(i)}
                 >
                   Add Photo
                 </Button>
