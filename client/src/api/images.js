@@ -40,6 +40,7 @@ export const uploadAvatar = async (userId, file) => {
 
 /**
  * Removes a user's avatar, reverting to a placeholder.
+ * NOTE: mirrors the DELETE /upload-avatar route on the server.
  * @param {string} userId - The ID of the user.
  * @returns {Promise<{ profilePicture: string | null }>} The cleared profilePicture value.
  * @throws {Error} When not authenticated or removal fails.
@@ -107,7 +108,7 @@ export const uploadPhotos = async (userId, filesOrFormData) => {
 };
 
 /**
- * Uploads a single photo step-wise with optional cropping and caption.
+ * Uploads a single photo step‐wise with optional cropping and caption.
  * @param {string} userId - The ID of the user.
  * @param {FormData} formData - FormData containing photo, slot, crop params, caption.
  * @returns {Promise<{ extraImages: string[] }>} The updated array of extra image URLs.

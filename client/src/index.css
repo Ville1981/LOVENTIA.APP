@@ -3,46 +3,92 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ==================================================
-   Custom base styles on top of Tailwind defaults
-   ================================================== */
+/* ====================================
+   Custom base styles on top of Tailwind
+   ==================================== */
 @layer base {
   html,
   body,
   #root {
     height: 100%;
     margin: 0;
-    padding: 0;
-    /* Disable browser scroll anchoring throughout the document */
+    padding: 1rem;
     overflow-anchor: none !important;
-    /* Remove browser default smooth-scroll settings */
     scroll-behavior: auto !important;
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+      "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+    background-color: #f7fafc;
+    color: #1a202c;
+  }
+
+  .dark html,
+  .dark body,
+  .dark #root {
+    background-color: #1a202c;
+    color: #f7fafc;
   }
 }
 
-/* ==================================================
-   Utility to enforce left-to-right text direction
-   ================================================== */
+/* ====================================
+   Container component for centering
+   ==================================== */
+@layer components {
+  .container {
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  @screen md {
+    .container { max-width: 36rem; }
+  }
+  @screen lg {
+    .container { max-width: 42rem; }
+  }
+}
+
+/* ====================================
+   Unified form control styling
+   exclude file inputs so hidden utility works
+   ==================================== */
+@layer components {
+  form input:not([type="file"]),
+  form button,
+  form textarea {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 1rem;
+    margin-top: 0.5rem;
+    font-size: 1rem;
+    border: 1px solid #D1D5DB;
+    border-radius: 0.375rem;
+    box-sizing: border-box;
+  }
+  form input:not([type="file"]):focus,
+  form button:focus,
+  form textarea:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(255,64,129,0.5);
+  }
+}
+
+/* ====================================
+   Base image utility
+   ==================================== */
 @layer utilities {
-  .direction-ltr {
-    direction: ltr;
+  img {
+    max-width: 100%;
+    height: auto;
+    display: block;
   }
 }
 
-/* ==================================================
-   Remove focus outline for Slick carousel slides
-   ================================================== */
+/* ====================================
+   Slick carousel fixes
+   ==================================== */
 @layer utilities {
   .slick-slide:focus,
-  .slick-slide *:focus {
-    outline: none !important;
-  }
-}
-
-/* ==================================================
-   Disable scroll anchoring for Slick components and custom carousel
-   ================================================== */
-@layer utilities {
+  .slick-slide *:focus,
   .slick-slider,
   .slick-list,
   .slick-track,
@@ -50,6 +96,7 @@
   .profile-carousel *,
   .slick-prev,
   .slick-next {
+    outline: none !important;
     overflow-anchor: none !important;
   }
 }

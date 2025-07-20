@@ -36,7 +36,7 @@ const ImageSchema = new mongoose.Schema({
   },
 });
 
-// Optional: Add an index on owner and isAvatar for quick lookups
+// Index owner + isAvatar for fast lookups
 ImageSchema.index({ owner: 1, isAvatar: 1 });
 
 module.exports = mongoose.model('Image', ImageSchema);

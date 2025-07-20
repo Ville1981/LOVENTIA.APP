@@ -1,6 +1,6 @@
 /**
- * pages/ExtraPhotosPage.jsx
- * 
+ * src/pages/ExtraPhotosPage.jsx
+ *
  * Page for managing user avatar and extra photos.
  * Uses ControlBar and Button for consistent control styling.
  */
@@ -120,7 +120,7 @@ export default function ExtraPhotosPage() {
   };
 
   if (!user) {
-    return <div className="text-center mt-12">Loading photos…</div>;
+    return <div className="text-center mt-12">Loading photos...</div>;
   }
 
   return (
@@ -142,10 +142,10 @@ export default function ExtraPhotosPage() {
             />
           </div>
 
-          {/* Avatar controls */}
-          <ControlBar>
-            <Button as="label" variant="green" htmlFor="avatar-input">
-              Browse…
+          {/* Avatar controls – now with gray background */}
+          <ControlBar className="bg-gray-200">
+            <Button as="label" variant="gray" htmlFor="avatar-input">
+              Browse...
               <input
                 id="avatar-input"
                 type="file"
@@ -166,25 +166,24 @@ export default function ExtraPhotosPage() {
           </ControlBar>
 
           {/* Status messages */}
-          {avatarMessage && <p className="text-green-600">{avatarMessage}</p>}
+          {avatarMessage && (
+            <p className="text-green-600">{avatarMessage}</p>
+          )}
           {avatarError && <p className="text-red-600">{avatarError}</p>}
         </form>
       )}
 
-      {/* Extra photos uploader */}
+      {/* Extra photos uploader or display */}
       {isOwner ? (
-        <>
-          {console.log("ExtraPhotosPage.render, extraImages:", user.extraImages)}
-          <MultiStepPhotoUploader
-            userId={userId}
-            isPremium={user.isPremium}
-            extraImages={user.extraImages || []}
-            onSuccess={(images) =>
-              handleUserUpdate({ ...user, extraImages: images })
-            }
-            onError={() => {}}
-          />
-        </>
+        <MultiStepPhotoUploader
+          userId={userId}
+          maxSlots={user.isPremium ? 20 : 7}
+          extraImages={user.extraImages || []}
+          onSuccess={(images) =>
+            handleUserUpdate({ ...user, extraImages: images })
+          }
+          onError={() => {}}
+        />
       ) : (
         <div className="grid grid-cols-3 gap-4">
           {user.extraImages?.map((src, i) => {
@@ -206,8 +205,8 @@ export default function ExtraPhotosPage() {
         </div>
       )}
 
-      {/* Back button */}
-      <ControlBar className="justify-center">
+      {/* Back button – centered, gray background */}
+      <ControlBar className="justify-center bg-gray-200">
         <Button variant="gray" onClick={() => navigate(-1)}>
           Back to Profile
         </Button>

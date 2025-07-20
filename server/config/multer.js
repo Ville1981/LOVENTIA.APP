@@ -43,7 +43,6 @@ const fileFilter = (req, file, cb) => {
   if (file.mimetype.startsWith('image/')) {
     cb(null, true);
   } else {
-    // Reject non-image fields with a MulterError
     cb(new multer.MulterError('LIMIT_UNEXPECTED_FILE', file.fieldname), false);
   }
 };
@@ -53,8 +52,7 @@ const limits = {
   fileSize: 10 * 1024 * 1024, // 10 MB
 };
 
-// Create the Multer upload middleware
+// Export the configured upload middleware
 const upload = multer({ storage, fileFilter, limits });
 
-// Export named upload for use in routes
 module.exports = { upload };

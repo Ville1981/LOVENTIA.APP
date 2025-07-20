@@ -1,5 +1,3 @@
-// src/components/ui/SlotControl.jsx
-
 import React from 'react';
 import PropTypes from 'prop-types';
 import ControlBar from './ControlBar';
@@ -12,8 +10,6 @@ import Button from './Button';
  * - Add Photo button
  * - Slot number label
  * - Remove button
- *
- * The entire control bar is wrapped in a light gray border with rounded corners.
  *
  * Props:
  * - index: slot index (0-based)
@@ -28,18 +24,18 @@ export default function SlotControl({
   disableRemove = false,
 }) {
   return (
-    <ControlBar className="border border-gray-300 rounded-lg p-2 bg-gray-50 space-x-2">
+    <ControlBar className="bg-gray-50">
       <Button
-        variant="green"
+        variant="orange"
         onClick={() => onAdd(index)}
         className="px-3 py-1"
       >
         Add Photo
       </Button>
 
-      <span className="px-2 text-sm text-gray-700">
+      <div className="px-2 py-1 bg-blue-600 text-white rounded text-sm">
         Slot {index + 1}
-      </span>
+      </div>
 
       <Button
         variant="red"
@@ -54,12 +50,8 @@ export default function SlotControl({
 }
 
 SlotControl.propTypes = {
-  index: PropTypes.number.isRequired,
-  onAdd: PropTypes.func.isRequired,
-  onRemove: PropTypes.func.isRequired,
+  index:         PropTypes.number.isRequired,
+  onAdd:         PropTypes.func.isRequired,
+  onRemove:      PropTypes.func.isRequired,
   disableRemove: PropTypes.bool,
-};
-
-SlotControl.defaultProps = {
-  disableRemove: false,
 };
