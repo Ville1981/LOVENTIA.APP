@@ -1,16 +1,18 @@
-const express = require("express");
-const mongoose = require("mongoose");
-const dotenv = require("dotenv");
-const cors = require("cors");
-const cookieParser = require("cookie-parser");
-const path = require("path");
+// server/app.js
+
+const express         = require("express");
+const mongoose        = require("mongoose");
+const dotenv          = require("dotenv");
+const cors            = require("cors");
+const cookieParser    = require("cookie-parser");
+const path            = require("path");
 
 // Load environment variables
 dotenv.config();
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
+  useNewUrlParser:    true,
   useUnifiedTopology: true,
 })
   .then(() => console.log("✅ MongoDB connected"))
@@ -52,8 +54,8 @@ app.use(
   cors({
     origin: process.env.CLIENT_URL || "http://localhost:5174",
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    methods: ["GET","POST","PUT","DELETE","OPTIONS"],
+    allowedHeaders: ["Content-Type","Authorization"],
   })
 );
 app.use(express.json());
@@ -90,19 +92,21 @@ app.get("/api/users", (req, res) => {
 });
 
 // Mount application routes
-app.use("/api/auth",    authRoutes);
+app.use("/api/auth", authRoutes);
 
-// Ensure image routes do not override user profile routes
-app.use("/api/users/photos", imageRoutes);
+// ←─── PART 1: IMAGE ROUTES ────────────────────────────────────────────────────
+// Change only this line: mount imageRoutes at `/api/users` instead of `/api/users/photos`
+app.use("/api/users", imageRoutes);
+// ────────────────────────────────────────────────────────────────────────────────
 
 // User routes including PUT /api/users/profile
-app.use("/api/users",   userRoutes);
+app.use("/api/users", userRoutes);
 
-app.use("/api/messages",messageRoutes);
-app.use("/api/payment", paymentRoutes);
+app.use("/api/messages", messageRoutes);
+app.use("/api/payment",  paymentRoutes);
 
 // Protect admin routes under /api/admin
-app.use("/api/admin",   adminRoutes);
+app.use("/api/admin",    adminRoutes);
 
 // Mount Discover (must come after other /api mounts)
 app.use("/api/discover", discoverRoutes);

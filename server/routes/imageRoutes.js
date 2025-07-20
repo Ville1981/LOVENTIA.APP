@@ -1,3 +1,5 @@
+// server/routes/imageRoutes.js
+
 const express = require("express");
 const router = express.Router();
 const path = require("path");
@@ -28,15 +30,11 @@ router.post(
         return res.status(400).json({ error: "No file uploaded" });
       }
 
-      // Remove old avatar records and files (async unlink)
+      // Remove old avatar files & records
       const oldAvatars = await Image.find({ owner: userId, isAvatar: true });
       await Promise.all(
         oldAvatars.map(async (old) => {
-          const fileOnDisk = path.join(
-            __dirname,
-            "..",
-            old.url.replace(/^\//, "")
-          );
+          const fileOnDisk = path.join(__dirname, "..", old.url.replace(/^\//, ""));
           fs.unlink(fileOnDisk, (err) => {
             if (err && err.code !== "ENOENT") {
               console.warn("Could not delete old avatar:", err.code, fileOnDisk);
@@ -69,12 +67,12 @@ router.post(
 );
 
 /**
- * POST /api/users/:userId/upload-photos
+ * POST /api/users/:userId/photos
  * Bulk upload extra images (max 6 or 20 for premium).
  * Response: { extraImages: string[] }
  */
 router.post(
-  "/:userId/upload-photos",
+  "/:userId/photos",
   authenticateToken,
   upload.array("photos", 20),
   async (req, res) => {
@@ -90,33 +88,30 @@ router.post(
       }
 
       const maxSlots = user.isPremium ? 20 : 6;
-      const existing = Array.isArray(user.extraImages)
-        ? [...user.extraImages]
-        : [];
+      const existing = Array.isArray(user.extraImages) ? [...user.extraImages] : [];
       const files = req.files || [];
 
       if (existing.filter(Boolean).length + files.length > maxSlots) {
-        return res.status(400).json({
-          error: `Max ${maxSlots} extra images allowed`,
-        });
+        return res.status(400).json({ error: `Max ${maxSlots} extra images allowed` });
       }
 
       const updated = Array.from({ length: maxSlots }, (_, i) => existing[i] || null);
       for (const file of files) {
         const url = `/uploads/extra/${file.filename}`;
         const idx = updated.findIndex((img) => !img);
-        if (idx !== -1) updated[idx] = url;
-        await Image.create({
-          owner: userId,
-          url,
-          uploaded: new Date(),
-          isAvatar: false,
-        });
+        if (idx !== -1) {
+          updated[idx] = url;
+          await Image.create({
+            owner: userId,
+            url,
+            uploaded: new Date(),
+            isAvatar: false,
+          });
+        }
       }
 
       user.extraImages = updated;
       await user.save();
-
       return res.status(200).json({ extraImages: updated });
     } catch (err) {
       console.error("Upload photos error:", err);
@@ -126,13 +121,13 @@ router.post(
 );
 
 /**
- * POST /api/users/:userId/upload-photo-step
+ * POST /api/users/:userId/photos/upload-photo-step
  * Single image upload with optional crop, slot, and caption.
  * Skips cropping for GIFs and stores them directly.
  * Response: { extraImages: string[] }
  */
 router.post(
-  "/:userId/upload-photo-step",
+  "/:userId/photos/upload-photo-step",
   authenticateToken,
   upload.single("photo"),
   async (req, res) => {
@@ -166,7 +161,7 @@ router.post(
           isAvatar: false,
           caption,
         });
-        const idxGif = Number.isInteger(+slot) && slot >= 0 && slot < maxSlots
+        const idxGif = Number.isInteger(+slot) && +slot >= 0 && +slot < maxSlots
           ? +slot
           : arr.findIndex((i) => !i);
         if (idxGif !== -1) arr[idxGif] = gifUrl;
@@ -177,21 +172,9 @@ router.post(
       }
 
       // Other images: crop with Sharp
-      const inputPath = path.join(
-        __dirname,
-        "..",
-        "uploads",
-        "extra",
-        req.file.filename
-      );
+      const inputPath = path.join(__dirname, "..", "uploads", "extra", req.file.filename);
       const outputName = `crop_${Date.now()}_${req.file.filename}`;
-      const outputPath = path.join(
-        __dirname,
-        "..",
-        "uploads",
-        "extra",
-        outputName
-      );
+      const outputPath = path.join(__dirname, "..", "uploads", "extra", outputName);
 
       await sharp(inputPath)
         .extract({
@@ -217,7 +200,7 @@ router.post(
         caption,
       });
 
-      const idxCrop = Number.isInteger(+slot) && slot >= 0 && slot < maxSlots
+      const idxCrop = Number.isInteger(+slot) && +slot >= 0 && +slot < maxSlots
         ? +slot
         : arr.findIndex((i) => !i);
       if (idxCrop !== -1) arr[idxCrop] = url;
@@ -264,11 +247,7 @@ router.delete(
 
       const imageUrl = arr[idx];
       if (imageUrl) {
-        const filePath = path.join(
-          __dirname,
-          "..",
-          imageUrl.replace(/^\//, "")
-        );
+        const filePath = path.join(__dirname, "..", imageUrl.replace(/^\//, ""));
         fs.unlink(filePath, (err) => {
           if (err && err.code !== "ENOENT") {
             console.warn("Could not delete slot image:", err.code, filePath);
@@ -280,7 +259,6 @@ router.delete(
       arr[idx] = null;
       user.extraImages = arr;
       await user.save();
-
       return res.status(200).json({ extraImages: arr });
     } catch (err) {
       console.error("Delete photo slot error:", err);
