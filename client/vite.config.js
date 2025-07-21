@@ -27,8 +27,19 @@ export default defineConfig({
     port: 5174,
     hmr: { overlay: false },
     proxy: {
-      '/api':     { target: 'http://localhost:5000', changeOrigin: true, secure: false },
-      '/uploads': { target: 'http://localhost:5000', changeOrigin: true, secure: false },
+      // Proxy all /api/* requests to the backend unchanged
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false,
+        // ← remove any rewrite; let /api/... pass through as /api/...
+      },
+      // Proxy uploaded assets
+      '/uploads': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false,
+      },
     },
     fs: {
       allow: [

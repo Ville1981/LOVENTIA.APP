@@ -1,11 +1,9 @@
-// server/app.js
-
-const express         = require("express");
-const mongoose        = require("mongoose");
-const dotenv          = require("dotenv");
-const cors            = require("cors");
-const cookieParser    = require("cookie-parser");
-const path            = require("path");
+const express       = require("express");
+const mongoose      = require("mongoose");
+const dotenv        = require("dotenv");
+const cors          = require("cors");
+const cookieParser  = require("cookie-parser");
+const path          = require("path");
 
 // Load environment variables
 dotenv.config();
@@ -22,6 +20,25 @@ mongoose.connect(process.env.MONGO_URI, {
   });
 
 const app = express();
+
+// ——— NEW CORS & PREFLIGHT HANDLER —————————————————————————————————————
+// Global CORS
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL || "http://localhost:5174",
+    credentials: true,
+    methods: ["GET","POST","PUT","DELETE","OPTIONS"],
+    allowedHeaders: ["Content-Type","Authorization"],
+  })
+);
+
+// Ensure OPTIONS preflight works for our crop‐upload endpoint
+app.options(
+  "/api/users/:userId/photos/upload-photo-step",
+  cors(),             // re-use the same CORS policy
+  (req, res) => res.sendStatus(200)
+);
+// ———————————————————————————————————————————————————————————————————————
 
 // Import webhook routes (before body parsers)
 const stripeWebhookRouter = require("./routes/stripeWebhook");
@@ -48,16 +65,7 @@ app.use(
   paypalWebhookRouter
 );
 
-// Common middleware
-app.use(cookieParser());
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5174",
-    credentials: true,
-    methods: ["GET","POST","PUT","DELETE","OPTIONS"],
-    allowedHeaders: ["Content-Type","Authorization"],
-  })
-);
+// Parse JSON and URL-encoded bodies
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -95,7 +103,6 @@ app.get("/api/users", (req, res) => {
 app.use("/api/auth", authRoutes);
 
 // ←─── PART 1: IMAGE ROUTES ────────────────────────────────────────────────────
-// Change only this line: mount imageRoutes at `/api/users` instead of `/api/users/photos`
 app.use("/api/users", imageRoutes);
 // ────────────────────────────────────────────────────────────────────────────────
 

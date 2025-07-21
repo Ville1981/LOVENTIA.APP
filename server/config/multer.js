@@ -6,24 +6,27 @@ const fs = require('fs');
 
 /**
  * Multer configuration for handling user profile and extra photo uploads.
- * Ensures separate directories for profiles and extra images,
- * filters to only allow images, and limits file size.
+ * - Separate storage directories for avatars and extra images
+ * - Unique, sanitized filenames to avoid collisions
+ * - Restrict uploads to image files only (JPG, PNG, GIF)
+ * - Enforce file size limits
  */
 
-// Define directories for profile and extra images
+// Define absolute paths for upload directories
 const PROFILES_DIR = path.join(__dirname, '../uploads/profiles');
 const EXTRA_DIR    = path.join(__dirname, '../uploads/extra');
 
 // Ensure upload directories exist
-[PROFILES_DIR, EXTRA_DIR].forEach((dir) => {
+[PROFILES_DIR, EXTRA_DIR].forEach(dir => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
 });
 
-// Storage config: choose destination by field name and set unique filenames
+// Storage engine: choose destination by fieldname and assign unique, sanitized filename
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
+    // 'profilePhoto' goes to profiles; everything else (photo/photos) to extra
     if (file.fieldname === 'profilePhoto') {
       cb(null, PROFILES_DIR);
     } else {
@@ -32,27 +35,36 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
-    const base = path.basename(file.originalname, ext);
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    cb(null, `${base}-${uniqueSuffix}${ext}`);
+    // Sanitize base name: allow letters, numbers, underscore, dash
+    const base = path.basename(file.originalname, ext)
+      .replace(/[^a-zA-Z0-9_-]/g, '_');
+    const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    cb(null, `${base}-${unique}${ext}`);
   },
 });
 
-// Filter: only allow image mimetypes
+// File filter: only accept common image types (including GIF for bypass)
 const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image/')) {
+  const ext = path.extname(file.originalname).toLowerCase();
+  const allowedExts = ['.jpg', '.jpeg', '.png', '.gif'];
+  if (allowedExts.includes(ext)) {
     cb(null, true);
   } else {
-    cb(new multer.MulterError('LIMIT_UNEXPECTED_FILE', file.fieldname), false);
+    cb(
+      new multer.MulterError(
+        'LIMIT_UNEXPECTED_FILE',
+        `Only ${allowedExts.join(', ')} files are allowed`
+      )
+    );
   }
 };
 
-// Limits: max file size per upload
+// Upload limits
 const limits = {
-  fileSize: 10 * 1024 * 1024, // 10 MB
+  fileSize: 10 * 1024 * 1024, // 10 MB max per file
 };
 
-// Export the configured upload middleware
+// Export configured multer middleware
 const upload = multer({ storage, fileFilter, limits });
 
 module.exports = { upload };

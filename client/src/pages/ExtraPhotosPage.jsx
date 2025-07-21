@@ -1,9 +1,5 @@
-/**
- * src/pages/ExtraPhotosPage.jsx
- *
- * Page for managing user avatar and extra photos.
- * Uses ControlBar and Button for consistent control styling.
- */
+// src/pages/ExtraPhotosPage.jsx
+
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -13,6 +9,12 @@ import { uploadAvatar, removeAvatar as apiRemoveAvatar } from "../api/images";
 import { BACKEND_BASE_URL } from "../config";
 import ControlBar from "../components/ui/ControlBar";
 import Button from "../components/ui/Button";
+
+/**
+ * Ensure leading slash and forward‐slashes only.
+ */
+const normalizePath = (p = "") =>
+  "/" + p.replace(/\\/g, "/").replace(/^\/+/, "");
 
 export default function ExtraPhotosPage() {
   const { user: authUser, setUser: setAuthUser } = useAuth();
@@ -28,7 +30,7 @@ export default function ExtraPhotosPage() {
   const userId = paramId || authUser?._id;
   const isOwner = !paramId || authUser?._id === paramId;
 
-  // Fetch user data
+  // Fetch user data (with credentials)
   const fetchUser = useCallback(async () => {
     if (!userId) return;
     try {
@@ -37,15 +39,17 @@ export default function ExtraPhotosPage() {
         : `${BACKEND_BASE_URL}/api/auth/me`;
       const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        withCredentials: true,
       });
       const u = res.data.user || res.data;
       setUser(u);
+
       const pic = u.profilePicture;
       setAvatarPreview(
         pic && typeof pic === "string"
           ? pic.startsWith("http")
             ? pic
-            : `${BACKEND_BASE_URL}${pic}`
+            : `${BACKEND_BASE_URL}${normalizePath(pic)}`
           : "/placeholder-avatar.png"
       );
     } catch (err) {
@@ -57,21 +61,22 @@ export default function ExtraPhotosPage() {
     fetchUser();
   }, [fetchUser]);
 
-  // Update user state
+  // Update local & global user
   const handleUserUpdate = (updatedUser) => {
     setUser(updatedUser);
     if (!paramId) setAuthUser(updatedUser);
+
     const pic = updatedUser.profilePicture;
     setAvatarPreview(
       pic && typeof pic === "string"
         ? pic.startsWith("http")
           ? pic
-          : `${BACKEND_BASE_URL}${pic}`
+          : `${BACKEND_BASE_URL}${normalizePath(pic)}`
         : "/placeholder-avatar.png"
     );
   };
 
-  // File selection
+  // File chooser for avatar
   const handleAvatarChange = (e) => {
     setAvatarError("");
     setAvatarMessage("");
@@ -84,16 +89,14 @@ export default function ExtraPhotosPage() {
     }
   };
 
-  // Submit avatar
+  // Submit avatar upload
   const handleAvatarSubmit = async (e) => {
     e.preventDefault();
     if (!avatarFile || !userId) return;
     setAvatarError("");
     setAvatarMessage("");
     try {
-      const result = await uploadAvatar(userId, avatarFile);
-      const newUrl =
-        typeof result === "string" ? result : result.profilePicture;
+      const { profilePicture: newUrl } = await uploadAvatar(userId, avatarFile);
       handleUserUpdate({ ...user, profilePicture: newUrl });
       setAvatarFile(null);
       setAvatarMessage("Avatar saved");
@@ -103,14 +106,14 @@ export default function ExtraPhotosPage() {
     }
   };
 
-  // Remove avatar
+  // Remove avatar (slot 0)
   const handleAvatarRemove = async () => {
     if (!userId) return;
     setAvatarError("");
     setAvatarMessage("");
     try {
-      await apiRemoveAvatar(userId);
-      handleUserUpdate({ ...user, profilePicture: null });
+      const { profilePicture } = await apiRemoveAvatar(userId);
+      handleUserUpdate({ ...user, profilePicture });
       setAvatarFile(null);
       setAvatarMessage("Avatar removed");
     } catch (err) {
@@ -138,11 +141,13 @@ export default function ExtraPhotosPage() {
               src={avatarPreview}
               alt="Avatar"
               className="w-full h-full object-cover"
-              onError={(e) => (e.currentTarget.src = "/placeholder-avatar.png")}
+              onError={(e) =>
+                (e.currentTarget.src = "/placeholder-avatar.png")
+              }
             />
           </div>
 
-          {/* Avatar controls – now with gray background */}
+          {/* Avatar controls */}
           <ControlBar className="bg-gray-200">
             <Button as="label" variant="gray" htmlFor="avatar-input">
               Browse...
@@ -177,7 +182,7 @@ export default function ExtraPhotosPage() {
       {isOwner ? (
         <MultiStepPhotoUploader
           userId={userId}
-          maxSlots={user.isPremium ? 20 : 7}
+          isPremium={user.isPremium}
           extraImages={user.extraImages || []}
           onSuccess={(images) =>
             handleUserUpdate({ ...user, extraImages: images })
@@ -191,7 +196,7 @@ export default function ExtraPhotosPage() {
               src && typeof src === "string"
                 ? src.startsWith("http")
                   ? src
-                  : `${BACKEND_BASE_URL}${src}`
+                  : `${BACKEND_BASE_URL}${normalizePath(src)}`
                 : "/placeholder-avatar.png";
             return (
               <img
@@ -205,7 +210,7 @@ export default function ExtraPhotosPage() {
         </div>
       )}
 
-      {/* Back button – centered, gray background */}
+      {/* Back button */}
       <ControlBar className="justify-center bg-gray-200">
         <Button variant="gray" onClick={() => navigate(-1)}>
           Back to Profile
