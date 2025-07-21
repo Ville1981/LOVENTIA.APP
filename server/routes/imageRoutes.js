@@ -1,20 +1,22 @@
 // server/routes/imageRoutes.js
 
 const express = require("express");
-const router = express.Router();
-const path = require("path");
-const fs = require("fs");
-const sharp = require("sharp");
+const router  = express.Router();
 
-const Image = require("../models/Image");
-const User = require("../models/User");
+const path              = require("path");
+const fs                = require("fs").promises;
+const sharp             = require("sharp");
 const authenticateToken = require("../middleware/auth");
-const { upload } = require("../config/multer");
+const { upload }        = require("../config/multer");
+const Image             = require("../models/Image");
+const User              = require("../models/User");
+
+// ——— PRE-FLIGHT (OPTIONS) — ensure it’s registered first ———
+router.options("/:userId/photos/upload-photo-step", (req, res) => res.sendStatus(200));
+// ————————————————————————————————————————————————————————
 
 /**
  * POST /api/users/:userId/upload-avatar
- * Replace existing avatar image.
- * Response: { profilePicture: string }
  */
 router.post(
   "/:userId/upload-avatar",
@@ -30,30 +32,23 @@ router.post(
         return res.status(400).json({ error: "No file uploaded" });
       }
 
-      // Remove old avatar files & records
+      // Remove old avatars
       const oldAvatars = await Image.find({ owner: userId, isAvatar: true });
       await Promise.all(
         oldAvatars.map(async (old) => {
           const fileOnDisk = path.join(__dirname, "..", old.url.replace(/^\//, ""));
-          fs.unlink(fileOnDisk, (err) => {
-            if (err && err.code !== "ENOENT") {
-              console.warn("Could not delete old avatar:", err.code, fileOnDisk);
-            }
-          });
+          try { await fs.unlink(fileOnDisk); } catch (err) {
+            if (err.code !== "ENOENT") console.warn("Could not delete old avatar:", err);
+          }
           await Image.deleteOne({ _id: old._id });
         })
       );
 
       // Save new avatar
       const avatarUrl = `/uploads/profiles/${req.file.filename}`;
-      await Image.create({
-        owner: userId,
-        url: avatarUrl,
-        uploaded: new Date(),
-        isAvatar: true,
-      });
+      await Image.create({ owner: userId, url: avatarUrl, uploaded: new Date(), isAvatar: true });
 
-      // Update user's profilePicture field
+      // Update user record
       const user = await User.findById(userId);
       user.profilePicture = avatarUrl;
       await user.save();
@@ -68,13 +63,11 @@ router.post(
 
 /**
  * POST /api/users/:userId/photos
- * Bulk upload extra images (max 6 or 20 for premium).
- * Response: { extraImages: string[] }
  */
 router.post(
   "/:userId/photos",
   authenticateToken,
-  upload.array("photos", 20),
+  upload.array("photos"),
   async (req, res) => {
     try {
       const { userId } = req.params;
@@ -87,7 +80,7 @@ router.post(
         return res.status(404).json({ error: "User not found" });
       }
 
-      const maxSlots = user.isPremium ? 20 : 6;
+      const maxSlots = user.isPremium ? 50 : 9;
       const existing = Array.isArray(user.extraImages) ? [...user.extraImages] : [];
       const files = req.files || [];
 
@@ -99,22 +92,16 @@ router.post(
       for (const file of files) {
         const url = `/uploads/extra/${file.filename}`;
         const idx = updated.findIndex((img) => !img);
-        if (idx !== -1) {
-          updated[idx] = url;
-          await Image.create({
-            owner: userId,
-            url,
-            uploaded: new Date(),
-            isAvatar: false,
-          });
-        }
+        if (idx === -1) break;
+        updated[idx] = url;
+        await Image.create({ owner: userId, url, uploaded: new Date(), isAvatar: false });
       }
 
       user.extraImages = updated;
       await user.save();
       return res.status(200).json({ extraImages: updated });
     } catch (err) {
-      console.error("Upload photos error:", err);
+      console.error("Bulk upload error:", err);
       return res.status(500).json({ error: "Photos upload failed" });
     }
   }
@@ -122,9 +109,6 @@ router.post(
 
 /**
  * POST /api/users/:userId/photos/upload-photo-step
- * Single image upload with optional crop, slot, and caption.
- * Skips cropping for GIFs and stores them directly.
- * Response: { extraImages: string[] }
  */
 router.post(
   "/:userId/photos/upload-photo-step",
@@ -146,65 +130,44 @@ router.post(
         return res.status(404).json({ error: "User not found" });
       }
 
-      const maxSlots = user.isPremium ? 20 : 6;
+      const maxSlots = user.isPremium ? 50 : 9;
       const arr = Array.isArray(user.extraImages)
         ? [...user.extraImages]
         : Array(maxSlots).fill(null);
 
-      // GIF: skip crop, store directly
+      // GIF bypass
       if (req.file.mimetype === "image/gif") {
         const gifUrl = `/uploads/extra/${req.file.filename}`;
-        await Image.create({
-          owner: userId,
-          url: gifUrl,
-          uploaded: new Date(),
-          isAvatar: false,
-          caption,
-        });
-        const idxGif = Number.isInteger(+slot) && +slot >= 0 && +slot < maxSlots
-          ? +slot
-          : arr.findIndex((i) => !i);
+        const idxGif =
+          Number.isInteger(+slot) && +slot >= 0 && +slot < maxSlots
+            ? +slot
+            : arr.findIndex((i) => !i);
         if (idxGif !== -1) arr[idxGif] = gifUrl;
 
+        await Image.create({ owner: userId, url: gifUrl, uploaded: new Date(), isAvatar: false, caption });
         user.extraImages = arr;
         await user.save();
         return res.status(200).json({ extraImages: arr });
       }
 
-      // Other images: crop with Sharp
-      const inputPath = path.join(__dirname, "..", "uploads", "extra", req.file.filename);
-      const outputName = `crop_${Date.now()}_${req.file.filename}`;
-      const outputPath = path.join(__dirname, "..", "uploads", "extra", outputName);
+      // Crop via Sharp
+      const inPath  = path.join(__dirname, "..", "uploads", "extra", req.file.filename);
+      const outName = `crop_${Date.now()}_${req.file.filename}`;
+      const outPath = path.join(__dirname, "..", "uploads", "extra", outName);
 
-      await sharp(inputPath)
-        .extract({
-          left: parseInt(cropX, 10),
-          top: parseInt(cropY, 10),
-          width: parseInt(cropWidth, 10),
-          height: parseInt(cropHeight, 10),
-        })
-        .toFile(outputPath);
+      await sharp(inPath)
+        .extract({ left: +cropX, top: +cropY, width: +cropWidth, height: +cropHeight })
+        .toFile(outPath);
+      await fs.unlink(inPath).catch(() => {});
 
-      fs.unlink(inputPath, (err) => {
-        if (err && err.code !== "ENOENT") {
-          console.warn("Could not delete temp upload:", err.code, inputPath);
-        }
-      });
-
-      const url = `/uploads/extra/${outputName}`;
-      await Image.create({
-        owner: userId,
-        url,
-        uploaded: new Date(),
-        isAvatar: false,
-        caption,
-      });
-
-      const idxCrop = Number.isInteger(+slot) && +slot >= 0 && +slot < maxSlots
-        ? +slot
-        : arr.findIndex((i) => !i);
+      const url = `/uploads/extra/${outName}`;
+      const idxCrop =
+        Number.isInteger(+slot) && +slot >= 0 && +slot < maxSlots
+          ? +slot
+          : arr.findIndex((i) => !i);
       if (idxCrop !== -1) arr[idxCrop] = url;
 
+      await Image.create({ owner: userId, url, uploaded: new Date(), isAvatar: false, caption });
       user.extraImages = arr;
       await user.save();
       return res.status(200).json({ extraImages: arr });
@@ -217,8 +180,6 @@ router.post(
 
 /**
  * DELETE /api/users/:userId/photos/:slot
- * Deletes the image in the specified slot and its record.
- * Response: { extraImages: string[] }
  */
 router.delete(
   "/:userId/photos/:slot",
@@ -236,23 +197,19 @@ router.delete(
         return res.status(404).json({ error: "User not found" });
       }
 
-      const maxSlots = user.isPremium ? 20 : 6;
+      const maxSlots = user.isPremium ? 50 : 9;
       const arr = Array.isArray(user.extraImages)
         ? [...user.extraImages]
         : Array(maxSlots).fill(null);
 
-      if (idx < 0 || idx >= arr.length) {
+      if (idx < 0 || idx >= maxSlots) {
         return res.status(400).json({ error: "Invalid slot index" });
       }
 
       const imageUrl = arr[idx];
       if (imageUrl) {
         const filePath = path.join(__dirname, "..", imageUrl.replace(/^\//, ""));
-        fs.unlink(filePath, (err) => {
-          if (err && err.code !== "ENOENT") {
-            console.warn("Could not delete slot image:", err.code, filePath);
-          }
-        });
+        await fs.unlink(filePath).catch(() => {});
         await Image.deleteOne({ owner: userId, url: imageUrl });
       }
 
@@ -261,7 +218,7 @@ router.delete(
       await user.save();
       return res.status(200).json({ extraImages: arr });
     } catch (err) {
-      console.error("Delete photo slot error:", err);
+      console.error("Delete slot error:", err);
       return res.status(500).json({ error: "Failed to delete photo slot" });
     }
   }

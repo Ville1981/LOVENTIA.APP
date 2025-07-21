@@ -3,11 +3,11 @@
 // Load environment variables from .env (must be at top)
 require("dotenv").config();
 
-const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
-const cookieParser = require("cookie-parser");
-const path = require("path");
+const express       = require("express");
+const mongoose      = require("mongoose");
+const cors          = require("cors");
+const cookieParser  = require("cookie-parser");
+const path          = require("path");
 
 // Ensure User model is registered before middleware/routes
 require("./models/User");
@@ -18,7 +18,6 @@ const app = express();
 // These need to see the raw body, so they must come before express.json()
 const stripeWebhookRouter = require("./routes/stripeWebhook");
 const paypalWebhookRouter = require("./routes/paypalWebhook");
-
 app.use("/api/payment/stripe-webhook", stripeWebhookRouter);
 app.use("/api/payment/paypal-webhook", paypalWebhookRouter);
 
@@ -42,16 +41,25 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // ── Mount application routes ────────────────────────────────────────────────────
 const authRoutes     = require("./routes/auth");
 const userRoutes     = require("./routes/userRoutes");
-const imageRoutes    = require("./routes/imageRoutes");
+const imageRoutes    = require("./routes/imageRoutes");   // image/photo endpoints
 const messageRoutes  = require("./routes/messageRoutes");
 const paymentRoutes  = require("./routes/payment");
 const discoverRoutes = require("./routes/discover");
 
-app.use("/api/auth",       authRoutes);
+app.use("/api/auth", authRoutes);
+
+// Preflight specifically for the crop‐upload endpoint
+app.options(
+  "/api/users/:userId/photos/upload-photo-step",
+  cors(),
+  (req, res) => res.sendStatus(200)
+);
+
 // Mount user profile, preferences, matching, etc.
-app.use("/api/users",      userRoutes);
-// Mount image uploads under a separate path to avoid overlap with userRoutes
-app.use("/api/users/images", imageRoutes);
+app.use("/api/users", userRoutes);
+
+// **Mount image/photo routes where front-end calls them**  
+app.use("/api/users", imageRoutes);
 
 app.use("/api/messages",   messageRoutes);
 app.use("/api/payment",    paymentRoutes);
