@@ -1,18 +1,11 @@
 // src/components/profileFields/MultiStepPhotoUploader.jsx
+// Tailwind safelist to keep these utilities from being purged:
+//   bg-gray-200 hover:bg-gray-300 min-w-[120px]
 
-import React, {
-  useState,
-  useRef,
-  useCallback,
-  useEffect,
-} from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import Cropper from 'react-easy-crop';
-import 'react-easy-crop/react-easy-crop.css';
 import { useTranslation } from 'react-i18next';
-
 import {
-  uploadAvatar,
   uploadPhotoStep,
   deletePhotoSlot,
   uploadPhotos,
@@ -36,156 +29,82 @@ export default function MultiStepPhotoUploader({
   onError = () => {},
 }) {
   const { t } = useTranslation();
-
-  // Number of extra slots (avatar is slot 0)
   const maxSlots = isPremium ? 50 : 9;
 
-  // --- Cropper workflow state ---
-  const [step, setStep] = useState(1);
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [crop, setCrop] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
-  const [caption, setCaption] = useState('');
-  const [activeSlot, setActiveSlot] = useState(null);
-
-  // Bulk upload
+  // Bulk upload state
   const [bulkFiles, setBulkFiles] = useState([]);
   const [bulkError, setBulkError] = useState('');
 
-  // Local previews & staged direct uploads
+  // Local previews & staged direct files
   const [localExtra, setLocalExtra] = useState(
     Array.from({ length: maxSlots }, (_, i) => extraImages[i] || null)
   );
   const [stagedFiles, setStagedFiles] = useState({});
 
   // Refs for file inputs
-  const fileInputRef = useRef(null);
-  const bulkInputRef = useRef(null);
   const slotInputRefs = useRef([]);
+  const bulkInputRef = useRef(null);
+
+  // Ensure exactly maxSlots refs
   if (slotInputRefs.current.length !== maxSlots) {
     slotInputRefs.current = Array(maxSlots)
       .fill()
       .map((_, i) => slotInputRefs.current[i] || React.createRef());
   }
 
-  // Sync prop changes into localExtra
+  // Sync incoming extraImages → localExtra
   useEffect(() => {
     setLocalExtra(
       Array.from({ length: maxSlots }, (_, i) => extraImages[i] || null)
     );
   }, [extraImages, maxSlots]);
 
-  // Always pre-select first empty slot
-  useEffect(() => {
-    const idx = localExtra.findIndex(x => !x);
-    setActiveSlot(idx !== -1 ? idx + 1 : 1);
-  }, [localExtra]);
-
-  const findFirstEmpty = useCallback(() => {
-    const idx = localExtra.findIndex((x) => !x);
-    return idx !== -1 ? idx + 1 : 1;
-  }, [localExtra]);
-
-  /**
-   * Open crop flow for a given slot
-   */
-  const openSlot = useCallback((idx) => {
-    setActiveSlot(idx);
-    setStep(2);
-    setSelectedFile(null);
-    setCaption('');
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-      fileInputRef.current.click();
-    }
-  }, []);
-
-  const handleFileChange = useCallback((e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setSelectedFile(file);
-    setStep(2);
-  }, []);
-
-  const onCropComplete = useCallback((_, pixels) => {
-    setCroppedAreaPixels(pixels);
-  }, []);
-
-  const handleNext = () => setStep((s) => Math.min(s + 1, 3));
-  const handleBack = () => setStep((s) => Math.max(s - 1, 1));
-
-  /**
-   * Submit cropped image for avatar or extra slot
-   */
-  const handleSubmitCrop = async () => {
-    if (activeSlot === null || !selectedFile || !croppedAreaPixels) return;
-
-    try {
-      if (activeSlot === 0) {
-        // AVATAR slot
-        const form = new FormData();
-        form.append('profilePhoto', selectedFile);
-        const { profilePicture } = await uploadAvatar(userId, form);
-        onSuccess(profilePicture);
-      } else {
-        // EXTRA slot → subtract 1 before sending
-        const form = new FormData();
-        form.append('photo', selectedFile);
-        form.append('slot', activeSlot - 1);
-        form.append('cropX', croppedAreaPixels.x);
-        form.append('cropY', croppedAreaPixels.y);
-        form.append('cropWidth', croppedAreaPixels.width);
-        form.append('cropHeight', croppedAreaPixels.height);
-        if (caption) form.append('caption', caption);
-
-        const { extraImages } = await uploadPhotoStep(userId, form);
-        setLocalExtra(extraImages.map((i) => i || null));
-        onSuccess(extraImages);
-      }
-    } catch (err) {
-      onError(err);
-    } finally {
-      setStep(1);
-      setSelectedFile(null);
-      setCaption('');
-      setCrop({ x: 0, y: 0 });
-      setZoom(1);
-      setCroppedAreaPixels(null);
-      setActiveSlot(findFirstEmpty());
-    }
+  /** Handle per‑slot file selection */
+  const handleSlotChange = (idx, e) => {
+    const file = e.target.files?.[0] || null;
+    setStagedFiles((prev) => ({ ...prev, [idx]: file }));
   };
 
-  /**
-   * Direct save (no crop) for any slot
-   */
+  /** Upload one slot */
   const handleSlotSave = async (idx) => {
     const file = stagedFiles[idx];
     if (!file) return;
-
     try {
       const form = new FormData();
       form.append('photo', file);
-      form.append('slot', idx - 1);          // ← subtract 1 here
+      form.append('slot', idx);
       form.append('cropX', 0);
       form.append('cropY', 0);
-      form.append('cropWidth', file.width || 0);
-      form.append('cropHeight', file.height || 0);
+      form.append('cropWidth', 0);
+      form.append('cropHeight', 0);
 
-      const { extraImages } = await uploadPhotoStep(userId, form);
-      setLocalExtra(extraImages.map((i) => i || null));
-      onSuccess(extraImages);
+      const { extraImages: updated } = await uploadPhotoStep(userId, form);
+      setLocalExtra(updated.map((i) => i || null));
+      onSuccess(updated);
+
+      // clear staged file
       setStagedFiles((prev) => {
-        const c = { ...prev };
-        delete c[idx];
-        return c;
+        const copy = { ...prev };
+        delete copy[idx];
+        return copy;
       });
     } catch (err) {
       onError(err);
     }
   };
 
-  /** Bulk upload handlers **/
+  /** Delete a slot */
+  const handleDelete = async (idx) => {
+    try {
+      const { extraImages: updated } = await deletePhotoSlot(userId, idx);
+      setLocalExtra(updated.map((i) => i || null));
+      onSuccess(updated);
+    } catch (err) {
+      onError(err);
+    }
+  };
+
+  /** Bulk‑upload handlers */
   const handleBulkChange = (e) => {
     setBulkFiles(Array.from(e.target.files || []));
     setBulkError('');
@@ -195,43 +114,20 @@ export default function MultiStepPhotoUploader({
     try {
       const form = new FormData();
       bulkFiles.forEach((f) => form.append('photos', f));
-      const { extraImages } = await uploadPhotos(userId, form);
-      setLocalExtra(extraImages.map((i) => i || null));
-      onSuccess(extraImages);
+      const { extraImages: updated } = await uploadPhotos(userId, form);
+      setLocalExtra(updated.map((i) => i || null));
+      onSuccess(updated);
       setBulkFiles([]);
-      if (bulkInputRef.current) bulkInputRef.current.value = '';
+      bulkInputRef.current.value = '';
     } catch (err) {
       setBulkError(err.response?.data?.error || err.message);
       onError(err);
     }
   };
 
-  const handleSlotChange = (idx, e) => {
-    const file = e.target.files?.[0] || null;
-    setStagedFiles((prev) => ({ ...prev, [idx]: file }));
-  };
-  const handleDelete = async (idx) => {
-    try {
-      const { extraImages } = await deletePhotoSlot(userId, idx - 1);  // ← subtract 1 here
-      setLocalExtra(extraImages.map((i) => i || null));
-      onSuccess(extraImages);
-    } catch (err) {
-      onError(err);
-    }
-  };
-
   return (
     <div>
-      {/* Hidden crop picker */}
-      <input
-        type="file"
-        accept="image/*"
-        ref={fileInputRef}
-        onChange={handleFileChange}
-        style={{ position: 'absolute', width: 0, height: 0, opacity: 0 }}
-      />
-
-      {/* Avatar slot (0) */}
+      {/* Avatar slot (index 0) */}
       <div className="border rounded-lg p-4 bg-gray-100 mb-4 flex flex-col items-center">
         <img
           src={
@@ -243,137 +139,152 @@ export default function MultiStepPhotoUploader({
           }
           alt="Avatar"
           className="w-32 h-32 rounded-full object-cover mb-2"
-          onError={(e) => { e.currentTarget.src = PLACEHOLDER_IMAGE; }}
+          onError={(e) => (e.currentTarget.src = PLACEHOLDER_IMAGE)}
         />
-        <ControlBar className="bg-gray-200">
-          <Button variant="orange" onClick={() => openSlot(0)}>
-            Crop & Add…
+
+        {/* --- REPLACE START: avatar Browse as a styled Button instead of label --- */}
+        <input
+          ref={slotInputRefs.current[0]}
+          type="file"
+          accept="image/*"
+          onChange={(e) => handleSlotChange(0, e)}
+          className="hidden"
+        />
+        <ControlBar>
+          <Button
+            variant="gray"
+            type="button"
+            className="min-w-[120px]"
+            onClick={() => slotInputRefs.current[0].current.click()}
+          >
+            {t('Browse…')}
           </Button>
-          <Button variant="gray" as="label" className="relative inline-block overflow-hidden">
-            Upload…
-            <input
-              ref={slotInputRefs.current[0]}
-              type="file"
-              accept="image/*"
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              onChange={(e) => handleSlotChange(0, e)}
-            />
+          <div className="flex-1 border bg-white px-3 py-2 rounded text-gray-700 text-sm truncate">
+            {stagedFiles[0]?.name || t('No files chosen')}
+          </div>
+          <Button
+            variant="blue"
+            type="button"
+            disabled={!stagedFiles[0]}
+            onClick={() => handleSlotSave(0)}
+          >
+            {t('Save')}
           </Button>
-          <span className="bg-blue-200 text-white px-2 py-1 rounded">Slot 1</span>
-          <Button variant="blue" disabled={!stagedFiles[0]} onClick={() => handleSlotSave(0)}>
-            Save
-          </Button>
-          <Button variant="red" disabled={!extraImages[0]} onClick={() => handleDelete(0)}>
-            Remove
+          <Button
+            variant="red"
+            type="button"
+            disabled={!localExtra[0]}
+            onClick={() => handleDelete(0)}
+          >
+            {t('Remove')}
           </Button>
         </ControlBar>
+        {/* --- REPLACE END --- */}
       </div>
 
-      {/* Bulk upload bar */}
+      {/* Bulk upload */}
+      <input
+        ref={bulkInputRef}
+        type="file"
+        multiple
+        accept="image/*"
+        onChange={handleBulkChange}
+        className="hidden"
+      />
       <ControlBar className="mb-4 bg-gray-200">
-        <Button variant="gray" as="label" className="relative inline-block overflow-hidden">
-          Browse…
-          <input
-            type="file"
-            multiple
-            accept="image/*"
-            ref={bulkInputRef}
-            onChange={handleBulkChange}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-          />
+        <Button
+          variant="gray"
+          type="button"
+          className="min-w-[120px]"
+          onClick={() => bulkInputRef.current.click()}
+        >
+          {t('Browse…')}
         </Button>
         <div className="flex-1 border bg-white px-3 py-2 rounded text-gray-700 text-sm truncate">
-          {bulkFiles.length ? bulkFiles.map((f) => f.name).join(', ') : 'No files chosen'}
+          {bulkFiles.length
+            ? bulkFiles.map((f) => f.name).join(', ')
+            : t('No files chosen')}
         </div>
-        <Button variant="blue" disabled={!bulkFiles.length} onClick={handleBulkUpload}>
-          Save
+        <Button
+          variant="blue"
+          type="button"
+          disabled={!bulkFiles.length}
+          onClick={handleBulkUpload}
+        >
+          {t('Save')}
         </Button>
       </ControlBar>
-      {bulkError && <p className="text-red-600 text-sm mb-4">{bulkError}</p>}
+      {bulkError && (
+        <p className="text-red-600 text-sm mb-4">{bulkError}</p>
+      )}
 
       {/* Extra slots grid */}
       <div className="grid grid-cols-3 gap-4">
-        {Array.from({ length: maxSlots }, (_, i) => i + 1).map((slotNum) => (
-          <div
-            key={slotNum}
-            className={`border rounded-lg p-4 flex flex-col items-center ${
-              activeSlot === slotNum ? 'bg-blue-200' : 'bg-white'
-            }`}
-          >
+        {Array.from({ length: maxSlots }).map((_, idx) => {
+          const slotNum = idx + 1;
+          return (
             <div
-              onClick={() => openSlot(slotNum)}
-              className="w-full h-48 bg-gray-200 rounded mb-2 overflow-hidden cursor-pointer flex items-center justify-center"
+              key={slotNum}
+              className="border rounded-lg p-4 flex flex-col items-center bg-white"
             >
-              <img
-                src={
-                  localExtra[slotNum - 1]
-                    ? localExtra[slotNum - 1].startsWith('http')
-                      ? localExtra[slotNum - 1]
-                      : `${BACKEND_BASE_URL}${normalizePath(localExtra[slotNum - 1])}`
-                    : PLACEHOLDER_IMAGE
-                }
-                alt={`Slot ${slotNum}`}
-                className="w-full h-full object-cover"
-                onError={(e) => { e.currentTarget.src = PLACEHOLDER_IMAGE; }}
-              />
-            </div>
-            <ControlBar className="bg-gray-200">
-              <Button variant="orange" onClick={() => openSlot(slotNum)}>
-                Crop & Add…
-              </Button>
-              <Button variant="gray" as="label" className="relative inline-block overflow-hidden">
-                Upload…
-                <input
-                  ref={slotInputRefs.current[slotNum]}
-                  type="file"
-                  accept="image/*"
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  onChange={(e) => handleSlotChange(slotNum, e)}
+              <div className="w-full h-48 bg-gray-200 rounded mb-2 overflow-hidden flex items-center justify-center">
+                <img
+                  src={
+                    localExtra[idx]
+                      ? localExtra[idx].startsWith('http')
+                        ? localExtra[idx]
+                        : `${BACKEND_BASE_URL}${normalizePath(localExtra[idx])}`
+                      : PLACEHOLDER_IMAGE
+                  }
+                  alt={`Slot ${slotNum}`}
+                  className="w-full h-full object-cover"
+                  onError={(e) => (e.currentTarget.src = PLACEHOLDER_IMAGE)}
                 />
-              </Button>
-              <span className="bg-blue-200 text-white px-2 py-1 rounded">Slot {slotNum}</span>
-              <Button variant="blue" disabled={!stagedFiles[slotNum]} onClick={() => handleSlotSave(slotNum)}>
-                Save
-              </Button>
-              <Button variant="red" disabled={!localExtra[slotNum - 1]} onClick={() => handleDelete(slotNum)}>
-                Remove
-              </Button>
-            </ControlBar>
-          </div>
-        ))}
-      </div>
+              </div>
 
-      {/* Crop & Caption Modal */}
-      {step > 1 && selectedFile && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-96">
-            <Cropper
-              image={URL.createObjectURL(selectedFile)}
-              crop={crop}
-              zoom={zoom}
-              aspect={1}
-              onCropChange={setCrop}
-              onZoomChange={setZoom}
-              onCropComplete={onCropComplete}
-            />
-            <textarea
-              placeholder="Add a caption…"
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              className="w-full border rounded mt-4 p-2 text-sm"
-            />
-            <div className="flex justify-between mt-4">
-              <Button variant="gray" onClick={handleBack}>Back</Button>
-              <Button variant="gray" onClick={handleNext}>Next</Button>
+              {/* Hidden native slot input */}
+              <input
+                ref={slotInputRefs.current[idx]}
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleSlotChange(idx, e)}
+                className="hidden"
+              />
+
+              {/* Extra slots ControlBar */}
+              <ControlBar>
+                <Button
+                  variant="gray"
+                  type="button"
+                  className="min-w-[120px]"
+                  onClick={() => slotInputRefs.current[idx].current.click()}
+                >
+                  {t('Browse…')}
+                </Button>
+                <span className="bg-blue-200 text-white px-2 py-1 rounded text-sm">
+                  {t('Slot')} {slotNum}
+                </span>
+                <Button
+                  variant="blue"
+                  type="button"
+                  disabled={!stagedFiles[idx]}
+                  onClick={() => handleSlotSave(idx)}
+                >
+                  {t('Save')}
+                </Button>
+                <Button
+                  variant="red"
+                  type="button"
+                  disabled={!localExtra[idx]}
+                  onClick={() => handleDelete(idx)}
+                >
+                  {t('Remove')}
+                </Button>
+              </ControlBar>
             </div>
-            {step === 3 && (
-              <Button variant="blue" className="mt-4 w-full" onClick={handleSubmitCrop}>
-                Save Cropped
-              </Button>
-            )}
-          </div>
-        </div>
-      )}
+          );
+        })}
+      </div>
     </div>
   );
 }
