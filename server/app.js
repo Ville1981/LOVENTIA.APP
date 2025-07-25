@@ -1,18 +1,23 @@
+// app.js (entry point)
 const express       = require("express");
 const mongoose      = require("mongoose");
 const dotenv        = require("dotenv");
 const cors          = require("cors");
 const cookieParser  = require("cookie-parser");
 const path          = require("path");
+const { initializeSocket } = require('./socket.cjs');
+
 
 // Load environment variables
 dotenv.config();
 
 // Connect to MongoDB
+// --- REPLACE START: correct typo before mongoose.connect ---
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser:    true,
   useUnifiedTopology: true,
 })
+// --- REPLACE END
   .then(() => console.log("✅ MongoDB connected"))
   .catch(err => {
     console.error("❌ MongoDB connection error:", err);
@@ -21,8 +26,7 @@ mongoose.connect(process.env.MONGO_URI, {
 
 const app = express();
 
-// ——— NEW CORS & PREFLIGHT HANDLER —————————————————————————————————————
-// Global CORS
+// ——— CORS & PREFLIGHT HANDLER —————————————————————————————————————
 app.use(
   cors({
     origin: process.env.CLIENT_URL || "http://localhost:5174",
@@ -32,13 +36,15 @@ app.use(
   })
 );
 
-// Ensure OPTIONS preflight works for our crop‐upload endpoint
 app.options(
   "/api/users/:userId/photos/upload-photo-step",
-  cors(),             // re-use the same CORS policy
+  cors(),
   (req, res) => res.sendStatus(200)
 );
 // ———————————————————————————————————————————————————————————————————————
+
+// Parse cookies
+app.use(cookieParser());
 
 // Import webhook routes (before body parsers)
 const stripeWebhookRouter = require("./routes/stripeWebhook");
@@ -53,13 +59,17 @@ const paymentRoutes  = require("./routes/payment");
 const discoverRoutes = require("./routes/discover");
 const adminRoutes    = require("./routes/admin");
 
-// Stripe webhook endpoint (raw body required for signature verification)
+// ←─── PART 1: IMAGE ROUTES ────────────────────────────────────────────────────
+app.use("/api/users", imageRoutes);
+// ────────────────────────────────────────────────────────────────────────────────
+
+// Stripe webhook endpoint (raw body required)
 app.use(
   "/api/payment/stripe-webhook",
   stripeWebhookRouter
 );
 
-// PayPal webhook endpoint (raw body required for signature verification)
+// PayPal webhook endpoint
 app.use(
   "/api/payment/paypal-webhook",
   paypalWebhookRouter
@@ -69,13 +79,13 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static uploads directory for profile and extra images
+// Serve static uploads
 app.use(
   "/uploads",
   express.static(path.join(__dirname, "uploads"))
 );
 
-// Mock users endpoint (for development/testing)
+// Mock users endpoint
 app.get("/api/users", (req, res) => {
   const user = {
     _id: "1",
@@ -93,7 +103,7 @@ app.get("/api/users", (req, res) => {
     agreeCount: 6,
     disagreeCount: 3,
     findOutCount: 4,
-    summary: "Positive mindset, self develop …",
+    summary: "Positive mindset, self development…",
     details: {},
   };
   res.json([user]);
@@ -101,21 +111,10 @@ app.get("/api/users", (req, res) => {
 
 // Mount application routes
 app.use("/api/auth", authRoutes);
-
-// ←─── PART 1: IMAGE ROUTES ────────────────────────────────────────────────────
-app.use("/api/users", imageRoutes);
-// ────────────────────────────────────────────────────────────────────────────────
-
-// User routes including PUT /api/users/profile
 app.use("/api/users", userRoutes);
-
 app.use("/api/messages", messageRoutes);
 app.use("/api/payment",  paymentRoutes);
-
-// Protect admin routes under /api/admin
 app.use("/api/admin",    adminRoutes);
-
-// Mount Discover (must come after other /api mounts)
 app.use("/api/discover", discoverRoutes);
 
 // Multer-specific error handler
@@ -137,8 +136,16 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: "Server Error" });
 });
 
-// Start the server
+// ─── SOCKET.IO INTEGRATION ────────────────────────────────────────────────────
+// --- REPLACE START -----------------------------------------------------------
+// Replace Express-only listener with HTTP server + Socket.io setup
+const { initializeSocket } = require("./socket"); // adjust path if needed
+const httpServer = initializeSocket(app);
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+httpServer.listen(PORT, () => {
+  console.log(`🚀 Server + Socket.io running on port ${PORT}`);
 });
+// --- REPLACE END -------------------------------------------------------------
+
+// Uncomment below if you ever need an Express-only fallback:
+// app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

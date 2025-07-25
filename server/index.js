@@ -1,6 +1,3 @@
-// server/index.js
-
-// Load environment variables from .env (must be at top)
 require("dotenv").config();
 
 const express       = require("express");
@@ -9,8 +6,11 @@ const cors          = require("cors");
 const cookieParser  = require("cookie-parser");
 const path          = require("path");
 
-// Ensure User model is registered before middleware/routes
+// Ensure models are registered before middleware/routes
 require("./models/User");
+// --- REPLACE START: register Message model so Mongoose knows about it ---
+require("./models/Message");
+// --- REPLACE END ---
 
 const app = express();
 
@@ -41,31 +41,25 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // ── Mount application routes ────────────────────────────────────────────────────
 const authRoutes     = require("./routes/auth");
 const userRoutes     = require("./routes/userRoutes");
-const imageRoutes    = require("./routes/imageRoutes");   // image/photo endpoints
-const messageRoutes  = require("./routes/messageRoutes");
+const imageRoutes    = require("./routes/imageRoutes");
 const paymentRoutes  = require("./routes/payment");
 const discoverRoutes = require("./routes/discover");
+const authenticate   = require("./middleware/authenticate");
+const messageRoutes  = require("./routes/messageRoutes");
 
+// Mount Auth routes (no auth middleware)
 app.use("/api/auth", authRoutes);
 
-// Preflight specifically for the crop‐upload endpoint
-app.options(
-  "/api/users/:userId/photos/upload-photo-step",
-  cors(),
-  (req, res) => res.sendStatus(200)
-);
+// Mount Messages under authentication
+app.use("/api/messages", authenticate, messageRoutes);
 
-// Mount user profile, preferences, matching, etc.
-app.use("/api/users", userRoutes);
+// Mount remaining routes under authentication
+app.use("/api/users", authenticate, userRoutes);
+app.use("/api/images", authenticate, imageRoutes);
+app.use("/api/payment", authenticate, paymentRoutes);
+app.use("/api/discover", authenticate, discoverRoutes);
 
-// **Mount image/photo routes where front-end calls them**  
-app.use("/api/users", imageRoutes);
-
-app.use("/api/messages",   messageRoutes);
-app.use("/api/payment",    paymentRoutes);
-app.use("/api/discover",   discoverRoutes);
-
-// ── Temporary mock users endpoint (for development/testing) ────────────────────
+// ── Temporary mock users endpoint ───────────────────────────────────────────────
 app.get("/api/mock-users", (req, res) => {
   const user = {
     _id: "1",

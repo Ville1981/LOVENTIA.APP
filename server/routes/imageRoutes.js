@@ -1,5 +1,3 @@
-// server/routes/imageRoutes.js
-
 const express = require("express");
 const router  = express.Router();
 
@@ -150,16 +148,50 @@ router.post(
         return res.status(200).json({ extraImages: arr });
       }
 
-      // Crop via Sharp
+      // Paths for original and output
       const inPath  = path.join(__dirname, "..", "uploads", "extra", req.file.filename);
       const outName = `crop_${Date.now()}_${req.file.filename}`;
       const outPath = path.join(__dirname, "..", "uploads", "extra", outName);
 
-      await sharp(inPath)
-        .extract({ left: +cropX, top: +cropY, width: +cropWidth, height: +cropHeight })
-        .toFile(outPath);
-      await fs.unlink(inPath).catch(() => {});
+      // --- REPLACE START: handle missing or zero crop dimensions by bypassing Sharp ---
+      // Determine if crop params are provided and non-zero
+      const hasCropParams = cropWidth != null && cropHeight != null;
+      if (!hasCropParams || +cropWidth === 0 || +cropHeight === 0) {
+        // No crop requested: simply rename (move) the file
+        await fs.rename(inPath, outPath);
+      } else {
+        // Parse ints (default X/Y to 0)
+        const left   = parseInt(cropX,      10) || 0;
+        const top    = parseInt(cropY,      10) || 0;
+        const width  = parseInt(cropWidth,  10);
+        const height = parseInt(cropHeight, 10);
 
+        // If width/height invalid, fallback to full image rename
+        if (!width || !height) {
+          await fs.rename(inPath, outPath);
+        } else {
+          try {
+            await sharp(inPath)
+              .extract({ left, top, width, height })
+              .toFile(outPath);
+            // Remove original only on success
+            await fs.unlink(inPath).catch(() => {});
+          } catch (err) {
+            console.error("Error during image extract:", err);
+            return res.status(500).json({ error: "Failed to crop image", details: err.message });
+          }
+        }
+      }
+      // --- REPLACE END ---
+
+      // In case both inPath and outPath exist, clean up original
+      const inExists  = await fs.stat(inPath).then(() => true).catch(() => false);
+      const outExists = await fs.stat(outPath).then(() => true).catch(() => false);
+      if (inExists && outExists) {
+        await fs.unlink(inPath).catch(() => {});
+      }
+
+      // Save new URL and update slot
       const url = `/uploads/extra/${outName}`;
       const idxCrop =
         Number.isInteger(+slot) && +slot >= 0 && +slot < maxSlots

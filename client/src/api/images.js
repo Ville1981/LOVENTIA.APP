@@ -27,7 +27,6 @@ export const uploadAvatar = async (userId, fileOrFormData) => {
 
   try {
     const response = await axios.post(
-      // ↳ this path now exactly matches your server route
       `${BACKEND_BASE_URL}/api/users/${userId}/upload-avatar`,
       formData,
       {
@@ -64,7 +63,6 @@ export const removeAvatar = async (userId) => {
         withCredentials: true,
       }
     );
-    // backend returns extraImages array; index 0 is now null
     return { profilePicture: response.data.extraImages[0] || null };
   } catch (err) {
     console.error("removeAvatar error:", err.response || err);
@@ -126,9 +124,21 @@ export const uploadPhotoStep = async (userId, formData) => {
     throw new Error("You must be logged in to upload a photo.");
   }
 
+  // --- REPLACE START: ensure crop dimensions are valid and non-zero
+  if (formData.has("cropWidth") && formData.has("cropHeight")) {
+    const cw = parseInt(formData.get("cropWidth"), 10);
+    const ch = parseInt(formData.get("cropHeight"), 10);
+    if (!cw || !ch) {
+      throw new Error("Please select a valid crop area before uploading.");
+    }
+    // enforce minimum of 1px if somehow zero
+    formData.set("cropWidth", Math.max(cw, 1).toString());
+    formData.set("cropHeight", Math.max(ch, 1).toString());
+  }
+  // --- REPLACE END
+
   try {
     const response = await axios.post(
-      // ↳ this must match the server’s OPTIONS+POST path exactly
       `${BACKEND_BASE_URL}/api/users/${userId}/photos/upload-photo-step`,
       formData,
       {

@@ -1,5 +1,3 @@
-// server/routes/auth.js
-
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
@@ -22,7 +20,9 @@ const {
 
 // Middleware
 const upload = require('../middleware/upload');
-const authenticate = require('../middleware/authMiddleware');
+// --- REPLACE START: use correct path to authenticate middleware ---
+const authenticate = require('../middleware/authenticate');
+// --- REPLACE END ---
 const {
   validateRegister,
   validateLogin,

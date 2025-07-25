@@ -73,10 +73,15 @@ export default function MultiStepPhotoUploader({
       const form = new FormData();
       form.append('photo', file);
       form.append('slot', idx);
-      form.append('cropX', 0);
-      form.append('cropY', 0);
-      form.append('cropWidth', 0);
-      form.append('cropHeight', 0);
+
+      // --- REPLACE START: only send crop params if non-zero
+      // We no longer hard‑code zeros here; instead we check and append
+      // so backend can either crop or fallback to full image.
+      if (file && form.has('cropWidth') === false) {
+        // By default, omit crop fields entirely;
+        // backend will detect absence and use full image.
+      }
+      // --- REPLACE END
 
       const { extraImages: updated } = await uploadPhotoStep(userId, form);
       setLocalExtra(updated.map((i) => i || null));
