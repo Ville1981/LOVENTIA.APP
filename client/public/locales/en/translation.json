@@ -1,3 +1,4 @@
+
 {
   "site": {
     "title": "DateSite"
@@ -127,7 +128,8 @@
     "deleteAccount": "Delete account",
     "confirmDelete": "Are you sure you want to permanently delete your account?"
   },
-    "hero": {
+
+  "hero": {
     "0": "Find love that lasts.",
     "1": "Meet people who share your values.",
     "2": "Your next match is one click away."
@@ -179,9 +181,30 @@
   },
 
   "chat": {
-    "title": "Chat",
-    "placeholder": "Type a message...",
-    "send": "Send"
+  "conversationsTitle": "Conversations",
+  "loading": "Loading conversations...",
+  "errorLoading": "Failed to load conversations.",
+  "noConversations": "No conversations yet.",
+  "conversations": "Your Conversations",
+  "placeholder": "Type a message...",
+  "send": "Send",
+  "title": "Chat"
+},
+
+
+    
+
+  
+
+  "likes": {
+    "title": "Your Likes",
+    "noLikes": "No likes yet.",
+    "likedYou": "Users who liked you",
+    "viewProfile": "View profile",
+    "likeBack": "Like back",
+    "superlikeBack": "Superlike back",
+    "superlikedYou": "Users who superliked you",
+    "superlikeLimitReached": "❌ Superlike limit (3/48h) reached."
   },
 
   "admin": {
@@ -242,7 +265,7 @@
     "Venäjä": "Russia",
     "Espanja": "Spain",
     "Brasilia": "Brazil",
-    "Argentiina": "Argentina",
+    "Argentina": "Argentina",
     "Chile": "Chile",
     "Ukraina": "Ukraine",
     "Kazakstan": "Kazakhstan",
@@ -268,5 +291,29 @@
     "average": "Average",
     "much": "A lot",
     "sober": "Free from addiction"
+  }, 
+
+  "error": {
+    "notFound": "Page not found",
+    "serverError": "Server error",
+    "unauthorized": "Unauthorized access",
+    "forbidden": "Forbidden",
+    "badRequest": "Bad request"
+  },
+
+  "notifications": {
+    "newMessage": "You have a new message from {{username}}",
+    "likeReceived": "{{username}} liked your profile",
+    "superlikeReceived": "{{username}} superliked you",
+    "matchFound": "You have a new match with {{username}}"
   }
+
+  
+
+
+
 }
+
+  
+
+

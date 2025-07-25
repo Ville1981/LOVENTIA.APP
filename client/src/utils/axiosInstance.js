@@ -1,3 +1,4 @@
+// @ts-nocheck
 import axios from "axios";
 import { BACKEND_BASE_URL } from "./config";
 
@@ -6,6 +7,7 @@ let accessToken = localStorage.getItem("token") || null;
 
 /**
  * Update internal token and persist to localStorage.
+ * @param {string|null} token
  */
 export const setAccessToken = (token) => {
   accessToken = token;
@@ -16,10 +18,14 @@ export const setAccessToken = (token) => {
   }
 };
 
-// Determine baseURL
-const baseURL = BACKEND_BASE_URL
-  ? `${BACKEND_BASE_URL}/api`
-  : import.meta.env.VITE_API_URL || "/api";
+// Determine baseURL for API requests
+// Align with proxy to avoid double "/api"
+// --- REPLACE START: ensure baseURL always includes /api prefix ---
+const rawUrl = BACKEND_BASE_URL || import.meta.env.VITE_API_URL || "";
+const baseURL = rawUrl.endsWith("/api")
+  ? rawUrl
+  : `${rawUrl.replace(/\/?$/, "")}/api`;
+// --- REPLACE END ---
 
 // Create Axios instance
 const api = axios.create({
@@ -27,11 +33,14 @@ const api = axios.create({
   withCredentials: true,
 });
 
-// Request interceptor: attach token and JSON headers
+// Attach token and JSON headers
 api.interceptors.request.use((config) => {
   const token = accessToken || localStorage.getItem("token");
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+    config.headers = {
+      ...config.headers,
+      Authorization: `Bearer ${token}`,
+    };
   }
   if (config.data && !(config.data instanceof FormData)) {
     config.headers["Content-Type"] = "application/json";
@@ -39,7 +48,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Response interceptor: on 401, try refresh and retry
+// Response interceptor: refresh token on 401 and retry original request
 api.interceptors.response.use(
   (response) => response,
   async (error) => {

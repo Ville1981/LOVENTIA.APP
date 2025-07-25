@@ -9,17 +9,14 @@ const Navbar = () => {
   const { isLoggedIn, isAdmin, logout } = useAuth();
   const [lang, setLang] = useState(i18n.language);
 
-  // Päivitä kieli tilaan
+  // Update language state on change
   useEffect(() => {
-    const handleLangChange = (lng) => {
-      setLang(lng);
-    };
+    const handleLangChange = (lng) => setLang(lng);
     i18n.on("languageChanged", handleLangChange);
-    return () => {
-      i18n.off("languageChanged", handleLangChange);
-    };
+    return () => i18n.off("languageChanged", handleLangChange);
   }, [i18n]);
 
+  // Toggle between Finnish and English
   const toggleLanguage = () => {
     const newLang = i18n.language === "fi" ? "en" : "fi";
     i18n.changeLanguage(newLang);
@@ -29,37 +26,40 @@ const Navbar = () => {
   const linkClass =
     "bg-white/10 text-white font-semibold px-4 py-2 rounded hover:bg-blue-500 transition text-sm text-center shadow backdrop-blur";
 
-  // Kaikille näkyvät linkit
+  // Links shown to all visitors
   const commonLinks = [
     { path: "/", label: t("Home") },
-    { path: "/privacy", label: t("Privacy") },
+    { path: "/privacy", label: t("Privacy Policy") },
   ];
 
-  // Vierailijoille näkyvät
+  // Links for unauthenticated users
   const guestLinks = [
     { path: "/login", label: t("Login") },
     { path: "/register", label: t("Register") },
   ];
 
-  // Kirjautuneille käyttäjille näkyvät (admin-linkki suodatetaan alla)
+  // Links for authenticated users
   const userLinks = [
     { path: "/discover", label: t("Discover") },
     { path: "/profile", label: t("Profile") },
     { path: "/matches", label: t("Matches") },
+    // --- REPLACE START: Added Messages link
+    { path: "/messages", label: t("Messages") },
+    // --- REPLACE END
     { path: "/who-liked-me", label: t("Likes") },
     { path: "/map", label: t("Map") },
-    { path: "/admin", label: t("Admin") }, // näytetään vain adminille
     { path: "/upgrade", label: t("Premium") },
     { path: "/settings", label: t("Settings") },
+    { path: "/admin", label: t("Admin") },
   ];
 
-  // Suodatetaan admin-linkki pois, jos ei ole admin
+  // Exclude admin if not authorized
   const filteredUserLinks = userLinks.filter(
     (link) => link.path !== "/admin" || isAdmin
   );
 
-  // Kokonaislinkkilista
-  const allLinks = isLoggedIn
+  // Determine final link set
+  const linksToRender = isLoggedIn
     ? [...commonLinks, ...filteredUserLinks]
     : [...commonLinks, ...guestLinks];
 
@@ -78,24 +78,27 @@ const Navbar = () => {
         justifyContent: "space-between",
       }}
     >
-      {/* Otsikko + kielinappi */}
-      <div className="flex items-center justify-center gap-4 direction-ltr">
-        <h1 className="text-3xl font-bold text-white drop-shadow">
-          💘 {t("site.title")}
-        </h1>
-        <LanguageSwitcher />
+      {/* Title and language toggle */}
+      <div className="flex items-center justify-between w-full max-w-6xl">
+        <h1 className="text-3xl font-bold text-white drop-shadow">💘 {t("site.title")}</h1>
+        <button
+          onClick={toggleLanguage}
+          className="text-white border border-white px-3 py-1 rounded"
+        >
+          {lang === "fi" ? "EN" : "FI"}
+        </button>
       </div>
 
-      {/* Navigaatio-linkit */}
+      {/* Navigation links grid */}
       <div
-        className="w-full"
+        className="w-full max-w-6xl mt-2"
         style={{
           display: "grid",
-          gridTemplateColumns: `repeat(${allLinks.length + (isLoggedIn ? 1 : 0)}, minmax(80px, 1fr))`,
+          gridTemplateColumns: `repeat(${linksToRender.length + (isLoggedIn ? 1 : 0)}, minmax(80px, 1fr))`,
           gap: "8px",
         }}
       >
-        {allLinks.map((link) => (
+        {linksToRender.map((link) => (
           <Link key={link.path} to={link.path} className={linkClass}>
             {link.label}
           </Link>
