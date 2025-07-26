@@ -3,11 +3,11 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import api, { setAccessToken } from "../utils/axiosInstance";
 
-// Alustetaan konteksti oletusarvoilla, jotta useAuth-kutsu ei tuota undefined-virhettä
+// Initialize context with defaults to avoid undefined errors
 const AuthContext = createContext({
   token: null,
   user: null,
-  setUser: () => {},          // lisätty stub
+  setUser: () => {},
   login: async () => {},
   logout: async () => {},
   isLoggedIn: false,
@@ -15,22 +15,24 @@ const AuthContext = createContext({
 });
 
 export const AuthProvider = ({ children }) => {
-  const [token, setToken]     = useState(null); // JWT-token
+  const [token, setToken]     = useState(null); // JWT token
   const [user, setUser]       = useState(null); // { id, email, role }
-  const [loading, setLoading] = useState(true); // estää lapset-renderöinnin initAuthin aikana
+  const [loading, setLoading] = useState(true); // block children until init complete
 
-  // Hakee käyttäjätiedot backendistä /auth/me
+  // Fetch current user from backend
   const fetchUser = async () => {
     try {
-      const { data } = await api.get("/auth/me");
+      // --- REPLACE START: use '/api/auth/me' endpoint ---
+      const { data } = await api.get("/api/auth/me");
+      // --- REPLACE END ---
       setUser(data);
     } catch (err) {
-      console.warn("fetchUser epäonnistui:", err);
+      console.warn("fetchUser failed:", err);
       setUser(null);
     }
   };
 
-  // Kirjautuminen: talletetaan token, päivitämme axios-instanssin ja noudetaan käyttäjä
+  // Log in: store token, update axios, then fetch user
   const login = async (newToken) => {
     setAccessToken(newToken);
     setToken(newToken);
@@ -38,12 +40,14 @@ export const AuthProvider = ({ children }) => {
     await fetchUser();
   };
 
-  // Uloskirjautuminen: tyhjennetään token ja ohjataan login-sivulle
+  // Log out: call backend then clear token and redirect
   const logout = async () => {
     try {
-      await api.post("/auth/logout");
+      // --- REPLACE START: call '/api/auth/logout' ---
+      await api.post("/api/auth/logout");
+      // --- REPLACE END ---
     } catch (err) {
-      console.warn("Logout-backend epäonnistui", err);
+      console.warn("Logout request failed:", err);
     }
     setAccessToken(null);
     setToken(null);
@@ -52,7 +56,7 @@ export const AuthProvider = ({ children }) => {
     window.location.href = "/login";
   };
 
-  // InitAuth: haetaan localStoragesta token, yritetään refresh ja lopulta annetaan lapset-renderöityä
+  // Initialize authentication: load token, refresh it, then finish loading
   useEffect(() => {
     const initAuth = async () => {
       const stored = localStorage.getItem("token");
@@ -62,11 +66,12 @@ export const AuthProvider = ({ children }) => {
       }
 
       try {
-        const { data } = await api.post("/auth/refresh");
-        // refresh-palauttaa uuden accessTokenin
+        // --- REPLACE START: call '/api/auth/refresh' ---
+        const { data } = await api.post("/api/auth/refresh");
+        // --- REPLACE END ---
         await login(data.accessToken);
       } catch (err) {
-        console.warn("Silent refresh epäonnistui:", err);
+        console.warn("Silent refresh failed:", err);
         setAccessToken(null);
         setToken(null);
         localStorage.removeItem("token");
@@ -78,11 +83,11 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  // Jos backendia ja localStoragea käydään läpi, näytetään latausteksti siihen asti
+  // While loading, show a placeholder message
   if (loading) {
     return (
       <div className="text-center py-8">
-        Kirjautumistilaa tarkistetaan…
+        Checking authentication…
       </div>
     );
   }
@@ -92,7 +97,7 @@ export const AuthProvider = ({ children }) => {
       value={{
         token,
         user,
-        setUser,               // lisätty setter kontekstiin
+        setUser,
         login,
         logout,
         isLoggedIn: !!token,
@@ -104,7 +109,5 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// Helppo hook kuluttajille
-export const useAuth = () => {
-  return useContext(AuthContext);
-};
+// Hook for easy consumption
+export const useAuth = () => useContext(AuthContext);

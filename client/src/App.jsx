@@ -82,12 +82,12 @@ export default function App() {
                 />
 
                 {/* messaging overview */}
-                // --- REPLACE START: use ConversationsOverview instead of MessagesList
+                {/* --- REPLACE START: use ConversationsOverview instead of MessagesList --- */}
                 <Route
                   path="messages"
                   element={<PrivateRoute><ConversationsOverview /></PrivateRoute>}
                 />
-                // --- REPLACE END: messaging overview
+                {/* --- REPLACE END: messaging overview --- */}
                 <Route
                   path="chat/:userId"
                   element={<PrivateRoute><ChatPage /></PrivateRoute>}

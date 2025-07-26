@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from '../utils/axiosInstance';
 import { useTranslation } from 'react-i18next';
 
@@ -18,6 +19,7 @@ function formatDistanceToNow(date) {
 
 export default function ConversationsOverview() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -25,7 +27,7 @@ export default function ConversationsOverview() {
   useEffect(() => {
     let isMounted = true;
 
-    // --- REPLACE START: use full '/api/messages/overview' path ---
+    // --- REPLACE START: API path ---
     axios.get('/api/messages/overview')
     // --- REPLACE END ---
       .then(res => {
@@ -53,40 +55,51 @@ export default function ConversationsOverview() {
   }
 
   if (error) {
+    // --- REPLACE START: show retry button and translation ---
     return (
       <div className="text-center p-4 text-red-600">
-        {t('overview.error', 'Failed to load conversations')}
+        <p>{t('overview.error', 'Failed to load conversations')}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="underline mt-2"
+        >
+          {t('overview.retry', 'Retry')}
+        </button>
       </div>
     );
+    // --- REPLACE END ---
   }
 
-  // If no real conversations, fall back to placeholder user (e.g., Bunny)
   if (conversations.length === 0) {
+    // Placeholder user when no conversations
+    // --- REPLACE START: i18n placeholder values ---
     const bunnyUser = {
       userId: '1',
-      name: 'Bunny',
+      name: t('overview.placeholderName', 'Bunny'),
       avatarUrl: '/assets/bunny1.jpg',
-      snippet: "Hi there! Let's start our chat.",
-      lastMessageTime: new Date().toISOString(),
+      snippet: t('overview.placeholderSnippet', "Hi there! Let's start our chat."),
+      lastMessageTimestamp: new Date().toISOString(),
       unreadCount: 0,
     };
+    // --- REPLACE END ---
+
     return (
       <div className="flex justify-center items-center h-full p-4">
         <div
           className="flex items-center p-4 bg-white rounded-2xl shadow hover:shadow-lg transition-shadow cursor-pointer"
-          onClick={() => window.location.href = `/chat/${bunnyUser.userId}`}
+          onClick={() => navigate(`/chat/${bunnyUser.userId}`)}
         >
           <img
             src={bunnyUser.avatarUrl}
             alt={bunnyUser.name}
             className="w-12 h-12 rounded-full mr-4"
-            onError={e => e.currentTarget.src = '/assets/bunny1.jpg'}
+            onError={e => { e.currentTarget.src = '/assets/bunny1.jpg'; }}
           />
           <div className="flex-1">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold">{bunnyUser.name}</h3>
               <span className="text-sm text-gray-400">
-                {formatDistanceToNow(new Date(bunnyUser.lastMessageTime))}
+                {formatDistanceToNow(new Date(bunnyUser.lastMessageTimestamp))}
               </span>
             </div>
             <p className="text-sm text-gray-500 truncate">{bunnyUser.snippet}</p>
@@ -102,19 +115,19 @@ export default function ConversationsOverview() {
         <div
           key={conv.userId}
           className="flex items-center p-4 bg-white rounded-2xl shadow hover:shadow-lg transition-shadow cursor-pointer"
-          onClick={() => window.location.href = `/chat/${conv.userId}`}
+          onClick={() => navigate(`/chat/${conv.userId}`)}
         >
           <img
             src={conv.avatarUrl}
-            alt={conv.name}
+            alt={conv.displayName || conv.name}
             className="w-12 h-12 rounded-full mr-4"
-            onError={e => e.currentTarget.src = '/assets/bunny1.jpg'}
+            onError={e => { e.currentTarget.src = '/assets/bunny1.jpg'; }}
           />
           <div className="flex-1">
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold">{conv.name}</h3>
+              <h3 className="text-lg font-semibold">{conv.displayName || conv.name}</h3>
               <span className="text-sm text-gray-400">
-                {formatDistanceToNow(new Date(conv.lastMessageTime))}
+                {formatDistanceToNow(new Date(conv.lastMessageTimestamp || conv.lastMessageTime))}
               </span>
             </div>
             <p className="text-sm text-gray-500 truncate">{conv.snippet}</p>
@@ -129,3 +142,6 @@ export default function ConversationsOverview() {
     </div>
   );
 }
+
+// TODO: Confirm with backend that /api/messages/overview returns fields:
+// userId, displayName, avatarUrl, lastMessageTimestamp, snippet, unreadCount
