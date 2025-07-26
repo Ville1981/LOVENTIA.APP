@@ -37,14 +37,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # --- REPLACE START: inline dependency scanning
-      - name: Install Node.js & Gradle
+      # --- REPLACE START: inline dependency scanning rather than external workflow
+      - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '16'
-      - run: npm ci
-      - run: npm audit --audit-level=moderate
-      - run: |
+      - name: Install dependencies
+        run: npm ci
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate
+      - name: Run Gradle Dependency Check
+        run: |
           if [ -f gradlew ]; then
             chmod +x gradlew
             ./gradlew dependencyCheckAnalyze
