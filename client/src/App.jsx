@@ -4,9 +4,9 @@ import { useTranslation } from "react-i18next";
 
 import ErrorBoundary from "./components/ErrorBoundary";
 import MainLayout from "./components/MainLayout";
-// --- REPLACE START: add ConversationsOverview import
+// --- REPLACE START: add ConversationsOverview import ---
 import ConversationsOverview from "./components/ConversationsOverview";
-// --- REPLACE END: added ConversationsOverview import
+// --- REPLACE END ---
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
 // Slick-carousel styles
@@ -15,26 +15,26 @@ import "slick-carousel/slick/slick-theme.css";
 
 // Forgot/reset password components
 import { ForgotPassword } from "./components/ForgotPassword";
-import { ResetPassword }   from "./components/ResetPassword";
+import { ResetPassword } from "./components/ResetPassword";
 
 // Pages
-import Etusivu         from "./pages/Etusivu";
-import Discover        from "./pages/Discover";
-import ProfileHub      from "./pages/ProfileHub";
+import Etusivu from "./pages/Etusivu";
+import Discover from "./pages/Discover";
+import ProfileHub from "./pages/ProfileHub";
 import ExtraPhotosPage from "./pages/ExtraPhotosPage";
-import MatchPage       from "./pages/MatchPage";
-// import MessagesList    from "./pages/MessagesList"; // no longer used
-import ChatPage        from "./pages/ChatPage";
-import PremiumCancel   from "./pages/PremiumCancel";
-import AdminPanel      from "./pages/AdminPanel";
-import Login           from "./pages/Login";
-import Register        from "./pages/Register";
-import Upgrade         from "./pages/Upgrade";
-import PrivacyPolicy   from "./pages/PrivacyPolicy";
-import WhoLikedMe      from "./pages/WhoLikedMe";
-import MapPage         from "./pages/MapPage";
-import Settings        from "./pages/Settings";
-import NotFound        from "./pages/NotFound";
+import MatchPage from "./pages/MatchPage";
+// import MessagesList from "./pages/MessagesList"; // no longer used
+import ChatPage from "./pages/ChatPage";
+import PremiumCancel from "./pages/PremiumCancel";
+import AdminPanel from "./pages/AdminPanel";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Upgrade from "./pages/Upgrade";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import WhoLikedMe from "./pages/WhoLikedMe";
+import MapPage from "./pages/MapPage";
+import Settings from "./pages/Settings";
+import NotFound from "./pages/NotFound";
 
 // PrivateRoute wrapper
 function PrivateRoute({ children }) {
@@ -49,7 +49,6 @@ export default function App() {
     if ("scrollRestoration" in window.history) {
       window.history.scrollRestoration = "manual";
     }
-    // disable anchor snapping
     document.documentElement.style.overflowAnchor = "none";
   }, []);
 
@@ -59,11 +58,9 @@ export default function App() {
         <Suspense fallback={<div className="p-4">Loading translations…</div>}>
           <Router>
             <Routes>
-              {/* All routes are wrapped in MainLayout */}
               <Route path="/" element={<MainLayout />}>                
                 <Route index element={<Etusivu />} />
                 <Route path="discover" element={<Discover />} />
-
                 <Route
                   path="profile"
                   element={<PrivateRoute><ProfileHub /></PrivateRoute>}
@@ -88,6 +85,7 @@ export default function App() {
                   element={<PrivateRoute><ConversationsOverview /></PrivateRoute>}
                 />
                 {/* --- REPLACE END: messaging overview --- */}
+
                 <Route
                   path="chat/:userId"
                   element={<PrivateRoute><ChatPage /></PrivateRoute>}
@@ -137,3 +135,6 @@ export default function App() {
     </ErrorBoundary>
   );
 }
+
+// The replacement region is marked between // --- REPLACE START and // --- REPLACE END
+// so you can verify exactly what changed.

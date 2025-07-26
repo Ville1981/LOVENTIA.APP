@@ -1,37 +1,37 @@
-// File: src/__tests__/ConversationOverview.test.jsx
+// File: src/__tests__/ConversationsOverview.test.jsx
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import ConversationOverview from '../components/ConversationsOverview';
+import ConversationsOverview from '../components/ConversationsOverview';
 import messageService from '../services/messageService';
 import { BrowserRouter } from 'react-router-dom';
 
 jest.mock('../services/messageService');
 
-describe('ConversationOverview', () => {
+describe('ConversationsOverview', () => {
   const mockConvos = [
     {
       userId: '1',
       avatarUrl: '/img/1.jpg',
       displayName: 'Alice',
-      lastMessageSnippet: 'Hello',
+      snippet: 'Hello',
       lastMessageTimestamp: new Date().toISOString(),
       unreadCount: 2,
     },
   ];
 
   beforeEach(() => {
-    messageService.fetchOverview.mockResolvedValue(mockConvos);
+    messageService.getOverview.mockResolvedValue(mockConvos);
   });
 
   it('renders loading state then list', async () => {
     render(
       <BrowserRouter>
-        <ConversationOverview />
+        <ConversationsOverview />
       </BrowserRouter>
     );
 
-    expect(screen.getByText(/loading/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/loading/i)).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByText('Alice')).toBeInTheDocument();
@@ -40,26 +40,29 @@ describe('ConversationOverview', () => {
   });
 
   it('handles empty list', async () => {
-    messageService.fetchOverview.mockResolvedValue([]);
+    messageService.getOverview.mockResolvedValue([]);
     render(
       <BrowserRouter>
-        <ConversationOverview />
+        <ConversationsOverview />
       </BrowserRouter>
     );
+
     await waitFor(() => {
       expect(screen.getByText(/start chatting/i)).toBeInTheDocument();
     });
   });
 
   it('shows error on fetch failure', async () => {
-    messageService.fetchOverview.mockRejectedValue(new Error('fail'));
+    messageService.getOverview.mockRejectedValue(new Error('fail'));
     render(
       <BrowserRouter>
-        <ConversationOverview />
+        <ConversationsOverview />
       </BrowserRouter>
     );
+
     await waitFor(() => {
       expect(screen.getByText(/failed to load conversations/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
     });
   });
 });

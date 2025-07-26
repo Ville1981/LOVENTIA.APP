@@ -15,8 +15,8 @@ const AuthContext = createContext({
 });
 
 export const AuthProvider = ({ children }) => {
-  const [token, setToken]     = useState(null); // JWT token
-  const [user, setUser]       = useState(null); // { id, email, role }
+  const [token, setToken] = useState(null); // JWT token
+  const [user, setUser] = useState(null); // { id, email, role }
   const [loading, setLoading] = useState(true); // block children until init complete
 
   // Fetch current user from backend
@@ -36,7 +36,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (newToken) => {
     setAccessToken(newToken);
     setToken(newToken);
-    localStorage.setItem("token", newToken);
+    localStorage.setItem("accessToken", newToken);
     await fetchUser();
   };
 
@@ -52,14 +52,14 @@ export const AuthProvider = ({ children }) => {
     setAccessToken(null);
     setToken(null);
     setUser(null);
-    localStorage.removeItem("token");
+    localStorage.removeItem("accessToken");
     window.location.href = "/login";
   };
 
   // Initialize authentication: load token, refresh it, then finish loading
   useEffect(() => {
     const initAuth = async () => {
-      const stored = localStorage.getItem("token");
+      const stored = localStorage.getItem("accessToken");
       if (stored) {
         setAccessToken(stored);
         setToken(stored);
@@ -74,7 +74,7 @@ export const AuthProvider = ({ children }) => {
         console.warn("Silent refresh failed:", err);
         setAccessToken(null);
         setToken(null);
-        localStorage.removeItem("token");
+        localStorage.removeItem("accessToken");
       } finally {
         setLoading(false);
       }
@@ -111,3 +111,6 @@ export const AuthProvider = ({ children }) => {
 
 // Hook for easy consumption
 export const useAuth = () => useContext(AuthContext);
+
+// The replacement region is marked between // --- REPLACE START and // --- REPLACE END
+// so you can verify exactly what changed

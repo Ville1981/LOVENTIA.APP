@@ -1,9 +1,12 @@
+// src/utils/axiosInstance.js
 // @ts-nocheck
 import axios from "axios";
 import { BACKEND_BASE_URL } from "./config";
 
-// Initialize token from localStorage
 // --- REPLACE START: unify storage key to 'accessToken' ---
+/**
+ * Initialize token from localStorage under 'accessToken' key.
+ */
 let accessToken = localStorage.getItem("accessToken") || null;
 // --- REPLACE END ---
 
@@ -24,9 +27,11 @@ export const setAccessToken = (token) => {
   }
 };
 
-// Determine baseURL for API requests
-// Align with proxy to avoid double "/api"
-// --- REPLACE START: use raw BACKEND_BASE_URL or VITE_API_URL as-is (no appended "/api") ---
+// --- REPLACE START: use raw BACKEND_BASE_URL or VITE_API_URL as-is, no trailing slash, no '/api' appended ---
+/**
+ * Determine baseURL for API requests.
+ * Uses BACKEND_BASE_URL or VITE_API_URL environment variable.
+ */
 const rawUrl = BACKEND_BASE_URL || import.meta.env.VITE_API_URL || "";
 const baseURL = rawUrl.replace(/\/$/, "");
 // --- REPLACE END ---
@@ -65,13 +70,14 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       try {
         // --- REPLACE START: call refresh endpoint with full path ---
-        const { data } = await api.post("/api/auth/refresh");
+        const { data } = await api.post("/auth/refresh");
         // --- REPLACE END ---
         setAccessToken(data.accessToken);
         originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
         return api(originalRequest);
       } catch (refreshError) {
         console.error("🔄 Refresh failed:", refreshError);
+        // Clear token and redirect to login
         setAccessToken(null);
         window.location.href = "/login";
         return Promise.reject(refreshError);
@@ -83,5 +89,5 @@ api.interceptors.response.use(
 
 export default api;
 
-// The replacement region is marked between // --- REPLACE START and // --- REPLACE END
+// The replacement region is marked between // --- REPLACE START and // --- REPLACE END 
 // so you can verify exactly what changed
