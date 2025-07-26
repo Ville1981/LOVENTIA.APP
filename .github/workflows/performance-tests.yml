@@ -16,7 +16,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y k6
 
       - name: Run Load Test
-        # --- REPLACE START: use correct path
+        # --- REPLACE START: use correct performance folder path
         run: k6 run performance/load.test.js
         # --- REPLACE END
 
@@ -36,7 +36,7 @@ jobs:
         run: npm install -g artillery
 
       - name: Run Socket Reconnect Test
-        # --- REPLACE START: correct path and include output
+        # --- REPLACE START: correct path and include output flag
         run: artillery run performance/socket-reconnect.test.js -o report.json
         # --- REPLACE END
 
