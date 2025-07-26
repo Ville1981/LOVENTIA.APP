@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../utils/axiosInstance';
 import { useTranslation } from 'react-i18next';
+import styles from './ConversationsOverview.module.css';
 
 /**
  * Returns a short relative time string like "5m", "2h", "3d".
@@ -27,7 +28,7 @@ export default function ConversationsOverview() {
   useEffect(() => {
     let isMounted = true;
 
-    // --- REPLACE START: API path ---
+    // --- REPLACE START: fetch overview conversations ---
     axios.get('/api/messages/overview')
     // --- REPLACE END ---
       .then(res => {
@@ -48,94 +49,100 @@ export default function ConversationsOverview() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-full">
-        <span className="spinner" />
-      </div>
+      <div
+        className={styles.spinner}
+        role="status"
+        aria-live="polite"
+        aria-label={t('chat.loading', 'Loading conversations...')}
+      />
     );
   }
 
   if (error) {
-    // --- REPLACE START: show retry button and translation ---
     return (
-      <div className="text-center p-4 text-red-600">
-        <p>{t('overview.error', 'Failed to load conversations')}</p>
+      // --- REPLACE START: error display with retry ---
+      <div role="alert" className={styles.error}>
+        <p>{t('chat.overview.error', 'Couldn’t load conversations.')}</p>
         <button
           onClick={() => window.location.reload()}
-          className="underline mt-2"
+          className={styles.retryButton}
+          aria-label={t('chat.overview.retry', 'Retry')}
         >
-          {t('overview.retry', 'Retry')}
+          {t('chat.overview.retry', 'Retry')}
         </button>
       </div>
+      // --- REPLACE END ---
     );
-    // --- REPLACE END ---
   }
 
   if (conversations.length === 0) {
-    // Placeholder user when no conversations
     // --- REPLACE START: i18n placeholder values ---
     const bunnyUser = {
       userId: '1',
-      name: t('overview.placeholderName', 'Bunny'),
+      name: t('chat.overview.placeholderName', 'Bunny'),
       avatarUrl: '/assets/bunny1.jpg',
-      snippet: t('overview.placeholderSnippet', "Hi there! Let's start our chat."),
+      snippet: t(
+        'chat.overview.placeholderSnippet',
+        "Hi there! Let's start our chat."
+      ),
       lastMessageTimestamp: new Date().toISOString(),
       unreadCount: 0,
     };
     // --- REPLACE END ---
 
     return (
-      <div className="flex justify-center items-center h-full p-4">
-        <div
-          className="flex items-center p-4 bg-white rounded-2xl shadow hover:shadow-lg transition-shadow cursor-pointer"
-          onClick={() => navigate(`/chat/${bunnyUser.userId}`)}
-        >
-          <img
-            src={bunnyUser.avatarUrl}
-            alt={bunnyUser.name}
-            className="w-12 h-12 rounded-full mr-4"
-            onError={e => { e.currentTarget.src = '/assets/bunny1.jpg'; }}
-          />
-          <div className="flex-1">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold">{bunnyUser.name}</h3>
-              <span className="text-sm text-gray-400">
-                {formatDistanceToNow(new Date(bunnyUser.lastMessageTimestamp))}
-              </span>
-            </div>
-            <p className="text-sm text-gray-500 truncate">{bunnyUser.snippet}</p>
-          </div>
+      <div
+        className={styles.placeholderCard}
+        role="button"
+        tabIndex={0}
+        onClick={() => navigate(`/chat/${bunnyUser.userId}`)}
+      >
+        <img
+          src={bunnyUser.avatarUrl}
+          alt={bunnyUser.name}
+          className={styles.placeholderAvatar}
+          onError={e => { e.currentTarget.src = '/assets/bunny1.jpg'; }}
+        />
+        <div className={styles.placeholderContent}>
+          <h3 className={styles.placeholderName}>{bunnyUser.name}</h3>
+          <span className={styles.time}>
+            {formatDistanceToNow(new Date(bunnyUser.lastMessageTimestamp))}
+          </span>
+          <p className={styles.placeholderSnippet}>{bunnyUser.snippet}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 p-4">
+    <div className={styles.container}>
       {conversations.map(conv => (
         <div
           key={conv.userId}
-          className="flex items-center p-4 bg-white rounded-2xl shadow hover:shadow-lg transition-shadow cursor-pointer"
+          className={`${styles.card} ${conv.unreadCount > 0 ? styles.cardHover : ''}`}
+          role="button"
+          tabIndex={0}
           onClick={() => navigate(`/chat/${conv.userId}`)}
         >
           <img
             src={conv.avatarUrl}
             alt={conv.displayName || conv.name}
-            className="w-12 h-12 rounded-full mr-4"
+            className={styles.avatar}
             onError={e => { e.currentTarget.src = '/assets/bunny1.jpg'; }}
           />
-          <div className="flex-1">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold">{conv.displayName || conv.name}</h3>
-              <span className="text-sm text-gray-400">
+          <div className={styles.content}>
+            <div className={styles.header}>
+              <h3 className={styles.title}>
+                {conv.displayName || conv.name}
+              </h3>
+              <span className={styles.time}>
                 {formatDistanceToNow(new Date(conv.lastMessageTimestamp || conv.lastMessageTime))}
               </span>
             </div>
-            <p className="text-sm text-gray-500 truncate">{conv.snippet}</p>
+            <p className={styles.snippet}>{conv.snippet}</p>
           </div>
           {conv.unreadCount > 0 && (
-            <span className="inline-block text-xs font-medium bg-red-500 text-white rounded-full px-2 py-1">
-              {conv.unreadCount}
-            </span>
+            <span className={styles.unreadBadge}>{conv.unreadCount}</span>
           )}
         </div>
       ))}

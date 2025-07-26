@@ -1,6 +1,8 @@
 // server/routes/messages.js
+
 const express = require('express');
 const authenticate = require('../middleware/authenticate');
+const { profanityFilter, moderationRateLimiter } = require('../middleware/moderation');
 const Message = require('../models/Message');
 
 const router = express.Router();
@@ -13,6 +15,10 @@ const router = express.Router();
 router.get(
   '/overview',
   authenticate,
+  // --- REPLACE START: apply moderation middlewares to overview route ---
+  moderationRateLimiter,
+  profanityFilter,
+  // --- REPLACE END ---
   async (req, res) => {
     try {
       // Fetch overview data from Message model
@@ -20,9 +26,9 @@ router.get(
       return res.json(
         overviews.map(conv => ({
           ...conv,
-          // --- REPLACE START: ensure timestamp is ISO string for client formatting
+          // --- REPLACE START: ensure timestamp is ISO string for client formatting ---
           lastMessageTime: new Date(conv.lastMessageTime).toISOString(),
-          // --- REPLACE END
+          // --- REPLACE END ---
         }))
       );
     } catch (err) {
@@ -39,6 +45,10 @@ router.get(
 router.get(
   '/:userId',
   authenticate,
+  // --- REPLACE START: apply moderation middlewares to message fetch route ---
+  moderationRateLimiter,
+  profanityFilter,
+  // --- REPLACE END ---
   async (req, res) => {
     try {
       const userId = req.user.id;
@@ -64,6 +74,10 @@ router.get(
 router.post(
   '/:userId',
   authenticate,
+  // --- REPLACE START: apply moderation middlewares to sending messages ---
+  moderationRateLimiter,
+  profanityFilter,
+  // --- REPLACE END ---
   async (req, res) => {
     try {
       const sender = req.user.id;
@@ -80,6 +94,6 @@ router.post(
   }
 );
 
-// --- REPLACE START: export as CommonJS module for index.js compatibility
+// --- REPLACE START: export as CommonJS module for index.js compatibility ---
 module.exports = router;
-// --- REPLACE END
+// --- REPLACE END ---

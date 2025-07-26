@@ -1,5 +1,3 @@
-
-
 {
   "site": { "title": "DateSite" },
   "Home": "Home",
@@ -127,11 +125,13 @@
     "deleteAccount": "Delete account",
     "confirmDelete": "Are you sure you want to permanently delete your account?"
   },
+
   "hero": {
     "0": "Find love that lasts.",
     "1": "Meet people who share your values.",
     "2": "Your next match is one click away."
   },
+
   "buttons": {
     "submit": "Submit",
     "cancel": "Cancel",
@@ -139,12 +139,14 @@
     "edit": "Edit",
     "back": "Back"
   },
+
   "messages": {
     "loading": "Loading...",
     "error": "An error occurred",
     "notFound": "Page not found",
     "success": "Action successful"
   },
+
   "discover": {
     "title": "Discover users",
     "nearYou": "near you",
@@ -169,7 +171,12 @@
     "instructions": "Select filter criteria to find matching profiles.",
     "filter": "Filter"
   },
-  "common": {"select": "Select", "filter": "Filter"},
+
+  "common": {
+    "select": "Select",
+    "filter": "Filter"
+  },
+
   "chat": {
     "conversationsTitle": "Conversations",
     "loading": "Loading conversations...",
@@ -178,16 +185,20 @@
     "conversations": "Your Conversations",
     "placeholder": "Type a message...",
     "send": "Send",
-    "title": "Chat"
+    "title": "Chat",
+
+    "overview": {
+      "error": "Couldn’t load conversations.",
+      "retry": "Retry",
+      "empty": "No conversations yet—start chatting!",
+      "placeholderName": "Bunny",
+      "placeholderSnippet": "Hi there! Let’s start our chat."
+    }
   },
-  "overview": {
-    "error": "Couldn’t load conversations.",
-    "retry": "Retry",
-    "empty": "No conversations yet—start chatting!",
-    "placeholderName": "Bunny",
-    "placeholderSnippet": "Hi there! Let’s start our chat."
+    "conversationCard": {
+    "avatarAlt": "User avatar"
   },
-  "conversationCard": {"avatarAlt": "User avatar"},
+
   "likes": {
     "title": "Your Likes",
     "noLikes": "No likes yet.",
@@ -198,6 +209,7 @@
     "superlikedYou": "Users who superliked you",
     "superlikeLimitReached": "Superlike limit (3/48h) reached."
   },
+
   "admin": {
     "title": "Admin Panel: User Management",
     "name": "Name",
@@ -211,6 +223,7 @@
     "delete": "Delete",
     "confirmDelete": "Are you sure you want to delete this user?"
   },
+
   "map": {
     "title": "Users on the map",
     "cityNotFound": "Your location could not be identified by city.",
@@ -219,12 +232,14 @@
     "youAreHere": "You are here",
     "loadingLocation": "Fetching location..."
   },
+
   "matches": {
     "title": "Your Matches",
     "noMatches": "No matches yet.",
     "openChat": "Open chat",
     "score": "Match score"
   },
+
   "premium": {
     "successTitle": "Premium subscription successful",
     "successMessage": "Premium activated! Thank you for your purchase.",
@@ -233,9 +248,11 @@
     "updating": "Updating status...",
     "errorMessage": "Premium upgrade failed."
   },
+
   "country": "Country",
   "region": "Region / state",
   "city": "City",
+
   "countries": {
     "Suomi": "Finland",
     "Ruotsi": "Sweden",
@@ -258,6 +275,7 @@
     "Portugali": "Portugal",
     "Italia": "Italy"
   },
+
   "subnav": {
     "recommended": "Recommended",
     "superlikes": "SuperLikes",
@@ -265,6 +283,7 @@
     "matchPercentage": "Match %",
     "passport": "Passport"
   },
+
   "lifestyle": {
     "title": "Lifestyle",
     "smoke": "Smoking",
@@ -276,6 +295,7 @@
     "much": "A lot",
     "sober": "Free from addiction"
   },
+
   "error": {
     "notFound": "Page not found",
     "serverError": "Server error",
@@ -283,6 +303,7 @@
     "forbidden": "Forbidden",
     "badRequest": "Bad request"
   },
+
   "notifications": {
     "newMessage": "You have a new message from {{username}}",
     "likeReceived": "{{username}} liked your profile",
@@ -290,6 +311,3 @@
     "matchFound": "You have a new match with {{username}}"
   }
 }
-
-
-

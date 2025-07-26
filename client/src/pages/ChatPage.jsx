@@ -43,10 +43,10 @@ export default function ChatPage() {
         // --- REPLACE START: use full '/api/messages/:userId' path ---
         const res = await api.get(`/api/messages/${userId}`);
         // --- REPLACE END ---
-        const msgs = res.data;
+        const msgs = res.data || [];
 
         // populate duplicate‑guard
-        msgs.forEach(m => {
+        msgs.forEach((m) => {
           if (m._id) messageIdsRef.current.add(m._id);
         });
 
@@ -57,29 +57,28 @@ export default function ChatPage() {
       }
     };
 
-    // --- REPLACE START: remove unsupported mark-read call or implement backend ---
-    /*
-    // If you have a mark-read endpoint, implement it here:
-    // await api.post(`/api/messages/${userId}/read`);
-    */
-    // --- REPLACE END ---
-
     // 2) Initialize socket connection & listeners
     const initSocket = () => {
-      // --- REPLACE START: connect socket to backend on port 5000 ---
-      connectSocket("http://localhost:5000");
+      // --- REPLACE START: connect socket to backend ---
+      connectSocket();
       // --- REPLACE END ---
 
-      const token = localStorage.getItem("token");
-      const myId = JSON.parse(atob(token.split(".")[1])).id;
+      const raw = localStorage.getItem("accessToken");
+      let myId;
+      try {
+        const payload = JSON.parse(atob(raw.split(".")[1]));
+        myId = payload.id;
+      } catch {
+        myId = null;
+      }
       const room = `chat_${myId}_${userId}`;
 
       joinRoom(room);
 
-      const handleSocketMessage = msg => {
+      const handleSocketMessage = (msg) => {
         if (!msg._id || messageIdsRef.current.has(msg._id)) return;
         messageIdsRef.current.add(msg._id);
-        setMessages(prev => [...prev, msg]);
+        setMessages((prev) => [...prev, msg]);
         scrollToBottom();
       };
 
@@ -103,8 +102,14 @@ export default function ChatPage() {
     if (!text) return;
 
     // Optimistically emit via socket
-    const token = localStorage.getItem("token");
-    const myId = JSON.parse(atob(token.split(".")[1])).id;
+    const raw = localStorage.getItem("accessToken");
+    let myId;
+    try {
+      const payload = JSON.parse(atob(raw.split(".")[1]));
+      myId = payload.id;
+    } catch {
+      myId = null;
+    }
     const room = `chat_${myId}_${userId}`;
     sendSocketMessage(room, text);
 
@@ -116,7 +121,7 @@ export default function ChatPage() {
       const saved = res.data;
       if (saved._id && !messageIdsRef.current.has(saved._id)) {
         messageIdsRef.current.add(saved._id);
-        setMessages(prev => [...prev, saved]);
+        setMessages((prev) => [...prev, saved]);
       }
       setNewMessage("");
       scrollToBottom();
@@ -157,7 +162,7 @@ export default function ChatPage() {
         <input
           type="text"
           value={newMessage}
-          onChange={e => setNewMessage(e.target.value)}
+          onChange={(e) => setNewMessage(e.target.value)}
           className="flex-1 border rounded p-2"
           placeholder={t("chat.placeholder")}
         />
@@ -171,3 +176,6 @@ export default function ChatPage() {
     </div>
   );
 }
+
+// The replacement region is marked between // --- REPLACE START and // --- REPLACE END
+// so you can verify exactly what changed

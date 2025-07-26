@@ -3,10 +3,14 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import LanguageSwitcher from "../components/LanguageSwitcher";
+import LogoutButton from "../components/LogoutButton"; // --- REPLACE START: import LogoutButton component ---
+// --- REPLACE END ---
 
 const Navbar = () => {
   const { t, i18n } = useTranslation();
-  const { isLoggedIn, isAdmin, logout } = useAuth();
+  const { isLoggedIn, isAdmin } = useAuth(); // --- REPLACE START: remove logout from destructure ---
+  // const { isLoggedIn, isAdmin, logout } = useAuth();
+  // --- REPLACE END ---
   const [lang, setLang] = useState(i18n.language);
 
   // Update language state on change
@@ -43,9 +47,9 @@ const Navbar = () => {
     { path: "/discover", label: t("Discover") },
     { path: "/profile", label: t("Profile") },
     { path: "/matches", label: t("Matches") },
-    // --- REPLACE START: Added Messages link
+    // --- REPLACE START: Added Messages link ---
     { path: "/messages", label: t("Messages") },
-    // --- REPLACE END
+    // --- REPLACE END ---
     { path: "/who-liked-me", label: t("Likes") },
     { path: "/map", label: t("Map") },
     { path: "/upgrade", label: t("Premium") },
@@ -80,7 +84,9 @@ const Navbar = () => {
     >
       {/* Title and language toggle */}
       <div className="flex items-center justify-between w-full max-w-6xl">
-        <h1 className="text-3xl font-bold text-white drop-shadow">💘 {t("site.title")}</h1>
+        <h1 className="text-3xl font-bold text-white drop-shadow">
+          💘 {t("site.title")}
+        </h1>
         <button
           onClick={toggleLanguage}
           className="text-white border border-white px-3 py-1 rounded"
@@ -105,12 +111,9 @@ const Navbar = () => {
         ))}
 
         {isLoggedIn && (
-          <button
-            onClick={logout}
-            className="bg-red-600 text-white font-semibold px-4 py-2 rounded hover:bg-red-700 text-sm transition shadow"
-          >
-            {t("Logout")}
-          </button>
+          // --- REPLACE START: use LogoutButton instead of inline button ---
+          <LogoutButton />
+          // --- REPLACE END ---
         )}
       </div>
     </nav>

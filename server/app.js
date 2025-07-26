@@ -5,19 +5,21 @@ const dotenv        = require("dotenv");
 const cors          = require("cors");
 const cookieParser  = require("cookie-parser");
 const path          = require("path");
-const { initializeSocket } = require('./socket.cjs');
 
+// --- REPLACE START: import security headers middleware ---
+const securityHeaders = require("./utils/securityHeaders");
+// --- REPLACE END ---
 
 // Load environment variables
 dotenv.config();
 
 // Connect to MongoDB
-// --- REPLACE START: correct typo before mongoose.connect ---
+// --- REPLACE START: correct mongoose.connect usage ---
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser:    true,
   useUnifiedTopology: true,
 })
-// --- REPLACE END
+// --- REPLACE END ---
   .then(() => console.log("✅ MongoDB connected"))
   .catch(err => {
     console.error("❌ MongoDB connection error:", err);
@@ -45,6 +47,10 @@ app.options(
 
 // Parse cookies
 app.use(cookieParser());
+
+// --- REPLACE START: apply security headers globally ---
+app.use(securityHeaders);
+// --- REPLACE END ---
 
 // Import webhook routes (before body parsers)
 const stripeWebhookRouter = require("./routes/stripeWebhook");
@@ -137,9 +143,8 @@ app.use((err, req, res, next) => {
 });
 
 // ─── SOCKET.IO INTEGRATION ────────────────────────────────────────────────────
-// --- REPLACE START -----------------------------------------------------------
-// Replace Express-only listener with HTTP server + Socket.io setup
-const { initializeSocket } = require("./socket"); // adjust path if needed
+// --- REPLACE START: initialize HTTP server with Socket.io instead of app.listen ---
+const { initializeSocket } = require("./socket"); // ensure correct path
 const httpServer = initializeSocket(app);
 const PORT = process.env.PORT || 5000;
 httpServer.listen(PORT, () => {
