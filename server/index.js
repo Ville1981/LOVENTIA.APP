@@ -1,4 +1,6 @@
+// --- REPLACE START: load environment variables as early as possible ---
 require("dotenv").config();
+// --- REPLACE END ---
 
 const express       = require("express");
 const mongoose      = require("mongoose");
@@ -48,7 +50,9 @@ const authenticate   = require("./middleware/authenticate");
 const messageRoutes  = require("./routes/messageRoutes");
 
 // Mount Auth routes (no auth middleware)
+// --- REPLACE START: ensure /api/auth is mounted before protected routes ---
 app.use("/api/auth", authRoutes);
+// --- REPLACE END ---
 
 // Mount Messages under authentication
 app.use("/api/messages", authenticate, messageRoutes);

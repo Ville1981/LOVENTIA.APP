@@ -1,8 +1,7 @@
 
+
 {
-  "site": {
-    "title": "DateSite"
-  },
+  "site": { "title": "DateSite" },
   "Home": "Home",
   "Discover": "Discover",
   "Login": "Login",
@@ -55,10 +54,10 @@
   "profile": {
     "username": "Username",
     "noFileChosen": "No file chosen",
-    "browse": "Browse…",
+    "browse": "Browse...",
     "saveExtraPhotos": "Save extra photos",
     "removePicture": "Remove picture",
-    "addCaption": "Add a caption…",
+    "addCaption": "Add a caption...",
     "saveCropped": "Save photo",
     "location": "Location",
     "interests": "Interests",
@@ -90,7 +89,7 @@
     "upperUni": "Higher university degree",
     "phd": "Doctorate (PhD)",
     "profession": "Profession",
-    "professionPlaceholder": "Enter your profession…",
+    "professionPlaceholder": "Enter your profession...",
     "professionCategory": "Profession category",
     "categories": {
       "Technical": "Technical",
@@ -128,13 +127,11 @@
     "deleteAccount": "Delete account",
     "confirmDelete": "Are you sure you want to permanently delete your account?"
   },
-
   "hero": {
     "0": "Find love that lasts.",
     "1": "Meet people who share your values.",
     "2": "Your next match is one click away."
   },
-
   "buttons": {
     "submit": "Submit",
     "cancel": "Cancel",
@@ -142,18 +139,16 @@
     "edit": "Edit",
     "back": "Back"
   },
-
   "messages": {
     "loading": "Loading...",
     "error": "An error occurred",
     "notFound": "Page not found",
     "success": "Action successful"
   },
-
   "discover": {
     "title": "Discover users",
     "nearYou": "near you",
-    "searchPlaceholder": "🔍 Search by name or interest...",
+    "searchPlaceholder": "Search by name or interest...",
     "geolocationNotSupported": "Your browser does not support geolocation.",
     "cityNotFound": "Your location could not be identified by city.",
     "fetchError": "Error fetching users.",
@@ -161,8 +156,8 @@
     "likeFailed": "Failed to like user.",
     "superliked": "Superliked!",
     "superlikeFailed": "Failed to superlike.",
-    "superlikeLimit": "❌ Superlike limit (3/48h) reached.",
-    "loading": "🔄 Loading users...",
+    "superlikeLimit": "Superlike limit (3/48h) reached.",
+    "loading": "Loading users...",
     "adAlt": "Ad space – your ad here",
     "like": "Like",
     "superlike": "Superlike",
@@ -174,28 +169,25 @@
     "instructions": "Select filter criteria to find matching profiles.",
     "filter": "Filter"
   },
-
-  "common": {
-    "select": "Select",
-    "filter": "Filter"
-  },
-
+  "common": {"select": "Select", "filter": "Filter"},
   "chat": {
-  "conversationsTitle": "Conversations",
-  "loading": "Loading conversations...",
-  "errorLoading": "Failed to load conversations.",
-  "noConversations": "No conversations yet.",
-  "conversations": "Your Conversations",
-  "placeholder": "Type a message...",
-  "send": "Send",
-  "title": "Chat"
-},
-
-
-    
-
-  
-
+    "conversationsTitle": "Conversations",
+    "loading": "Loading conversations...",
+    "errorLoading": "Failed to load conversations.",
+    "noConversations": "No conversations yet.",
+    "conversations": "Your Conversations",
+    "placeholder": "Type a message...",
+    "send": "Send",
+    "title": "Chat"
+  },
+  "overview": {
+    "error": "Couldn’t load conversations.",
+    "retry": "Retry",
+    "empty": "No conversations yet—start chatting!",
+    "placeholderName": "Bunny",
+    "placeholderSnippet": "Hi there! Let’s start our chat."
+  },
+  "conversationCard": {"avatarAlt": "User avatar"},
   "likes": {
     "title": "Your Likes",
     "noLikes": "No likes yet.",
@@ -204,23 +196,21 @@
     "likeBack": "Like back",
     "superlikeBack": "Superlike back",
     "superlikedYou": "Users who superliked you",
-    "superlikeLimitReached": "❌ Superlike limit (3/48h) reached."
+    "superlikeLimitReached": "Superlike limit (3/48h) reached."
   },
-
   "admin": {
     "title": "Admin Panel: User Management",
     "name": "Name",
     "location": "Location",
     "hidden": "Hidden?",
     "actions": "Actions",
-    "yes": "✅ Yes",
-    "no": "❌ No",
+    "yes": "Yes",
+    "no": "No",
     "hide": "Hide",
     "unhide": "Unhide",
     "delete": "Delete",
     "confirmDelete": "Are you sure you want to delete this user?"
   },
-
   "map": {
     "title": "Users on the map",
     "cityNotFound": "Your location could not be identified by city.",
@@ -229,27 +219,23 @@
     "youAreHere": "You are here",
     "loadingLocation": "Fetching location..."
   },
-
   "matches": {
     "title": "Your Matches",
     "noMatches": "No matches yet.",
     "openChat": "Open chat",
     "score": "Match score"
   },
-
   "premium": {
     "successTitle": "Premium subscription successful",
-    "successMessage": "✅ Premium activated! Thank you for your purchase.",
+    "successMessage": "Premium activated! Thank you for your purchase.",
     "cancelTitle": "Payment cancelled",
     "cancelMessage": "You didn't complete the payment. Feel free to try again anytime.",
     "updating": "Updating status...",
-    "errorMessage": "❌ Premium upgrade failed."
+    "errorMessage": "Premium upgrade failed."
   },
-
   "country": "Country",
   "region": "Region / state",
   "city": "City",
-
   "countries": {
     "Suomi": "Finland",
     "Ruotsi": "Sweden",
@@ -272,15 +258,13 @@
     "Portugali": "Portugal",
     "Italia": "Italy"
   },
-
   "subnav": {
     "recommended": "Recommended",
     "superlikes": "SuperLikes",
-    "cupidsPicks": "Cupid’s Picks",
+    "cupidsPicks": "Cupid's Picks",
     "matchPercentage": "Match %",
     "passport": "Passport"
   },
-
   "lifestyle": {
     "title": "Lifestyle",
     "smoke": "Smoking",
@@ -291,8 +275,7 @@
     "average": "Average",
     "much": "A lot",
     "sober": "Free from addiction"
-  }, 
-
+  },
   "error": {
     "notFound": "Page not found",
     "serverError": "Server error",
@@ -300,20 +283,13 @@
     "forbidden": "Forbidden",
     "badRequest": "Bad request"
   },
-
   "notifications": {
     "newMessage": "You have a new message from {{username}}",
     "likeReceived": "{{username}} liked your profile",
     "superlikeReceived": "{{username}} superliked you",
     "matchFound": "You have a new match with {{username}}"
   }
-
-  
-
-
-
 }
 
-  
 
 

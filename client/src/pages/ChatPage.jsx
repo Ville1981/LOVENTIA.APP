@@ -40,7 +40,9 @@ export default function ChatPage() {
     // 1) Fetch history via REST
     const fetchMessages = async () => {
       try {
-        const res = await api.get(`/messages/${userId}`);
+        // --- REPLACE START: use full '/api/messages/:userId' path ---
+        const res = await api.get(`/api/messages/${userId}`);
+        // --- REPLACE END ---
         const msgs = res.data;
 
         // populate duplicate‑guard
@@ -57,18 +59,16 @@ export default function ChatPage() {
 
     // --- REPLACE START: remove unsupported mark-read call or implement backend ---
     /*
-    // If you have a mark-read endpoint, implement it here.
-    // Otherwise, remove or leave commented out.
-    const markAsRead = async () => {
-      await api.post(`/messages/${userId}/read`);
-    };
-    markAsRead();
+    // If you have a mark-read endpoint, implement it here:
+    // await api.post(`/api/messages/${userId}/read`);
     */
     // --- REPLACE END ---
 
     // 2) Initialize socket connection & listeners
     const initSocket = () => {
-      connectSocket();
+      // --- REPLACE START: connect socket to backend on port 5000 ---
+      connectSocket("http://localhost:5000");
+      // --- REPLACE END ---
 
       const token = localStorage.getItem("token");
       const myId = JSON.parse(atob(token.split(".")[1])).id;
@@ -110,7 +110,9 @@ export default function ChatPage() {
 
     // Persist via REST
     try {
-      const res = await api.post(`/messages/${userId}`, { text });
+      // --- REPLACE START: use full '/api/messages/:userId' path ---
+      const res = await api.post(`/api/messages/${userId}`, { text });
+      // --- REPLACE END ---
       const saved = res.data;
       if (saved._id && !messageIdsRef.current.has(saved._id)) {
         messageIdsRef.current.add(saved._id);

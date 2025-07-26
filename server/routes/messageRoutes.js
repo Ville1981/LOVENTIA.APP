@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-
-// --- REPLACE START: correct path to authenticate middleware ---
+const mongoose = require('mongoose');
+// --- REPLACE START: use authenticate middleware ---
 const authenticate = require('../middleware/authenticate');
 // --- REPLACE END ---
 
@@ -10,7 +10,6 @@ const Message = require('../models/Message');
 /**
  * GET /api/messages/overview
  * Returns an array of conversation overviews for the authenticated user.
- * Each overview contains: userId, snippet, lastMessageTime, unreadCount.
  */
 router.get(
   '/overview',
@@ -18,7 +17,6 @@ router.get(
   async (req, res) => {
     try {
       const userId = req.user.id;
-      // Fetch messages involving the user, sorted newest first
       const msgs = await Message.find({
         $or: [
           { sender: userId },
@@ -26,22 +24,19 @@ router.get(
         ]
       }).sort({ createdAt: -1 });
 
-      // Aggregate latest message per peer
       const peersMap = {};
       msgs.forEach(msg => {
-        const peerId = msg.sender.toString() === userId
-          ? msg.receiver.toString()
-          : msg.sender.toString();
+        const peer = msg.sender.toString() === userId ? msg.receiver : msg.sender;
+        const peerId = peer.toString();
         if (!peersMap[peerId]) {
           peersMap[peerId] = {
             userId: peerId,
             snippet: msg.text,
             lastMessageTime: msg.createdAt.toISOString(),
-            unreadCount: 0 // TODO: implement real unread count
+            unreadCount: 0
           };
         }
       });
-
       return res.json(Object.values(peersMap));
     } catch (err) {
       console.error('Error fetching conversation overview:', err);
@@ -61,17 +56,20 @@ router.get(
     try {
       const userId = req.user.id;
       const peerId = req.params.userId;
-      // Validate ObjectId format
-      if (!peerId.match(/^[0-9a-fA-F]{24}$/)) {
-        return res.status(400).json({ error: 'Invalid user ID' });
+
+      // --- REPLACE START: handle non-ObjectId mock peerId ---
+      if (!mongoose.isValidObjectId(peerId)) {
+        // return empty array for mock users
+        return res.json([]);
       }
+      // --- REPLACE END ---
+
       const messages = await Message.find({
         $or: [
           { sender: userId, receiver: peerId },
           { sender: peerId, receiver: userId }
         ]
       }).sort({ createdAt: 1 });
-
       return res.json(messages);
     } catch (err) {
       console.error('Error fetching messages:', err);
@@ -92,10 +90,23 @@ router.post(
       const sender = req.user.id;
       const receiver = req.params.userId;
       const { text } = req.body;
-      // Validate receiver ID
-      if (!receiver.match(/^[0-9a-fA-F]{24}$/)) {
-        return res.status(400).json({ error: 'Invalid receiver ID' });
+
+      // --- REPLACE START: handle non-ObjectId mock receiver ---
+      if (!mongoose.isValidObjectId(receiver)) {
+        // return mock message stub
+        const now = new Date();
+        const mockMsg = {
+          _id: new mongoose.Types.ObjectId(),
+          sender,
+          receiver,
+          text,
+          createdAt: now,
+          updatedAt: now
+        };
+        return res.status(201).json(mockMsg);
       }
+      // --- REPLACE END ---
+
       const newMessage = new Message({ sender, receiver, text });
       const saved = await newMessage.save();
       return res.status(201).json(saved);
@@ -106,5 +117,4 @@ router.post(
   }
 );
 
-// Export the router
 module.exports = router;

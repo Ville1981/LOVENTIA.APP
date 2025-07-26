@@ -3,7 +3,9 @@ import axios from "axios";
 import { BACKEND_BASE_URL } from "./config";
 
 // Initialize token from localStorage
-let accessToken = localStorage.getItem("token") || null;
+// --- REPLACE START: unify storage key to 'accessToken' ---
+let accessToken = localStorage.getItem("accessToken") || null;
+// --- REPLACE END ---
 
 /**
  * Update internal token and persist to localStorage.
@@ -12,19 +14,21 @@ let accessToken = localStorage.getItem("token") || null;
 export const setAccessToken = (token) => {
   accessToken = token;
   if (token) {
-    localStorage.setItem("token", token);
+    // --- REPLACE START: persist under 'accessToken' key ---
+    localStorage.setItem("accessToken", token);
+    // --- REPLACE END ---
   } else {
-    localStorage.removeItem("token");
+    // --- REPLACE START: remove 'accessToken' when logging out ---
+    localStorage.removeItem("accessToken");
+    // --- REPLACE END ---
   }
 };
 
 // Determine baseURL for API requests
 // Align with proxy to avoid double "/api"
-// --- REPLACE START: ensure baseURL always includes /api prefix ---
+// --- REPLACE START: use raw BACKEND_BASE_URL or VITE_API_URL as-is (no appended "/api") ---
 const rawUrl = BACKEND_BASE_URL || import.meta.env.VITE_API_URL || "";
-const baseURL = rawUrl.endsWith("/api")
-  ? rawUrl
-  : `${rawUrl.replace(/\/?$/, "")}/api`;
+const baseURL = rawUrl.replace(/\/$/, "");
 // --- REPLACE END ---
 
 // Create Axios instance
@@ -35,7 +39,7 @@ const api = axios.create({
 
 // Attach token and JSON headers
 api.interceptors.request.use((config) => {
-  const token = accessToken || localStorage.getItem("token");
+  const token = accessToken || localStorage.getItem("accessToken");
   if (token) {
     config.headers = {
       ...config.headers,
@@ -60,7 +64,9 @@ api.interceptors.response.use(
     ) {
       originalRequest._retry = true;
       try {
-        const { data } = await api.post("/auth/refresh");
+        // --- REPLACE START: call refresh endpoint with full path ---
+        const { data } = await api.post("/api/auth/refresh");
+        // --- REPLACE END ---
         setAccessToken(data.accessToken);
         originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
         return api(originalRequest);
@@ -76,3 +82,6 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+// The replacement region is marked between // --- REPLACE START and // --- REPLACE END
+// so you can verify exactly what changed
