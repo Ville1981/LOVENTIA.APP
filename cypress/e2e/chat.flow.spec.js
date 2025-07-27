@@ -1,5 +1,8 @@
 // cypress/e2e/chat.flow.spec.js
 
+// End-to-end test for real-time chat flow
+// Requires seed or mock server state to be reset in beforeEach
+
 describe('Chat Flow', () => {
   beforeEach(() => {
     // Reset and seed the database or mock server state if needed
@@ -16,17 +19,26 @@ describe('Chat Flow', () => {
     // Ensure chat page loaded
     cy.url().should('include', '/chat/123');
 
-    // Send a message
-    cy.get('[data-test=message-input]').type('Hello, this is a test message{enter}');
+    // Send a message via input and Enter key
+    cy.get('[data-test=message-input]')
+      .type('Hello, this is a test message{enter}');
 
     // Verify message appears in the chat window
     cy.get('[data-test=message-list]')
       .should('contain', 'Hello, this is a test message');
 
-    // Simulate incoming socket message
+    // Simulate incoming socket message from peer
     cy.window().then((win) => {
-      const incoming = { sender: '123', content: 'Reply message', timestamp: Date.now() };
+      const incoming = {
+        sender: '123',
+        _id: 'msg-incoming-1',
+        text: 'Reply message',
+        createdAt: Date.now(),
+      };
+      // --- REPLACE START ---
+      // Our backend/socket emits on 'message', not 'newMessage'
       win.socket.emit('message', incoming);
+      // --- REPLACE END ---
     });
 
     // Verify incoming message is displayed

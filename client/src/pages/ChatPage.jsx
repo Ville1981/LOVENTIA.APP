@@ -1,8 +1,8 @@
+// src/pages/ChatPage.jsx
 import React, { useEffect, useState, useRef } from "react";
 import api from "../utils/axiosInstance";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-
 // --- REPLACE START: import socket helpers for reconnect & dedupe ---
 import {
   connectSocket,
@@ -25,11 +25,9 @@ export default function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef(null);
+  const messageIdsRef = useRef(new Set()); // duplicate‑guard
 
-  // duplicate‑guard: track rendered message IDs
-  const messageIdsRef = useRef(new Set());
-
-  // Utility to scroll to bottom
+  // scroll to bottom helper
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -37,19 +35,25 @@ export default function ChatPage() {
   useEffect(() => {
     if (!userId) return;
 
-    // 1) Fetch history via REST
+    // parse current user ID from token
+    const raw = localStorage.getItem("accessToken");
+    let myId = null;
+    try {
+      const payload = JSON.parse(atob(raw.split(".")[1]));
+      myId = payload.id;
+    } catch {
+      console.error("Invalid accessToken payload");
+    }
+
+    // Fetch history via REST
     const fetchMessages = async () => {
       try {
-        // --- REPLACE START: use full '/api/messages/:userId' path ---
         const res = await api.get(`/api/messages/${userId}`);
-        // --- REPLACE END ---
-        const msgs = res.data || [];
-
-        // populate duplicate‑guard
+        const msgs = Array.isArray(res.data) ? res.data : [];
         msgs.forEach((m) => {
-          if (m._id) messageIdsRef.current.add(m._id);
+          const id = m._id ? m._id.toString() : null;
+          if (id) messageIdsRef.current.add(id);
         });
-
         setMessages(msgs);
         scrollToBottom();
       } catch (err) {
@@ -57,27 +61,18 @@ export default function ChatPage() {
       }
     };
 
-    // 2) Initialize socket connection & listeners
+    // Initialize socket connection & listeners
     const initSocket = () => {
-      // --- REPLACE START: connect socket to backend ---
-      connectSocket();
+      // --- REPLACE START: connect socket with conversationId query ---
+      const conversationId = [myId, userId].sort().join("_");
+      connectSocket({ query: { conversationId } });
       // --- REPLACE END ---
-
-      const raw = localStorage.getItem("accessToken");
-      let myId;
-      try {
-        const payload = JSON.parse(atob(raw.split(".")[1]));
-        myId = payload.id;
-      } catch {
-        myId = null;
-      }
-      const room = `chat_${myId}_${userId}`;
-
-      joinRoom(room);
+      joinRoom(conversationId);
 
       const handleSocketMessage = (msg) => {
-        if (!msg._id || messageIdsRef.current.has(msg._id)) return;
-        messageIdsRef.current.add(msg._id);
+        const msgId = msg._id ? msg._id.toString() : null;
+        if (!msgId || messageIdsRef.current.has(msgId)) return;
+        messageIdsRef.current.add(msgId);
         setMessages((prev) => [...prev, msg]);
         scrollToBottom();
       };
@@ -86,7 +81,7 @@ export default function ChatPage() {
 
       return () => {
         offNewMessage(handleSocketMessage);
-        leaveRoom(room);
+        leaveRoom(conversationId);
         disconnectSocket();
       };
     };
@@ -101,26 +96,26 @@ export default function ChatPage() {
     const text = newMessage.trim();
     if (!text) return;
 
-    // Optimistically emit via socket
+    // parse current user ID
     const raw = localStorage.getItem("accessToken");
-    let myId;
+    let myId = null;
     try {
       const payload = JSON.parse(atob(raw.split(".")[1]));
       myId = payload.id;
-    } catch {
-      myId = null;
-    }
-    const room = `chat_${myId}_${userId}`;
-    sendSocketMessage(room, text);
+    } catch {}
+
+    const conversationId = [myId, userId].sort().join("_");
+
+    // Optimistically emit via socket
+    sendSocketMessage(conversationId, text);
 
     // Persist via REST
     try {
-      // --- REPLACE START: use full '/api/messages/:userId' path ---
       const res = await api.post(`/api/messages/${userId}`, { text });
-      // --- REPLACE END ---
       const saved = res.data;
-      if (saved._id && !messageIdsRef.current.has(saved._id)) {
-        messageIdsRef.current.add(saved._id);
+      const savedId = saved._id ? saved._id.toString() : null;
+      if (savedId && !messageIdsRef.current.has(savedId)) {
+        messageIdsRef.current.add(savedId);
         setMessages((prev) => [...prev, saved]);
       }
       setNewMessage("");
@@ -132,29 +127,30 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col max-w-2xl mx-auto h-screen p-4">
-      <h2 className="text-xl font-bold mb-2 text-center">
-        💬 {t("chat.title")}
-      </h2>
+      <h2 className="text-xl font-bold mb-2 text-center">💬 {t("chat.title")}</h2>
 
       <div className="flex-1 overflow-y-auto bg-gray-100 p-4 rounded shadow-sm">
-        {messages.map((msg, idx) => (
-          <div
-            key={msg._id || idx}
-            className={`my-2 flex ${
-              msg.sender === userId ? "justify-start" : "justify-end"
-            }`}
-          >
+        {messages.map((msg, idx) => {
+          const isIncoming = msg.sender.toString() === userId;
+          return (
             <div
-              className={`p-2 rounded-lg max-w-xs whitespace-pre-wrap ${
-                msg.sender === userId
-                  ? "bg-white text-left"
-                  : "bg-blue-500 text-white text-right"
+              key={msg._id || idx}
+              className={`my-2 flex ${
+                isIncoming ? "justify-start" : "justify-end"
               }`}
             >
-              {msg.text}
+              <div
+                className={`p-2 rounded-lg max-w-xs whitespace-pre-wrap ${
+                  isIncoming
+                    ? "bg-white text-left"
+                    : "bg-blue-500 text-white text-right"
+                }`}
+              >
+                {msg.text}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         <div ref={messagesEndRef} />
       </div>
 
@@ -177,5 +173,5 @@ export default function ChatPage() {
   );
 }
 
-// The replacement region is marked between // --- REPLACE START and // --- REPLACE END
-// so you can verify exactly what changed
+// The replacement region is marked between // --- REPLACE START and // --- REPLACE END  
+// so you can verify exactly what changed.

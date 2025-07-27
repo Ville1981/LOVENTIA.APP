@@ -107,7 +107,7 @@
     "summary": "About me",
     "goal": "Goals / aspirations",
     "profilePicture": "Profile Picture",
-    "extraImages": "Extra Images (max 6)",
+    "extraImages": "Extra Images (max 6)",
     "height": "Height",
     "heightUnit": "Height unit",
     "weight": "Weight",
@@ -178,28 +178,31 @@
   },
 
   "chat": {
+    "title": "Chat",
+    "placeholder": "Type a message…",
+    "send": "Send",
+    "conversations": "Your Conversations",
     "conversationsTitle": "Conversations",
-    "loading": "Loading conversations...",
+    "loading": "Loading conversations…",
     "errorLoading": "Failed to load conversations.",
     "noConversations": "No conversations yet.",
-    "conversations": "Your Conversations",
-    "placeholder": "Type a message...",
-    "send": "Send",
-    "title": "Chat",
 
     "overview": {
-      "error": "Couldn’t load conversations.",
+      "title": "Conversations",
+      "pageDescription": "View and manage your conversations",
+      "loading": "Loading conversations…",
+      "error": "Unable to load conversations.",
+      "empty": "No conversations yet.",
       "retry": "Retry",
-      "empty": "No conversations yet—start chatting!",
       "placeholderName": "Bunny",
       "placeholderSnippet": "Hi there! Let’s start our chat."
     }
   },
-    "conversationCard": {
+
+  "conversationCard": {
     "avatarAlt": "User avatar"
   },
-
-  "likes": {
+    "likes": {
     "title": "Your Likes",
     "noLikes": "No likes yet.",
     "likedYou": "Users who liked you",
@@ -311,3 +314,4 @@
     "matchFound": "You have a new match with {{username}}"
   }
 }
+

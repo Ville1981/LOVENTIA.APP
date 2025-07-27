@@ -10,6 +10,13 @@
   transition: background 0.2s;
 }
 
+/* --- REPLACE START: make card focusable and show focus outline --- */
+.card:focus-visible {
+  outline: 2px solid #3182ce;
+  outline-offset: 2px;
+}
+/* --- REPLACE END --- */
+
 .cardClickable {
   cursor: pointer;
 }

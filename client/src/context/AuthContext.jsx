@@ -16,7 +16,7 @@ const AuthContext = createContext({
 
 export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null); // JWT token
-  const [user, setUser] = useState(null); // { id, email, role }
+  const [user, setUser] = useState(null);   // { id, email, role }
   const [loading, setLoading] = useState(true); // block children until init complete
 
   // Fetch current user from backend
@@ -113,4 +113,4 @@ export const AuthProvider = ({ children }) => {
 export const useAuth = () => useContext(AuthContext);
 
 // The replacement region is marked between // --- REPLACE START and // --- REPLACE END
-// so you can verify exactly what changed
+// so you can verify exactly what changed.

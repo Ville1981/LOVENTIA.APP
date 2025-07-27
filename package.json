@@ -10,8 +10,10 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
+    "@tanstack/react-query": "^5.83.0",
     "axios": "^1.9.0",
     "date-app": "file:",
+    "date-fns": "^4.1.0",
     "express": "^5.1.0",
     "express-validator": "^7.2.1",
     "i18next-browser-languagedetector": "^8.1.0",
@@ -20,6 +22,7 @@
     "prop-types": "^15.8.1",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
+    "react-helmet": "^6.1.0",
     "react-hook-form": "^7.59.0",
     "react-leaflet": "^4.2.1",
     "react-router-dom": "^6.0.0",

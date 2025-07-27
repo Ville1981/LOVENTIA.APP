@@ -1,88 +1,87 @@
+// File: src/components/ConversationList.jsx
 import React from 'react';
-import { useQuery } from 'react-query';
+// --- REPLACE START: import bunnyUser fallback data ---
+import bunnyUser from '../data/bunnyUser';
+// --- REPLACE END ---
+import { useQuery } from '@tanstack/react-query';
 import axios from '../utils/axiosInstance';
-import { Link } from 'react-router-dom';
+import ConversationCard from './ConversationCard';
 import Spinner from './Spinner';
 import ErrorState from './ErrorState';
-import EmptyState from './EmptyState';
 import { useTranslation } from 'react-i18next';
+import styles from './ConversationList.module.css';
 
 /**
- * A single conversation card showing avatar, name, time, snippet, and unread count.
+ * ConversationList component
+ * 
+ * Fetches the list of conversations and handles loading, error, and empty states.
+ * Uses CSS module for layout and consistent styling.
  */
-function ConversationCard({ convo }) {
-  const { t } = useTranslation();
-  const time = new Date(convo.lastTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-  return (
-    <Link
-      to={`/chat/${convo.userId}`}
-      className="flex items-center p-4 hover:bg-gray-100 rounded-lg transition"
-    >
-      <img
-        src={convo.peerAvatarUrl || '/default-avatar.png'}
-        alt={
-          // --- REPLACE START: meaningful alt text ---
-          convo.peerName
-            ? `${convo.peerName}'s avatar`
-            : t('conversationCard.avatarAlt', 'User avatar')
-          // --- REPLACE END ---
-        }
-        className="w-12 h-12 rounded-full mr-4"
-      />
-
-      <div className="flex-1 overflow-hidden">
-        <div className="flex justify-between items-center">
-          <h3 className="font-medium text-gray-900 truncate">
-            {convo.peerName}
-          </h3>
-          <span className="text-xs text-gray-500">{time}</span>
-        </div>
-        <p className="text-sm text-gray-600 truncate">
-          {convo.lastMessage}
-        </p>
-      </div>
-
-      {convo.unreadCount > 0 && (
-        <span className="ml-2 bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded-full">
-          {convo.unreadCount}
-        </span>
-      )}
-    </Link>
-  );
-}
-
 export default function ConversationList() {
   const { t } = useTranslation();
-  const { data, isLoading, error } = useQuery(
-    'conversationsOverview',
-    () => axios.get('/api/messages/overview').then(res => res.data)
-  );
+
+  const {
+    data: conversations,
+    isLoading,
+    isError,
+    error
+  } = useQuery({
+    queryKey: ['conversationsOverview'],
+    queryFn: () => axios.get('/api/messages/overview').then(res => res.data),
+    retry: 1,
+    staleTime: 5 * 60 * 1000
+  });
 
   if (isLoading) {
-    return <Spinner />;
+    return (
+      <section className={styles.loading} aria-busy="true">
+        <Spinner />
+        <p>{t('chat.overview.loading', 'Loading conversations…')}</p>
+      </section>
+    );
   }
 
-  if (error) {
-    // --- REPLACE START: localized error message ---
-    return <ErrorState message={t('chat.overview.error', 'Couldn’t load conversations.')} />;
-    // --- REPLACE END ---
+  if (isError) {
+    return (
+      <section className={styles.error} role="alert">
+        <ErrorState
+          message={
+            error.response?.data?.message ||
+            t('chat.overview.error', 'Unable to load conversations.')
+          }
+        />
+      </section>
+    );
   }
 
-  if (!data || data.length === 0) {
-    // --- REPLACE START: localized empty state message ---
-    return <EmptyState message={t('chat.overview.empty', 'No conversations yet—start chatting!')} icon="chat" />;
-    // --- REPLACE END ---
+  // --- REPLACE START: display bunny placeholder card on empty state ---
+  if (!conversations || conversations.length === 0) {
+    return (
+      <section className={styles.empty} aria-label={t('chat.overview.title', 'Conversations')}>
+        <h2 className="sr-only">{t('chat.overview.title', 'Conversations')}</h2>
+        <ConversationCard convo={bunnyUser} />
+      </section>
+    );
   }
+  // --- REPLACE END ---
 
   return (
-    <div className="space-y-2">
-      {data.map(convo => (
+    <section
+      className={styles.list}
+      aria-label={t('chat.overview.title', 'Conversations')}
+    >
+      <h2 className="text-xl font-semibold mb-4">
+        {t('chat.overview.title', 'Conversations')}
+      </h2>
+      {conversations.map(convo => (
         <ConversationCard key={convo.userId} convo={convo} />
       ))}
-    </div>
+    </section>
   );
 }
 
-// The replacement regions are marked between // --- REPLACE START and // --- REPLACE END
+// The replacement regions are marked between
+// --- REPLACE START and // --- REPLACE END
 // so you can verify exactly what changed.
+
+

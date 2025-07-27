@@ -2,12 +2,21 @@
   "baseUrl": "http://localhost:3000",
   "integrationFolder": "cypress/e2e",
   "fixturesFolder": "cypress/fixtures",
+  "supportFile": "cypress/support/index.js",
   "screenshotsFolder": "cypress/screenshots",
   "videosFolder": "cypress/videos",
-  "supportFile": "cypress/support/index.js",
   "video": true,
+  "videoUploadOnPasses": false,
+  "viewportWidth": 1280,
+  "viewportHeight": 720,
+  "requestTimeout": 10000,
+  "defaultCommandTimeout": 8000,
+  "retries": {
+    "runMode": 2,
+    "openMode": 0
+  },
   "env": {
-    "apiUrl": "http://localhost:3000/api",
-    "loginUrl": "/login"
+    "API_URL": "http://localhost:3000/api",
+    "LOGIN_URL": "/login"
   }
 }

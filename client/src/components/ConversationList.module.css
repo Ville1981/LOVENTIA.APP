@@ -1,0 +1,35 @@
+/* ConversationList.module.css */
+
+/* Main list container */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem; /* space between cards */
+  padding: 0.5rem;
+}
+
+/* Loading state wrapper */
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+}
+
+/* Empty state text */
+.empty {
+  text-align: center;
+  color: #718096; /* gray-600 */
+  padding: 2rem;
+  font-size: 1rem;
+}
+
+/* Error state text */
+.error {
+  text-align: center;
+  color: #e53e3e; /* red-500 */
+  padding: 2rem;
+  font-size: 1rem;
+}
+
+/* End of ConversationList.module.css */

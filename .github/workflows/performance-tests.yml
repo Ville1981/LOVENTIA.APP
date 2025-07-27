@@ -17,7 +17,7 @@ jobs:
 
       - name: Run Load Test
         # --- REPLACE START: use correct performance folder path
-        run: k6 run performance/load.test.js
+        run: k6 run client/performance/load.test.js
         # --- REPLACE END
 
       - name: Upload K6 report
@@ -37,7 +37,7 @@ jobs:
 
       - name: Run Socket Reconnect Test
         # --- REPLACE START: correct path and include output flag
-        run: artillery run performance/socket-reconnect.test.js -o report.json
+        run: artillery run client/performance/socket-reconnect.test.js -o report.json
         # --- REPLACE END
 
       - name: Upload Artillery report
