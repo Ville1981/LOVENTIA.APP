@@ -3,15 +3,15 @@
 import axios from "axios";
 import { BACKEND_BASE_URL } from "./config";
 
-// --- REPLACE START: unify storage key to 'accessToken' ---
 /**
- * Initialize token from localStorage under 'accessToken' key.
+ * Internal storage for the access token.
  */
+// --- REPLACE START: unify storage key to 'accessToken' ---
 let accessToken = localStorage.getItem("accessToken") || null;
 // --- REPLACE END ---
 
 /**
- * Update internal token and persist to localStorage.
+ * Updates the internal token and persists it (or removes it) in localStorage.
  * @param {string|null} token
  */
 export const setAccessToken = (token) => {
@@ -29,21 +29,26 @@ export const setAccessToken = (token) => {
 
 // --- REPLACE START: use raw BACKEND_BASE_URL or VITE_API_URL as-is, no trailing slash, no '/api' appended ---
 /**
- * Determine baseURL for API requests.
- * Uses BACKEND_BASE_URL or VITE_API_URL environment variable.
+ * Determine the baseURL for all API requests.
+ * Prioritizes BACKEND_BASE_URL, then VITE_API_URL env var.
+ * Strips any trailing slash.
  */
-const rawUrl = BACKEND_BASE_URL || import.meta.env.VITE_API_URL || "";
+const rawUrl =
+  BACKEND_BASE_URL ||
+  import.meta.env.VITE_API_URL ||
+  "";
 const baseURL = rawUrl.replace(/\/$/, "");
 // --- REPLACE END ---
 
-// Create Axios instance
+// Create Axios instance with credentials support
 const api = axios.create({
   baseURL,
   withCredentials: true,
 });
 
-// Attach token and JSON headers
+// Attach token and JSON headers to every request
 api.interceptors.request.use((config) => {
+  // Attempt to read token from memory or fallback to storage
   const token = accessToken || localStorage.getItem("accessToken");
   if (token) {
     config.headers = {
@@ -51,17 +56,19 @@ api.interceptors.request.use((config) => {
       Authorization: `Bearer ${token}`,
     };
   }
+  // If sending JSON payload (and not FormData), set content-type
   if (config.data && !(config.data instanceof FormData)) {
     config.headers["Content-Type"] = "application/json";
   }
   return config;
 });
 
-// Response interceptor: refresh token on 401 and retry original request
+// Refresh token on 401 and retry original request
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    // Only attempt once and skip refresh endpoint itself
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&
@@ -77,7 +84,7 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         console.error("🔄 Refresh failed:", refreshError);
-        // Clear token and redirect to login
+        // Clear token and redirect to login page
         setAccessToken(null);
         window.location.href = "/login";
         return Promise.reject(refreshError);
@@ -89,5 +96,5 @@ api.interceptors.response.use(
 
 export default api;
 
-// The replacement region is marked between // --- REPLACE START and // --- REPLACE END 
-// so you can verify exactly what changed
+// The replacement regions are marked between // --- REPLACE START and // --- REPLACE END  
+// so you can verify exactly what changed.

@@ -28,7 +28,8 @@ export const socket = io(SOCKET_URL, {
 // --- REPLACE START: heartbeat and deduplication setup ---
 let heartbeatInterval;
 let dedupeCleanupInterval;
-const RECEIPT_CLEAR_INTERVAL = 60000; // clear dedupe set every 60s\const HEARTBEAT_INTERVAL = 25000;     // send heartbeat every 25s
+const RECEIPT_CLEAR_INTERVAL = 60000; // clear dedupe set every 60s
+const HEARTBEAT_INTERVAL = 25000;     // send heartbeat every 25s
 
 // Store recently received message IDs to avoid duplicates
 const receivedMessageIds = new Set();

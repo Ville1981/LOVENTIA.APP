@@ -1,17 +1,20 @@
+// src/App.jsx
 import React, { useEffect, Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 import ErrorBoundary from "./components/ErrorBoundary";
 import MainLayout from "./components/MainLayout";
-// --- REPLACE START: add ConversationsOverview import ---
-import ConversationsOverview from "./components/ConversationsOverview";
+// --- REPLACE START: add MessagesOverview import ---
+import MessagesOverview from "./pages/MessagesOverview";
 // --- REPLACE END ---
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
 // Slick-carousel styles
+// --- REPLACE START: include slick-carousel styles ---
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
+// --- REPLACE END ---
 
 // Forgot/reset password components
 import { ForgotPassword } from "./components/ForgotPassword";
@@ -23,7 +26,6 @@ import Discover from "./pages/Discover";
 import ProfileHub from "./pages/ProfileHub";
 import ExtraPhotosPage from "./pages/ExtraPhotosPage";
 import MatchPage from "./pages/MatchPage";
-// import MessagesList from "./pages/MessagesList"; // no longer used
 import ChatPage from "./pages/ChatPage";
 import PremiumCancel from "./pages/PremiumCancel";
 import AdminPanel from "./pages/AdminPanel";
@@ -58,46 +60,78 @@ export default function App() {
         <Suspense fallback={<div className="p-4">Loading translations…</div>}>
           <Router>
             <Routes>
-              <Route path="/" element={<MainLayout />}>                
+              <Route path="/" element={<MainLayout />}>
                 <Route index element={<Etusivu />} />
                 <Route path="discover" element={<Discover />} />
                 <Route
                   path="profile"
-                  element={<PrivateRoute><ProfileHub /></PrivateRoute>}
+                  element={
+                    <PrivateRoute>
+                      <ProfileHub />
+                    </PrivateRoute>
+                  }
                 />
                 <Route
                   path="profile/:userId"
-                  element={<PrivateRoute><ProfileHub /></PrivateRoute>}
+                  element={
+                    <PrivateRoute>
+                      <ProfileHub />
+                    </PrivateRoute>
+                  }
                 />
                 <Route
                   path="profile/photos"
-                  element={<PrivateRoute><ExtraPhotosPage /></PrivateRoute>}
+                  element={
+                    <PrivateRoute>
+                      <ExtraPhotosPage />
+                    </PrivateRoute>
+                  }
                 />
                 <Route
                   path="matches"
-                  element={<PrivateRoute><MatchPage /></PrivateRoute>}
+                  element={
+                    <PrivateRoute>
+                      <MatchPage />
+                    </PrivateRoute>
+                  }
                 />
 
                 {/* messaging overview */}
-                {/* --- REPLACE START: use ConversationsOverview instead of MessagesList --- */}
+                {/* --- REPLACE START: use MessagesOverview route --- */}
                 <Route
                   path="messages"
-                  element={<PrivateRoute><ConversationsOverview /></PrivateRoute>}
+                  element={
+                    <PrivateRoute>
+                      <MessagesOverview />
+                    </PrivateRoute>
+                  }
                 />
-                {/* --- REPLACE END: messaging overview --- */}
+                {/* --- REPLACE END --- */}
 
                 <Route
                   path="chat/:userId"
-                  element={<PrivateRoute><ChatPage /></PrivateRoute>}
+                  element={
+                    <PrivateRoute>
+                      <ChatPage />
+                    </PrivateRoute>
+                  }
                 />
 
                 <Route
                   path="cancel"
-                  element={<PrivateRoute><PremiumCancel /></PrivateRoute>}
+                  element={
+                    <PrivateRoute>
+                      <PremiumCancel />
+                    </PrivateRoute>
+                  }
                 />
                 <Route
                   path="admin"
-                  element={<PrivateRoute><AdminPanel /></PrivateRoute>}
+                  element={
+                    <PrivateRoute>
+                      <AdminPanel />
+                    </PrivateRoute>
+                  }
                 />
 
                 <Route path="login" element={<Login />} />
@@ -105,20 +139,36 @@ export default function App() {
 
                 <Route
                   path="upgrade"
-                  element={<PrivateRoute><Upgrade /></PrivateRoute>}
+                  element={
+                    <PrivateRoute>
+                      <Upgrade />
+                    </PrivateRoute>
+                  }
                 />
                 <Route path="privacy" element={<PrivacyPolicy />} />
                 <Route
                   path="who-liked-me"
-                  element={<PrivateRoute><WhoLikedMe /></PrivateRoute>}
+                  element={
+                    <PrivateRoute>
+                      <WhoLikedMe />
+                    </PrivateRoute>
+                  }
                 />
                 <Route
                   path="map"
-                  element={<PrivateRoute><MapPage /></PrivateRoute>}
+                  element={
+                    <PrivateRoute>
+                      <MapPage />
+                    </PrivateRoute>
+                  }
                 />
                 <Route
                   path="settings"
-                  element={<PrivateRoute><Settings /></PrivateRoute>}
+                  element={
+                    <PrivateRoute>
+                      <Settings />
+                    </PrivateRoute>
+                  }
                 />
 
                 {/* password reset */}
@@ -136,5 +186,5 @@ export default function App() {
   );
 }
 
-// The replacement region is marked between // --- REPLACE START and // --- REPLACE END
+// The replacement region is marked between // --- REPLACE START and // --- REPLACE END  
 // so you can verify exactly what changed.

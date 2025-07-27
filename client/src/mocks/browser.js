@@ -1,7 +1,7 @@
-// src/mocks/browser.js
-import { setupWorker } from 'msw';
+// File: src/mocks/browser.js
+// --- REPLACE START: correct import for setupWorker ---
+import { setupWorker } from 'msw/browser';
 import { handlers } from './handlers';
+// --- REPLACE END ---
 
-// --- REPLACE START: export your MSW worker instance ---
 export const worker = setupWorker(...handlers);
-// --- REPLACE END

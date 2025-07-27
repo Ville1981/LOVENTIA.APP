@@ -1,5 +1,6 @@
-# security/dependency-check.yml
+# File: security/dependency-check.yml
 # GitHub Actions workflow for dependency vulnerability scanning
+
 name: Dependency Vulnerability Check
 
 on:
@@ -29,8 +30,8 @@ jobs:
       - name: Run npm audit
         run: npm audit --audit-level=moderate
 
-      - name: Dependency-Check Gradle
-        if: exists('gradlew')
+      - name: Dependency‑Check Gradle
+        if: ${{ runner.os == 'Linux' && filesChanged('gradlew') }}
         run: |
           chmod +x gradlew
           ./gradlew dependencyCheckAnalyze

@@ -59,18 +59,18 @@ This document describes test coverage, priorities, and test paths for the expand
 ### 3.2 Performance Tests
 
 * **Socket Reconnect** (`performance/socket-reconnect.test.js`)
-  // --- REPLACE START
+  // --- REPLACE START: socket reconnect flow description ---
 
   * Sends messages, disconnects socket, then tests reconnection
-    // --- REPLACE END
+    // --- REPLACE END ---
 
 * **Load Test** (`performance/load.test.js`)
-  // --- REPLACE START
+  // --- REPLACE START: load test description ---
 
-  * Measures page load time and `/api/messages/overview` response time
-    // --- REPLACE END
+  * Measures page load time and `/api/messages/overview` response time under load
+    // --- REPLACE END ---
 
-### 3.3 Security Scans
+### 3.3 Security Scans Security Scans
 
 * **OWASP ZAP** (`security/zap-config.json`)
 
@@ -95,18 +95,6 @@ This document describes test coverage, priorities, and test paths for the expand
 ---
 
 **This test plan covers QA-phase requirements before moving to the next development milestone.**
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

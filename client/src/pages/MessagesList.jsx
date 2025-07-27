@@ -34,20 +34,23 @@ export default function ConversationsOverview() {
 
   useEffect(() => {
     let isMounted = true;
-    axios.get('/api/messages/overview')
-      .then(res => {
+    axios
+      .get('/api/messages/overview')
+      .then((res) => {
         if (isMounted) {
           setConversations(res.data || []);
           setLoading(false);
         }
       })
-      .catch(err => {
+      .catch((err) => {
         if (isMounted) {
           setError(err);
           setLoading(false);
         }
       });
-    return () => { isMounted = false; };
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   if (loading) {
@@ -71,27 +74,29 @@ export default function ConversationsOverview() {
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 p-4">
-      {list.map(conv => {
+      {list.map((conv) => {
         // --- REPLACE START: support both backend shapes ---
         const id = conv.userId ?? conv.peerId;
         const name = conv.name ?? conv.peerName;
         const avatar = conv.avatarUrl ?? conv.avatar;
         const time = conv.lastMessageTime ?? conv.lastTimestamp;
         const snippet = conv.snippet ?? conv.lastMessage;
-        const unread = conv.unreadCount;
+        const unread = conv.unreadCount ?? 0;
         // --- REPLACE END ---
 
         return (
           <div
             key={id}
             className="flex items-center p-4 bg-white rounded-2xl shadow hover:shadow-lg transition-shadow cursor-pointer"
-            onClick={() => window.location.href = `/chat/${id}`}
+            onClick={() => (window.location.href = `/chat/${id}`)}
           >
             <img
               src={avatar}
               alt={name}
               className="w-12 h-12 rounded-full mr-4"
-              onError={e => { e.currentTarget.src = '/assets/bunny1.jpg'; }}
+              onError={(e) => {
+                e.currentTarget.src = '/assets/bunny1.jpg';
+              }}
             />
             <div className="flex-1">
               <div className="flex justify-between items-center">
@@ -115,3 +120,6 @@ export default function ConversationsOverview() {
     </div>
   );
 }
+
+// The replacement region is marked between // --- REPLACE START and // --- REPLACE END
+// so you can verify exactly what changed.

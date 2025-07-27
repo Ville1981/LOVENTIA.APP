@@ -1,13 +1,15 @@
-
 // cypress/e2e/errorStates.spec.js
+
+// End-to-end tests for error and loading states in messaging overview and chat
 
 describe('Error and Loading States', () => {
   beforeEach(() => {
+    // Reset and seed the database or mock server state if needed
     cy.loginViaApi();
   });
 
   it('displays loading spinner and then messages overview', () => {
-    // Delay the overview API to simulate loading
+    // Delay the overview API to simulate loading state
     cy.intercept('GET', '/api/messages/overview', (req) => {
       req.on('response', (res) => {
         res.setDelay(2000);
