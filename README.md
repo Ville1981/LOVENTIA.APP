@@ -15,11 +15,17 @@ A full-stack dating application with both **server** (Node.js/Express, MongoDB) 
    * [Server](#server)
    * [Client](#client)
 6. [Docker Setup (Optional)](#docker-setup-optional)
-7. [API Documentation](#api-documentation)
-8. [Image Upload API](#image-upload-api)
-9. [Client API Abstraction](#client-api-abstraction)
-10. [Testing & CI/CD](#testing--cicd)
-11. [Commit Convention & Code Style](#commit-convention--code-style)
+7. [Docker Desktop Auto-Start](#docker-desktop-auto-start)
+8. [API Documentation](#api-documentation)
+9. [Documentation & Infrastructure](#documentation--infrastructure)
+
+   * [Version Control Workflow](#version-control-workflow)
+   * [CI/CD Documentation](#cicd-documentation)
+10. [Image Upload API](#image-upload-api)
+11. [Client API Abstraction](#client-api-abstraction)
+12. [Testing & CI/CD](#testing--cicd)
+13. [Commit Convention & Code Style](#commit-convention--code-style)
+14. [ER Diagram](#er-diagram)
 
 ---
 
@@ -32,7 +38,7 @@ A full-stack dating application with both **server** (Node.js/Express, MongoDB) 
 * **Image Uploads**: Multer-powered file handling
 * **Admin Tools**: Hide/show users, delete accounts
 * **Real-time Webhooks**: Stripe & PayPal event handling
-* **API Documentation**: OpenAPI/Swagger spec
+* **API Documentation**: OpenAPI/Swagger spec at `/api-docs`
 * **CI/CD Ready**: GitHub Actions example workflows
 
 ---
@@ -76,15 +82,13 @@ Copy example files and populate with your credentials:
 # Server
 cp server/.env.example server/.env
 
-# Client (if needed)
-# Ensure client/.env.example exists; if not, create it with CONTENTS:
-# VITE_API_BASE_URL=http://localhost:5000/api
+# Client
 cp client/.env.example client/.env
 ```
 
 **Server `.env`**
 
-```
+```ini
 PORT=5000
 MONGO_URI=<your-mongo-uri>
 JWT_SECRET=<your-jwt-secret>
@@ -101,7 +105,7 @@ NODE_ENV=development
 
 **Client `.env`**
 
-```
+```ini
 VITE_API_BASE_URL=http://localhost:5000/api
 ```
 
@@ -132,9 +136,10 @@ npm run dev
 
 ## Docker Setup (Optional)
 
-Containerize services using Docker Compose (no `version` field needed with Compose V2):
+Containerize services using Docker Compose:
 
 ```yaml
+version: '3.8'
 services:
   mongo:
     image: mongo:6.0
@@ -184,7 +189,9 @@ volumes:
   mongo_data: {}
 ```
 
-### Docker Desktop Auto-Start
+---
+
+## Docker Desktop Auto-Start
 
 To ensure Docker Desktop is always running when you log in:
 
@@ -195,83 +202,52 @@ To ensure Docker Desktop is always running when you log in:
 
 Once enabled, Docker will automatically launch on system boot, and you can immediately run:
 
-````bash
-# From your project root
+```bash
+# From project root
 docker compose up -d
-```yaml
-version: '3.8'
-services:
-  mongo:
-    image: mongo:6.0
-    restart: unless-stopped
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: secret
-    volumes:
-      - mongo_data:/data/db
-    ports:
-      - '27017:27017'
+```
 
-  server:
-    build:
-      context: ./server
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    env_file:
-      - ./server/.env
-    ports:
-      - '5000:5000'
-    volumes:
-      - ./server/uploads:/usr/src/app/uploads
-      - ./server:/usr/src/app
-      - /usr/src/app/node_modules
-    depends_on:
-      - mongo
-    command: npm run dev
-
-  client:
-    build:
-      context: ./client
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    env_file:
-      - ./client/.env
-    ports:
-      - '5174:5174'
-    volumes:
-      - ./client:/app
-      - /app/node_modules
-    depends_on:
-      - server
-    command: npm run dev
-
-volumes:
-  mongo_data:
-````
+---
 
 ## API Documentation
 
-OpenAPI spec: `server/swagger.yaml` or `server/openapi.json`
+OpenAPI spec: `server/openapi.yaml` or `server/openapi.json`
 
 **Integrate Swagger UI**:
 
 ```bash
-npm install swagger-ui-express
+cd server
+npm install swagger-ui-express yamljs
 ```
 
-In Express app:
+In Express app (`server/src/index.js`):
 
 ```js
+// --- REPLACE START: Swagger integration
 import swaggerUi from 'swagger-ui-express';
-import spec from './swagger.yaml';
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(spec));
+import YAML from 'yamljs';
+const swaggerDocument = YAML.load('./openapi.yaml');
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+// --- REPLACE END
 ```
+
+---
+
+## Documentation & Infrastructure
+
+### Version Control Workflow
+
+Document our branching strategy (e.g. Git-flow or trunk-based) and pull request conventions in `docs/version-control-workflow.md`.
+
+### CI/CD Documentation
+
+Describe GitHub Actions workflows, environment secrets management, and automated checks in `docs/ci-cd.md`.
 
 ---
 
 ## Image Upload API
 
-### 1. Upload Profile Avatar
+### Upload Profile Avatar
 
 ```
 POST /api/images/:userId/upload-avatar
@@ -286,7 +262,7 @@ curl -X POST http://localhost:5000/api/images/USER_ID/upload-avatar \
   -F "avatar=@/path/to/avatar.jpg"
 ```
 
-### 2. Upload Extra Photos
+### Upload Extra Photos
 
 ```
 POST /api/images/:userId/upload-photos
@@ -334,7 +310,9 @@ export const uploadPhotos = (userId, files) => {
 
 * **Server Tests**: Jest & Supertest (`server/tests`)
 * **Client Tests**: React Testing Library (`client/src/__tests__`)
-* **CI**: Example GitHub Actions in `.github/workflows/ci.yml`
+* **CI Workflow**: see `.github/workflows/ci.yml`, `staging-e2e.yml`, `production-deploy.yml`
+
+Example CI workflow (`.github/workflows/ci.yml`):
 
 ```yaml
 name: CI
@@ -345,7 +323,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
-        with: { 'node-version': '16' }
+        with:
+          node-version: '16'
       - run: npm ci
       - run: npm test
       - run: npm run lint
@@ -355,7 +334,7 @@ jobs:
 
 ## Commit Convention & Code Style
 
-* **Linting**: ESLint with \[your-config]
+* **Linting**: ESLint
 * **Formatting**: Prettier
 * **Commit Messages**: Conventional Commits
 
@@ -365,6 +344,8 @@ jobs:
   * `chore: build process or auxiliary tool changes`
 
 ---
+
+## ER Diagram
 
 ```mermaid
 erDiagram
@@ -406,3 +387,20 @@ erDiagram
         Date createdAt
     }
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

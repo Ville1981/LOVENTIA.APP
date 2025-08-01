@@ -16,6 +16,16 @@ require("./models/Message");
 
 const app = express();
 
+// ── Swagger-UI Integration ─────────────────────────────────────────────────────
+// --- REPLACE START: Swagger integration ---
+import swaggerUi from 'swagger-ui-express';
+import YAML       from 'yamljs';
+const swaggerDocument = YAML.load(path.join(__dirname, '../openapi.yaml'));
+
+// Serve Swagger UI at /api-docs
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+// --- REPLACE END
+
 // ── Stripe & PayPal webhooks ───────────────────────────────────────────────────
 // These need to see the raw body, so they must come before express.json()
 const stripeWebhookRouter = require("./routes/stripeWebhook");
