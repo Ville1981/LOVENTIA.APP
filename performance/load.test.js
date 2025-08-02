@@ -14,18 +14,18 @@ const APP_URL = __ENV.APP_URL || API_URL.replace('/api', '');
 
 export let options = {
   stages: [
-    { duration: '30s', target: 50 },  // ramp up to 50 virtual users
-    { duration: '1m', target: 50 },   // sustain load
-    { duration: '30s', target: 0 },   // ramp down
+    { duration: '30s', target: 50 }, // ramp up to 50 virtual users
+    { duration: '1m', target: 50 }, // sustain load
+    { duration: '30s', target: 0 }, // ramp down
   ],
   thresholds: {
-    'page_load_time': ['p(95)<500'],   // 95% of page loads under 500ms
-    'api_response_time': ['p(95)<300'],
+    page_load_time: ['p(95)<500'], // 95% of page loads under 500ms
+    api_response_time: ['p(95)<300'],
   },
 };
 
 const pageLoadTrend = new Trend('page_load_time');
-const apiRespTrend  = new Trend('api_response_time');
+const apiRespTrend = new Trend('api_response_time');
 
 export default function () {
   // Page load test

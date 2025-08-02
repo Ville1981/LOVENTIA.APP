@@ -2,7 +2,6 @@
   "site": {
     "title": "DateSite"
   },
-  
 
   "Home": "Casa",
   "Discover": "Scopri",
@@ -81,18 +80,17 @@
     "superlike": "Superlike",
     "viewProfile": "Visualizza profilo",
     "premium": "Utente premium",
-        "minAge": "Età minima",
+    "minAge": "Età minima",
     "maxAge": "Età massima",
     "instructions": "Seleziona i filtri per trovare profili compatibili.",
     "filter": "Filtra"
-
   },
   "chat": {
     "title": "Chat",
     "placeholder": "Scrivi un messaggio...",
     "send": "Invia"
   },
-    "profile": {
+  "profile": {
     "username": "Nome utente",
     "location": "Posizione",
     "interests": "Interessi",
@@ -220,22 +218,19 @@
   },
 
   "common": {
-  "select": "Seleziona",
-  "filter": "Filtra"
-},
+    "select": "Seleziona",
+    "filter": "Filtra"
+  },
 
-"lifestyle": {
-  "title": "Stile di vita",
-  "smoke": "Fumo",
-  "drink": "Alcol",
-  "drugs": "Droghe",
-  "no": "Nessuno",
-  "little": "Poco",
-  "average": "Moderato",
-  "much": "Molto",
-  "sober": "Libero da dipendenze"
+  "lifestyle": {
+    "title": "Stile di vita",
+    "smoke": "Fumo",
+    "drink": "Alcol",
+    "drugs": "Droghe",
+    "no": "Nessuno",
+    "little": "Poco",
+    "average": "Moderato",
+    "much": "Molto",
+    "sober": "Libero da dipendenze"
+  }
 }
-
-
-}
-

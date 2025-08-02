@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router-dom';
 // Mock api instance
 jest.mock('../utils/axiosInstance', () => ({
   post: jest.fn(),
-  interceptors: { request: { use: jest.fn() }, response: { use: jest.fn() } }
+  interceptors: { request: { use: jest.fn() }, response: { use: jest.fn() } },
 }));
 jest.mock('../context/AuthContext');
 jest.mock('react-router-dom', () => ({
@@ -50,14 +50,16 @@ describe('Login Page', () => {
       </BrowserRouter>
     );
 
-    fireEvent.change(screen.getByPlaceholderText('Sähköposti'), { target: { value: 'test@example.com' } });
+    fireEvent.change(screen.getByPlaceholderText('Sähköposti'), {
+      target: { value: 'test@example.com' },
+    });
     fireEvent.change(screen.getByPlaceholderText('Salasana'), { target: { value: 'password' } });
     fireEvent.click(screen.getByRole('button', { name: /kirjaudu/i }));
 
-    expect(api.post).toHaveBeenCalledWith(
-      '/auth/login',
-      { email: 'test@example.com', password: 'password' }
-    );
+    expect(api.post).toHaveBeenCalledWith('/auth/login', {
+      email: 'test@example.com',
+      password: 'password',
+    });
 
     await waitFor(() => {
       expect(loginMock).toHaveBeenCalledWith('abc123');
@@ -75,7 +77,9 @@ describe('Login Page', () => {
       </BrowserRouter>
     );
 
-    fireEvent.change(screen.getByPlaceholderText('Sähköposti'), { target: { value: 'user@example.com' } });
+    fireEvent.change(screen.getByPlaceholderText('Sähköposti'), {
+      target: { value: 'user@example.com' },
+    });
     fireEvent.change(screen.getByPlaceholderText('Salasana'), { target: { value: 'wrongpass' } });
     fireEvent.click(screen.getByRole('button', { name: /kirjaudu/i }));
 

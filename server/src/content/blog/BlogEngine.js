@@ -16,7 +16,7 @@ export class BlogEngine {
       title,
       author: authorId,
       publishDate,
-      slug: BlogEngine.slugify(title)
+      slug: BlogEngine.slugify(title),
     });
 
     // Save markdown file
@@ -33,7 +33,7 @@ export class BlogEngine {
    */
   static async getPublishedPosts() {
     const posts = await Post.find({ publishDate: { $lte: new Date() } }).sort({ publishDate: -1 });
-    return posts.map(post => {
+    return posts.map((post) => {
       const filePath = path.join(process.cwd(), 'src/content/blog/posts', `${post.slug}.md`);
       const file = fs.readFileSync(filePath, 'utf-8');
       const { content, data } = matter(file);

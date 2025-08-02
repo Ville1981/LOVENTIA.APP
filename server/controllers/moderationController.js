@@ -30,11 +30,7 @@ exports.reportMessage = async (req, res) => {
     }
 
     // --- REPLACE START: use service to create report ---
-    const report = await moderationService.createReport(
-      messageId,
-      req.user.id,
-      reason
-    );
+    const report = await moderationService.createReport(messageId, req.user.id, reason);
     // --- REPLACE END ---
 
     return res.status(201).json({ message: 'Report submitted.', reportId: report.id });

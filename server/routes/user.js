@@ -1,9 +1,9 @@
 // routes/userRoutes.js
 
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const jwt = require("jsonwebtoken");
-const User = require("../models/User");
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
 const {
   registerUser,
   loginUser,
@@ -12,25 +12,25 @@ const {
   uploadExtraPhotos,
   uploadPhotoStep,
   deletePhotoSlot,
-} = require("../controllers/userController");
-const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
-const { body, validationResult } = require("express-validator");
+} = require('../controllers/userController');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const { body, validationResult } = require('express-validator');
 
 // 🔐 Middleware: ensure token validity
 function authenticateToken(req, res, next) {
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "No token provided" });
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'No token provided' });
   }
-  const token = authHeader.split(" ")[1];
+  const token = authHeader.split(' ')[1];
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.userId = decoded.id;
     next();
   } catch {
-    return res.status(401).json({ error: "Invalid token" });
+    return res.status(401).json({ error: 'Invalid token' });
   }
 }
 
@@ -39,9 +39,8 @@ router.use(express.json());
 
 // 🔧 Multer storage + file removal helper
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, "uploads/"),
-  filename: (req, file, cb) =>
-    cb(null, Date.now() + path.extname(file.originalname)),
+  destination: (req, file, cb) => cb(null, 'uploads/'),
+  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),
 });
 const upload = multer({ storage });
 
@@ -55,11 +54,11 @@ function removeFile(filePath) {
 // ✅ Profile update with validation
 // =====================
 router.put(
-  "/profile",
+  '/profile',
   authenticateToken,
   upload.fields([
-    { name: "profilePhoto", maxCount: 1 },
-    { name: "extraImages", maxCount: 20 },
+    { name: 'profilePhoto', maxCount: 1 },
+    { name: 'extraImages', maxCount: 20 },
   ]),
   [
     body('username').optional().notEmpty().withMessage('Username is required'),
@@ -101,7 +100,8 @@ router.put(
       .withMessage('Invalid profession category'),
     body('nutritionPreferences')
       .optional()
-      .isArray().withMessage('Nutrition preferences must be an array'),
+      .isArray()
+      .withMessage('Nutrition preferences must be an array'),
   ],
   (req, res, next) => {
     const errors = validationResult(req);
@@ -113,38 +113,66 @@ router.put(
   async (req, res) => {
     try {
       const user = await User.findById(req.userId);
-      if (!user) return res.status(404).json({ error: "User not found" });
+      if (!user) return res.status(404).json({ error: 'User not found' });
 
       // Fields to update
       const fields = [
-        "username", "email", "age", "gender", "orientation",
-        "education", "height", "weight", "status", "religion",
-        "religionImportance", "children", "pets", "summary", "goal",
-        "lookingFor", "profession", "professionCategory",
-        "heightUnit",
-        "country", "region", "city",
-        "latitude", "longitude",
-        "smoke", "drink", "drugs",
-        "bodyType", "activityLevel",
-        "nutritionPreferences", "healthInfo",
-        "interests", "preferredGender", "preferredMinAge",
-        "preferredMaxAge", "preferredInterests", "preferredCountry",
-        "preferredReligion", "preferredReligionImportance",
-        "preferredEducation", "preferredProfession", "preferredChildren"
+        'username',
+        'email',
+        'age',
+        'gender',
+        'orientation',
+        'education',
+        'height',
+        'weight',
+        'status',
+        'religion',
+        'religionImportance',
+        'children',
+        'pets',
+        'summary',
+        'goal',
+        'lookingFor',
+        'profession',
+        'professionCategory',
+        'heightUnit',
+        'country',
+        'region',
+        'city',
+        'latitude',
+        'longitude',
+        'smoke',
+        'drink',
+        'drugs',
+        'bodyType',
+        'activityLevel',
+        'nutritionPreferences',
+        'healthInfo',
+        'interests',
+        'preferredGender',
+        'preferredMinAge',
+        'preferredMaxAge',
+        'preferredInterests',
+        'preferredCountry',
+        'preferredReligion',
+        'preferredReligionImportance',
+        'preferredEducation',
+        'preferredProfession',
+        'preferredChildren',
       ];
 
       fields.forEach((field) => {
         if (req.body[field] !== undefined) {
-          if (["interests", "preferredInterests"].includes(field)) {
+          if (['interests', 'preferredInterests'].includes(field)) {
             user[field] = Array.isArray(req.body[field])
               ? req.body[field]
-              : typeof req.body[field] === "string"
-                ? req.body[field].split(",").map((s) => s.trim())
+              : typeof req.body[field] === 'string'
+                ? req.body[field].split(',').map((s) => s.trim())
                 : [];
-          } else if (field === "nutritionPreferences") {
+          } else if (field === 'nutritionPreferences') {
             if (Array.isArray(req.body[field])) {
               user[field] = req.body[field];
-            } else if (typeof req.body[field] === "string") {
+            } else if (typeof req.body[field] === 'string') {
               user[field] = [req.body[field]];
             } else {
               user[field] = [];
@@ -170,8 +198,8 @@ router.put(
       const updated = await user.save();
       res.json(updated);
     } catch (err) {
-      console.error("Profile update error:", err);
-      res.status(500).json({ error: "Profile update failed", details: err.message });
+      console.error('Profile update error:', err);
+      res.status(500).json({ error: 'Profile update failed', details: err.message });
     }
   }
 );
@@ -179,34 +207,32 @@ router.put(
 // =====================
 // ✅ Public profile by ID
 // =====================
-router.get("/:id", async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select(
-      "-password -email -likes -superLikes -blockedUsers"
+      '-password -email -likes -superLikes -blockedUsers'
     );
-    if (!user) return res.status(404).json({ error: "User not found" });
+    if (!user) return res.status(404).json({ error: 'User not found' });
     res.json(user);
   } catch {
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
 // =====================
 // ✅ All other users (for home, discover)
 // =====================
-router.get("/users/all", authenticateToken, async (req, res) => {
+router.get('/users/all', authenticateToken, async (req, res) => {
   try {
-    const list = await User.find({ _id: { $ne: req.userId } }).select(
-      "username profilePicture"
-    );
+    const list = await User.find({ _id: { $ne: req.userId } }).select('username profilePicture');
     res.json(list);
   } catch {
-    res.status(401).json({ error: "Invalid token" });
+    res.status(401).json({ error: 'Invalid token' });
   }
 });
 
 // ❤️ Like
-router.post("/like/:id", authenticateToken, async (req, res) => {
+router.post('/like/:id', authenticateToken, async (req, res) => {
   try {
     const current = await User.findById(req.userId);
     const target = req.params.id;
@@ -214,14 +240,14 @@ router.post("/like/:id", authenticateToken, async (req, res) => {
       current.likes.push(target);
       await current.save();
     }
-    res.json({ message: "Liked successfully" });
+    res.json({ message: 'Liked successfully' });
   } catch {
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
 // 🌟 Superlike
-router.post("/superlike/:id", authenticateToken, async (req, res) => {
+router.post('/superlike/:id', authenticateToken, async (req, res) => {
   try {
     const current = await User.findById(req.userId);
     const target = req.params.id;
@@ -231,67 +257,64 @@ router.post("/superlike/:id", authenticateToken, async (req, res) => {
     );
     const limit = current.isPremium ? 3 : 1;
     if (current.superLikeTimestamps.length >= limit) {
-      return res.status(403).json({ error: "Superlike limit reached" });
+      return res.status(403).json({ error: 'Superlike limit reached' });
     }
     if (!current.superLikes.includes(target)) {
       current.superLikes.push(target);
       current.superLikeTimestamps.push(now);
       await current.save();
     }
-    res.json({ message: "Superliked successfully" });
+    res.json({ message: 'Superliked successfully' });
   } catch {
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
 // 🚫 Block user
-router.post("/block/:id", authenticateToken, async (req, res) => {
+router.post('/block/:id', authenticateToken, async (req, res) => {
   try {
     const me = await User.findById(req.userId);
     const blockId = req.params.id;
-    if (me._id.equals(blockId))
-      return res.status(400).json({ message: "Cannot block yourself" });
+    if (me._id.equals(blockId)) return res.status(400).json({ message: 'Cannot block yourself' });
     if (!me.blockedUsers.includes(blockId)) {
       me.blockedUsers.push(blockId);
       await me.save();
     }
-    res.json({ message: "User blocked" });
+    res.json({ message: 'User blocked' });
   } catch {
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
 // 💎 Premium upgrade
-router.post("/upgrade-premium", authenticateToken, upgradeToPremium);
+router.post('/upgrade-premium', authenticateToken, upgradeToPremium);
 
 // 👀 Who liked me
-router.get("/who-liked-me", authenticateToken, async (req, res) => {
+router.get('/who-liked-me', authenticateToken, async (req, res) => {
   try {
     const me = await User.findById(req.userId);
-    if (!me.isPremium) return res.status(403).json({ error: "Premium only" });
-    const likers = await User.find({ likes: req.userId }).select(
-      "username profilePicture"
-    );
+    if (!me.isPremium) return res.status(403).json({ error: 'Premium only' });
+    const likers = await User.find({ likes: req.userId }).select('username profilePicture');
     res.json(likers);
   } catch {
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
 // 📍 Nearby users (by coordinates)
-router.get("/nearby", authenticateToken, async (req, res) => {
+router.get('/nearby', authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.userId);
     const maxDistanceKm = 50;
     if (!user || !user.latitude || !user.longitude) {
-      return res.status(400).json({ error: "User location is missing" });
+      return res.status(400).json({ error: 'User location is missing' });
     }
 
     const users = await User.find({
       _id: { $ne: req.userId },
       latitude: { $exists: true },
       longitude: { $exists: true },
-    }).select("-password");
+    }).select('-password');
 
     const toRad = (deg) => (deg * Math.PI) / 180;
     const earthRadius = 6371;
@@ -301,9 +324,7 @@ router.get("/nearby", authenticateToken, async (req, res) => {
       const dLon = toRad(u.longitude - user.longitude);
       const a =
         Math.sin(dLat / 2) ** 2 +
-        Math.cos(toRad(user.latitude)) *
-          Math.cos(toRad(u.latitude)) *
-          Math.sin(dLon / 2) ** 2;
+        Math.cos(toRad(user.latitude)) * Math.cos(toRad(u.latitude)) * Math.sin(dLon / 2) ** 2;
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       const d = earthRadius * c;
       return d <= maxDistanceKm;
@@ -311,24 +332,24 @@ router.get("/nearby", authenticateToken, async (req, res) => {
 
     res.json(nearby);
   } catch (err) {
-    console.error("Nearby error:", err);
-    res.status(500).json({ error: "Server error" });
+    console.error('Nearby error:', err);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
 // 🖼 Image handling
 router.post(
-  "/:id/upload-avatar",
+  '/:id/upload-avatar',
   authenticateToken,
-  upload.single("profilePhoto"),
+  upload.single('profilePhoto'),
   async (req, res) => {
     try {
       const { id } = req.params;
       if (req.userId !== id) {
-        return res.status(403).json({ error: "Forbidden" });
+        return res.status(403).json({ error: 'Forbidden' });
       }
       const user = await User.findById(id);
-      if (!user) return res.status(404).json({ error: "User not found" });
+      if (!user) return res.status(404).json({ error: 'User not found' });
 
       removeFile(user.profilePicture);
       user.profilePicture = req.file.path;
@@ -336,40 +357,16 @@ router.post(
 
       res.json(user);
     } catch (err) {
-      console.error("upload-avatar error:", err);
-      res.status(500).json({ error: "Avatar upload failed" });
+      console.error('upload-avatar error:', err);
+      res.status(500).json({ error: 'Avatar upload failed' });
     }
   }
 );
 
-router.post(
-  "/:id/upload-photos",
-  authenticateToken,
-  upload.array("photos", 20),
-  uploadExtraPhotos
-);
+router.post('/:id/upload-photos', authenticateToken, upload.array('photos', 20), uploadExtraPhotos);
 
-router.post(
-  "/:id/upload-photo-step",
-  authenticateToken,
-  upload.single("photo"),
-  uploadPhotoStep
-);
+router.post('/:id/upload-photo-step', authenticateToken, upload.single('photo'), uploadPhotoStep);
 
-router.delete(
-  "/:id/photos/:slot",
-  authenticateToken,
-  deletePhotoSlot
-);
+router.delete('/:id/photos/:slot', authenticateToken, deletePhotoSlot);
 
 module.exports = router;
-
-
-
-
-
-
-
-
-
-

@@ -24,8 +24,8 @@ export default class ErrorBoundary extends React.Component {
 
   /**
    * Lifecycle method: catch errors in children.
-   * @param {Error} error 
-   * @param {Object} errorInfo 
+   * @param {Error} error
+   * @param {Object} errorInfo
    */
   componentDidCatch(error, errorInfo) {
     // Update state so next render shows fallback UI

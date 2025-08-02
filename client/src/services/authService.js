@@ -45,7 +45,7 @@ const authService = {
     } catch (err) {
       console.error('Error revoking token:', err);
     }
-  }
+  },
 };
 
 export default authService;

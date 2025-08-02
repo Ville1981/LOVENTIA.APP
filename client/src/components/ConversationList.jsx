@@ -13,7 +13,7 @@ import styles from './ConversationList.module.css';
 
 /**
  * ConversationList component
- * 
+ *
  * Fetches the list of conversations and handles loading, error, and empty states.
  * Uses CSS module for layout and consistent styling.
  */
@@ -24,12 +24,12 @@ export default function ConversationList() {
     data: conversations,
     isLoading,
     isError,
-    error
+    error,
   } = useQuery({
     queryKey: ['conversationsOverview'],
-    queryFn: () => axios.get('/api/messages/overview').then(res => res.data),
+    queryFn: () => axios.get('/api/messages/overview').then((res) => res.data),
     retry: 1,
-    staleTime: 5 * 60 * 1000
+    staleTime: 5 * 60 * 1000,
   });
 
   if (isLoading) {
@@ -66,14 +66,9 @@ export default function ConversationList() {
   // --- REPLACE END ---
 
   return (
-    <section
-      className={styles.list}
-      aria-label={t('chat.overview.title', 'Conversations')}
-    >
-      <h2 className="text-xl font-semibold mb-4">
-        {t('chat.overview.title', 'Conversations')}
-      </h2>
-      {conversations.map(convo => (
+    <section className={styles.list} aria-label={t('chat.overview.title', 'Conversations')}>
+      <h2 className="text-xl font-semibold mb-4">{t('chat.overview.title', 'Conversations')}</h2>
+      {conversations.map((convo) => (
         <ConversationCard key={convo.userId} convo={convo} />
       ))}
     </section>
@@ -83,5 +78,3 @@ export default function ConversationList() {
 // The replacement regions are marked between
 // --- REPLACE START and // --- REPLACE END
 // so you can verify exactly what changed.
-
-

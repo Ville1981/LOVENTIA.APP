@@ -202,7 +202,7 @@
   "conversationCard": {
     "avatarAlt": "User avatar"
   },
-    "likes": {
+  "likes": {
     "title": "Your Likes",
     "noLikes": "No likes yet.",
     "likedYou": "Users who liked you",
@@ -314,4 +314,3 @@
     "matchFound": "You have a new match with {{username}}"
   }
 }
-

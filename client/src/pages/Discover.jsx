@@ -1,26 +1,26 @@
-import React, { useState, useEffect } from "react";
-import { useTranslation } from "react-i18next";
-import api from "../utils/axiosInstance";
-import { useAuth } from "../context/AuthContext";
-import DiscoverFilters from "../components/DiscoverFilters";
-import ProfileCardList from "../components/discover/ProfileCardList";
-import SkeletonCard from "../components/SkeletonCard"; // skeleton placeholder
-import { BACKEND_BASE_URL } from "../utils/config";
+import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import api from '../utils/axiosInstance';
+import { useAuth } from '../context/AuthContext';
+import DiscoverFilters from '../components/DiscoverFilters';
+import ProfileCardList from '../components/discover/ProfileCardList';
+import SkeletonCard from '../components/SkeletonCard'; // skeleton placeholder
+import { BACKEND_BASE_URL } from '../utils/config';
 
 // Bunny placeholder user for initial view or on error
 const bunnyUser = {
-  id: "bunny",
-  _id: "bunny",
-  username: "bunny",
+  id: 'bunny',
+  _id: 'bunny',
+  username: 'bunny',
   age: 25,
-  gender: "Female",
-  orientation: "Straight",
+  gender: 'Female',
+  orientation: 'Straight',
   photos: [
-    { url: "/assets/bunny1.jpg" },
-    { url: "/assets/bunny2.jpg" },
-    { url: "/assets/bunny3.jpg" },
+    { url: '/assets/bunny1.jpg' },
+    { url: '/assets/bunny2.jpg' },
+    { url: '/assets/bunny3.jpg' },
   ],
-  location: "Unknown",
+  location: 'Unknown',
   summary: "Hi, I'm Bunny! 🐰",
 };
 
@@ -31,51 +31,51 @@ const Discover = () => {
   // Main state
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [filterKey, setFilterKey] = useState("initial");
+  const [error, setError] = useState('');
+  const [filterKey, setFilterKey] = useState('initial');
 
   // Filter form fields state (maxAge default now 120)
-  const [username, setUsername] = useState("");
-  const [age, setAge] = useState("");
-  const [gender, setGender] = useState("");
-  const [orientation, setOrientation] = useState("");
-  const [religion, setReligion] = useState("");
-  const [religionImportance, setReligionImportance] = useState("");
-  const [education, setEducation] = useState("");
-  const [profession, setProfession] = useState("");
-  const [country, setCountry] = useState("");
-  const [region, setRegion] = useState("");
-  const [city, setCity] = useState("");
-  const [customCountry, setCustomCountry] = useState("");
-  const [customRegion, setCustomRegion] = useState("");
-  const [customCity, setCustomCity] = useState("");
-  const [children, setChildren] = useState("");
-  const [pets, setPets] = useState("");
-  const [summaryField, setSummaryField] = useState("");
-  const [goals, setGoals] = useState("");
-  const [lookingFor, setLookingFor] = useState("");
-  const [smoke, setSmoke] = useState("");
-  const [drink, setDrink] = useState("");
-  const [drugs, setDrugs] = useState("");
+  const [username, setUsername] = useState('');
+  const [age, setAge] = useState('');
+  const [gender, setGender] = useState('');
+  const [orientation, setOrientation] = useState('');
+  const [religion, setReligion] = useState('');
+  const [religionImportance, setReligionImportance] = useState('');
+  const [education, setEducation] = useState('');
+  const [profession, setProfession] = useState('');
+  const [country, setCountry] = useState('');
+  const [region, setRegion] = useState('');
+  const [city, setCity] = useState('');
+  const [customCountry, setCustomCountry] = useState('');
+  const [customRegion, setCustomRegion] = useState('');
+  const [customCity, setCustomCity] = useState('');
+  const [children, setChildren] = useState('');
+  const [pets, setPets] = useState('');
+  const [summaryField, setSummaryField] = useState('');
+  const [goals, setGoals] = useState('');
+  const [lookingFor, setLookingFor] = useState('');
+  const [smoke, setSmoke] = useState('');
+  const [drink, setDrink] = useState('');
+  const [drugs, setDrugs] = useState('');
   const [minAge, setMinAge] = useState(18);
   const [maxAge, setMaxAge] = useState(120);
 
   // On mount & when authUser changes, load initial list
   useEffect(() => {
-    if ("scrollRestoration" in window.history) {
-      window.history.scrollRestoration = "manual";
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
     }
     loadUsers();
   }, [authUser]);
 
   /**
-   * Initial (and filtered) data load via GET /discover?... 
+   * Initial (and filtered) data load via GET /discover?...
    */
   const loadUsers = async (params = {}) => {
     setIsLoading(true);
-    setError("");
+    setError('');
     try {
-      const res = await api.get("/api/discover", { params });
+      const res = await api.get('/api/discover', { params });
       const data = res.data.users ?? res.data;
 
       // --- REPLACE START: prepend backend URL to photo paths ---
@@ -118,9 +118,9 @@ const Discover = () => {
       }, 0);
     });
     if (userId !== bunnyUser.id) {
-      api.post(`/api/discover/${userId}/${actionType}`).catch((err) =>
-        console.error(`Error executing ${actionType}:`, err)
-      );
+      api
+        .post(`/api/discover/${userId}/${actionType}`)
+        .catch((err) => console.error(`Error executing ${actionType}:`, err));
     }
   };
 
@@ -205,12 +205,7 @@ const Discover = () => {
 
         <main className="flex-1">
           <div className="bg-white border rounded-lg shadow-md p-6 max-w-3xl mx-auto">
-            <DiscoverFilters
-              t={t}
-              values={values}
-              setters={setters}
-              handleFilter={handleFilter}
-            />
+            <DiscoverFilters t={t} values={values} setters={setters} handleFilter={handleFilter} />
           </div>
 
           <div className="mt-6 flex justify-center w-full">
@@ -218,23 +213,14 @@ const Discover = () => {
               {isLoading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 py-4">
                   {Array.from({ length: 6 }).map((_, i) => (
-                    <SkeletonCard
-                      key={i}
-                      width="w-full"
-                      height="h-60"
-                      lines={4}
-                    />
+                    <SkeletonCard key={i} width="w-full" height="h-60" lines={4} />
                   ))}
                 </div>
               ) : error ? (
                 <div className="mt-12 text-center text-red-600">{error}</div>
               ) : (
                 <>
-                  <ProfileCardList
-                    key={filterKey}
-                    users={users}
-                    onAction={handleAction}
-                  />
+                  <ProfileCardList key={filterKey} users={users} onAction={handleAction} />
                   {users.length === 0 && (
                     <div className="mt-12 text-center text-gray-500">
                       🔍 {t('discover.noResults')}

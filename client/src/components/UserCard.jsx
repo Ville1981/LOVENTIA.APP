@@ -1,31 +1,32 @@
 // src/components/UserCard.jsx
 
-import React, { useState, memo } from "react";
-import PropTypes from "prop-types";
+import React, { useState, memo } from 'react';
+import PropTypes from 'prop-types';
 
 const UserCard = ({ user, onAction }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Käytetään user.username, mutta jos name‐kenttä on määritelty, se on ensisijainen
-  const displayName = user.name || user.username || "Unknown";
+  const displayName = user.name || user.username || 'Unknown';
 
   // Jos photos ei ole taulukko tai se on tyhjä, käytetään placeholder-kuvaa
   const photos =
     Array.isArray(user.photos) && user.photos.length > 0
       ? user.photos
-      : ["/uploads/bunny1.jpg", "/uploads/bunny2.jpg", "/uploads/bunny1.jpg"];
+      : ['/uploads/bunny1.jpg', '/uploads/bunny2.jpg', '/uploads/bunny1.jpg'];
 
   // Fallback‐kuva profiilille, jos user.profilePhoto puuttuu
-  const profilePhoto = user.profilePhoto || "/uploads/bunny1.jpg";
+  const profilePhoto = user.profilePhoto || '/uploads/bunny1.jpg';
   // Fallback‐kuva “youPhoto”‐kentälle
-  const youPhoto = user.youPhoto || "/uploads/bunny2.jpg";
+  const youPhoto = user.youPhoto || '/uploads/bunny2.jpg';
 
   // Fallback‐kentät
   const compatibility = user.compatibility != null ? user.compatibility : 0;
-  const age = user.age != null ? user.age : "?";
-  const location = `${user.city || ""}${user.region ? ", " + user.region : ""}${
-    user.country ? ", " + user.country : ""
-  }`.replace(/^, /, "") || "Unknown location";
+  const age = user.age != null ? user.age : '?';
+  const location =
+    `${user.city || ''}${user.region ? ', ' + user.region : ''}${
+      user.country ? ', ' + user.country : ''
+    }`.replace(/^, /, '') || 'Unknown location';
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-md overflow-hidden">
@@ -66,19 +67,19 @@ const UserCard = ({ user, onAction }) => {
         <div className="mt-4 flex items-center justify-between space-x-2">
           <button
             className="flex-1 border-2 border-black text-black py-2 rounded-full hover:bg-gray-100 transition duration-150"
-            onClick={() => onAction(user.id, "pass")}
+            onClick={() => onAction(user.id, 'pass')}
           >
             ❌ Pass
           </button>
           <button
             className="flex-1 bg-[#FF4081] text-white py-2 rounded-full hover:opacity-90 transition duration-150"
-            onClick={() => onAction(user.id, "like")}
+            onClick={() => onAction(user.id, 'like')}
           >
             ❤️ Like
           </button>
           <button
             className="flex-1 bg-[#005FFF] text-white py-2 rounded-full hover:opacity-90 transition duration-150 flex items-center justify-center space-x-1"
-            onClick={() => onAction(user.id, "superlike")}
+            onClick={() => onAction(user.id, 'superlike')}
           >
             <span>⭐</span>
             <span>Superlike</span>
@@ -91,36 +92,28 @@ const UserCard = ({ user, onAction }) => {
             My self-summary
           </div>
           <div className="border border-gray-200 border-t-0 rounded-b-lg p-2">
-            <p
-              className={`text-gray-800 text-sm ${
-                !isExpanded ? "line-clamp-2" : ""
-              }`}
-            >
-              {user.summary || "—"}
+            <p className={`text-gray-800 text-sm ${!isExpanded ? 'line-clamp-2' : ''}`}>
+              {user.summary || '—'}
             </p>
             <button
               onClick={() => setIsExpanded(!isExpanded)}
               className="text-[#005FFF] text-xs font-medium mt-1"
             >
-              {isExpanded ? "Collapse" : "Expand"}
+              {isExpanded ? 'Collapse' : 'Expand'}
             </button>
           </div>
         </div>
 
         {/* — You & [Profiili] — */}
         <div className="mt-6">
-          <h4 className="text-gray-700 font-semibold mb-2">
-            You & {displayName}
-          </h4>
+          <h4 className="text-gray-700 font-semibold mb-2">You & {displayName}</h4>
           <div className="flex items-center space-x-2 mb-2">
             <img
               src={youPhoto}
               alt="Your avatar"
               className="w-8 h-8 rounded-full object-cover border-2 border-[#005FFF]"
             />
-            <span className="text-lg font-bold text-[#005FFF]">
-              {compatibility}%
-            </span>
+            <span className="text-lg font-bold text-[#005FFF]">{compatibility}%</span>
             <img
               src={profilePhoto}
               alt={`${displayName} avatar`}
@@ -130,7 +123,7 @@ const UserCard = ({ user, onAction }) => {
           <div className="flex items-center space-x-6">
             <div
               className="flex items-center space-x-1 cursor-pointer hover:text-[#005FFF]"
-              onClick={() => onAction(user.id, "agree")}
+              onClick={() => onAction(user.id, 'agree')}
             >
               <span className="font-semibold">Agree 😊</span>
               <span className="text-gray-500 text-xs">
@@ -139,7 +132,7 @@ const UserCard = ({ user, onAction }) => {
             </div>
             <div
               className="flex items-center space-x-1 cursor-pointer hover:text-gray-700"
-              onClick={() => onAction(user.id, "disagree")}
+              onClick={() => onAction(user.id, 'disagree')}
             >
               <span className="font-semibold">Disagree 😕</span>
               <span className="text-gray-500 text-xs">
@@ -148,7 +141,7 @@ const UserCard = ({ user, onAction }) => {
             </div>
             <div
               className="flex items-center space-x-1 cursor-pointer hover:text-[#3B5998]"
-              onClick={() => onAction(user.id, "findOut")}
+              onClick={() => onAction(user.id, 'findOut')}
             >
               <span className="font-semibold">Find Out 🔮</span>
               <span className="text-gray-500 text-xs">
@@ -169,7 +162,7 @@ const UserCard = ({ user, onAction }) => {
                 <div className="flex items-center space-x-2">
                   <span>👤</span>
                   <span>
-                    {user.details.gender} | {user.details.orientation} |{" "}
+                    {user.details.gender} | {user.details.orientation} |{' '}
                     {user.details.relationshipStatus}
                   </span>
                 </div>
@@ -184,10 +177,8 @@ const UserCard = ({ user, onAction }) => {
                 <div className="flex items-center space-x-2">
                   <span>🌐</span>
                   <span>
-                    {user.details.ethnicity} |{" "}
-                    {user.details.languages?.join(", ")} |{" "}
-                    {user.details.education} | {user.details.employment} |{" "}
-                    {user.details.religion}
+                    {user.details.ethnicity} | {user.details.languages?.join(', ')} |{' '}
+                    {user.details.education} | {user.details.employment} | {user.details.religion}
                   </span>
                 </div>
               )}
@@ -198,8 +189,8 @@ const UserCard = ({ user, onAction }) => {
                 <div className="flex items-center space-x-2">
                   <span>🚬</span>
                   <span>
-                    {user.details.smoking} | {user.details.drinking} |{" "}
-                    {user.details.marijuana} | {user.details.diet}
+                    {user.details.smoking} | {user.details.drinking} | {user.details.marijuana} |{' '}
+                    {user.details.diet}
                   </span>
                 </div>
               )}

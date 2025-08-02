@@ -68,7 +68,7 @@
     "save": "Spara ändringar",
     "delete": "Radera konto",
     "saveSuccess": "✅ Profilen har uppdaterats!",
-        "gender": "Kön",
+    "gender": "Kön",
     "male": "Man",
     "female": "Kvinna",
     "other": "Annat",
@@ -108,14 +108,12 @@
     "updateError": "❌ Kunde inte uppdatera profilen.",
     "confirmDelete": "Är du säker på att du vill ta bort ditt konto permanent?",
     "premiumMember": "Du är en premiumanvändare 🎉"
-
   },
   "hero": {
-  "0": "Hitta äkta kärlek.",
-  "1": "Träffa människor som delar dina värderingar.",
-  "2": "Ditt nästa match är bara ett klick bort."
-},
-
+    "0": "Hitta äkta kärlek.",
+    "1": "Träffa människor som delar dina värderingar.",
+    "2": "Ditt nästa match är bara ett klick bort."
+  },
 
   "buttons": {
     "submit": "Skicka",

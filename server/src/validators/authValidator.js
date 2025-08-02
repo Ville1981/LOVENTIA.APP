@@ -7,20 +7,14 @@ const Joi = require('joi');
  * @type {Joi.ObjectSchema}
  */
 const loginSchema = Joi.object({
-  email: Joi.string()
-    .email()
-    .required()
-    .messages({
-      'string.email': 'Email must be a valid email address',
-      'string.empty': 'Email is required'
-    }),
-  password: Joi.string()
-    .min(8)
-    .required()
-    .messages({
-      'string.min': 'Password must be at least 8 characters',
-      'string.empty': 'Password is required'
-    })
+  email: Joi.string().email().required().messages({
+    'string.email': 'Email must be a valid email address',
+    'string.empty': 'Email is required',
+  }),
+  password: Joi.string().min(8).required().messages({
+    'string.min': 'Password must be at least 8 characters',
+    'string.empty': 'Password is required',
+  }),
 });
 
 /**
@@ -28,30 +22,21 @@ const loginSchema = Joi.object({
  * @type {Joi.ObjectSchema}
  */
 const registerSchema = Joi.object({
-  name: Joi.string()
-    .min(3)
-    .required()
-    .messages({
-      'string.min': 'Name must be at least 3 characters',
-      'string.empty': 'Name is required'
-    }),
-  email: Joi.string()
-    .email()
-    .required()
-    .messages({
-      'string.email': 'Email must be a valid email address',
-      'string.empty': 'Email is required'
-    }),
-  password: Joi.string()
-    .min(8)
-    .required()
-    .messages({
-      'string.min': 'Password must be at least 8 characters',
-      'string.empty': 'Password is required'
-    })
+  name: Joi.string().min(3).required().messages({
+    'string.min': 'Name must be at least 3 characters',
+    'string.empty': 'Name is required',
+  }),
+  email: Joi.string().email().required().messages({
+    'string.email': 'Email must be a valid email address',
+    'string.empty': 'Email is required',
+  }),
+  password: Joi.string().min(8).required().messages({
+    'string.min': 'Password must be at least 8 characters',
+    'string.empty': 'Password is required',
+  }),
 });
 
 module.exports = {
   loginSchema,
-  registerSchema
+  registerSchema,
 };

@@ -79,7 +79,7 @@ exports.uploadPhotos = async (req, res) => {
     const updated = Array.from({ length: maxSlots }, (_, i) => existing[i] || null);
     for (const file of files) {
       const url = `/uploads/extra/${file.filename}`;
-      const idx = updated.findIndex(img => !img);
+      const idx = updated.findIndex((img) => !img);
       if (idx === -1) break;
       updated[idx] = url;
       await Image.create({ owner: userId, url, uploaded: new Date(), isAvatar: false });
@@ -121,9 +121,18 @@ exports.uploadPhotoStep = async (req, res) => {
     // GIF bypass
     if (req.file.mimetype === 'image/gif') {
       const gifUrl = `/uploads/extra/${req.file.filename}`;
-      const idxGif = Number.isInteger(+slot) && +slot >= 0 && +slot < maxSlots ? +slot : arr.findIndex(i => !i);
+      const idxGif =
+        Number.isInteger(+slot) && +slot >= 0 && +slot < maxSlots
+          ? +slot
+          : arr.findIndex((i) => !i);
       if (idxGif !== -1) arr[idxGif] = gifUrl;
-      await Image.create({ owner: userId, url: gifUrl, uploaded: new Date(), isAvatar: false, caption });
+      await Image.create({
+        owner: userId,
+        url: gifUrl,
+        uploaded: new Date(),
+        isAvatar: false,
+        caption,
+      });
 
       user.extraImages = arr;
       await user.save();
@@ -138,10 +147,14 @@ exports.uploadPhotoStep = async (req, res) => {
     await sharp(inPath)
       .extract({ left: +cropX, top: +cropY, width: +cropWidth, height: +cropHeight })
       .toFile(outPath);
-    fs.unlink(inPath, err => err && err.code !== 'ENOENT' && console.warn('Temp unlink failed', err));
+    fs.unlink(
+      inPath,
+      (err) => err && err.code !== 'ENOENT' && console.warn('Temp unlink failed', err)
+    );
 
     const url = `/uploads/extra/${outName}`;
-    const idxCrop = Number.isInteger(+slot) && +slot >= 0 && +slot < maxSlots ? +slot : arr.findIndex(i => !i);
+    const idxCrop =
+      Number.isInteger(+slot) && +slot >= 0 && +slot < maxSlots ? +slot : arr.findIndex((i) => !i);
     if (idxCrop !== -1) arr[idxCrop] = url;
     await Image.create({ owner: userId, url, uploaded: new Date(), isAvatar: false, caption });
 
@@ -175,9 +188,12 @@ exports.deletePhotoSlot = async (req, res) => {
       // Remove avatar records & files
       const avatars = await Image.find({ owner: userId, isAvatar: true });
       await Promise.all(
-        avatars.map(async old => {
+        avatars.map(async (old) => {
           const fileOnDisk = path.join(__dirname, '..', old.url.replace(/^\//, ''));
-          fs.unlink(fileOnDisk, err => err && err.code !== 'ENOENT' && console.warn('Avatar unlink failed', err));
+          fs.unlink(
+            fileOnDisk,
+            (err) => err && err.code !== 'ENOENT' && console.warn('Avatar unlink failed', err)
+          );
         })
       );
       await Image.deleteMany({ owner: userId, isAvatar: true });
@@ -201,7 +217,10 @@ exports.deletePhotoSlot = async (req, res) => {
     const imageUrl = arr[idx];
     if (imageUrl) {
       const filePath = path.join(__dirname, '..', imageUrl.replace(/^\//, ''));
-      fs.unlink(filePath, err => err && err.code !== 'ENOENT' && console.warn('Deletion failed', err));
+      fs.unlink(
+        filePath,
+        (err) => err && err.code !== 'ENOENT' && console.warn('Deletion failed', err)
+      );
       await Image.deleteOne({ owner: userId, url: imageUrl });
     }
 

@@ -3,7 +3,7 @@ name: Security Scans
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 3 * * 0'  # Sundays at 03:00 UTC
+    - cron: '0 3 * * 0' # Sundays at 03:00 UTC
 
 jobs:
   zap-scan:

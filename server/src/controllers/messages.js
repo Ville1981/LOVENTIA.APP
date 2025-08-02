@@ -2,10 +2,7 @@
 // Controller for GET/POST /api/messages/:userId
 // Handles fetching and saving messages between two users
 
-import {
-  fetchMessagesBetween,
-  saveMessage,
-} from '../services/messageService';
+import { fetchMessagesBetween, saveMessage } from '../services/messageService';
 
 /**
  * GET /api/messages/:userId
@@ -19,9 +16,7 @@ export async function getMessages(req, res) {
     return res.json({ success: true, data: messages });
   } catch (error) {
     console.error('Error fetching messages:', error);
-    return res
-      .status(500)
-      .json({ success: false, message: 'Unable to load messages.' });
+    return res.status(500).json({ success: false, message: 'Unable to load messages.' });
   }
 }
 
@@ -36,17 +31,13 @@ export async function postMessage(req, res) {
     const recipient = req.params.userId;
     const { text } = req.body;
     if (!text || typeof text !== 'string') {
-      return res
-        .status(400)
-        .json({ success: false, message: 'Invalid message payload.' });
+      return res.status(400).json({ success: false, message: 'Invalid message payload.' });
     }
     const saved = await saveMessage({ sender, recipient, text });
     return res.status(201).json({ success: true, data: saved });
   } catch (error) {
     console.error('Error saving message:', error);
-    return res
-      .status(500)
-      .json({ success: false, message: 'Unable to send message.' });
+    return res.status(500).json({ success: false, message: 'Unable to send message.' });
   }
 }
 

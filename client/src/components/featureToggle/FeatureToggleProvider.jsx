@@ -20,15 +20,10 @@ export function FeatureToggleProvider({ children }) {
     fetchFlags();
   }, []);
 
-  return (
-    <FeatureContext.Provider value={flags}>
-      {children}
-    </FeatureContext.Provider>
-  );
+  return <FeatureContext.Provider value={flags}>{children}</FeatureContext.Provider>;
 }
 
 export function useFeatureFlag(flagName) {
   const flags = useContext(FeatureContext);
   return flags[flagName] === true;
 }
-

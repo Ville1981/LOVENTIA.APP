@@ -51,65 +51,59 @@
     "katso_kayttajat": "See users"
   },
 
-  
   "profile": {
     "username": "Username",
-   
-   
+
     "location": "Location",
-    
+
     "interests": "Interests",
     "images": "Additional images",
-   
+
     "updateProfile": "Update profile",
-   
+
     "saveError": "Update failed. Please check the fields.",
     "required": "This field is required",
-  
 
+    "gender": "Gender",
+    "male": "Male",
+    "female": "Female",
+    "other": "Other",
+    "orientation": "Sexual orientation",
+    "hetero": "Heterosexual",
+    "homo": "Homosexual",
+    "bi": "Bisexual",
+    "country": "Country",
+    "region": "Region",
+    "city": "City",
+    "selectCountry": "Select country",
+    "manualCountry": "Or enter country manually",
+    "selectRegion": "Select region",
+    "manualRegion": "Or enter region manually",
+    "selectCity": "Select city",
+    "manualCity": "Or enter city manually",
+    "education": "Education",
+    "basicEducation": "Basic education",
+    "secondary": "Secondary degree",
+    "lowerUni": "Lower university degree",
+    "upperUni": "Higher university degree",
+    "phd": "Doctorate (PhD)",
+    "profession": "Profession",
+    "religionImportance": "How important is your religion?",
+    "notImportant": "Not important",
+    "somewhatImportant": "Somewhat important",
+    "veryImportant": "Very important",
+    "about": "About me",
+    "goals": "Goals / wishes",
+    "searchingFor": "What are you looking for?",
+    "mainImage": "Main profile image",
 
-
-  
-"gender": "Gender",
-"male": "Male",
-"female": "Female",
-"other": "Other",
-"orientation": "Sexual orientation",
-"hetero": "Heterosexual",
-"homo": "Homosexual",
-"bi": "Bisexual",
-"country": "Country",
-"region": "Region",
-"city": "City",
-"selectCountry": "Select country",
-"manualCountry": "Or enter country manually",
-"selectRegion": "Select region",
-"manualRegion": "Or enter region manually",
-"selectCity": "Select city",
-"manualCity": "Or enter city manually",
-"education": "Education",
-"basicEducation": "Basic education",
-"secondary": "Secondary degree",
-"lowerUni": "Lower university degree",
-"upperUni": "Higher university degree",
-"phd": "Doctorate (PhD)",
-"profession": "Profession",
-"religionImportance": "How important is your religion?",
-"notImportant": "Not important",
-"somewhatImportant": "Somewhat important",
-"veryImportant": "Very important",
-"about": "About me",
-"goals": "Goals / wishes",
-"searchingFor": "What are you looking for?",
-"mainImage": "Main profile image",
-
-"saveChanges": "Save changes",
-"deleteAccount": "Delete account",
-"saved": "✅ Profile updated!",
-"fetchError": "❌ Failed to load profile.",
-"updateError": "❌ Failed to update profile.",
-"confirmDelete": "Are you sure you want to permanently delete your account?",
-"premiumMember": "You are a premium member 🎉",
+    "saveChanges": "Save changes",
+    "deleteAccount": "Delete account",
+    "saved": "✅ Profile updated!",
+    "fetchError": "❌ Failed to load profile.",
+    "updateError": "❌ Failed to update profile.",
+    "confirmDelete": "Are you sure you want to permanently delete your account?",
+    "premiumMember": "You are a premium member 🎉",
 
     "title": "Profile",
     "name": "Name",
@@ -131,11 +125,10 @@
     "saveSuccess": "✅ Profile updated successfully!"
   },
   "hero": {
-  "0": "Find love that lasts.",
-  "1": "Meet people who share your values.",
-  "2": "Your next match is one click away."
-},
-
+    "0": "Find love that lasts.",
+    "1": "Meet people who share your values.",
+    "2": "Your next match is one click away."
+  },
 
   "buttons": {
     "submit": "Submit",
@@ -153,70 +146,68 @@
   },
 
   "discover": {
-  "title": "Discover users",
-  "nearYou": "near you",
-  "searchPlaceholder": "🔍 Search by name or interest...",
-  "geolocationNotSupported": "Your browser does not support geolocation.",
-  "cityNotFound": "Your location could not be identified by city.",
-  "fetchError": "Error fetching users.",
-  "liked": "User liked!",
-  "likeFailed": "Failed to like user.",
-  "superliked": "Superliked!",
-  "superlikeFailed": "Failed to superlike.",
-  "superlikeLimit": "❌ Superlike limit (3/48h) reached.",
-  "loading": "🔄 Loading users...",
-  "adAlt": "Ad space – your ad here",
-  "like": "Like",
-  "superlike": "Superlike",
-  "viewProfile": "View profile",
-  "premium": "Premium user"
-},
+    "title": "Discover users",
+    "nearYou": "near you",
+    "searchPlaceholder": "🔍 Search by name or interest...",
+    "geolocationNotSupported": "Your browser does not support geolocation.",
+    "cityNotFound": "Your location could not be identified by city.",
+    "fetchError": "Error fetching users.",
+    "liked": "User liked!",
+    "likeFailed": "Failed to like user.",
+    "superliked": "Superliked!",
+    "superlikeFailed": "Failed to superlike.",
+    "superlikeLimit": "❌ Superlike limit (3/48h) reached.",
+    "loading": "🔄 Loading users...",
+    "adAlt": "Ad space – your ad here",
+    "like": "Like",
+    "superlike": "Superlike",
+    "viewProfile": "View profile",
+    "premium": "Premium user"
+  },
 
+  "chat": {
+    "title": "Chat",
+    "placeholder": "Type a message...",
+    "send": "Send"
+  },
 
+  "admin": {
+    "title": "Admin Panel: User Management",
+    "name": "Name",
+    "location": "Location",
+    "hidden": "Hidden?",
+    "actions": "Actions",
+    "yes": "✅ Yes",
+    "no": "❌ No",
+    "hide": "Hide",
+    "unhide": "Unhide",
+    "delete": "Delete",
+    "confirmDelete": "Are you sure you want to delete this user?"
+  },
 
-"chat": {
-  "title": "Chat",
-  "placeholder": "Type a message...",
-  "send": "Send"
-},
+  "map": {
+    "title": "Users on the map",
+    "cityNotFound": "Your location could not be identified by city.",
+    "locationError": "Could not fetch your location.",
+    "fetchError": "Error fetching users.",
+    "youAreHere": "You are here",
+    "loadingLocation": "Fetching location..."
+  },
 
-"admin": {
-  "title": "Admin Panel: User Management",
-  "name": "Name",
-  "location": "Location",
-  "hidden": "Hidden?",
-  "actions": "Actions",
-  "yes": "✅ Yes",
-  "no": "❌ No",
-  "hide": "Hide",
-  "unhide": "Unhide",
-  "delete": "Delete",
-  "confirmDelete": "Are you sure you want to delete this user?"
-},
+  "matches": {
+    "title": "Your Matches",
+    "noMatches": "No matches yet.",
+    "openChat": "Open chat",
+    "score": "Match score"
+  },
 
-"map": {
-  "title": "Users on the map",
-  "cityNotFound": "Your location could not be identified by city.",
-  "locationError": "Could not fetch your location.",
-  "fetchError": "Error fetching users.",
-  "youAreHere": "You are here",
-  "loadingLocation": "Fetching location..."
-},
-
-"matches": {
-  "title": "Your Matches",
-  "noMatches": "No matches yet.",
-  "openChat": "Open chat",
-  "score": "Match score"
-},
-
-"premium": {
-  "successTitle": "Premium subscription successful",
-  "successMessage": "✅ Premium activated! Thank you for your purchase.",
-  "cancelTitle": "Payment cancelled",
-  "cancelMessage": "You didn't complete the payment. Feel free to try again anytime.",
-  "updating": "Updating status...",
-  "errorMessage": "❌ Premium upgrade failed."
+  "premium": {
+    "successTitle": "Premium subscription successful",
+    "successMessage": "✅ Premium activated! Thank you for your purchase.",
+    "cancelTitle": "Payment cancelled",
+    "cancelMessage": "You didn't complete the payment. Feel free to try again anytime.",
+    "updating": "Updating status...",
+    "errorMessage": "❌ Premium upgrade failed."
   },
   "country": "Country",
   "region": "Region / state",

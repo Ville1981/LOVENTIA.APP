@@ -22,11 +22,9 @@ export const login = async (req, res, next) => {
       { expiresIn: '15m' }
     );
 
-    const refreshToken = jwt.sign(
-      { userId: user.id },
-      process.env.REFRESH_TOKEN_SECRET,
-      { expiresIn: '7d' }
-    );
+    const refreshToken = jwt.sign({ userId: user.id }, process.env.REFRESH_TOKEN_SECRET, {
+      expiresIn: '7d',
+    });
 
     // --- REPLACE START: set secure, HttpOnly, SameSite cookie for refreshToken ---
     res.cookie('refreshToken', refreshToken, cookieOptions);

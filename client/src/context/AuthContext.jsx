@@ -1,7 +1,7 @@
 // src/context/AuthContext.jsx
 
-import React, { createContext, useContext, useEffect, useState } from "react";
-import api, { setAccessToken } from "../utils/axiosInstance";
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import api, { setAccessToken } from '../utils/axiosInstance';
 
 // Initialize context with defaults to avoid undefined errors
 const AuthContext = createContext({
@@ -16,18 +16,18 @@ const AuthContext = createContext({
 
 export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null); // JWT token
-  const [user, setUser] = useState(null);   // { id, email, role }
+  const [user, setUser] = useState(null); // { id, email, role }
   const [loading, setLoading] = useState(true); // block children until init complete
 
   // Fetch current user from backend
   const fetchUser = async () => {
     try {
       // --- REPLACE START: use '/api/auth/me' endpoint ---
-      const { data } = await api.get("/api/auth/me");
+      const { data } = await api.get('/api/auth/me');
       // --- REPLACE END ---
       setUser(data);
     } catch (err) {
-      console.warn("fetchUser failed:", err);
+      console.warn('fetchUser failed:', err);
       setUser(null);
     }
   };
@@ -36,7 +36,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (newToken) => {
     setAccessToken(newToken);
     setToken(newToken);
-    localStorage.setItem("accessToken", newToken);
+    localStorage.setItem('accessToken', newToken);
     await fetchUser();
   };
 
@@ -44,22 +44,22 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       // --- REPLACE START: call '/api/auth/logout' ---
-      await api.post("/api/auth/logout");
+      await api.post('/api/auth/logout');
       // --- REPLACE END ---
     } catch (err) {
-      console.warn("Logout request failed:", err);
+      console.warn('Logout request failed:', err);
     }
     setAccessToken(null);
     setToken(null);
     setUser(null);
-    localStorage.removeItem("accessToken");
-    window.location.href = "/login";
+    localStorage.removeItem('accessToken');
+    window.location.href = '/login';
   };
 
   // Initialize authentication: load token, refresh it, then finish loading
   useEffect(() => {
     const initAuth = async () => {
-      const stored = localStorage.getItem("accessToken");
+      const stored = localStorage.getItem('accessToken');
       if (stored) {
         setAccessToken(stored);
         setToken(stored);
@@ -67,14 +67,14 @@ export const AuthProvider = ({ children }) => {
 
       try {
         // --- REPLACE START: call '/api/auth/refresh' ---
-        const { data } = await api.post("/api/auth/refresh");
+        const { data } = await api.post('/api/auth/refresh');
         // --- REPLACE END ---
         await login(data.accessToken);
       } catch (err) {
-        console.warn("Silent refresh failed:", err);
+        console.warn('Silent refresh failed:', err);
         setAccessToken(null);
         setToken(null);
-        localStorage.removeItem("accessToken");
+        localStorage.removeItem('accessToken');
       } finally {
         setLoading(false);
       }
@@ -85,11 +85,7 @@ export const AuthProvider = ({ children }) => {
 
   // While loading, show a placeholder message
   if (loading) {
-    return (
-      <div className="text-center py-8">
-        Checking authentication…
-      </div>
-    );
+    return <div className="text-center py-8">Checking authentication…</div>;
   }
 
   return (
@@ -101,7 +97,7 @@ export const AuthProvider = ({ children }) => {
         login,
         logout,
         isLoggedIn: !!token,
-        isAdmin: user?.role === "admin",
+        isAdmin: user?.role === 'admin',
       }}
     >
       {children}

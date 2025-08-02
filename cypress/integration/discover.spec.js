@@ -1,7 +1,7 @@
 describe('Discover Filters E2E', () => {
   beforeEach(() => {
     // Stubataan initial GET ja filter-POST
-    cy.intercept('GET',  '**/api/discover',        { users: [] }).as('getDiscover');
+    cy.intercept('GET', '**/api/discover', { users: [] }).as('getDiscover');
     cy.intercept('POST', '**/api/discover/filter', { users: [] }).as('filterProfiles');
 
     cy.visit('/discover');

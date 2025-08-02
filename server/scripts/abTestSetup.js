@@ -16,7 +16,7 @@ function setupAbTest(experimentName, variantCount) {
 
   // Esimerkki: jaetaan käyttäjät ID:n mukaan modulo-variantCount
   const users = require('../data/users.json');
-  users.forEach(user => {
+  users.forEach((user) => {
     const idx = user.id % variantCount;
     assignments[`variant_${idx}`].push(user.id);
   });
@@ -28,7 +28,7 @@ function setupAbTest(experimentName, variantCount) {
 
 // CLI-käyttö
 if (require.main === module) {
-  const [,, experiment, count] = process.argv;
+  const [, , experiment, count] = process.argv;
   if (!experiment || !count) {
     console.error('Usage: node abTestSetup.js <experimentName> <variantCount>');
     process.exit(1);

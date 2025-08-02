@@ -1,6 +1,6 @@
-import React from "react";
-import PropTypes from "prop-types";
-import { countryRegions, regionCities } from "../../utils/locationData";
+import React from 'react';
+import PropTypes from 'prop-types';
+import { countryRegions, regionCities } from '../../utils/locationData';
 
 /**
  * DiscoverLocation
@@ -10,17 +10,21 @@ import { countryRegions, regionCities } from "../../utils/locationData";
  *  - setCountry, setRegion, setCity, setCustomCountry, setCustomRegion, setCustomCity: functions
  */
 const DiscoverLocation = ({
-  country, setCountry,
-  region,  setRegion,
-  city,    setCity,
-  customCountry, setCustomCountry,
-  customRegion,  setCustomRegion,
-  customCity,    setCustomCity,
+  country,
+  setCountry,
+  region,
+  setRegion,
+  city,
+  setCity,
+  customCountry,
+  setCustomCountry,
+  customRegion,
+  setCustomRegion,
+  customCity,
+  setCustomCity,
 }) => {
   const regionOptions = country ? countryRegions[country] || [] : [];
-  const cityOptions   = country && region
-    ? regionCities[country]?.[region] || []
-    : [];
+  const cityOptions = country && region ? regionCities[country]?.[region] || [] : [];
 
   return (
     <div className="flex flex-col space-y-6 w-full text-left">
@@ -29,19 +33,21 @@ const DiscoverLocation = ({
         <label className="block font-medium mb-1">🌍 Country</label>
         <select
           value={country}
-          onChange={e => setCountry(e.target.value)}
+          onChange={(e) => setCountry(e.target.value)}
           className="p-2 border rounded w-full"
         >
           <option value="">{/* “All” */}All countries</option>
-          {Object.keys(countryRegions).map(c => (
-            <option key={c} value={c}>{c}</option>
+          {Object.keys(countryRegions).map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
           ))}
         </select>
         <input
           type="text"
           placeholder="Other country"
           value={customCountry}
-          onChange={e => setCustomCountry(e.target.value)}
+          onChange={(e) => setCustomCountry(e.target.value)}
           className="mt-2 p-2 border rounded w-full"
         />
       </div>
@@ -51,20 +57,22 @@ const DiscoverLocation = ({
         <label className="block font-medium mb-1">🗺 Region</label>
         <select
           value={region}
-          onChange={e => setRegion(e.target.value)}
+          onChange={(e) => setRegion(e.target.value)}
           disabled={!country}
           className="p-2 border rounded w-full"
         >
           <option value="">{/* “All” */}All regions</option>
-          {regionOptions.map(r => (
-            <option key={r} value={r}>{r}</option>
+          {regionOptions.map((r) => (
+            <option key={r} value={r}>
+              {r}
+            </option>
           ))}
         </select>
         <input
           type="text"
           placeholder="Other region"
           value={customRegion}
-          onChange={e => setCustomRegion(e.target.value)}
+          onChange={(e) => setCustomRegion(e.target.value)}
           className="mt-2 p-2 border rounded w-full"
         />
       </div>
@@ -74,20 +82,22 @@ const DiscoverLocation = ({
         <label className="block font-medium mb-1">🏩 City</label>
         <select
           value={city}
-          onChange={e => setCity(e.target.value)}
+          onChange={(e) => setCity(e.target.value)}
           disabled={!region}
           className="p-2 border rounded w-full"
         >
           <option value="">{/* “All” */}All cities</option>
-          {cityOptions.map(ct => (
-            <option key={ct} value={ct}>{ct}</option>
+          {cityOptions.map((ct) => (
+            <option key={ct} value={ct}>
+              {ct}
+            </option>
           ))}
         </select>
         <input
           type="text"
           placeholder="Other city"
           value={customCity}
-          onChange={e => setCustomCity(e.target.value)}
+          onChange={(e) => setCustomCity(e.target.value)}
           className="mt-2 p-2 border rounded w-full"
         />
       </div>
@@ -96,18 +106,18 @@ const DiscoverLocation = ({
 };
 
 DiscoverLocation.propTypes = {
-  country:           PropTypes.string.isRequired,
-  setCountry:        PropTypes.func.isRequired,
-  region:            PropTypes.string.isRequired,
-  setRegion:         PropTypes.func.isRequired,
-  city:              PropTypes.string.isRequired,
-  setCity:           PropTypes.func.isRequired,
-  customCountry:     PropTypes.string.isRequired,
-  setCustomCountry:  PropTypes.func.isRequired,
-  customRegion:      PropTypes.string.isRequired,
-  setCustomRegion:   PropTypes.func.isRequired,
-  customCity:        PropTypes.string.isRequired,
-  setCustomCity:     PropTypes.func.isRequired,
+  country: PropTypes.string.isRequired,
+  setCountry: PropTypes.func.isRequired,
+  region: PropTypes.string.isRequired,
+  setRegion: PropTypes.func.isRequired,
+  city: PropTypes.string.isRequired,
+  setCity: PropTypes.func.isRequired,
+  customCountry: PropTypes.string.isRequired,
+  setCustomCountry: PropTypes.func.isRequired,
+  customRegion: PropTypes.string.isRequired,
+  setCustomRegion: PropTypes.func.isRequired,
+  customCity: PropTypes.string.isRequired,
+  setCustomCity: PropTypes.func.isRequired,
 };
 
 export default DiscoverLocation;

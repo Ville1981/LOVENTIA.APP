@@ -27,7 +27,7 @@ describe('Conversations Overview E2E', () => {
   it('shows loading spinner then list', () => {
     cy.intercept('GET', apiUrl, {
       delay: 500,
-      body: mockList
+      body: mockList,
     }).as('getOverview');
 
     cy.get('span[aria-label="Loading..."]').should('exist');

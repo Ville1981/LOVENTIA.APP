@@ -37,7 +37,7 @@ async function run() {
 }
 
 // Execute the script
-run().catch(err => {
+run().catch((err) => {
   console.error('Error running triggerAlerts:', err);
   process.exit(1);
 });

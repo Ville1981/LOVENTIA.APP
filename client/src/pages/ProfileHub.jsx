@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { Link, useParams } from "react-router-dom";
-import api from "../utils/axiosInstance";
-import { useAuth } from "../context/AuthContext";
-import ProfileForm from "../components/profileFields/ProfileForm";
-import { BACKEND_BASE_URL } from "../config";
+import React, { useEffect, useState, useCallback } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import api from '../utils/axiosInstance';
+import { useAuth } from '../context/AuthContext';
+import ProfileForm from '../components/profileFields/ProfileForm';
+import { BACKEND_BASE_URL } from '../config';
 
 /**
  * ProfileHub handles user profile display and editing,
@@ -13,49 +13,49 @@ import { BACKEND_BASE_URL } from "../config";
  * tab (profile form) renders.
  */
 const ProfileHub = () => {
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem('token');
   const { userId: userIdParam } = useParams();
   const { user: authUser, setUser: setAuthUser } = useAuth();
 
   // --- paikalliset statet ---
   const [user, setUser] = useState(null);
-  const [activeTab, setActiveTab] = useState("preferences");
-  const [message, setMessage] = useState("");
+  const [activeTab, setActiveTab] = useState('preferences');
+  const [message, setMessage] = useState('');
   const [success, setSuccess] = useState(false);
 
   // Lomakkeen kentät (initial defaultValues)
   const [values, setValues] = useState({
-    username: "",
-    email: "",
-    age: "",
-    gender: "",
-    orientation: "",
-    country: "",
-    region: "",
-    city: "",
-    customCountry: "",
-    customRegion: "",
-    customCity: "",
-    education: "",
-    profession: "",
-    professionCategory: "",
-    religion: "",
-    religionImportance: "",
-    children: "",
-    pets: "",
-    summary: "",
-    goal: "",
-    lookingFor: "",
-    smoke: "",
-    drink: "",
-    drugs: "",
+    username: '',
+    email: '',
+    age: '',
+    gender: '',
+    orientation: '',
+    country: '',
+    region: '',
+    city: '',
+    customCountry: '',
+    customRegion: '',
+    customCity: '',
+    education: '',
+    profession: '',
+    professionCategory: '',
+    religion: '',
+    religionImportance: '',
+    children: '',
+    pets: '',
+    summary: '',
+    goal: '',
+    lookingFor: '',
+    smoke: '',
+    drink: '',
+    drugs: '',
     height: null,
-    heightUnit: "",
+    heightUnit: '',
     weight: null,
-    bodyType: "",
-    activityLevel: "",
+    bodyType: '',
+    activityLevel: '',
     nutritionPreferences: [],
-    healthInfo: "",
+    healthInfo: '',
     latitude: null,
     longitude: null,
   });
@@ -68,8 +68,8 @@ const ProfileHub = () => {
   // Yksinkertainen käännös-funktio
   const t = (key) => {
     const translations = {
-      "profile.saved": "Profiili tallennettu",
-      "profile.saveChanges": "Tallenna muutokset",
+      'profile.saved': 'Profiili tallennettu',
+      'profile.saveChanges': 'Tallenna muutokset',
     };
     return translations[key] || key;
   };
@@ -92,46 +92,44 @@ const ProfileHub = () => {
       if (!userIdParam) {
         setAuthUser(u);
         setValues({
-          username: u.username || "",
-          email: u.email || "",
-          age: u.age || "",
-          gender: u.gender || "",
-          orientation: u.orientation || "",
-          country: u.country || "",
-          region: u.region || "",
-          city: u.city || "",
-          customCountry: u.customCountry || "",
-          customRegion: u.customRegion || "",
-          customCity: u.customCity || "",
-          education: u.education || "",
-          profession: u.profession || "",
-          professionCategory: u.professionCategory || "",
-          religion: u.religion || "",
-          religionImportance: u.religionImportance || "",
-          children: u.children || "",
-          pets: u.pets || "",
-          summary: u.summary || "",
-          goal: u.goal || "",
-          lookingFor: u.lookingFor || "",
-          smoke: u.smoke || "",
-          drink: u.drink || "",
-          drugs: u.drugs || "",
+          username: u.username || '',
+          email: u.email || '',
+          age: u.age || '',
+          gender: u.gender || '',
+          orientation: u.orientation || '',
+          country: u.country || '',
+          region: u.region || '',
+          city: u.city || '',
+          customCountry: u.customCountry || '',
+          customRegion: u.customRegion || '',
+          customCity: u.customCity || '',
+          education: u.education || '',
+          profession: u.profession || '',
+          professionCategory: u.professionCategory || '',
+          religion: u.religion || '',
+          religionImportance: u.religionImportance || '',
+          children: u.children || '',
+          pets: u.pets || '',
+          summary: u.summary || '',
+          goal: u.goal || '',
+          lookingFor: u.lookingFor || '',
+          smoke: u.smoke || '',
+          drink: u.drink || '',
+          drugs: u.drugs || '',
           height: u.height || null,
-          heightUnit: u.heightUnit || "",
+          heightUnit: u.heightUnit || '',
           weight: u.weight || null,
-          bodyType: u.bodyType || "",
-          activityLevel: u.activityLevel || "",
-          nutritionPreferences: Array.isArray(u.nutritionPreferences)
-            ? u.nutritionPreferences
-            : [],
-          healthInfo: u.healthInfo || "",
+          bodyType: u.bodyType || '',
+          activityLevel: u.activityLevel || '',
+          nutritionPreferences: Array.isArray(u.nutritionPreferences) ? u.nutritionPreferences : [],
+          healthInfo: u.healthInfo || '',
           latitude: u.latitude || null,
           longitude: u.longitude || null,
         });
       }
     } catch (err) {
-      console.error("Profiilin haku epäonnistui:", err);
-      setMessage("Profiilin haku epäonnistui");
+      console.error('Profiilin haku epäonnistui:', err);
+      setMessage('Profiilin haku epäonnistui');
       setSuccess(false);
     }
   }, [token, userIdParam, setAuthUser]);
@@ -146,32 +144,27 @@ const ProfileHub = () => {
   }
 
   // Käytetään joko paramia tai omaa token‐käyttäjää
-  const profileUserId =
-    userIdParam || authUser?._id || user._id || user.id;
+  const profileUserId = userIdParam || authUser?._id || user._id || user.id;
 
   // Lomakkeen lähetysfunktio (muodossa FormData)
   const handleFormSubmit = async (formData) => {
     if (userIdParam) return; // ei salli toisen profiilin muokkausta
 
     try {
-      const res = await api.put(
-        `${BACKEND_BASE_URL}/api/users/profile`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
+      const res = await api.put(`${BACKEND_BASE_URL}/api/users/profile`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
 
       const updated = res.data.user || res.data;
       setSuccess(true);
-      setMessage(t("profile.saved"));
+      setMessage(t('profile.saved'));
       setUser(updated);
       setAuthUser(updated);
     } catch (err) {
-      console.error("Päivitys epäonnistui:", err);
+      console.error('Päivitys epäonnistui:', err);
 
       // yritä näyttää backendin virheilmoitukset
       const resp = err.response?.data;
@@ -179,7 +172,7 @@ const ProfileHub = () => {
       if (resp) {
         if (resp.message) msg = resp.message;
         else if (Array.isArray(resp.errors)) {
-          msg = resp.errors.map(e => e.msg).join(", ");
+          msg = resp.errors.map((e) => e.msg).join(', ');
         }
       }
 
@@ -233,6 +226,3 @@ const ProfileHub = () => {
 };
 
 export default ProfileHub;
-
-
-

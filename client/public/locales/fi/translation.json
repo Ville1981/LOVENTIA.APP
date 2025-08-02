@@ -116,7 +116,7 @@
     "save": "Tallenna muutokset",
     "delete": "Poista tili"
   },
-    "hero": {
+  "hero": {
     "0": "Löydä kestävä rakkaus.",
     "1": "Tapaa samanhenkisiä ihmisiä.",
     "2": "Seuraava mätsisi on vain klikkauksen päässä."
@@ -251,21 +251,3 @@
     "sober": "Riippuvuudesta vapaa"
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

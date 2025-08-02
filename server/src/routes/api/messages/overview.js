@@ -17,16 +17,16 @@ router.get('/', async (req, res) => {
       {
         $group: {
           _id: '$conversationId',
-          lastMessage: { $first: '$$ROOT' }
-        }
+          lastMessage: { $first: '$$ROOT' },
+        },
       },
       {
         $lookup: {
           from: 'users',
           localField: 'lastMessage.sender',
           foreignField: '_id',
-          as: 'sender'
-        }
+          as: 'sender',
+        },
       },
       { $unwind: '$sender' },
       {
@@ -34,10 +34,10 @@ router.get('/', async (req, res) => {
           conversationId: '$_id',
           text: '$lastMessage.text',
           sender: { id: '$sender._id', name: '$sender.name' },
-          createdAt: '$lastMessage.createdAt'
-        }
+          createdAt: '$lastMessage.createdAt',
+        },
       },
-      { $sort: { createdAt: -1 } }
+      { $sort: { createdAt: -1 } },
     ]);
 
     res.json(conversations);

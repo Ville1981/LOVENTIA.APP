@@ -1,15 +1,15 @@
 // server/config/upload.js
 
-const multer = require("multer");
-const path = require("path");
+const multer = require('multer');
+const path = require('path');
 
 // Configure storage: files first land in a temp uploads folder
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "uploads/");
+    cb(null, 'uploads/');
   },
   filename: (req, file, cb) => {
-    const uniqueName = Date.now() + "-" + file.originalname;
+    const uniqueName = Date.now() + '-' + file.originalname;
     cb(null, uniqueName);
   },
 });
@@ -17,10 +17,10 @@ const storage = multer.diskStorage({
 // Filter allowed file types, now including GIF for bypass scenarios
 const fileFilter = (req, file, cb) => {
   const ext = path.extname(file.originalname).toLowerCase();
-  if ([".jpg", ".jpeg", ".png", ".gif"].includes(ext)) {
+  if (['.jpg', '.jpeg', '.png', '.gif'].includes(ext)) {
     cb(null, true);
   } else {
-    cb(new Error("Only image files (JPG, PNG, GIF) are allowed"));
+    cb(new Error('Only image files (JPG, PNG, GIF) are allowed'));
   }
 };
 

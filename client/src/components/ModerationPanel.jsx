@@ -35,7 +35,7 @@ export default function ModerationPanel() {
     try {
       await api.post('/api/moderation/resolve', { reportId, action });
       // Remove handled report from UI
-      setReports(prev => prev.filter(r => r._id !== reportId));
+      setReports((prev) => prev.filter((r) => r._id !== reportId));
     } catch (err) {
       console.error(`Failed to ${action} report:`, err);
       alert(`Could not ${action} report.`);
@@ -43,7 +43,7 @@ export default function ModerationPanel() {
   };
 
   if (loading) return <div className={styles.loading}>Loading reports…</div>;
-  if (error)   return <div className={styles.error}>{error}</div>;
+  if (error) return <div className={styles.error}>{error}</div>;
   if (reports.length === 0) {
     return <div className={styles.empty}>No pending reports.</div>;
   }
@@ -52,7 +52,7 @@ export default function ModerationPanel() {
     <div className={styles.panel}>
       <h2>Pending Reports</h2>
       <ul className={styles.list}>
-        {reports.map(report => (
+        {reports.map((report) => (
           <li key={report._id} className={styles.item}>
             <div className={styles.message}>
               {/* --- REPLACE START: show reported message text --- */}
@@ -60,9 +60,15 @@ export default function ModerationPanel() {
               {/* --- REPLACE END --- */}
             </div>
             <div className={styles.info}>
-              <span><strong>Reporter:</strong> {report.reporter.email}</span>
-              <span><strong>Reason:</strong> {report.reason}</span>
-              <span><strong>Reported at:</strong> {new Date(report.createdAt).toLocaleString()}</span>
+              <span>
+                <strong>Reporter:</strong> {report.reporter.email}
+              </span>
+              <span>
+                <strong>Reason:</strong> {report.reason}
+              </span>
+              <span>
+                <strong>Reported at:</strong> {new Date(report.createdAt).toLocaleString()}
+              </span>
             </div>
             <div className={styles.actions}>
               <button
@@ -71,10 +77,7 @@ export default function ModerationPanel() {
               >
                 Approve
               </button>
-              <button
-                className={styles.reject}
-                onClick={() => handleResolve(report._id, 'reject')}
-              >
+              <button className={styles.reject} onClick={() => handleResolve(report._id, 'reject')}>
                 Reject
               </button>
             </div>

@@ -1,13 +1,13 @@
 // src/utils/axiosInstance.js
 // @ts-nocheck
-import axios from "axios";
-import { BACKEND_BASE_URL } from "./config";
+import axios from 'axios';
+import { BACKEND_BASE_URL } from './config';
 
 /**
  * Internal storage for the access token.
  */
 // --- REPLACE START: unify storage key to 'accessToken' ---
-let accessToken = localStorage.getItem("accessToken") || null;
+let accessToken = localStorage.getItem('accessToken') || null;
 // --- REPLACE END ---
 
 /**
@@ -18,11 +18,11 @@ export const setAccessToken = (token) => {
   accessToken = token;
   if (token) {
     // --- REPLACE START: persist under 'accessToken' key ---
-    localStorage.setItem("accessToken", token);
+    localStorage.setItem('accessToken', token);
     // --- REPLACE END ---
   } else {
     // --- REPLACE START: remove 'accessToken' when logging out ---
-    localStorage.removeItem("accessToken");
+    localStorage.removeItem('accessToken');
     // --- REPLACE END ---
   }
 };
@@ -33,11 +33,8 @@ export const setAccessToken = (token) => {
  * Prioritizes BACKEND_BASE_URL, then VITE_API_URL env var.
  * Strips any trailing slash.
  */
-const rawUrl =
-  BACKEND_BASE_URL ||
-  import.meta.env.VITE_API_URL ||
-  "";
-const baseURL = rawUrl.replace(/\/$/, "");
+const rawUrl = BACKEND_BASE_URL || import.meta.env.VITE_API_URL || '';
+const baseURL = rawUrl.replace(/\/$/, '');
 // --- REPLACE END ---
 
 // Create Axios instance with credentials support
@@ -49,7 +46,7 @@ const api = axios.create({
 // Attach token and JSON headers to every request
 api.interceptors.request.use((config) => {
   // Attempt to read token from memory or fallback to storage
-  const token = accessToken || localStorage.getItem("accessToken");
+  const token = accessToken || localStorage.getItem('accessToken');
   if (token) {
     config.headers = {
       ...config.headers,
@@ -58,7 +55,7 @@ api.interceptors.request.use((config) => {
   }
   // If sending JSON payload (and not FormData), set content-type
   if (config.data && !(config.data instanceof FormData)) {
-    config.headers["Content-Type"] = "application/json";
+    config.headers['Content-Type'] = 'application/json';
   }
   return config;
 });
@@ -72,21 +69,21 @@ api.interceptors.response.use(
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&
-      !originalRequest.url.includes("/auth/refresh")
+      !originalRequest.url.includes('/auth/refresh')
     ) {
       originalRequest._retry = true;
       try {
         // --- REPLACE START: call refresh endpoint with full path ---
-        const { data } = await api.post("/auth/refresh");
+        const { data } = await api.post('/auth/refresh');
         // --- REPLACE END ---
         setAccessToken(data.accessToken);
         originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
         return api(originalRequest);
       } catch (refreshError) {
-        console.error("🔄 Refresh failed:", refreshError);
+        console.error('🔄 Refresh failed:', refreshError);
         // Clear token and redirect to login page
         setAccessToken(null);
-        window.location.href = "/login";
+        window.location.href = '/login';
         return Promise.reject(refreshError);
       }
     }
@@ -96,5 +93,5 @@ api.interceptors.response.use(
 
 export default api;
 
-// The replacement regions are marked between // --- REPLACE START and // --- REPLACE END  
+// The replacement regions are marked between // --- REPLACE START and // --- REPLACE END
 // so you can verify exactly what changed.

@@ -5,14 +5,9 @@ const { authorizeRoles } = require('../middleware/authorize');
 
 // Admin routes
 // Dashboard: only accessible by admin users
-router.get(
-  '/dashboard',
-  authenticate,
-  authorizeRoles('admin'),
-  (req, res) => {
-    return res.json({ message: 'Welcome to the admin dashboard' });
-  }
-);
+router.get('/dashboard', authenticate, authorizeRoles('admin'), (req, res) => {
+  return res.json({ message: 'Welcome to the admin dashboard' });
+});
 
 // Additional admin operations (e.g., user management)
 // router.get(

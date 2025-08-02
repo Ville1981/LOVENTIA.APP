@@ -27,12 +27,12 @@ router.post('/', express.raw({ type: 'application/json' }), (req, res) => {
         plan: 'premium',
         status: 'active',
         startedAt: new Date(),
-        endsAt: null
+        endsAt: null,
       },
       { upsert: true, new: true }
     )
-    .then(sub => console.log(`Subscription updated for user ${userId}`))
-    .catch(console.error);
+      .then((sub) => console.log(`Subscription updated for user ${userId}`))
+      .catch(console.error);
   } else {
     console.log(`Unhandled event type ${event.type}`);
   }

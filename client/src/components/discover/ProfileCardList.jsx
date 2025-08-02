@@ -1,13 +1,13 @@
 // src/components/discover/ProfileCardList.jsx
 
-import React, { memo, useMemo, useRef, useEffect } from "react";
-import PropTypes from "prop-types";
-import Slider from "react-slick";
-import ProfileCard from "./ProfileCard";
+import React, { memo, useMemo, useRef, useEffect } from 'react';
+import PropTypes from 'prop-types';
+import Slider from 'react-slick';
+import ProfileCard from './ProfileCard';
 
 // Slick-carouselin tyylit (pidetään App.jsx:ssä myös, mutta varmistetaan)
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
+import 'slick-carousel/slick/slick.css';
+import 'slick-carousel/slick/slick-theme.css';
 
 /**
  * Displays a carousel of profile cards (one at a time),
@@ -15,15 +15,11 @@ import "slick-carousel/slick/slick-theme.css";
  */
 const ProfileCardList = ({ users = [], onAction }) => {
   if (!Array.isArray(users) || users.length === 0) {
-    return (
-      <p className="text-center text-gray-500 mt-6">
-        🔍 No results found
-      </p>
-    );
+    return <p className="text-center text-gray-500 mt-6">🔍 No results found</p>;
   }
 
   const sliderRef = useRef(null);
-  const userKey = users.map((u) => u.id || u._id).join("|");
+  const userKey = users.map((u) => u.id || u._id).join('|');
 
   useEffect(() => {
     sliderRef.current?.slickGoTo(0, /* dontAnimate */ true);
@@ -50,18 +46,12 @@ const ProfileCardList = ({ users = [], onAction }) => {
   );
 
   return (
-    <div
-      className="profile-carousel mt-6 w-full"
-      style={{ overflowAnchor: "none" }}
-    >
-      <div
-        className="mx-auto w-full max-w-[800px]"
-        style={{ overflowAnchor: "none" }}
-      >
+    <div className="profile-carousel mt-6 w-full" style={{ overflowAnchor: 'none' }}>
+      <div className="mx-auto w-full max-w-[800px]" style={{ overflowAnchor: 'none' }}>
         <Slider
           ref={sliderRef}
           {...settings}
-          style={{ overflowAnchor: "none", minHeight: "600px" }}
+          style={{ overflowAnchor: 'none', minHeight: '600px' }}
         >
           {users.map((u) => {
             const userId = u.id || u._id;
@@ -70,13 +60,13 @@ const ProfileCardList = ({ users = [], onAction }) => {
                 key={userId}
                 className="px-2"
                 tabIndex={-1}
-                style={{ minHeight: "100%", overflowAnchor: "none" }}
+                style={{ minHeight: '100%', overflowAnchor: 'none' }}
               >
                 <ProfileCard
                   user={u}
-                  onPass={() => onAction(userId, "pass")}
-                  onLike={() => onAction(userId, "like")}
-                  onSuperlike={() => onAction(userId, "superlike")}
+                  onPass={() => onAction(userId, 'pass')}
+                  onLike={() => onAction(userId, 'like')}
+                  onSuperlike={() => onAction(userId, 'superlike')}
                 />
               </div>
             );

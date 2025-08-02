@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 
 const ProfessionReligionFields = ({ profession, setProfession, religion, setReligion }) => (
   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">

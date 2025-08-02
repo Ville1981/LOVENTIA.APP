@@ -1,22 +1,22 @@
-import React, { useEffect, useState } from "react";
-import api from "../utils/axiosInstance";
+import React, { useEffect, useState } from 'react';
+import api from '../utils/axiosInstance';
 
 const WhoLikedMe = () => {
   const [users, setUsers] = useState([]);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchWhoLikedMe = async () => {
       try {
         // Interceptor hoitaa Authorization-headerin
-        const res = await api.get("/auth/who-liked-me");
+        const res = await api.get('/auth/who-liked-me');
         setUsers(res.data);
       } catch (err) {
-        console.error("Virhe haettaessa tykkäyksiä:", err.response?.data || err);
+        console.error('Virhe haettaessa tykkäyksiä:', err.response?.data || err);
         if (err.response?.status === 403) {
-          setError("❌ Tämä ominaisuus on vain Premium-käyttäjille.");
+          setError('❌ Tämä ominaisuus on vain Premium-käyttäjille.');
         } else {
-          setError("Virhe ladattaessa tykkäyksiä.");
+          setError('Virhe ladattaessa tykkäyksiä.');
         }
       }
     };
@@ -26,9 +26,7 @@ const WhoLikedMe = () => {
 
   return (
     <div className="container mx-auto p-4">
-      <h2 className="text-2xl font-semibold mb-4 text-center">
-        👀 Ketkä tykkäsivät sinusta
-      </h2>
+      <h2 className="text-2xl font-semibold mb-4 text-center">👀 Ketkä tykkäsivät sinusta</h2>
 
       {error && <p className="text-center text-red-500">{error}</p>}
 
@@ -43,12 +41,12 @@ const WhoLikedMe = () => {
               src={
                 user.profilePicture
                   ? `http://localhost:5000/${user.profilePicture}`
-                  : "/default.jpg"
+                  : '/default.jpg'
               }
-              alt={user.name || "Profiilikuva"}
+              alt={user.name || 'Profiilikuva'}
               className="w-full h-48 object-cover rounded mb-3"
             />
-            <h3 className="text-lg font-bold">{user.name || "Nimetön"}</h3>
+            <h3 className="text-lg font-bold">{user.name || 'Nimetön'}</h3>
             <p className="text-sm text-gray-600">{user.email}</p>
           </div>
         ))}

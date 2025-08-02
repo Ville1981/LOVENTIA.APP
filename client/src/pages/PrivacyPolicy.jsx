@@ -4,9 +4,9 @@ const PrivacyPolicy = () => {
       <h1 className="text-2xl font-semibold mb-4">Tietosuojaseloste</h1>
 
       <p className="mb-4">
-        Tämä sivusto kerää ja käsittelee henkilötietoja tarjotakseen
-        turvallisen ja toimivan deittipalvelun. Kerättäviä tietoja ovat esimerkiksi
-        nimi, sähköposti, ikä, sijainti, kiinnostuksen kohteet ja viestit.
+        Tämä sivusto kerää ja käsittelee henkilötietoja tarjotakseen turvallisen ja toimivan
+        deittipalvelun. Kerättäviä tietoja ovat esimerkiksi nimi, sähköposti, ikä, sijainti,
+        kiinnostuksen kohteet ja viestit.
       </p>
 
       <p className="mb-4">Tietoja käytetään mm. seuraaviin tarkoituksiin:</p>
@@ -18,24 +18,20 @@ const PrivacyPolicy = () => {
       </ul>
 
       <p className="mb-4">
-        Tietoja ei jaeta ulkopuolisille ilman suostumustasi, lukuun ottamatta
-        maksupalveluntarjoajaa (Stripe). Käytämme evästeitä sivuston toiminnan ja
-        käyttökokemuksen parantamiseksi.
+        Tietoja ei jaeta ulkopuolisille ilman suostumustasi, lukuun ottamatta maksupalveluntarjoajaa
+        (Stripe). Käytämme evästeitä sivuston toiminnan ja käyttökokemuksen parantamiseksi.
       </p>
 
       <p className="mb-4">
-        Voit koska tahansa poistaa tilisi asetuksista, jolloin kaikki tietosi
-        poistetaan palvelustamme.
+        Voit koska tahansa poistaa tilisi asetuksista, jolloin kaikki tietosi poistetaan
+        palvelustamme.
       </p>
 
       <p className="text-sm text-gray-500 mb-2">
-        Jos sinulla on kysyttävää tietosuojasta, voit ottaa yhteyttä:{" "}
-        tietosuoja@deittiapp.fi
+        Jos sinulla on kysyttävää tietosuojasta, voit ottaa yhteyttä: tietosuoja@deittiapp.fi
       </p>
 
-      <p className="text-xs text-gray-400">
-        Päivitetty: {new Date().toLocaleDateString("fi-FI")}
-      </p>
+      <p className="text-xs text-gray-400">Päivitetty: {new Date().toLocaleDateString('fi-FI')}</p>
     </div>
   );
 };

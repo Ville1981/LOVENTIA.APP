@@ -50,11 +50,10 @@
     "katso_kayttajat": "Ver usuarios"
   },
   "hero": {
-  "0": "Encuentra el amor verdadero.",
-  "1": "Conoce a personas que comparten tus valores.",
-  "2": "Tu próxima coincidencia está a un clic."
-},
-
+    "0": "Encuentra el amor verdadero.",
+    "1": "Conoce a personas que comparten tus valores.",
+    "2": "Tu próxima coincidencia está a un clic."
+  },
 
   "profile": {
     "title": "Perfil",
@@ -74,7 +73,7 @@
     "save": "Guardar cambios",
     "delete": "Eliminar cuenta",
     "saveSuccess": "✅ ¡Perfil actualizado con éxito!",
-        "gender": "Género",
+    "gender": "Género",
     "male": "Hombre",
     "female": "Mujer",
     "other": "Otro",
@@ -114,7 +113,6 @@
     "updateError": "❌ Error al actualizar el perfil.",
     "confirmDelete": "¿Estás seguro de que deseas eliminar tu cuenta permanentemente?",
     "premiumMember": "¡Eres miembro Premium! 🎉"
-
   },
 
   "buttons": {

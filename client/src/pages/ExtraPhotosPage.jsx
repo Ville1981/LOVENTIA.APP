@@ -1,21 +1,20 @@
 // src/pages/ExtraPhotosPage.jsx
 
-import React, { useEffect, useState, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
-import { useAuth } from "../context/AuthContext";
-import MultiStepPhotoUploader from "../components/profileFields/MultiStepPhotoUploader";
+import React, { useEffect, useState, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
+import MultiStepPhotoUploader from '../components/profileFields/MultiStepPhotoUploader';
 // uploadAvatar & apiRemoveAvatar are no longer used here, but left imported in case you wire them elsewhere
-import { uploadAvatar, removeAvatar as apiRemoveAvatar } from "../api/images";
-import { BACKEND_BASE_URL } from "../config";
-import ControlBar from "../components/ui/ControlBar";
-import Button from "../components/ui/Button";
+import { uploadAvatar, removeAvatar as apiRemoveAvatar } from '../api/images';
+import { BACKEND_BASE_URL } from '../config';
+import ControlBar from '../components/ui/ControlBar';
+import Button from '../components/ui/Button';
 
 /**
  * Ensure leading slash and forward‑slashes only.
  */
-const normalizePath = (p = "") =>
-  "/" + p.replace(/\\/g, "/").replace(/^\/+/, "");
+const normalizePath = (p = '') => '/' + p.replace(/\\/g, '/').replace(/^\/+/, '');
 
 export default function ExtraPhotosPage() {
   const { user: authUser, setUser: setAuthUser } = useAuth();
@@ -35,13 +34,13 @@ export default function ExtraPhotosPage() {
         ? `${BACKEND_BASE_URL}/api/users/${paramId}`
         : `${BACKEND_BASE_URL}/api/auth/me`;
       const res = await axios.get(url, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         withCredentials: true,
       });
       const u = res.data.user || res.data;
       setUser(u);
     } catch (err) {
-      console.error("Error fetching user:", err);
+      console.error('Error fetching user:', err);
     }
   }, [paramId, userId]);
 
@@ -69,21 +68,19 @@ export default function ExtraPhotosPage() {
           userId={userId}
           isPremium={user.isPremium}
           extraImages={user.extraImages || []}
-          onSuccess={(images) =>
-            handleUserUpdate({ ...user, extraImages: images })
-          }
+          onSuccess={(images) => handleUserUpdate({ ...user, extraImages: images })}
           onError={() => {}}
         />
-        // --- REPLACE END ---
       ) : (
+        // --- REPLACE END ---
         <div className="grid grid-cols-3 gap-4">
           {user.extraImages?.map((src, i) => {
             const imgSrc =
-              src && typeof src === "string"
-                ? src.startsWith("http")
+              src && typeof src === 'string'
+                ? src.startsWith('http')
                   ? src
                   : `${BACKEND_BASE_URL}${normalizePath(src)}`
-                : "/placeholder-avatar.png";
+                : '/placeholder-avatar.png';
             return (
               <img
                 key={i}

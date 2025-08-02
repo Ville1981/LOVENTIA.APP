@@ -11,10 +11,7 @@ import { useTranslation } from 'react-i18next';
 export default function ConversationCard({ convo, onClick }) {
   const { t } = useTranslation();
   const timestamp = convo.lastMessageTimestamp || convo.lastTimestamp;
-  const timeAgo = formatDistanceToNowStrict(
-    parseISO(timestamp),
-    { addSuffix: true }
-  );
+  const timeAgo = formatDistanceToNowStrict(parseISO(timestamp), { addSuffix: true });
 
   // --- REPLACE START: determine wrapper element for link vs. click handler ---
   const Wrapper = onClick
@@ -24,7 +21,9 @@ export default function ConversationCard({ convo, onClick }) {
           role="button"
           tabIndex={0}
           onClick={onClick}
-          onKeyDown={e => { if (e.key === 'Enter') onClick(); }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') onClick();
+          }}
         >
           {children}
         </div>
@@ -50,15 +49,15 @@ export default function ConversationCard({ convo, onClick }) {
             : t('conversationCard.avatarAlt', 'User avatar')
         }
         className="w-12 h-12 rounded-full object-cover mr-4"
-        onError={e => { e.currentTarget.src = '/default-avatar.png'; }}
+        onError={(e) => {
+          e.currentTarget.src = '/default-avatar.png';
+        }}
       />
       {/* --- REPLACE END --- */}
 
       <div className="flex-1 overflow-hidden">
         <div className="flex justify-between items-center">
-          <h3 className="font-medium text-gray-900 truncate">
-            {convo.peerName}
-          </h3>
+          <h3 className="font-medium text-gray-900 truncate">{convo.peerName}</h3>
           <span className="text-xs text-gray-500">{timeAgo}</span>
         </div>
         <p className="text-sm text-gray-600 truncate">
@@ -75,12 +74,6 @@ export default function ConversationCard({ convo, onClick }) {
   );
 }
 
-// The replacement regions are marked between 
-// --- REPLACE START and // --- REPLACE END 
+// The replacement regions are marked between
+// --- REPLACE START and // --- REPLACE END
 // so you can verify exactly what changed.
-
-
-
-
-
-

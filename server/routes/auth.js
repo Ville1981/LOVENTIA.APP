@@ -18,19 +18,13 @@ const sendEmail = require('../utils/sendEmail');
 
 // Controllers
 // ===========
-const {
-  registerUser,
-  loginUser,
-} = require('../controllers/userController');
+const { registerUser, loginUser } = require('../controllers/userController');
 
 // Middleware
 // ==========
 const upload = require('../middleware/upload');
 const authenticate = require('../middleware/authenticate');
-const {
-  validateRegister,
-  validateLogin,
-} = require('../middleware/validators/auth');
+const { validateRegister, validateLogin } = require('../middleware/validators/auth');
 const { sanitizeFields } = require('../middleware/sanitizer');
 
 // Body parsing and cookie handling
@@ -59,11 +53,9 @@ router.post('/refresh', (req, res) => {
       return res.status(401).json({ error: 'Invalid token payload' });
     }
 
-    const accessToken = jwt.sign(
-      { id: decoded.id, role: decoded.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '15m' }
-    );
+    const accessToken = jwt.sign({ id: decoded.id, role: decoded.role }, process.env.JWT_SECRET, {
+      expiresIn: '15m',
+    });
 
     // (Optional) Rotate the refresh token:
     // --- REPLACE START: rotate refreshToken cookie if you want rotation ---
@@ -102,21 +94,13 @@ router.post('/logout', (req, res) => {
 // 3) Register New User
 //    POST /register
 // -----------------------------
-router.post(
-  '/register',
-  validateRegister,
-  registerUser
-);
+router.post('/register', validateRegister, registerUser);
 
 // -----------------------------
 // 4) Login User
 //    POST /login
 // -----------------------------
-router.post(
-  '/login',
-  validateLogin,
-  loginUser
-);
+router.post('/login', validateLogin, loginUser);
 
 // -----------------------------
 // 5) Forgot Password
@@ -136,10 +120,7 @@ router.post('/forgot-password', async (req, res) => {
 
     // Generate reset token
     const token = crypto.randomBytes(32).toString('hex');
-    user.passwordResetToken = crypto
-      .createHash('sha256')
-      .update(token)
-      .digest('hex');
+    user.passwordResetToken = crypto.createHash('sha256').update(token).digest('hex');
     user.passwordResetExpires = Date.now() + 60 * 60 * 1000; // 1 hour
     await user.save();
 
@@ -200,26 +181,22 @@ router.post('/reset-password', async (req, res) => {
 //    GET /me
 //    (Protected)
 // -----------------------------
-router.get(
-  '/me',
-  authenticate,
-  async (req, res) => {
-    try {
-      const user = await User.findById(req.user.id)
-        .select('_id email role profilePicture extraImages isPremium')
-        .lean();
+router.get('/me', authenticate, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id)
+      .select('_id email role profilePicture extraImages isPremium')
+      .lean();
 
-      if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-
-      return res.json({ user });
-    } catch (err) {
-      console.error('Fetch /me error:', err);
-      return res.status(500).json({ error: 'Failed to fetch user' });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
     }
+
+    return res.json({ user });
+  } catch (err) {
+    console.error('Fetch /me error:', err);
+    return res.status(500).json({ error: 'Failed to fetch user' });
   }
-);
+});
 
 // -----------------------------
 // 8) Update User Profile
@@ -260,10 +237,26 @@ router.put(
       }
 
       // Whitelisted attributes
-      ['name','email','age','height','weight','status','religion','children','pets','summary','goal','lookingFor','bodyType','weightUnit','profession','professionCategory']
-        .forEach(field => {
-          if (req.body[field] !== undefined) updateData[field] = req.body[field];
-        });
+      [
+        'name',
+        'email',
+        'age',
+        'height',
+        'weight',
+        'status',
+        'religion',
+        'children',
+        'pets',
+        'summary',
+        'goal',
+        'lookingFor',
+        'bodyType',
+        'weightUnit',
+        'profession',
+        'professionCategory',
+      ].forEach((field) => {
+        if (req.body[field] !== undefined) updateData[field] = req.body[field];
+      });
 
       // Profile image
       if (req.files?.image) {
@@ -271,14 +264,12 @@ router.put(
       }
       // Extra images
       if (req.files?.extraImages) {
-        updateData.extraImages = req.files.extraImages.map(file => `uploads/${file.filename}`);
+        updateData.extraImages = req.files.extraImages.map((file) => `uploads/${file.filename}`);
       }
 
-      const updatedUser = await User.findByIdAndUpdate(
-        req.user.id,
-        updateData,
-        { new: true }
-      ).select('-password');
+      const updatedUser = await User.findByIdAndUpdate(req.user.id, updateData, {
+        new: true,
+      }).select('-password');
 
       return res.json(updatedUser);
     } catch (err) {
@@ -293,21 +284,16 @@ router.put(
 //    DELETE /delete
 //    (Protected)
 // -----------------------------
-router.delete(
-  '/delete',
-  authenticate,
-  async (req, res) => {
-    try {
-      await User.findByIdAndDelete(req.user.id);
-      return res.json({ message: 'Account deleted successfully' });
-    } catch (err) {
-      console.error('Account deletion error:', err);
-      return res.status(500).json({ error: 'Account deletion failed' });
-    }
+router.delete('/delete', authenticate, async (req, res) => {
+  try {
+    await User.findByIdAndDelete(req.user.id);
+    return res.json({ message: 'Account deleted successfully' });
+  } catch (err) {
+    console.error('Account deletion error:', err);
+    return res.status(500).json({ error: 'Account deletion failed' });
   }
-);
+});
 
 // Export the router for application use
 // ======================================
 module.exports = router;
-

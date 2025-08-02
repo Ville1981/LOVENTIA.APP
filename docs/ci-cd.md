@@ -18,8 +18,8 @@ All workflows are located in `.github/workflows/`.
 
 All sensitive values must be stored in **GitHub Secrets** (Repository or Organization level):
 
-1. Navigate to **Settings > Secrets and variables > Actions**.  
-2. Click **New repository secret**.  
+1. Navigate to **Settings > Secrets and variables > Actions**.
+2. Click **New repository secret**.
 3. Add secrets such as:
    - `MONGO_URI`
    - `JWT_SECRET`
@@ -30,10 +30,11 @@ All sensitive values must be stored in **GitHub Secrets** (Repository or Organiz
 4. Reference secrets in workflows using `${{ secrets.SECRET_NAME }}`.
 
 **Best practices:**
-- **Limit scope:** Use environment-level secrets (e.g. separate staging vs. production).  
-- **Rotate regularly:** Periodically update keys and tokens.  
-- **Audit usage:** Review who can read or modify secrets.  
+
+- **Limit scope:** Use environment-level secrets (e.g. separate staging vs. production).
+- **Rotate regularly:** Periodically update keys and tokens.
+- **Audit usage:** Review who can read or modify secrets.
 
 ---
 
-*Last updated: August 1, 2025*
+_Last updated: August 1, 2025_

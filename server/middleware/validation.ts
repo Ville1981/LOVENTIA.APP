@@ -12,11 +12,7 @@ interface ValidationSource {
  * @param schemas – Joi-skeemat source-olioissa.
  */
 export function validate(schemas: ValidationSource): express.RequestHandler {
-  return (
-    req: express.Request,
-    res: express.Response,
-    next: express.NextFunction
-  ): void => {
+  return (req: express.Request, res: express.Response, next: express.NextFunction): void => {
     const toValidate: Array<[keyof ValidationSource, any]> = [
       ['body', req.body],
       ['query', req.query],
@@ -33,9 +29,9 @@ export function validate(schemas: ValidationSource): express.RequestHandler {
         res.status(400).json({
           status: 'error',
           message: `Invalid ${key}`,
-          details: error.details.map(d => d.message),
+          details: error.details.map((d) => d.message),
         });
-        return;  // EI return res..., vaan paluu undefined:ksi
+        return; // EI return res..., vaan paluu undefined:ksi
       }
       // Korvaa req.body/req.query/req.params puhdistetulla versiolla
       (req as any)[key] = sanitized;

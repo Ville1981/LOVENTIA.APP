@@ -1,7 +1,7 @@
 // src/components/discover/SummaryAccordion.jsx
 
-import React, { useState } from "react";
-import PropTypes from "prop-types";
+import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 
 /**
  * SummaryAccordion
@@ -9,7 +9,7 @@ import PropTypes from "prop-types";
  * Renders a summary text that can be expanded/collapsed.
  * Ensures a consistent collapsed height to avoid layout shifts.
  */
-const SummaryAccordion = ({ summary = "" }) => {
+const SummaryAccordion = ({ summary = '' }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   // If no summary, render nothing (no section)
@@ -20,17 +20,20 @@ const SummaryAccordion = ({ summary = "" }) => {
   const toggleExpand = () => setIsExpanded((prev) => !prev);
 
   return (
-    <div className="mt-6" style={{ overflowAnchor: "none" }}>
+    <div className="mt-6" style={{ overflowAnchor: 'none' }}>
       <div className="bg-[#111] text-white px-2 py-1 rounded-t-lg text-sm font-semibold">
         My self-summary
       </div>
-      <div className="border border-gray-200 border-t-0 rounded-b-lg p-2" style={{ overflowAnchor: "none" }}>
+      <div
+        className="border border-gray-200 border-t-0 rounded-b-lg p-2"
+        style={{ overflowAnchor: 'none' }}
+      >
         <p
-          className={`text-gray-800 text-sm ${!isExpanded ? "line-clamp-2" : ""}`}
+          className={`text-gray-800 text-sm ${!isExpanded ? 'line-clamp-2' : ''}`}
           style={{
-            overflowAnchor: "none",
+            overflowAnchor: 'none',
             // Maintain a two-line height when collapsed (approx. 3rem)
-            minHeight: !isExpanded ? "3rem" : undefined,
+            minHeight: !isExpanded ? '3rem' : undefined,
           }}
         >
           {summary}
@@ -43,7 +46,7 @@ const SummaryAccordion = ({ summary = "" }) => {
           onClick={toggleExpand}
           className="text-[#005FFF] text-xs font-medium mt-1 focus:outline-none"
         >
-          {isExpanded ? "Collapse" : "Expand"}
+          {isExpanded ? 'Collapse' : 'Expand'}
         </button>
       </div>
     </div>

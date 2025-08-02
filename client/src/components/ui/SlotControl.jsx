@@ -48,23 +48,13 @@ export default function SlotControl({
         />
       </label>
 
-      <span className="px-2 py-1 bg-blue-200 text-white rounded text-sm">
-        Slot {index + 1}
-      </span>
+      <span className="px-2 py-1 bg-blue-200 text-white rounded text-sm">Slot {index + 1}</span>
 
-      <Button
-        variant="blue"
-        disabled={disableSave}
-        onClick={() => onSave(index)}
-      >
+      <Button variant="blue" disabled={disableSave} onClick={() => onSave(index)}>
         Save
       </Button>
 
-      <Button
-        variant="red"
-        disabled={disableRemove}
-        onClick={() => onRemove(index)}
-      >
+      <Button variant="red" disabled={disableRemove} onClick={() => onRemove(index)}>
         Remove
       </Button>
     </ControlBar>
@@ -72,12 +62,12 @@ export default function SlotControl({
 }
 
 SlotControl.propTypes = {
-  index:         PropTypes.number.isRequired,
-  isActive:      PropTypes.bool,
-  onAdd:         PropTypes.func.isRequired,
-  onUpload:      PropTypes.func.isRequired,
-  onSave:        PropTypes.func.isRequired,
-  onRemove:      PropTypes.func.isRequired,
-  disableSave:   PropTypes.bool,
+  index: PropTypes.number.isRequired,
+  isActive: PropTypes.bool,
+  onAdd: PropTypes.func.isRequired,
+  onUpload: PropTypes.func.isRequired,
+  onSave: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired,
+  disableSave: PropTypes.bool,
   disableRemove: PropTypes.bool,
 };

@@ -38,19 +38,11 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    if (
-      error.response &&
-      error.response.status === 401 &&
-      !originalRequest._retry
-    ) {
+    if (error.response && error.response.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
         // Call refresh endpoint; assumes refreshToken stored in HttpOnly cookie
-        const res = await axios.post(
-          '/api/auth/refresh',
-          {},
-          { withCredentials: true }
-        );
+        const res = await axios.post('/api/auth/refresh', {}, { withCredentials: true });
         const newToken = res.data.accessToken;
         setAccessToken(newToken);
         // Update header and retry original request

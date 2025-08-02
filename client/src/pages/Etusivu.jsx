@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 
 const Etusivu = () => {
   return null; // kaikki hoidetaan MainLayout.jsx:ssä

@@ -6,11 +6,11 @@ import api from '../utils/axiosInstance';
 import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
-  const [email, setEmail]       = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [message, setMessage]   = useState('');
-  const navigate                = useNavigate();
-  const { login }               = useAuth();
+  const [message, setMessage] = useState('');
+  const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,10 +23,7 @@ const Login = () => {
       setMessage('Login successful!');
       navigate('/profile');
     } catch (err) {
-      setMessage(
-        err.response?.data?.error ||
-        'Login failed. Please check your credentials.'
-      );
+      setMessage(err.response?.data?.error || 'Login failed. Please check your credentials.');
     }
   };
 
@@ -42,7 +39,7 @@ const Login = () => {
             id="email"
             type="email"
             value={email}
-            onChange={e => setEmail(e.target.value)}
+            onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
             className="w-full border p-2 rounded"
             required
@@ -56,7 +53,7 @@ const Login = () => {
             id="password"
             type="password"
             value={password}
-            onChange={e => setPassword(e.target.value)}
+            onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
             className="w-full border p-2 rounded"
             required
@@ -71,10 +68,7 @@ const Login = () => {
       </form>
 
       <div className="mt-4 text-center">
-        <Link
-          to="/forgot-password"
-          className="text-sm text-blue-600 hover:underline"
-        >
+        <Link to="/forgot-password" className="text-sm text-blue-600 hover:underline">
           Forgot your password?
         </Link>
       </div>
@@ -82,9 +76,7 @@ const Login = () => {
       {message && (
         <p
           className={`mt-4 text-center ${
-            message.toLowerCase().includes('successful')
-              ? 'text-green-600'
-              : 'text-red-600'
+            message.toLowerCase().includes('successful') ? 'text-green-600' : 'text-red-600'
           }`}
         >
           {message}

@@ -1,9 +1,9 @@
 // src/api/controllers/ReferralController.js
 
-import { 
-  createReferralLink, 
-  getReferralByCode, 
-  listUserReferrals 
+import {
+  createReferralLink,
+  getReferralByCode,
+  listUserReferrals,
 } from '../services/ReferralService.js';
 
 /**

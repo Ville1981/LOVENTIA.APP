@@ -6,14 +6,14 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "echo \"No client tests specified\" && exit 0",
-    
+    "test": "react-scripts test --env=jsdom --coverage --coverageThreshold='{ \"global\": { \"branches\": 80, \"functions\": 80, \"lines\": 80, \"statements\": 80 } }'",
     "cy:run": "cypress run",
     "perf:load": "k6 run performance/load.test.js",
     "perf:socket": "artillery run performance/socket-reconnect.test.js -o report.json",
     "scan:zap": "zap.sh -cmd -configfile security/zap-config.json -quickurl http://localhost:3000 -quickout zap-report/zap-report.html",
-    "scan:dep": "npm audit --audit-level=moderate && if [ -f gradlew ]; then chmod +x gradlew && ./gradlew dependencyCheckAnalyze; fi"
-    
+    "scan:dep": "npm audit --audit-level=moderate && if [ -f gradlew ]; then chmod +x gradlew && ./gradlew dependencyCheckAnalyze; fi",
+    "lint": "eslint src --ext .js,.jsx",
+    "format": "prettier --write \"src/**/*.{js,jsx,css,html}\""
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
@@ -47,6 +47,8 @@
     "tailwindcss": "^4.1.11",
     "postcss": "^8.5.6",
     "autoprefixer": "^10.4.21",
-    "@tailwindcss/postcss": "^4.1.11"
+    "@tailwindcss/postcss": "^4.1.11",
+    "eslint": "^8.0.0",
+    "prettier": "^2.8.0"
   }
 }

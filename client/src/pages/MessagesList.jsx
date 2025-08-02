@@ -101,9 +101,7 @@ export default function ConversationsOverview() {
             <div className="flex-1">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold">{name}</h3>
-                <span className="text-sm text-gray-400">
-                  {formatDistanceToNow(new Date(time))}
-                </span>
+                <span className="text-sm text-gray-400">{formatDistanceToNow(new Date(time))}</span>
               </div>
               <p className="text-sm text-gray-500 truncate">{snippet}</p>
             </div>

@@ -9,8 +9,8 @@ groups:
         labels:
           severity: page
         annotations:
-          summary: "API 95th percentile latency high"
-          description: "95th percentile latency for API requests is above 300ms for more than 10 minutes."
+          summary: 'API 95th percentile latency high'
+          description: '95th percentile latency for API requests is above 300ms for more than 10 minutes.'
 
       - alert: HighErrorRate
         expr: sum(rate(http_request_errors_total[5m])) by (job) / sum(rate(http_request_total[5m])) by (job) > 0.02
@@ -18,5 +18,5 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: "API error rate is high"
-          description: "Error rate for API requests exceeds 2% over 5 minutes."
+          summary: 'API error rate is high'
+          description: 'Error rate for API requests exceeds 2% over 5 minutes.'

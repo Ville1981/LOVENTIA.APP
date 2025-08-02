@@ -1,7 +1,7 @@
 // src/components/profileFields/FormBasicInfo.jsx
-import React from "react";
-import { useFormContext } from "react-hook-form";
-import PropTypes from "prop-types";
+import React from 'react';
+import { useFormContext } from 'react-hook-form';
+import PropTypes from 'prop-types';
 
 /**
  * FormBasicInfo
@@ -29,8 +29,8 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
           <div>
             <input
               type="text"
-              placeholder={t("profile.username")}
-              {...register("username")}
+              placeholder={t('profile.username')}
+              {...register('username')}
               className="p-2 border rounded w-full"
               data-cy="FormBasicInfo__usernameInput"
             />
@@ -43,8 +43,8 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
           <div>
             <input
               type="email"
-              placeholder={t("profile.email")}
-              {...register("email")}
+              placeholder={t('profile.email')}
+              {...register('email')}
               className="p-2 border rounded w-full"
               data-cy="FormBasicInfo__emailInput"
             />
@@ -59,16 +59,20 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
 
       {/* Age */}
       <div className="w-full">
-        <label htmlFor="ageSelect" className="block font-medium mb-1" data-cy="FormBasicInfo__ageLabel">
-          {t("profile.age")}
+        <label
+          htmlFor="ageSelect"
+          className="block font-medium mb-1"
+          data-cy="FormBasicInfo__ageLabel"
+        >
+          {t('profile.age')}
         </label>
         <select
           id="ageSelect"
-          {...register("age")}
+          {...register('age')}
           className="p-2 border rounded w-full"
           data-cy="FormBasicInfo__ageSelect"
         >
-          <option value="">{t("common.select")}</option>
+          <option value="">{t('common.select')}</option>
           {ageOptions.map((num) => (
             <option key={num} value={num}>
               {num}
@@ -84,19 +88,23 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
 
       {/* Gender */}
       <div className="w-full">
-        <label htmlFor="genderSelect" className="block font-medium mb-1" data-cy="FormBasicInfo__genderLabel">
-          {t("profile.gender")}
+        <label
+          htmlFor="genderSelect"
+          className="block font-medium mb-1"
+          data-cy="FormBasicInfo__genderLabel"
+        >
+          {t('profile.gender')}
         </label>
         <select
           id="genderSelect"
-          {...register("gender")}
+          {...register('gender')}
           className="p-2 border rounded w-full"
           data-cy="FormBasicInfo__genderSelect"
         >
-          <option value="">{t("common.select")}</option>
-          <option value="Male">{t("profile.male")}</option>
-          <option value="Female">{t("profile.female")}</option>
-          <option value="Other">{t("profile.other")}</option>
+          <option value="">{t('common.select')}</option>
+          <option value="Male">{t('profile.male')}</option>
+          <option value="Female">{t('profile.female')}</option>
+          <option value="Other">{t('profile.other')}</option>
         </select>
         {errors.gender && (
           <p className="text-red-600 text-sm mt-1" data-cy="FormBasicInfo__genderError">
@@ -107,20 +115,24 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
 
       {/* Orientation */}
       <div className="w-full">
-        <label htmlFor="orientationSelect" className="block font-medium mb-1" data-cy="FormBasicInfo__orientationLabel">
-          ❤️ {t("profile.orientation")}
+        <label
+          htmlFor="orientationSelect"
+          className="block font-medium mb-1"
+          data-cy="FormBasicInfo__orientationLabel"
+        >
+          ❤️ {t('profile.orientation')}
         </label>
         <select
           id="orientationSelect"
-          {...register("orientation")}
+          {...register('orientation')}
           className="p-2 border rounded w-full"
           data-cy="FormBasicInfo__orientationSelect"
         >
-          <option value="">{t("common.select")}</option>
-          <option value="Straight">{t("profile.straight")}</option>
-          <option value="Gay">{t("profile.gay")}</option>
-          <option value="Bi">{t("profile.bi")}</option>
-          <option value="Other">{t("profile.other")}</option>
+          <option value="">{t('common.select')}</option>
+          <option value="Straight">{t('profile.straight')}</option>
+          <option value="Gay">{t('profile.gay')}</option>
+          <option value="Bi">{t('profile.bi')}</option>
+          <option value="Other">{t('profile.other')}</option>
         </select>
         {errors.orientation && (
           <p className="text-red-600 text-sm mt-1" data-cy="FormBasicInfo__orientationError">
@@ -133,14 +145,14 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
       <div className="w-full grid grid-cols-2 gap-4">
         <div>
           <label htmlFor="heightInput" className="block font-medium mb-1">
-            {t("profile.height")}
+            {t('profile.height')}
           </label>
           <input
             id="heightInput"
             type="number"
             step="1"
             placeholder="e.g. 180"
-            {...register("height")}
+            {...register('height')}
             className="p-2 border rounded w-full"
             data-cy="FormBasicInfo__heightInput"
           />
@@ -152,15 +164,15 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
         </div>
         <div>
           <label htmlFor="heightUnitSelect" className="block font-medium mb-1">
-            {t("profile.heightUnit")}
+            {t('profile.heightUnit')}
           </label>
           <select
             id="heightUnitSelect"
-            {...register("heightUnit")}
+            {...register('heightUnit')}
             className="p-2 border rounded w-full"
             data-cy="FormBasicInfo__heightUnitSelect"
           >
-            <option value="">{t("common.select")}</option>
+            <option value="">{t('common.select')}</option>
             <option value="Cm">cm</option>
             <option value="FtIn">ft/in</option>
           </select>
@@ -176,14 +188,14 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
       <div className="w-full grid grid-cols-2 gap-4">
         <div>
           <label htmlFor="weightInput" className="block font-medium mb-1">
-            {t("profile.weight")}
+            {t('profile.weight')}
           </label>
           <input
             id="weightInput"
             type="number"
             step="1"
             placeholder="e.g. 70"
-            {...register("weight")}
+            {...register('weight')}
             className="p-2 border rounded w-full"
             data-cy="FormBasicInfo__weightInput"
           />
@@ -195,15 +207,15 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
         </div>
         <div>
           <label htmlFor="weightUnitSelect" className="block font-medium mb-1">
-            {t("profile.weightUnit")}
+            {t('profile.weightUnit')}
           </label>
           <select
             id="weightUnitSelect"
-            {...register("weightUnit")}
+            {...register('weightUnit')}
             className="p-2 border rounded w-full"
             data-cy="FormBasicInfo__weightUnitSelect"
           >
-            <option value="">{t("common.select")}</option>
+            <option value="">{t('common.select')}</option>
             <option value="kg">kg</option>
             <option value="lb">lb</option>
           </select>
@@ -218,20 +230,20 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
       {/* Body Type */}
       <div className="w-full">
         <label htmlFor="bodyTypeSelect" className="block font-medium mb-1">
-          {t("profile.bodyType")}
+          {t('profile.bodyType')}
         </label>
         <select
           id="bodyTypeSelect"
-          {...register("bodyType")}
+          {...register('bodyType')}
           className="p-2 border rounded w-full"
           data-cy="FormBasicInfo__bodyTypeSelect"
         >
-          <option value="">{t("common.select")}</option>
-          <option value="Slim">{t("profile.bodyType.slim")}</option>
-          <option value="Normal">{t("profile.bodyType.normal")}</option>
-          <option value="Athletic">{t("profile.bodyType.athletic")}</option>
-          <option value="Overweight">{t("profile.bodyType.overweight")}</option>
-          <option value="Obese">{t("profile.bodyType.obese")}</option>
+          <option value="">{t('common.select')}</option>
+          <option value="Slim">{t('profile.bodyType.slim')}</option>
+          <option value="Normal">{t('profile.bodyType.normal')}</option>
+          <option value="Athletic">{t('profile.bodyType.athletic')}</option>
+          <option value="Overweight">{t('profile.bodyType.overweight')}</option>
+          <option value="Obese">{t('profile.bodyType.obese')}</option>
         </select>
         {errors.bodyType && (
           <p className="text-red-600 text-sm mt-1" data-cy="FormBasicInfo__bodyTypeError">

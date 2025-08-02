@@ -6,11 +6,11 @@
  */
 export function generateArticleSchema(meta) {
   return {
-    "@context": "https://schema.org",
-    "@type": "Article",
+    '@context': 'https://schema.org',
+    '@type': 'Article',
     headline: meta.title,
-    author: { "@type": "Person", name: meta.author },
+    author: { '@type': 'Person', name: meta.author },
     datePublished: meta.datePublished,
-    mainEntityOfPage: { "@type": "WebPage", "@id": meta.url }
+    mainEntityOfPage: { '@type': 'WebPage', '@id': meta.url },
   };
 }

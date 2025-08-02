@@ -8,10 +8,10 @@
 const xss = require('xss');
 
 /**
- * Recursively sanitize a value.  
- * - If string, run through xss filter.  
- * - If array, sanitize each element.  
- * - If object, sanitize each property.  
+ * Recursively sanitize a value.
+ * - If string, run through xss filter.
+ * - If array, sanitize each element.
+ * - If object, sanitize each property.
  * - Otherwise, return as-is.
  */
 function sanitizeObject(value) {

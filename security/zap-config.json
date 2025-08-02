@@ -2,9 +2,7 @@
   "configuration": {
     "target": "http://localhost:3000",
     "context": {
-      "include": [
-        "http://localhost:3000/.*"
-      ],
+      "include": ["http://localhost:3000/.*"],
       "exclude": []
     },
     "authentication": {

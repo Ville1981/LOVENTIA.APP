@@ -6,7 +6,12 @@ const paypalSDK = require('@paypal/checkout-server-sdk');
 const { Subscription } = require('../models/Subscription');
 
 // Mock authentication middleware to set req.userId
-jest.mock('../middleware/auth', () => jest.fn((req, res, next) => { req.userId = 'user123'; next(); }));
+jest.mock('../middleware/auth', () =>
+  jest.fn((req, res, next) => {
+    req.userId = 'user123';
+    next();
+  })
+);
 // Mock Stripe and PayPal SDKs
 jest.mock('stripe');
 jest.mock('@paypal/checkout-server-sdk');
@@ -27,15 +32,15 @@ describe('Payment Routes', () => {
     const mockPayPal = {
       core: {
         SandboxEnvironment: jest.fn(),
-        PayPalHttpClient: jest.fn(() => ({ execute: mockExecute }))
+        PayPalHttpClient: jest.fn(() => ({ execute: mockExecute })),
       },
       orders: {
         OrdersCreateRequest: jest.fn(() => ({ prefer: jest.fn(), requestBody: jest.fn() })),
-        OrdersCaptureRequest: jest.fn(() => ({ requestBody: jest.fn() }))
+        OrdersCaptureRequest: jest.fn(() => ({ requestBody: jest.fn() })),
       },
       notification: {
-        WebhookEventVerifySignatureRequest: jest.fn(() => ({ requestBody: jest.fn() }))
-      }
+        WebhookEventVerifySignatureRequest: jest.fn(() => ({ requestBody: jest.fn() })),
+      },
     };
     // Apply mocks to paypalSDK export
     paypalSDK.core = mockPayPal.core;
@@ -49,7 +54,9 @@ describe('Payment Routes', () => {
 
   describe('POST /api/payment/stripe-session', () => {
     it('should return url of new checkout session', async () => {
-      mockStripeClient.checkout.sessions.create.mockResolvedValue({ url: 'https://stripe.com/session' });
+      mockStripeClient.checkout.sessions.create.mockResolvedValue({
+        url: 'https://stripe.com/session',
+      });
 
       const res = await request(app)
         .post('/api/payment/stripe-session')
@@ -63,7 +70,7 @@ describe('Payment Routes', () => {
         line_items: [{ price: process.env.STRIPE_PREMIUM_PRICE_ID, quantity: 1 }],
         metadata: { userId: 'user123' },
         success_url: `${process.env.CLIENT_URL}/subscription-success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.CLIENT_URL}/subscription-cancel`
+        cancel_url: `${process.env.CLIENT_URL}/subscription-cancel`,
       });
     });
   });
@@ -99,7 +106,7 @@ describe('Payment Routes', () => {
         user: 'user123',
         plan: 'premium',
         provider: 'paypal',
-        subscriptionId: 'CAPTURE_ID'
+        subscriptionId: 'CAPTURE_ID',
       });
       expect(paypalSDK.orders.OrdersCaptureRequest).toHaveBeenCalledWith('ORDER_ID');
     });

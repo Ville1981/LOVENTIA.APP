@@ -4,25 +4,25 @@ const subscriptionSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: true,
   },
   plan: {
     type: String,
     enum: ['free', 'premium'],
-    default: 'free'
+    default: 'free',
   },
   status: {
     type: String,
     enum: ['active', 'canceled'],
-    default: 'active'
+    default: 'active',
   },
   startedAt: {
     type: Date,
-    default: Date.now
+    default: Date.now,
   },
   endsAt: {
-    type: Date
-  }
+    type: Date,
+  },
 });
 
 module.exports = mongoose.model('Subscription', subscriptionSchema);

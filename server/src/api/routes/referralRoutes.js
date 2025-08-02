@@ -4,7 +4,7 @@ import express from 'express';
 import {
   createReferral,
   getReferralStatus,
-  listReferrals
+  listReferrals,
 } from '../controllers/ReferralController.js';
 import auth from '../middleware/auth.js';
 

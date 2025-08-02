@@ -29,22 +29,25 @@ export default function ConversationsOverview() {
     let isMounted = true;
 
     // --- REPLACE START: fetch overview conversations ---
-    axios.get('/api/messages/overview')
-    // --- REPLACE END ---
-      .then(res => {
+    axios
+      .get('/api/messages/overview')
+      // --- REPLACE END ---
+      .then((res) => {
         if (isMounted) {
           setConversations(res.data || []);
           setLoading(false);
         }
       })
-      .catch(err => {
+      .catch((err) => {
         if (isMounted) {
           setError(err);
           setLoading(false);
         }
       });
 
-    return () => { isMounted = false; };
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   if (loading) {
@@ -81,10 +84,7 @@ export default function ConversationsOverview() {
       userId: '1',
       name: t('chat.overview.placeholderName', 'Bunny'),
       avatarUrl: '/assets/bunny1.jpg',
-      snippet: t(
-        'chat.overview.placeholderSnippet',
-        "Hi there! Let's start our chat."
-      ),
+      snippet: t('chat.overview.placeholderSnippet', "Hi there! Let's start our chat."),
       lastMessageTimestamp: new Date().toISOString(),
       unreadCount: 0,
     };
@@ -101,7 +101,9 @@ export default function ConversationsOverview() {
           src={bunnyUser.avatarUrl}
           alt={bunnyUser.name}
           className={styles.placeholderAvatar}
-          onError={e => { e.currentTarget.src = '/assets/bunny1.jpg'; }}
+          onError={(e) => {
+            e.currentTarget.src = '/assets/bunny1.jpg';
+          }}
         />
         <div className={styles.placeholderContent}>
           <h3 className={styles.placeholderName}>{bunnyUser.name}</h3>
@@ -116,7 +118,7 @@ export default function ConversationsOverview() {
 
   return (
     <div className={styles.container}>
-      {conversations.map(conv => (
+      {conversations.map((conv) => (
         <div
           key={conv.userId}
           className={`${styles.card} ${conv.unreadCount > 0 ? styles.cardHover : ''}`}
@@ -128,22 +130,20 @@ export default function ConversationsOverview() {
             src={conv.avatarUrl}
             alt={conv.displayName || conv.name}
             className={styles.avatar}
-            onError={e => { e.currentTarget.src = '/assets/bunny1.jpg'; }}
+            onError={(e) => {
+              e.currentTarget.src = '/assets/bunny1.jpg';
+            }}
           />
           <div className={styles.content}>
             <div className={styles.header}>
-              <h3 className={styles.title}>
-                {conv.displayName || conv.name}
-              </h3>
+              <h3 className={styles.title}>{conv.displayName || conv.name}</h3>
               <span className={styles.time}>
                 {formatDistanceToNow(new Date(conv.lastMessageTimestamp || conv.lastMessageTime))}
               </span>
             </div>
             <p className={styles.snippet}>{conv.snippet}</p>
           </div>
-          {conv.unreadCount > 0 && (
-            <span className={styles.unreadBadge}>{conv.unreadCount}</span>
-          )}
+          {conv.unreadCount > 0 && <span className={styles.unreadBadge}>{conv.unreadCount}</span>}
         </div>
       ))}
     </div>

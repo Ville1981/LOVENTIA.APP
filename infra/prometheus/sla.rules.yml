@@ -9,5 +9,5 @@ for: 10m
 labels:
 severity: critical
 annotations:
-summary: "Korkea virheiden määrä API-kutsissa"
-description: "Virhesuhde yli 5% viimeisen 10 minuutin aikana."
+summary: 'Korkea virheiden määrä API-kutsissa'
+description: 'Virhesuhde yli 5% viimeisen 10 minuutin aikana.'

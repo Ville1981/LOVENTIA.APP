@@ -2,9 +2,9 @@ name: Cypress E2E Tests
 
 on:
   push:
-    branches: [ main, varaoksa14 ]   # --- REPLACE START: added feature branch for CI validation
+    branches: [main, varaoksa14] # --- REPLACE START: added feature branch for CI validation
   pull_request:
-    branches: [ main, varaoksa14 ]   # --- REPLACE END
+    branches: [main, varaoksa14] # --- REPLACE END
 
 jobs:
   cypress-e2e:

@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 // Placeholder user when no conversations exist
 const bunnyUser = {
   userId: 'bunny',
-  name: "Bunny",
+  name: 'Bunny',
   avatarUrl: '/assets/bunny1.jpg',
   lastMessageTime: Date.now(),
   snippet: "Hi there! Let's start our chat.",
@@ -34,20 +34,23 @@ export default function ConversationsOverview() {
 
   useEffect(() => {
     let isMounted = true;
-    axios.get('/api/messages/overview')
-      .then(res => {
+    axios
+      .get('/api/messages/overview')
+      .then((res) => {
         if (isMounted) {
           setConversations(res.data || []);
           setLoading(false);
         }
       })
-      .catch(err => {
+      .catch((err) => {
         if (isMounted) {
           setError(err);
           setLoading(false);
         }
       });
-    return () => { isMounted = false; };
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   if (loading) {
@@ -71,17 +74,19 @@ export default function ConversationsOverview() {
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 p-4">
-      {list.map(conv => (
+      {list.map((conv) => (
         <div
           key={conv.userId}
           className="flex items-center p-4 bg-white rounded-2xl shadow hover:shadow-lg transition-shadow cursor-pointer"
-          onClick={() => window.location.href = `/chat/${conv.userId}`}
+          onClick={() => (window.location.href = `/chat/${conv.userId}`)}
         >
           <img
             src={conv.avatarUrl}
             alt={conv.name}
             className="w-12 h-12 rounded-full mr-4"
-            onError={e => { e.currentTarget.src = '/assets/bunny1.jpg'; }}
+            onError={(e) => {
+              e.currentTarget.src = '/assets/bunny1.jpg';
+            }}
           />
           <div className="flex-1">
             <div className="flex justify-between items-center">

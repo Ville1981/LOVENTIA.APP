@@ -28,13 +28,10 @@ export function SocialFeed({ instagramUserId, spotifyPlaylistId }) {
       <section className="instagram-feed">
         <h3>Instagram Feed</h3>
         <ul>
-          {instagramPosts.map(post => (
+          {instagramPosts.map((post) => (
             <li key={post.id}>
               <a href={post.permalink} target="_blank" rel="noopener noreferrer">
-                <img
-                  src={post.media_url}
-                  alt={post.caption || 'Instagram post'}
-                />
+                <img src={post.media_url} alt={post.caption || 'Instagram post'} />
               </a>
             </li>
           ))}

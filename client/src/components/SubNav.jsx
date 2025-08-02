@@ -1,10 +1,8 @@
-import React, { useState, useEffect, memo } from "react";
-import PropTypes from "prop-types";
+import React, { useState, useEffect, memo } from 'react';
+import PropTypes from 'prop-types';
 
-const SubNav = ({ tabs, activeKey = "", onChange = () => {} }) => {
-  const [active, setActive] = useState(
-    activeKey || (tabs.length > 0 ? tabs[0].key : "")
-  );
+const SubNav = ({ tabs, activeKey = '', onChange = () => {} }) => {
+  const [active, setActive] = useState(activeKey || (tabs.length > 0 ? tabs[0].key : ''));
 
   useEffect(() => {
     if (activeKey && activeKey !== active) {
@@ -29,19 +27,15 @@ const SubNav = ({ tabs, activeKey = "", onChange = () => {} }) => {
             <div
               className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition ${
                 active === item.key
-                  ? "border-[#FF4081] bg-[#222]"
-                  : "border-transparent bg-[#1a1a1a]"
+                  ? 'border-[#FF4081] bg-[#222]'
+                  : 'border-transparent bg-[#1a1a1a]'
               }`}
             >
-              <img
-                src={item.icon}
-                alt={`${item.label} icon`}
-                className="w-7 h-7"
-              />
+              <img src={item.icon} alt={`${item.label} icon`} className="w-7 h-7" />
             </div>
             <span
               className={`mt-1 text-[12px] font-medium text-center break-keep ${
-                active === item.key ? "text-[#FF4081]" : "text-[#ccc]"
+                active === item.key ? 'text-[#FF4081]' : 'text-[#ccc]'
               }`}
             >
               {item.label}

@@ -1,11 +1,11 @@
 // src/components/MainLayout.jsx
-import React from "react";
-import { Outlet, useLocation } from "react-router-dom";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
-import HeroSection from "../components/HeroSection";
-import AdColumn from "../components/AdColumn";
-import "../styles/ads.css";
+import React from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
+import HeroSection from '../components/HeroSection';
+import AdColumn from '../components/AdColumn';
+import '../styles/ads.css';
 
 /**
  * MainLayout
@@ -17,14 +17,11 @@ import "../styles/ads.css";
  */
 const MainLayout = () => {
   const location = useLocation();
-  const isHome = location.pathname === "/";
-  const isDiscover = location.pathname.startsWith("/discover");
+  const isHome = location.pathname === '/';
+  const isDiscover = location.pathname.startsWith('/discover');
 
   return (
-    <div
-      className="min-h-screen flex flex-col bg-[#f9f9f9]"
-      style={{ overflowAnchor: "none" }}
-    >
+    <div className="min-h-screen flex flex-col bg-[#f9f9f9]" style={{ overflowAnchor: 'none' }}>
       {/* NAVBAR */}
       <Navbar />
 
@@ -33,7 +30,7 @@ const MainLayout = () => {
         <div className="w-full flex justify-center bg-white py-3 shadow">
           {/* --- REPLACE START: use VITE env var for ad source --- */}
           <img
-            src={import.meta.env.VITE_HEADER_AD_SRC || "/ads/header1.png"}
+            src={import.meta.env.VITE_HEADER_AD_SRC || '/ads/header1.png'}
             alt="Main Header Ad"
             className="ad-header"
           />

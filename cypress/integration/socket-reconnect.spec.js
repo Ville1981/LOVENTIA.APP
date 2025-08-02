@@ -23,9 +23,7 @@ describe('Socket Reconnect & Deduplication', () => {
 
     // Message should appear only once
     cy.contains('Hello test').should('exist');
-    cy.get('div.p-2')
-      .filter(':contains("Hello test")')
-      .should('have.length', 1);
+    cy.get('div.p-2').filter(':contains("Hello test")').should('have.length', 1);
   });
 
   it('automatically reconnects after disconnect', () => {

@@ -10,7 +10,7 @@ on:
       - '**/package-lock.json'
       - 'gradle/**'
   schedule:
-    - cron: '0 2 * * 0'  # weekly on Sunday at 02:00 UTC
+    - cron: '0 2 * * 0' # weekly on Sunday at 02:00 UTC
 
 jobs:
   dependency-check:

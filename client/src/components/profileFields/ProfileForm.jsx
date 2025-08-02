@@ -1,94 +1,144 @@
 // src/components/profileFields/ProfileForm.jsx
 
-import React, { useState, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
-import { useForm, FormProvider } from "react-hook-form";
-import { yupResolver } from "@hookform/resolvers/yup";
-import * as yup from "yup";
+import React, { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import { useForm, FormProvider } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
 
-import FormBasicInfo from "./FormBasicInfo";
-import FormLocation from "./FormLocation";
-import FormEducation from "./FormEducation";
-import FormChildrenPets from "./FormChildrenPets";
-import FormLifestyle from "./FormLifestyle";
-import FormGoalSummary from "./FormGoalSummary";
-import FormLookingFor from "./FormLookingFor";
-import MultiStepPhotoUploader from "./MultiStepPhotoUploader";
-import { BACKEND_BASE_URL } from "../../config";
+import FormBasicInfo from './FormBasicInfo';
+import FormLocation from './FormLocation';
+import FormEducation from './FormEducation';
+import FormChildrenPets from './FormChildrenPets';
+import FormLifestyle from './FormLifestyle';
+import FormGoalSummary from './FormGoalSummary';
+import FormLookingFor from './FormLookingFor';
+import MultiStepPhotoUploader from './MultiStepPhotoUploader';
+import { BACKEND_BASE_URL } from '../../config';
 
 // =============================================
 // Constants for selects
 // =============================================
 const professionCategories = [
-  "Administration","Finance","Military","Technical","Healthcare",
-  "Education","Entrepreneur","Law","Farmer/Forest worker","Theologian/Priest",
-  "Service","Artist","DivineServant","Homeparent","FoodIndustry",
-  "Retail","Arts","Government","Retired","Athlete","Other",
+  'Administration',
+  'Finance',
+  'Military',
+  'Technical',
+  'Healthcare',
+  'Education',
+  'Entrepreneur',
+  'Law',
+  'Farmer/Forest worker',
+  'Theologian/Priest',
+  'Service',
+  'Artist',
+  'DivineServant',
+  'Homeparent',
+  'FoodIndustry',
+  'Retail',
+  'Arts',
+  'Government',
+  'Retired',
+  'Athlete',
+  'Other',
 ];
 
 const dietOptions = [
-  "none","omnivore","vegetarian","vegan","pescatarian","flexitarian","keto","other",
+  'none',
+  'omnivore',
+  'vegetarian',
+  'vegan',
+  'pescatarian',
+  'flexitarian',
+  'keto',
+  'other',
 ];
 
 const religionOptions = [
-  "", "Christianity","Islam","Hinduism","Buddhism","Folk","None","Other","Atheism"
+  '',
+  'Christianity',
+  'Islam',
+  'Hinduism',
+  'Buddhism',
+  'Folk',
+  'None',
+  'Other',
+  'Atheism',
 ];
 const religionImportanceOptions = [
-  "", "Not at all important","Somewhat important","Very important","Essential"
+  '',
+  'Not at all important',
+  'Somewhat important',
+  'Very important',
+  'Essential',
 ];
 
 // =============================================
 // Validation schema
 // =============================================
 const schema = yup.object().shape({
-  username: yup.string().required("Required"),
-  email:    yup.string().email("Invalid email").required("Required"),
-  age:      yup.number().typeError("Age must be a number").min(18, "Must be at least 18").required("Required"),
-  gender:       yup.string().required("Required"),
-  orientation:  yup.string().required("Required"),
+  username: yup.string().required('Required'),
+  email: yup.string().email('Invalid email').required('Required'),
+  age: yup
+    .number()
+    .typeError('Age must be a number')
+    .min(18, 'Must be at least 18')
+    .required('Required'),
+  gender: yup.string().required('Required'),
+  orientation: yup.string().required('Required'),
 
-  country:       yup.string(),
-  region:        yup.string(),
-  city:          yup.string(),
+  country: yup.string(),
+  region: yup.string(),
+  city: yup.string(),
   customCountry: yup.string(),
-  customRegion:  yup.string(),
-  customCity:    yup.string(),
+  customRegion: yup.string(),
+  customCity: yup.string(),
 
   education: yup.string(),
 
   professionCategory: yup
     .string()
-    .oneOf(["", ...professionCategories], "Invalid profession category"),
-  profession: yup.string().required("Required"),
+    .oneOf(['', ...professionCategories], 'Invalid profession category'),
+  profession: yup.string().required('Required'),
 
-  religion:           yup.string().oneOf(religionOptions, "Invalid religion"),
-  religionImportance: yup.string().oneOf(religionImportanceOptions, "Invalid importance"),
+  religion: yup.string().oneOf(religionOptions, 'Invalid religion'),
+  religionImportance: yup.string().oneOf(religionImportanceOptions, 'Invalid importance'),
 
   children: yup.string(),
-  pets:     yup.string(),
-  smoke:    yup.string(),
-  drink:    yup.string(),
-  drugs:    yup.string(),
+  pets: yup.string(),
+  smoke: yup.string(),
+  drink: yup.string(),
+  drugs: yup.string(),
 
-  height:     yup.number().nullable().transform((v,o)=> o===""? null : v),
-  heightUnit: yup.string().oneOf(["","Cm","FtIn"], "Invalid unit"),
-  weight:     yup.number().nullable().transform((v,o)=> o===""? null : v),
-  bodyType:     yup.string(),
+  height: yup
+    .number()
+    .nullable()
+    .transform((v, o) => (o === '' ? null : v)),
+  heightUnit: yup.string().oneOf(['', 'Cm', 'FtIn'], 'Invalid unit'),
+  weight: yup
+    .number()
+    .nullable()
+    .transform((v, o) => (o === '' ? null : v)),
+  bodyType: yup.string(),
   activityLevel: yup.string(),
 
-  nutritionPreferences: yup
-    .string()
-    .oneOf(["", ...dietOptions], "Invalid diet"),
+  nutritionPreferences: yup.string().oneOf(['', ...dietOptions], 'Invalid diet'),
   healthInfo: yup.string(),
 
-  summary:    yup.string(),
-  goal:       yup.string(),
+  summary: yup.string(),
+  goal: yup.string(),
   lookingFor: yup.string(),
 
   profilePhoto: yup.string(),
 
-  latitude:  yup.number().nullable().transform((v,o)=> o===""? null : v),
-  longitude: yup.number().nullable().transform((v,o)=> o===""? null : v),
+  latitude: yup
+    .number()
+    .nullable()
+    .transform((v, o) => (o === '' ? null : v)),
+  longitude: yup
+    .number()
+    .nullable()
+    .transform((v, o) => (o === '' ? null : v)),
 
   extraImages: yup.array().of(yup.string()),
 });
@@ -103,56 +153,56 @@ export default function ProfileForm({
   onUserUpdate,
   onSubmit: onSubmitProp,
   hideAvatarSection = false,
-  hidePhotoSection  = false,
+  hidePhotoSection = false,
 }) {
   const methods = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
-      username: user.username || "",
-      email:    user.email    || "",
-      age:      user.age       || "",
-      gender:       user.gender      || "",
-      orientation:  user.orientation || "",
+      username: user.username || '',
+      email: user.email || '',
+      age: user.age || '',
+      gender: user.gender || '',
+      orientation: user.orientation || '',
 
-      country:       user.country       || "",
-      region:        user.region        || "",
-      city:          user.city          || "",
-      customCountry: user.customCountry || "",
-      customRegion:  user.customRegion  || "",
-      customCity:    user.customCity    || "",
+      country: user.country || '',
+      region: user.region || '',
+      city: user.city || '',
+      customCountry: user.customCountry || '',
+      customRegion: user.customRegion || '',
+      customCity: user.customCity || '',
 
-      education: user.education || "",
+      education: user.education || '',
 
-      professionCategory: user.professionCategory || "",
-      profession:         user.profession         || "",
+      professionCategory: user.professionCategory || '',
+      profession: user.profession || '',
 
-      religion:           user.religion           || "",
-      religionImportance: user.religionImportance || "",
+      religion: user.religion || '',
+      religionImportance: user.religionImportance || '',
 
-      children: user.children || "",
-      pets:     user.pets     || "",
-      smoke:    user.smoke    || "",
-      drink:    user.drink    || "",
-      drugs:    user.drugs    || "",
+      children: user.children || '',
+      pets: user.pets || '',
+      smoke: user.smoke || '',
+      drink: user.drink || '',
+      drugs: user.drugs || '',
 
-      height:     user.height      ?? null,
-      heightUnit: user.heightUnit  || "",
-      weight:     user.weight      ?? null,
-      bodyType:     user.bodyType     || "",
-      activityLevel: user.activityLevel || "",
+      height: user.height ?? null,
+      heightUnit: user.heightUnit || '',
+      weight: user.weight ?? null,
+      bodyType: user.bodyType || '',
+      activityLevel: user.activityLevel || '',
 
       nutritionPreferences: Array.isArray(user.nutritionPreferences)
         ? user.nutritionPreferences[0]
-        : user.nutritionPreferences || "",
-      healthInfo: user.healthInfo || "",
+        : user.nutritionPreferences || '',
+      healthInfo: user.healthInfo || '',
 
-      summary:    user.summary    || "",
-      goal:       user.goal       || "",
-      lookingFor: user.lookingFor || "",
+      summary: user.summary || '',
+      goal: user.goal || '',
+      lookingFor: user.lookingFor || '',
 
-      profilePhoto: user.profilePicture || "",
+      profilePhoto: user.profilePicture || '',
 
-      latitude:  user.latitude  ?? null,
+      latitude: user.latitude ?? null,
       longitude: user.longitude ?? null,
 
       extraImages: user.extraImages || [],
@@ -175,7 +225,7 @@ export default function ProfileForm({
         ? user.nutritionPreferences[0]
         : user.nutritionPreferences,
       extraImages: user.extraImages || [],
-      profilePhoto: user.profilePicture || "",
+      profilePhoto: user.profilePicture || '',
     });
   }, [user, reset, getValues]);
 
@@ -183,7 +233,7 @@ export default function ProfileForm({
   const [localExtraImages, setLocalExtraImages] = useState(user.extraImages || []);
   const [avatarPreview, setAvatarPreview] = useState(
     user.profilePicture
-      ? user.profilePicture.startsWith("http")
+      ? user.profilePicture.startsWith('http')
         ? user.profilePicture
         : `${BACKEND_BASE_URL}${user.profilePicture}`
       : null
@@ -191,7 +241,7 @@ export default function ProfileForm({
   useEffect(() => {
     if (user.profilePicture) {
       setAvatarPreview(
-        user.profilePicture.startsWith("http")
+        user.profilePicture.startsWith('http')
           ? user.profilePicture
           : `${BACKEND_BASE_URL}${user.profilePicture}`
       );
@@ -218,9 +268,7 @@ export default function ProfileForm({
     localExtraImages.forEach((src) => {
       if (src) {
         arr.push(
-          typeof src === "string" && !src.startsWith("http")
-            ? `${BACKEND_BASE_URL}${src}`
-            : src
+          typeof src === 'string' && !src.startsWith('http') ? `${BACKEND_BASE_URL}${src}` : src
         );
       }
     });
@@ -251,7 +299,7 @@ export default function ProfileForm({
         data-cy="ProfileForm__form"
       >
         {/* Hidden field so backend always sees profilePhoto */}
-        <input type="hidden" {...methods.register("profilePhoto")} />
+        <input type="hidden" {...methods.register('profilePhoto')} />
 
         {/* Avatar slideshow + Manage Photos link */}
         {!hideAvatarSection && slideshowImages.length > 0 && (
@@ -260,15 +308,10 @@ export default function ProfileForm({
               src={slideshowImages[slideIndex]}
               alt={`Avatar ${slideIndex + 1}`}
               className="w-32 h-32 rounded-full object-cover cursor-pointer"
-              onMouseEnter={() =>
-                setSlideIndex((i) => (i + 1) % slideshowImages.length)
-              }
+              onMouseEnter={() => setSlideIndex((i) => (i + 1) % slideshowImages.length)}
             />
-            <Link
-              to="/profile/photos"
-              className="mt-2 text-blue-600 hover:underline"
-            >
-              {t("profile.managePhotos") || "Manage Photos"}
+            <Link to="/profile/photos" className="mt-2 text-blue-600 hover:underline">
+              {t('profile.managePhotos') || 'Manage Photos'}
             </Link>
           </div>
         )}
@@ -296,13 +339,13 @@ export default function ProfileForm({
           {/* Profession Category */}
           <div>
             <label className="block text-sm font-medium mb-1">
-              {t("profile.professionCategory")}
+              {t('profile.professionCategory')}
             </label>
             <select
-              {...methods.register("professionCategory")}
+              {...methods.register('professionCategory')}
               className="w-full border rounded px-3 py-2 text-sm"
             >
-              <option value="">{t("common.select")}</option>
+              <option value="">{t('common.select')}</option>
               {professionCategories.map((opt) => (
                 <option key={opt} value={opt}>
                   {t(`profile.professionCategory.${opt}`) || opt}
@@ -310,70 +353,56 @@ export default function ProfileForm({
               ))}
             </select>
             {errors.professionCategory && (
-              <p className="mt-1 text-red-600">
-                {errors.professionCategory.message}
-              </p>
+              <p className="mt-1 text-red-600">{errors.professionCategory.message}</p>
             )}
           </div>
 
           {/* Profession */}
           <div>
-            <label className="block text-sm font-medium mb-1">
-              💼 {t("profile.profession")}
-            </label>
+            <label className="block text-sm font-medium mb-1">💼 {t('profile.profession')}</label>
             <input
               type="text"
-              {...methods.register("profession")}
+              {...methods.register('profession')}
               className="w-full border rounded px-3 py-2 text-sm"
-              placeholder={t("profile.professionPlaceholder")}
+              placeholder={t('profile.professionPlaceholder')}
             />
-            {errors.profession && (
-              <p className="mt-1 text-red-600">{errors.profession.message}</p>
-            )}
+            {errors.profession && <p className="mt-1 text-red-600">{errors.profession.message}</p>}
           </div>
 
           {/* Religion */}
           <div>
-            <label className="block text-sm font-medium mb-1">
-              🕊 {t("profile.religion")}
-            </label>
+            <label className="block text-sm font-medium mb-1">🕊 {t('profile.religion')}</label>
             <select
-              {...methods.register("religion")}
+              {...methods.register('religion')}
               className="w-full border rounded px-3 py-2 text-sm"
             >
               {religionOptions.map((opt) => (
                 <option key={opt} value={opt}>
-                  {opt
-                    ? t(`religion.${opt.toLowerCase()}`) || opt
-                    : t("common.select")}
+                  {opt ? t(`religion.${opt.toLowerCase()}`) || opt : t('common.select')}
                 </option>
               ))}
             </select>
-            {errors.religion && (
-              <p className="mt-1 text-red-600">{errors.religion.message}</p>
-            )}
+            {errors.religion && <p className="mt-1 text-red-600">{errors.religion.message}</p>}
           </div>
         </div>
 
         {/* Religion importance */}
         <div>
           <label className="block text-sm font-medium mb-1">
-            {t("profile.religionImportance")}
+            {t('profile.religionImportance')}
           </label>
           <select
-            {...methods.register("religionImportance")}
+            {...methods.register('religionImportance')}
             className="w-full border rounded px-3 py-2 text-sm"
           >
             {religionImportanceOptions.map((opt) => (
               <option key={opt} value={opt}>
-                {opt || t("common.select")}
+                {opt || t('common.select')}
               </option>
             ))}
           </select>
           {errors.religionImportance && (
-            <p className="mt-1 text-red-600">
-              {errors.religionImportance.message}
-            </p>
+            <p className="mt-1 text-red-600">{errors.religionImportance.message}</p>
           )}
         </div>
 
@@ -384,19 +413,10 @@ export default function ProfileForm({
         <FormLifestyle t={t} includeAllOption />
 
         {/* Goals & Summary */}
-        <FormGoalSummary
-          t={t}
-          errors={errors}
-          fieldName="goal"
-          summaryField="summary"
-        />
+        <FormGoalSummary t={t} errors={errors} fieldName="goal" summaryField="summary" />
 
         {/* Looking For */}
-        <FormLookingFor
-          t={t}
-          errors={errors}
-          fieldName="lookingFor"
-        />
+        <FormLookingFor t={t} errors={errors} fieldName="lookingFor" />
 
         {/* Extra Photo Uploader */}
         {!hidePhotoSection && userId && (
@@ -419,19 +439,13 @@ export default function ProfileForm({
             type="submit"
             className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700"
           >
-            {t("profile.save")}
+            {t('profile.save')}
           </button>
         </div>
 
         {/* Status */}
-        {success && (
-          <p className="text-center text-green-600">
-            {t("profile.saveSuccess")}
-          </p>
-        )}
-        {!success && message && (
-          <p className="text-center text-red-600">{message}</p>
-        )}
+        {success && <p className="text-center text-green-600">{t('profile.saveSuccess')}</p>}
+        {!success && message && <p className="text-center text-red-600">{message}</p>}
       </form>
     </FormProvider>
   );

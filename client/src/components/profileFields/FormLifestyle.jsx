@@ -1,32 +1,32 @@
-import React from "react";
-import { useFormContext } from "react-hook-form";
-import PropTypes from "prop-types";
+import React from 'react';
+import { useFormContext } from 'react-hook-form';
+import PropTypes from 'prop-types';
 
 // Base options for smoke, drink, drugs
 const baseOptions = [
-  { value: "no", labelKey: "lifestyle.no" },
-  { value: "little", labelKey: "lifestyle.little" },
-  { value: "average", labelKey: "lifestyle.average" },
-  { value: "much", labelKey: "lifestyle.much" },
-  { value: "sober", labelKey: "lifestyle.sober" },
+  { value: 'no', labelKey: 'lifestyle.no' },
+  { value: 'little', labelKey: 'lifestyle.little' },
+  { value: 'average', labelKey: 'lifestyle.average' },
+  { value: 'much', labelKey: 'lifestyle.much' },
+  { value: 'sober', labelKey: 'lifestyle.sober' },
 ];
 
 // Options for dietary preferences (single-select)
 const dietOptions = [
-  { value: "omnivore", labelKey: "lifestyle.dietOmnivore" },
-  { value: "vegetarian", labelKey: "lifestyle.dietVegetarian" },
-  { value: "vegan", labelKey: "lifestyle.dietVegan" },
-  { value: "pescatarian", labelKey: "lifestyle.dietPescatarian" },
-  { value: "keto", labelKey: "lifestyle.dietKeto" },
-  { value: "other", labelKey: "common.other" },
+  { value: 'omnivore', labelKey: 'lifestyle.dietOmnivore' },
+  { value: 'vegetarian', labelKey: 'lifestyle.dietVegetarian' },
+  { value: 'vegan', labelKey: 'lifestyle.dietVegan' },
+  { value: 'pescatarian', labelKey: 'lifestyle.dietPescatarian' },
+  { value: 'keto', labelKey: 'lifestyle.dietKeto' },
+  { value: 'other', labelKey: 'common.other' },
 ];
 
 // New options for exercise habits
 const exerciseOptions = [
-  { value: "never", labelKey: "lifestyle.exerciseNever" },
-  { value: "occasionally", labelKey: "lifestyle.exerciseOccasionally" },
-  { value: "weekly", labelKey: "lifestyle.exerciseWeekly" },
-  { value: "daily", labelKey: "lifestyle.exerciseDaily" },
+  { value: 'never', labelKey: 'lifestyle.exerciseNever' },
+  { value: 'occasionally', labelKey: 'lifestyle.exerciseOccasionally' },
+  { value: 'weekly', labelKey: 'lifestyle.exerciseWeekly' },
+  { value: 'daily', labelKey: 'lifestyle.exerciseDaily' },
 ];
 
 /**
@@ -46,13 +46,13 @@ const FormLifestyle = ({ t, includeAllOption = false }) => {
 
   // Kokoa vaihtoehdot: ensin "All" jos tarvitaan, sitten tyypilliset
   const options = includeAllOption
-    ? [{ value: "", labelKey: "common.all" }, ...baseOptions]
-    : [{ value: "", labelKey: "common.select" }, ...baseOptions];
+    ? [{ value: '', labelKey: 'common.all' }, ...baseOptions]
+    : [{ value: '', labelKey: 'common.select' }, ...baseOptions];
 
   return (
     <div className="flex flex-col gap-4 w-full text-left" data-cy="FormLifestyle__section">
       <h3 className="text-lg font-semibold mb-2" data-cy="FormLifestyle__title">
-        {t("lifestyle.title")}
+        {t('lifestyle.title')}
       </h3>
 
       {/* Smoke, Drink, Drugs */}
@@ -60,10 +60,10 @@ const FormLifestyle = ({ t, includeAllOption = false }) => {
         {/* Smoke */}
         <div>
           <label className="block text-sm font-medium mb-1" data-cy="FormLifestyle__smokeLabel">
-            {t("lifestyle.smoke")}
+            {t('lifestyle.smoke')}
           </label>
           <select
-            {...register("smoke")}
+            {...register('smoke')}
             className="w-full border rounded px-3 py-2 text-sm"
             data-cy="FormLifestyle__smokeSelect"
           >
@@ -83,10 +83,10 @@ const FormLifestyle = ({ t, includeAllOption = false }) => {
         {/* Drink */}
         <div>
           <label className="block text-sm font-medium mb-1" data-cy="FormLifestyle__drinkLabel">
-            {t("lifestyle.drink")}
+            {t('lifestyle.drink')}
           </label>
           <select
-            {...register("drink")}
+            {...register('drink')}
             className="w-full border rounded px-3 py-2 text-sm"
             data-cy="FormLifestyle__drinkSelect"
           >
@@ -106,10 +106,10 @@ const FormLifestyle = ({ t, includeAllOption = false }) => {
         {/* Drugs */}
         <div>
           <label className="block text-sm font-medium mb-1" data-cy="FormLifestyle__drugsLabel">
-            {t("lifestyle.drugs")}
+            {t('lifestyle.drugs')}
           </label>
           <select
-            {...register("drugs")}
+            {...register('drugs')}
             className="w-full border rounded px-3 py-2 text-sm"
             data-cy="FormLifestyle__drugsSelect"
           >
@@ -132,14 +132,14 @@ const FormLifestyle = ({ t, includeAllOption = false }) => {
         {/* Dietary Preferences (single-select) */}
         <div>
           <label className="block text-sm font-medium mb-1" data-cy="FormLifestyle__dietLabel">
-            {t("lifestyle.diet")}
+            {t('lifestyle.diet')}
           </label>
           <select
-            {...register("nutritionPreferences")}
+            {...register('nutritionPreferences')}
             className="w-full border rounded px-3 py-2 text-sm"
             data-cy="FormLifestyle__dietSelect"
           >
-            <option value="">{t("common.select")}</option>
+            <option value="">{t('common.select')}</option>
             {dietOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {t(opt.labelKey)}
@@ -156,14 +156,14 @@ const FormLifestyle = ({ t, includeAllOption = false }) => {
         {/* Exercise Habits */}
         <div>
           <label className="block text-sm font-medium mb-1" data-cy="FormLifestyle__exerciseLabel">
-            {t("lifestyle.exercise")}
+            {t('lifestyle.exercise')}
           </label>
           <select
-            {...register("activityLevel")}
+            {...register('activityLevel')}
             className="w-full border rounded px-3 py-2 text-sm"
             data-cy="FormLifestyle__exerciseSelect"
           >
-            <option value="">{t("common.select")}</option>
+            <option value="">{t('common.select')}</option>
             {exerciseOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {t(opt.labelKey)}
@@ -187,5 +187,3 @@ FormLifestyle.propTypes = {
 };
 
 export default FormLifestyle;
-
-

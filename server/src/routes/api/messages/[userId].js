@@ -12,9 +12,7 @@ router.get('/', async (req, res) => {
     const otherId = req.params.userId;
     const conversationId = [userId, otherId].sort().join('_');
 
-    const messages = await Message.find({ conversationId })
-      .sort('createdAt')
-      .lean();
+    const messages = await Message.find({ conversationId }).sort('createdAt').lean();
 
     res.json(messages);
   } catch (err) {
@@ -36,7 +34,7 @@ router.post('/', async (req, res) => {
       conversationId,
       sender: userId,
       recipients: [otherId],
-      text
+      text,
     });
 
     await message.save();

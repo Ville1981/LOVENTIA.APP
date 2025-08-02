@@ -1,18 +1,18 @@
-import React, { useEffect, useState } from "react";
-import api from "../utils/axiosInstance";
-import { useTranslation } from "react-i18next";
+import React, { useEffect, useState } from 'react';
+import api from '../utils/axiosInstance';
+import { useTranslation } from 'react-i18next';
 
 const PremiumSuccess = () => {
   const { t } = useTranslation();
-  const [message, setMessage] = useState(t("premium.updating"));
-  const token = localStorage.getItem("token");
+  const [message, setMessage] = useState(t('premium.updating'));
+  const token = localStorage.getItem('token');
 
   useEffect(() => {
     const updatePremium = async () => {
       try {
         // Lähetetään päivityspyyntö premium-statuksen nostamiseksi
         await api.post(
-          "/auth/upgrade-premium",
+          '/auth/upgrade-premium',
           {},
           {
             headers: {
@@ -20,10 +20,10 @@ const PremiumSuccess = () => {
             },
           }
         );
-        setMessage(t("premium.successMessage"));
+        setMessage(t('premium.successMessage'));
       } catch (err) {
-        console.error("Premium-päivitys epäonnistui", err);
-        setMessage(t("premium.errorMessage"));
+        console.error('Premium-päivitys epäonnistui', err);
+        setMessage(t('premium.errorMessage'));
       }
     };
 
@@ -32,7 +32,7 @@ const PremiumSuccess = () => {
 
   return (
     <div className="p-10 text-center">
-      <h1 className="text-2xl font-bold mb-4">⭐ {t("premium.successTitle")}</h1>
+      <h1 className="text-2xl font-bold mb-4">⭐ {t('premium.successTitle')}</h1>
       <p>{message}</p>
     </div>
   );

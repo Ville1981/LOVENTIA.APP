@@ -38,11 +38,7 @@
   "etusivu": {
     "heroOtsikko": "欢迎来到 DateSite！",
     "heroTeksti": "轻松、安全地找到有意义的联系。",
-    "heroTekstit": [
-      "寻找持久的爱情。",
-      "结识志同道合的人。",
-      "你的下一个匹配近在咫尺。"
-    ],
+    "heroTekstit": ["寻找持久的爱情。", "结识志同道合的人。", "你的下一个匹配近在咫尺。"],
     "tervetuloa": "欢迎来到 DateSite！",
     "kuvaus": "轻松安全地寻找伴侣、朋友或爱情。",
     "aloita": "开始",
@@ -69,16 +65,12 @@
     "save": "保存更改",
     "delete": "删除账户",
     "saveSuccess": "✅ 个人资料更新成功！"
-     
-
-
   },
   "hero": {
-  "0": "寻找真正的爱情。",
-  "1": "遇见与你价值观相同的人。",
-  "2": "你的下一次匹配只需点击一下。"
-},
-
+    "0": "寻找真正的爱情。",
+    "1": "遇见与你价值观相同的人。",
+    "2": "你的下一次匹配只需点击一下。"
+  },
 
   "buttons": {
     "submit": "提交",
@@ -113,11 +105,10 @@
     "superlike": "超级点赞",
     "viewProfile": "查看资料",
     "premium": "高级用户",
-        "minAge": "最小年龄",
+    "minAge": "最小年龄",
     "maxAge": "最大年龄",
     "instructions": "请选择筛选条件以查找匹配的用户。",
     "filter": "筛选"
-
   },
 
   "chat": {
@@ -192,21 +183,19 @@
   },
 
   "common": {
-  "select": "请选择",
-  "filter": "筛选"
-},
+    "select": "请选择",
+    "filter": "筛选"
+  },
 
-"lifestyle": {
-  "title": "生活方式",
-  "smoke": "吸烟",
-  "drink": "饮酒",
-  "drugs": "毒品",
-  "no": "不使用",
-  "little": "少量",
-  "average": "适量",
-  "much": "大量",
-  "sober": "无成瘾"
-}
-
-
+  "lifestyle": {
+    "title": "生活方式",
+    "smoke": "吸烟",
+    "drink": "饮酒",
+    "drugs": "毒品",
+    "no": "不使用",
+    "little": "少量",
+    "average": "适量",
+    "much": "大量",
+    "sober": "无成瘾"
+  }
 }

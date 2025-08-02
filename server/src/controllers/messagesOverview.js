@@ -17,9 +17,7 @@ export async function getMessagesOverview(req, res) {
     return res.json({ success: true, data: overview });
   } catch (error) {
     console.error('Error fetching messages overview:', error);
-    return res
-      .status(500)
-      .json({ success: false, message: 'Unable to load conversations.' });
+    return res.status(500).json({ success: false, message: 'Unable to load conversations.' });
   }
 }
 

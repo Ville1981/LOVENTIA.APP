@@ -1,11 +1,11 @@
 // src/components/discover/PhotoCarousel.jsx
 
-import React, { memo, useRef, useEffect } from "react";
-import PropTypes from "prop-types";
-import Slider from "react-slick";
+import React, { memo, useRef, useEffect } from 'react';
+import PropTypes from 'prop-types';
+import Slider from 'react-slick';
 
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
+import 'slick-carousel/slick/slick.css';
+import 'slick-carousel/slick/slick-theme.css';
 
 const PrevArrow = ({ onClick }) => (
   <button
@@ -20,7 +20,7 @@ const PrevArrow = ({ onClick }) => (
     onMouseDown={(e) => e.preventDefault()}
     onMouseUp={(e) => e.currentTarget.blur()}
     onFocus={(e) => e.currentTarget.blur()}
-    style={{ display: "block", overflowAnchor: "none" }}
+    style={{ display: 'block', overflowAnchor: 'none' }}
   />
 );
 
@@ -37,15 +37,15 @@ const NextArrow = ({ onClick }) => (
     onMouseDown={(e) => e.preventDefault()}
     onMouseUp={(e) => e.currentTarget.blur()}
     onFocus={(e) => e.currentTarget.blur()}
-    style={{ display: "block", overflowAnchor: "none" }}
+    style={{ display: 'block', overflowAnchor: 'none' }}
   />
 );
 
 const PhotoCarousel = ({ photos = [] }) => {
   const photoList = Array.isArray(photos) ? photos : [];
   const photoKey = photoList
-    .map((item) => (typeof item === "string" ? item : item.url || ""))
-    .join("|");
+    .map((item) => (typeof item === 'string' ? item : item.url || ''))
+    .join('|');
 
   const sliderRef = useRef(null);
   const prevScrollY = useRef(0);
@@ -94,38 +94,28 @@ const PhotoCarousel = ({ photos = [] }) => {
 
   if (photoList.length === 0) {
     return (
-      <div
-        className="p-6 text-center text-gray-500"
-        style={{ overflowAnchor: "none" }}
-      >
+      <div className="p-6 text-center text-gray-500" style={{ overflowAnchor: 'none' }}>
         No images available
       </div>
     );
   }
 
   return (
-    <div
-      className="relative w-full h-[400px] overflow-hidden"
-      style={{ overflowAnchor: "none" }}
-    >
+    <div className="relative w-full h-[400px] overflow-hidden" style={{ overflowAnchor: 'none' }}>
       <Slider
         ref={sliderRef}
         {...settings}
         className="slick-slider"
-        style={{ overflowAnchor: "none" }}
+        style={{ overflowAnchor: 'none' }}
       >
         {photoList.map((item, idx) => {
-          const raw = typeof item === "string" ? item : item.url || "";
-          const src = raw.startsWith("http")
+          const raw = typeof item === 'string' ? item : item.url || '';
+          const src = raw.startsWith('http')
             ? raw
-            : `${window.location.origin}${raw.startsWith("/") ? "" : "/"}${raw}`;
+            : `${window.location.origin}${raw.startsWith('/') ? '' : '/'}${raw}`;
 
           return (
-            <div
-              key={idx}
-              className="px-1"
-              style={{ overflowAnchor: "none", height: "100%" }}
-            >
+            <div key={idx} className="px-1" style={{ overflowAnchor: 'none', height: '100%' }}>
               <div className="w-full h-[400px] overflow-hidden rounded-md">
                 <img
                   src={src}
@@ -136,12 +126,12 @@ const PhotoCarousel = ({ photos = [] }) => {
                   onError={(e) => {
                     e.currentTarget.onerror = null;
                     const fb = photoList[0];
-                    const fallback = typeof fb === "string" ? fb : fb.url || "";
-                    e.currentTarget.src = fallback.startsWith("http")
+                    const fallback = typeof fb === 'string' ? fb : fb.url || '';
+                    e.currentTarget.src = fallback.startsWith('http')
                       ? fallback
-                      : `${window.location.origin}${fallback.startsWith("/") ? "" : "/"}${fallback}`;
+                      : `${window.location.origin}${fallback.startsWith('/') ? '' : '/'}${fallback}`;
                   }}
-                  style={{ overflowAnchor: "none" }}
+                  style={{ overflowAnchor: 'none' }}
                 />
               </div>
             </div>
@@ -154,10 +144,7 @@ const PhotoCarousel = ({ photos = [] }) => {
 
 PhotoCarousel.propTypes = {
   photos: PropTypes.arrayOf(
-    PropTypes.oneOfType([
-      PropTypes.string,
-      PropTypes.shape({ url: PropTypes.string }),
-    ])
+    PropTypes.oneOfType([PropTypes.string, PropTypes.shape({ url: PropTypes.string })])
   ),
 };
 

@@ -1,9 +1,9 @@
 // src/components/UserCardList.jsx
 
-import React, { memo } from "react";
-import PropTypes from "prop-types";
-import UserCard from "./UserCard";
-import { BACKEND_BASE_URL } from "../utils/config";
+import React, { memo } from 'react';
+import PropTypes from 'prop-types';
+import UserCard from './UserCard';
+import { BACKEND_BASE_URL } from '../utils/config';
 
 /**
  * UserCardList: displays a vertical list of UserCard components.
@@ -13,11 +13,7 @@ import { BACKEND_BASE_URL } from "../utils/config";
  */
 const UserCardList = ({ users, onAction }) => {
   if (!users || users.length === 0) {
-    return (
-      <p className="text-center text-gray-500 mt-6">
-        🔍 No results found
-      </p>
-    );
+    return <p className="text-center text-gray-500 mt-6">🔍 No results found</p>;
   }
 
   return (
@@ -31,7 +27,7 @@ const UserCardList = ({ users, onAction }) => {
               photos: user.photos.map((p) => ({
                 ...p,
                 // --- REPLACE START: prefix backend URL for carousel images
-                url: `${BACKEND_BASE_URL || ""}${p.url}`,
+                url: `${BACKEND_BASE_URL || ''}${p.url}`,
                 // --- REPLACE END
               })),
             }}
@@ -47,9 +43,7 @@ UserCardList.propTypes = {
   users: PropTypes.arrayOf(
     PropTypes.shape({
       _id: PropTypes.string.isRequired,
-      photos: PropTypes.arrayOf(
-        PropTypes.shape({ url: PropTypes.string.isRequired })
-      ),
+      photos: PropTypes.arrayOf(PropTypes.shape({ url: PropTypes.string.isRequired })),
     })
   ).isRequired,
   onAction: PropTypes.func.isRequired,

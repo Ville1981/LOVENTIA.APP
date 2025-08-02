@@ -45,7 +45,7 @@ const AccessibilityUtils = {
       }
     });
     // --- REPLACE END: add Space key listener
-  }
+  },
 };
 
 export default AccessibilityUtils;

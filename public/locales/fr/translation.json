@@ -65,11 +65,11 @@
     "summary": "À propos de moi",
     "goal": "Objectifs / aspirations",
     "profilePicture": "Photo de profil",
-    
+
     "save": "Sauvegarder les modifications",
     "delete": "Supprimer le compte",
     "saveSuccess": "✅ Profil mis à jour avec succès !",
-        "gender": "Genre",
+    "gender": "Genre",
     "male": "Homme",
     "female": "Femme",
     "other": "Autre",
@@ -109,15 +109,13 @@
     "updateError": "❌ Échec de la mise à jour du profil.",
     "confirmDelete": "Voulez-vous vraiment supprimer votre compte de façon permanente ?",
     "premiumMember": "Vous êtes membre Premium 🎉"
-
   },
 
   "hero": {
-  "0": "Trouvez l'amour durable.",
-  "1": "Rencontrez des personnes qui partagent vos valeurs.",
-  "2": "Votre prochaine rencontre est à un clic."
-},
-
+    "0": "Trouvez l'amour durable.",
+    "1": "Rencontrez des personnes qui partagent vos valeurs.",
+    "2": "Votre prochaine rencontre est à un clic."
+  },
 
   "buttons": {
     "submit": "Envoyer",

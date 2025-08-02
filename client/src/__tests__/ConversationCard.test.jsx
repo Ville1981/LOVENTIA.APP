@@ -4,7 +4,7 @@ import { render, screen } from '@testing-library/react';
 import ConversationCard from '../components/ConversationCard';
 import { formatDistanceToNowStrict, parseISO } from 'date-fns';
 import { I18nextProvider } from 'react-i18next';
-import i18n from '../utils/i18n';  // assume your i18n instance
+import i18n from '../utils/i18n'; // assume your i18n instance
 
 describe('ConversationCard', () => {
   const data = {
@@ -36,7 +36,9 @@ describe('ConversationCard', () => {
       </I18nextProvider>
     );
 
-    const expected = formatDistanceToNowStrict(parseISO(data.lastMessageTimestamp), { addSuffix: true });
+    const expected = formatDistanceToNowStrict(parseISO(data.lastMessageTimestamp), {
+      addSuffix: true,
+    });
     expect(screen.getByText(expected)).toBeInTheDocument();
   });
 });

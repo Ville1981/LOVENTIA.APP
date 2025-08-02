@@ -1,4 +1,4 @@
-/ src/seo/backlinkStrategy.md  (Documentation)
+/ src/seo/backlinkStrategy.md (Documentation)
 
 # Backlink Strategy
 

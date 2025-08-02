@@ -7,10 +7,10 @@ module.exports = {
     target: __ENV.APP_URL || 'http://localhost:3000',
     phases: [
       {
-        duration: 60,       // total duration in seconds
-        arrivalRate: 10     // new virtual users per second
-      }
-    ]
+        duration: 60, // total duration in seconds
+        arrivalRate: 10, // new virtual users per second
+      },
+    ],
   },
   scenarios: [
     {
@@ -21,8 +21,8 @@ module.exports = {
         {
           emit: {
             channel: 'joinRoom',
-            data: { room: 'performance-test' }
-          }
+            data: { room: 'performance-test' },
+          },
         },
         // Loop of connect, message, disconnect, reconnect
         {
@@ -35,21 +35,21 @@ module.exports = {
                   channel: 'sendMessage',
                   data: {
                     room: 'performance-test',
-                    message: 'Performance test message'
-                  }
-                }
+                    message: 'Performance test message',
+                  },
+                },
               },
               { think: 1 },
               {
                 emit: {
-                  channel: 'disconnect'
-                }
+                  channel: 'disconnect',
+                },
               },
               { think: 0.5 },
               {
                 emit: {
-                  channel: 'reconnect'
-                }
+                  channel: 'reconnect',
+                },
               },
               { think: 1 },
               {
@@ -57,14 +57,14 @@ module.exports = {
                   channel: 'sendMessage',
                   data: {
                     room: 'performance-test',
-                    message: 'Reconnected message'
-                  }
-                }
-              }
-            ]
-          }
-        }
-      ]
-    }
-  ]
+                    message: 'Reconnected message',
+                  },
+                },
+              },
+            ],
+          },
+        },
+      ],
+    },
+  ],
 };

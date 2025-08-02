@@ -6,9 +6,9 @@
  */
 
 const endpoints = {
-  'eu': 'https://eu.api.example.com',
-  'us': 'https://us.api.example.com',
-  'ap': 'https://ap.api.example.com',
+  eu: 'https://eu.api.example.com',
+  us: 'https://us.api.example.com',
+  ap: 'https://ap.api.example.com',
   default: 'https://api.example.com',
 };
 
@@ -20,6 +20,6 @@ export function getApiEndpoint(geoInfo) {
   const prefix = geoInfo.countryCode.toLowerCase();
   if (prefix.startsWith('eu')) return endpoints.eu;
   if (prefix === 'us') return endpoints.us;
-  if ([ 'au', 'jp', 'sg' ].includes(prefix)) return endpoints.ap;
+  if (['au', 'jp', 'sg'].includes(prefix)) return endpoints.ap;
   return endpoints.default;
 }

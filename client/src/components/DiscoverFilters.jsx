@@ -1,14 +1,14 @@
-import React from "react";
-import { useForm, FormProvider } from "react-hook-form";
-import PropTypes from "prop-types";
+import React from 'react';
+import { useForm, FormProvider } from 'react-hook-form';
+import PropTypes from 'prop-types';
 
-import FormBasicInfo    from "./profileFields/FormBasicInfo";
-import FormLocation     from "./profileFields/FormLocation";
-import FormEducation    from "./profileFields/FormEducation";
-import FormChildrenPets from "./profileFields/FormChildrenPets";
-import FormLifestyle    from "./profileFields/FormLifestyle";
-import FormGoalSummary  from "./profileFields/FormGoalSummary";
-import FormLookingFor   from "./profileFields/FormLookingFor";
+import FormBasicInfo from './profileFields/FormBasicInfo';
+import FormLocation from './profileFields/FormLocation';
+import FormEducation from './profileFields/FormEducation';
+import FormChildrenPets from './profileFields/FormChildrenPets';
+import FormLifestyle from './profileFields/FormLifestyle';
+import FormGoalSummary from './profileFields/FormGoalSummary';
+import FormLookingFor from './profileFields/FormLookingFor';
 
 /**
  * DiscoverFilters
@@ -17,7 +17,7 @@ import FormLookingFor   from "./profileFields/FormLookingFor";
 const DiscoverFilters = ({ values, setters, handleFilter, t }) => {
   const methods = useForm({
     defaultValues: values,
-    mode: "onSubmit",
+    mode: 'onSubmit',
   });
   const { handleSubmit, register } = methods;
 
@@ -32,23 +32,23 @@ const DiscoverFilters = ({ values, setters, handleFilter, t }) => {
           {/* Otsikko ja ohjeet */}
           <div className="text-center">
             <h2 data-cy="DiscoverFilters__title" className="text-3xl font-bold mb-2">
-              {t("discover.title")}
+              {t('discover.title')}
             </h2>
             <p data-cy="DiscoverFilters__instructions" className="text-gray-600">
-              {t("discover.instructions")}
+              {t('discover.instructions')}
             </p>
           </div>
 
           {/* Ikähaitari: minAge ja maxAge */}
           <div className="flex flex-col gap-2">
             <label htmlFor="minAge" className="font-medium">
-              {t("discover.ageRange")}
+              {t('discover.ageRange')}
             </label>
             <div className="flex space-x-2">
               <input
                 id="minAge"
                 type="number"
-                {...register("minAge")}
+                {...register('minAge')}
                 min={18}
                 max={120}
                 className="p-2 border rounded w-1/2"
@@ -56,7 +56,7 @@ const DiscoverFilters = ({ values, setters, handleFilter, t }) => {
               <input
                 id="maxAge"
                 type="number"
-                {...register("maxAge")}
+                {...register('maxAge')}
                 min={18}
                 max={120}
                 className="p-2 border rounded w-1/2"
@@ -66,40 +66,30 @@ const DiscoverFilters = ({ values, setters, handleFilter, t }) => {
 
           {/* Käyttäjänimi (vain hakuperusteena) */}
           <div>
-            <label className="block font-medium mb-1">
-              {t("discover.username")}
-            </label>
-            <input
-              type="text"
-              {...register("username")}
-              className="w-full p-2 border rounded"
-            />
+            <label className="block font-medium mb-1">{t('discover.username')}</label>
+            <input type="text" {...register('username')} className="w-full p-2 border rounded" />
           </div>
 
           {/* Sukupuoli */}
           <div>
-            <label className="block font-medium mb-1">
-              {t("discover.gender")}
-            </label>
-            <select {...register("gender")} className="w-full p-2 border rounded">
-              <option value="">{t("common.all")}</option>
-              <option value="Male">{t("profile.male")}</option>
-              <option value="Female">{t("profile.female")}</option>
-              <option value="Other">{t("profile.other")}</option>
+            <label className="block font-medium mb-1">{t('discover.gender')}</label>
+            <select {...register('gender')} className="w-full p-2 border rounded">
+              <option value="">{t('common.all')}</option>
+              <option value="Male">{t('profile.male')}</option>
+              <option value="Female">{t('profile.female')}</option>
+              <option value="Other">{t('profile.other')}</option>
             </select>
           </div>
 
           {/* Seksuaalinen suuntautuminen */}
           <div>
-            <label className="block font-medium mb-1">
-              ❤️ {t("discover.orientation")}
-            </label>
-            <select {...register("orientation")} className="w-full p-2 border rounded">
-              <option value="">{t("common.all")}</option>
-              <option value="Straight">{t("profile.straight")}</option>
-              <option value="Gay">{t("profile.gay")}</option>
-              <option value="Bi">{t("profile.bi")}</option>
-              <option value="Other">{t("profile.other")}</option>
+            <label className="block font-medium mb-1">❤️ {t('discover.orientation')}</label>
+            <select {...register('orientation')} className="w-full p-2 border rounded">
+              <option value="">{t('common.all')}</option>
+              <option value="Straight">{t('profile.straight')}</option>
+              <option value="Gay">{t('profile.gay')}</option>
+              <option value="Bi">{t('profile.bi')}</option>
+              <option value="Other">{t('profile.other')}</option>
             </select>
           </div>
 
@@ -120,34 +110,25 @@ const DiscoverFilters = ({ values, setters, handleFilter, t }) => {
 
           {/* Ammatti */}
           <div>
-            <label className="block font-medium mb-1">
-              {t("discover.profession")}
-            </label>
-            <select {...register("profession")} className="w-full p-2 border rounded">
-              <option value="">{t("common.all")}</option>
+            <label className="block font-medium mb-1">{t('discover.profession')}</label>
+            <select {...register('profession')} className="w-full p-2 border rounded">
+              <option value="">{t('common.all')}</option>
               {/* …ammattilistaus… */}
             </select>
           </div>
 
           {/* Uskonto & sen tärkeys */}
           <div>
-            <label className="block font-medium mb-1">
-              🛐 {t("discover.religion")}
-            </label>
-            <select {...register("religion")} className="w-full p-2 border rounded">
-              <option value="">{t("common.all")}</option>
+            <label className="block font-medium mb-1">🛐 {t('discover.religion')}</label>
+            <select {...register('religion')} className="w-full p-2 border rounded">
+              <option value="">{t('common.all')}</option>
               {/* …uskonnot… */}
             </select>
           </div>
           <div>
-            <label className="block font-medium mb-1">
-              {t("discover.religionImportance")}
-            </label>
-            <select
-              {...register("religionImportance")}
-              className="w-full p-2 border rounded"
-            >
-              <option value="">{t("common.all")}</option>
+            <label className="block font-medium mb-1">{t('discover.religionImportance')}</label>
+            <select {...register('religionImportance')} className="w-full p-2 border rounded">
+              <option value="">{t('common.all')}</option>
               {/* …tärkeysasteet… */}
             </select>
           </div>
@@ -171,7 +152,7 @@ const DiscoverFilters = ({ values, setters, handleFilter, t }) => {
               type="submit"
               className="bg-pink-600 text-white font-bold py-2 px-8 rounded-full hover:opacity-90 transition duration-200"
             >
-              🔍 {t("common.filter")}
+              🔍 {t('common.filter')}
             </button>
           </div>
         </form>

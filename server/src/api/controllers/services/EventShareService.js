@@ -15,7 +15,7 @@ export class EventShareService {
     const event = await Event.create({
       ...eventData,
       sharedBy: userId,
-      sharedAt: new Date()
+      sharedAt: new Date(),
     });
     return event;
   }

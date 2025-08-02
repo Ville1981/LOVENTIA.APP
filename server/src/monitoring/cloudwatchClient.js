@@ -17,7 +17,15 @@ const cwClient = new CloudWatchClient({ region: process.env.AWS_REGION });
  * @param {Array<{Name:string,Value:string}>} [params.Dimensions]
  * @returns {Promise<Array>} datapoints
  */
-export async function getMetricStatistics({ Namespace, MetricName, Statistics, Period, StartTime, EndTime, Dimensions = [] }) {
+export async function getMetricStatistics({
+  Namespace,
+  MetricName,
+  Statistics,
+  Period,
+  StartTime,
+  EndTime,
+  Dimensions = [],
+}) {
   const command = new GetMetricStatisticsCommand({
     Namespace,
     MetricName,

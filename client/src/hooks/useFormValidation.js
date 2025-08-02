@@ -1,7 +1,7 @@
 // client/src/hooks/useFormValidation.js
 
-import { useForm } from "react-hook-form";
-import { yupResolver } from "@hookform/resolvers/yup";
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
 
 /**
  * useFormValidation
@@ -20,11 +20,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
  *   mode: "onBlur"
  * });
  */
-export function useFormValidation({
-  schema,
-  defaultValues = {},
-  mode = "onSubmit",
-}) {
+export function useFormValidation({ schema, defaultValues = {}, mode = 'onSubmit' }) {
   const formMethods = useForm({
     resolver: yupResolver(schema),
     defaultValues,

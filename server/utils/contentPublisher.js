@@ -14,7 +14,7 @@ export async function publishScheduledArticles() {
   const now = new Date();
   let schedule = yaml.load(fs.readFileSync(SCHEDULE_FILE, 'utf8')) || [];
 
-  const toPublish = schedule.filter(item => new Date(item.publishDate) <= now);
+  const toPublish = schedule.filter((item) => new Date(item.publishDate) <= now);
   if (!toPublish.length) return;
 
   for (const item of toPublish) {
@@ -25,6 +25,6 @@ export async function publishScheduledArticles() {
   }
 
   // Remove published items from schedule
-  schedule = schedule.filter(item => new Date(item.publishDate) > now);
+  schedule = schedule.filter((item) => new Date(item.publishDate) > now);
   fs.writeFileSync(SCHEDULE_FILE, yaml.dump(schedule));
 }

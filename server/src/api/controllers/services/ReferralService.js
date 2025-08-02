@@ -45,10 +45,8 @@ export async function getReferralByCode(code) {
  * @returns {Promise<Array>} Referral-objektien lista
  */
 export async function listUserReferrals(userId) {
-  const referrals = await Referral.find({ user: userId })
-    .sort({ createdAt: -1 })
-    .lean();
-  return referrals.map(r => ({
+  const referrals = await Referral.find({ user: userId }).sort({ createdAt: -1 }).lean();
+  return referrals.map((r) => ({
     code: r.code,
     clicks: r.clicks,
     signups: r.signups,

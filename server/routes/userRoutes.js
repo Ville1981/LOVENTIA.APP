@@ -59,9 +59,7 @@ router.post(
   [
     body('username').notEmpty().withMessage('Username is required'),
     body('email').isEmail().withMessage('Valid email required'),
-    body('password')
-      .isLength({ min: 6 })
-      .withMessage('Password must be at least 6 characters'),
+    body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
   ],
   handleValidation,
   registerUser
@@ -98,7 +96,7 @@ router.put(
   authenticate,
   upload.fields([
     { name: 'profilePhoto', maxCount: 1 },
-    { name: 'extraImages',   maxCount: 20 },
+    { name: 'extraImages', maxCount: 20 },
   ]),
   handleValidation,
   async (req, res) => {
@@ -197,40 +195,25 @@ router.get('/nearby', authenticate, async (req, res) => {
 // =====================
 
 // Upload or replace profile avatar
-router.post(
-  '/:id/upload-avatar',
-  authenticate,
-  upload.single('profilePhoto'),
-  async (req, res) => {
-    try {
-      const user = await User.findById(req.user.id);
-      if (!user) return res.status(404).json({ error: 'User not found' });
-      if (user.profilePicture) removeFile(user.profilePicture);
-      user.profilePicture = req.file.path;
-      await user.save();
-      res.json({ profilePicture: user.profilePicture });
-    } catch (err) {
-      console.error('Upload-avatar error:', err);
-      res.status(500).json({ error: 'Failed to upload avatar' });
-    }
+router.post('/:id/upload-avatar', authenticate, upload.single('profilePhoto'), async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.profilePicture) removeFile(user.profilePicture);
+    user.profilePicture = req.file.path;
+    await user.save();
+    res.json({ profilePicture: user.profilePicture });
+  } catch (err) {
+    console.error('Upload-avatar error:', err);
+    res.status(500).json({ error: 'Failed to upload avatar' });
   }
-);
+});
 
 // Bulk upload extra photos
-router.post(
-  '/:id/upload-photos',
-  authenticate,
-  upload.array('photos', 20),
-  uploadExtraPhotos
-);
+router.post('/:id/upload-photos', authenticate, upload.array('photos', 20), uploadExtraPhotos);
 
 // Upload a single photo step
-router.post(
-  '/:id/upload-photo-step',
-  authenticate,
-  upload.single('photo'),
-  uploadPhotoStep
-);
+router.post('/:id/upload-photo-step', authenticate, upload.single('photo'), uploadPhotoStep);
 
 // Delete a specific photo slot
 router.delete('/:id/photos/:slot', authenticate, deletePhotoSlot);
@@ -250,9 +233,7 @@ router.param('id', (req, res, next, id) => {
 // =====================
 router.get('/:id', async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select(
-      '-password -email -blockedUsers'
-    );
+    const user = await User.findById(req.params.id).select('-password -email -blockedUsers');
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json(user);
   } catch (err) {

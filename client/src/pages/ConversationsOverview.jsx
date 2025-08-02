@@ -88,7 +88,10 @@ export default function ConversationsOverview() {
   const list = conversations.length > 0 ? conversations : [bunnyUser];
 
   return (
-    <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 p-4" aria-label={t('chat.overview.title', 'Conversations')}>
+    <section
+      className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 p-4"
+      aria-label={t('chat.overview.title', 'Conversations')}
+    >
       {list.map((conv) => (
         <div
           key={conv.userId}

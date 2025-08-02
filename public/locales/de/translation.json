@@ -51,11 +51,10 @@
   },
 
   "hero": {
-  "0": "Finde wahre Liebe.",
-  "1": "Triff Menschen mit deinen Werten.",
-  "2": "Dein nächstes Match ist nur einen Klick entfernt."
-},
-
+    "0": "Finde wahre Liebe.",
+    "1": "Triff Menschen mit deinen Werten.",
+    "2": "Dein nächstes Match ist nur einen Klick entfernt."
+  },
 
   "profile": {
     "title": "Profil",
@@ -75,7 +74,7 @@
     "save": "Änderungen speichern",
     "delete": "Konto löschen",
     "saveSuccess": "✅ Profil erfolgreich aktualisiert!",
-        "gender": "Geschlecht",
+    "gender": "Geschlecht",
     "male": "Männlich",
     "female": "Weiblich",
     "other": "Divers",
@@ -115,7 +114,6 @@
     "updateError": "❌ Fehler beim Aktualisieren des Profils.",
     "confirmDelete": "Möchtest du dein Konto wirklich dauerhaft löschen?",
     "premiumMember": "Du bist ein Premium-Mitglied 🎉"
-
   },
 
   "buttons": {

@@ -12,7 +12,7 @@ const {
   NODE_ENV,
   ERROR_RATE_THRESHOLD,
   LATENCY_THRESHOLD_MS,
-  THROUGHPUT_THRESHOLD_RPM
+  THROUGHPUT_THRESHOLD_RPM,
 } = process.env;
 
 // Initialize Sentry
@@ -25,10 +25,7 @@ Sentry.init({
 // Configure Winston logger
 const logger = winston.createLogger({
   level: NODE_ENV === 'production' ? 'info' : 'debug',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.json()
-  ),
+  format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
   transports: [
     new winston.transports.Console(),
     // Add file or other transports if needed
@@ -44,11 +41,7 @@ async function monitorErrorRate(errorCount, totalCount) {
   const errorRate = totalCount > 0 ? (errorCount / totalCount) * 100 : 0;
   logger.warn(`Error rate: ${errorRate.toFixed(2)}%`);
   // --- REPLACE START: Threshold check for error rate ---
-  await checkThreshold(
-    'Error Rate',
-    errorRate,
-    Number(ERROR_RATE_THRESHOLD)
-  );
+  await checkThreshold('Error Rate', errorRate, Number(ERROR_RATE_THRESHOLD));
   // --- REPLACE END ---
 }
 
@@ -59,11 +52,7 @@ async function monitorErrorRate(errorCount, totalCount) {
 async function monitorLatency(latencyMs) {
   logger.info(`Latency: ${latencyMs} ms`);
   // --- REPLACE START: Threshold check for latency ---
-  await checkThreshold(
-    'Latency',
-    latencyMs,
-    Number(LATENCY_THRESHOLD_MS)
-  );
+  await checkThreshold('Latency', latencyMs, Number(LATENCY_THRESHOLD_MS));
   // --- REPLACE END ---
 }
 
@@ -74,11 +63,7 @@ async function monitorLatency(latencyMs) {
 async function monitorThroughput(requestsPerMinute) {
   logger.info(`Throughput: ${requestsPerMinute} req/min`);
   // --- REPLACE START: Threshold check for throughput ---
-  await checkThreshold(
-    'Throughput',
-    requestsPerMinute,
-    Number(THROUGHPUT_THRESHOLD_RPM)
-  );
+  await checkThreshold('Throughput', requestsPerMinute, Number(THROUGHPUT_THRESHOLD_RPM));
   // --- REPLACE END ---
 }
 

@@ -1,23 +1,23 @@
-import React, { useEffect } from "react";
-import { useTranslation } from "react-i18next";
+import React, { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const LanguageSwitcher = () => {
   const { i18n } = useTranslation();
 
   useEffect(() => {
-    const rtlLanguages = ["ar", "he", "fa", "ur"];
+    const rtlLanguages = ['ar', 'he', 'fa', 'ur'];
     const updateDir = (lng) => {
-      document.documentElement.setAttribute("dir", rtlLanguages.includes(lng) ? "rtl" : "ltr");
+      document.documentElement.setAttribute('dir', rtlLanguages.includes(lng) ? 'rtl' : 'ltr');
     };
 
     updateDir(i18n.language);
-    i18n.on("languageChanged", updateDir);
-    return () => i18n.off("languageChanged", updateDir);
+    i18n.on('languageChanged', updateDir);
+    return () => i18n.off('languageChanged', updateDir);
   }, [i18n]);
 
   const changeLanguage = (lng) => {
     i18n.changeLanguage(lng);
-    localStorage.setItem("language", lng);
+    localStorage.setItem('language', lng);
   };
 
   return (
@@ -70,9 +70,8 @@ const LanguageSwitcher = () => {
       </optgroup>
 
       <optgroup label="🌍 AFRICA">
-      <option value="sw">🇰🇪 Kiswahili (Swahili)</option>
+        <option value="sw">🇰🇪 Kiswahili (Swahili)</option>
       </optgroup>
-
     </select>
   );
 };

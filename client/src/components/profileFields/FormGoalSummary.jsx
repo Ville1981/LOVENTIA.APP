@@ -1,6 +1,6 @@
-import React from "react";
-import PropTypes from "prop-types";
-import { useFormContext } from "react-hook-form";
+import React from 'react';
+import PropTypes from 'prop-types';
+import { useFormContext } from 'react-hook-form';
 
 /**
  * FormGoalSummary
@@ -12,17 +12,14 @@ import { useFormContext } from "react-hook-form";
  *   summaryField: the field name for the summary textarea (default: "summary")
  *   goalField: the field name for the goals textarea (default: "goal")
  */
-const FormGoalSummary = ({ t, summaryField = "summary", goalField = "goal" }) => {
+const FormGoalSummary = ({ t, summaryField = 'summary', goalField = 'goal' }) => {
   const {
     register,
     formState: { errors },
   } = useFormContext();
 
   return (
-    <div
-      className="flex flex-col gap-4 w-full text-left"
-      data-cy="FormGoalSummary__section"
-    >
+    <div className="flex flex-col gap-4 w-full text-left" data-cy="FormGoalSummary__section">
       {/* Profile summary */}
       <div className="w-full">
         <label
@@ -30,21 +27,18 @@ const FormGoalSummary = ({ t, summaryField = "summary", goalField = "goal" }) =>
           className="block font-medium mb-1"
           data-cy="FormGoalSummary__summaryLabel"
         >
-          📄 {t("profile.about")}
+          📄 {t('profile.about')}
         </label>
         <textarea
           id={summaryField}
           {...register(summaryField)}
-          placeholder={t("profile.about")}
+          placeholder={t('profile.about')}
           className="p-2 border rounded w-full"
           rows={3}
           data-cy="FormGoalSummary__summaryInput"
         />
         {errors[summaryField] && (
-          <p
-            className="mt-1 text-sm text-red-600"
-            data-cy="FormGoalSummary__summaryError"
-          >
+          <p className="mt-1 text-sm text-red-600" data-cy="FormGoalSummary__summaryError">
             {errors[summaryField].message}
           </p>
         )}
@@ -57,21 +51,18 @@ const FormGoalSummary = ({ t, summaryField = "summary", goalField = "goal" }) =>
           className="block font-medium mb-1"
           data-cy="FormGoalSummary__goalLabel"
         >
-          🎯 {t("profile.goals")}
+          🎯 {t('profile.goals')}
         </label>
         <textarea
           id={goalField}
           {...register(goalField)}
-          placeholder={t("profile.goals")}
+          placeholder={t('profile.goals')}
           className="p-2 border rounded w-full"
           rows={3}
           data-cy="FormGoalSummary__goalInput"
         />
         {errors[goalField] && (
-          <p
-            className="mt-1 text-sm text-red-600"
-            data-cy="FormGoalSummary__goalError"
-          >
+          <p className="mt-1 text-sm text-red-600" data-cy="FormGoalSummary__goalError">
             {errors[goalField].message}
           </p>
         )}

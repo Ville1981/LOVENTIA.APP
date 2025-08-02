@@ -11,16 +11,16 @@ A full-stack dating application with both **server** (Node.js/Express, MongoDB) 
 3. [Installation](#installation)
 4. [Environment Variables](#environment-variables)
 5. [Running the App](#running-the-app)
+   - [Server](#server)
+   - [Client](#client)
 
-   * [Server](#server)
-   * [Client](#client)
 6. [Docker Setup (Optional)](#docker-setup-optional)
 7. [Docker Desktop Auto-Start](#docker-desktop-auto-start)
 8. [API Documentation](#api-documentation)
 9. [Documentation & Infrastructure](#documentation--infrastructure)
+   - [Version Control Workflow](#version-control-workflow)
+   - [CI/CD Documentation](#cicd-documentation)
 
-   * [Version Control Workflow](#version-control-workflow)
-   * [CI/CD Documentation](#cicd-documentation)
 10. [Image Upload API](#image-upload-api)
 11. [Client API Abstraction](#client-api-abstraction)
 12. [Testing & CI/CD](#testing--cicd)
@@ -31,25 +31,25 @@ A full-stack dating application with both **server** (Node.js/Express, MongoDB) 
 
 ## Features
 
-* **User Authentication**: JWT-based login & registration
-* **Profile Management**: Update profile fields, upload avatar & extra images
-* **Subscriptions**: Free vs. Premium plans (image limits)
-* **Payments**: Stripe Checkout & PayPal integration
-* **Image Uploads**: Multer-powered file handling
-* **Admin Tools**: Hide/show users, delete accounts
-* **Real-time Webhooks**: Stripe & PayPal event handling
-* **API Documentation**: OpenAPI/Swagger spec at `/api-docs`
-* **CI/CD Ready**: GitHub Actions example workflows
+- **User Authentication**: JWT-based login & registration
+- **Profile Management**: Update profile fields, upload avatar & extra images
+- **Subscriptions**: Free vs. Premium plans (image limits)
+- **Payments**: Stripe Checkout & PayPal integration
+- **Image Uploads**: Multer-powered file handling
+- **Admin Tools**: Hide/show users, delete accounts
+- **Real-time Webhooks**: Stripe & PayPal event handling
+- **API Documentation**: OpenAPI/Swagger spec at `/api-docs`
+- **CI/CD Ready**: GitHub Actions example workflows
 
 ---
 
 ## Prerequisites
 
-* **Node.js** >= v16
-* **npm** or **Yarn**
-* **MongoDB** instance (Atlas or local)
-* **Stripe** account & API keys
-* **PayPal** Developer account & credentials
+- **Node.js** >= v16
+- **npm** or **Yarn**
+- **MongoDB** instance (Atlas or local)
+- **Stripe** account & API keys
+- **PayPal** Developer account & credentials
 
 ---
 
@@ -120,8 +120,8 @@ cd server
 npm run dev
 ```
 
-* Runs on: `http://localhost:5000`
-* Swagger UI (after setup): `http://localhost:5000/api-docs`
+- Runs on: `http://localhost:5000`
+- Swagger UI (after setup): `http://localhost:5000/api-docs`
 
 ### Client
 
@@ -130,7 +130,7 @@ cd client
 npm run dev
 ```
 
-* Runs on: `http://localhost:5174`
+- Runs on: `http://localhost:5174`
 
 ---
 
@@ -253,8 +253,8 @@ Describe GitHub Actions workflows, environment secrets management, and automated
 POST /api/images/:userId/upload-avatar
 ```
 
-* **Headers**: `Authorization: Bearer <token>`
-* **Form Data**: `avatar` (single file)
+- **Headers**: `Authorization: Bearer <token>`
+- **Form Data**: `avatar` (single file)
 
 ```bash
 curl -X POST http://localhost:5000/api/images/USER_ID/upload-avatar \
@@ -268,8 +268,8 @@ curl -X POST http://localhost:5000/api/images/USER_ID/upload-avatar \
 POST /api/images/:userId/upload-photos
 ```
 
-* **Headers**: `Authorization: Bearer <token>`
-* **Form Data**: `photos` (multiple files)
+- **Headers**: `Authorization: Bearer <token>`
+- **Form Data**: `photos` (multiple files)
 
 ```bash
 curl -X POST http://localhost:5000/api/images/USER_ID/upload-photos \
@@ -291,15 +291,15 @@ export const uploadAvatar = (userId, file) => {
   const form = new FormData();
   form.append('avatar', file);
   return axios.post(`/api/images/${userId}/upload-avatar`, form, {
-    headers: { 'Content-Type': 'multipart/form-data' }
+    headers: { 'Content-Type': 'multipart/form-data' },
   });
 };
 
 export const uploadPhotos = (userId, files) => {
   const form = new FormData();
-  files.forEach(f => form.append('photos', f));
+  files.forEach((f) => form.append('photos', f));
   return axios.post(`/api/images/${userId}/upload-photos`, form, {
-    headers: { 'Content-Type': 'multipart/form-data' }
+    headers: { 'Content-Type': 'multipart/form-data' },
   });
 };
 ```
@@ -308,9 +308,9 @@ export const uploadPhotos = (userId, files) => {
 
 ## Testing & CI/CD
 
-* **Server Tests**: Jest & Supertest (`server/tests`)
-* **Client Tests**: React Testing Library (`client/src/__tests__`)
-* **CI Workflow**: see `.github/workflows/ci.yml`, `staging-e2e.yml`, `production-deploy.yml`
+- **Server Tests**: Jest & Supertest (`server/tests`)
+- **Client Tests**: React Testing Library (`client/src/__tests__`)
+- **CI Workflow**: see `.github/workflows/ci.yml`, `staging-e2e.yml`, `production-deploy.yml`
 
 Example CI workflow (`.github/workflows/ci.yml`):
 
@@ -334,14 +334,13 @@ jobs:
 
 ## Commit Convention & Code Style
 
-* **Linting**: ESLint
-* **Formatting**: Prettier
-* **Commit Messages**: Conventional Commits
-
-  * `feat: add new feature`
-  * `fix: bug fix`
-  * `docs: documentation only changes`
-  * `chore: build process or auxiliary tool changes`
+- **Linting**: ESLint
+- **Formatting**: Prettier
+- **Commit Messages**: Conventional Commits
+  - `feat: add new feature`
+  - `fix: bug fix`
+  - `docs: documentation only changes`
+  - `chore: build process or auxiliary tool changes`
 
 ---
 
@@ -387,20 +386,3 @@ erDiagram
         Date createdAt
     }
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -15,13 +15,13 @@ const token = localStorage.getItem('accessToken');
 // --- REPLACE START: configure socket with reconnect and auth payload ---
 export const socket = io(SOCKET_URL, {
   auth: { token },
-  transports: ['websocket'],       // enforce WebSocket only
-  autoConnect: false,             // connect manually via connectSocket()
+  transports: ['websocket'], // enforce WebSocket only
+  autoConnect: false, // connect manually via connectSocket()
   reconnection: true,
   reconnectionAttempts: Infinity, // keep trying indefinitely
-  reconnectionDelay: 1000,        // initial retry delay: 1s
-  reconnectionDelayMax: 5000,     // max retry delay: 5s
-  randomizationFactor: 0.5,       // add jitter
+  reconnectionDelay: 1000, // initial retry delay: 1s
+  reconnectionDelayMax: 5000, // max retry delay: 5s
+  randomizationFactor: 0.5, // add jitter
 });
 // --- REPLACE END ---
 
@@ -29,7 +29,7 @@ export const socket = io(SOCKET_URL, {
 let heartbeatInterval;
 let dedupeCleanupInterval;
 const RECEIPT_CLEAR_INTERVAL = 60000; // clear dedupe set every 60s
-const HEARTBEAT_INTERVAL = 25000;     // send heartbeat every 25s
+const HEARTBEAT_INTERVAL = 25000; // send heartbeat every 25s
 
 // Store recently received message IDs to avoid duplicates
 const receivedMessageIds = new Set();

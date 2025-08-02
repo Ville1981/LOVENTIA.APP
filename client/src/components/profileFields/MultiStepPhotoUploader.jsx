@@ -5,11 +5,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
-import {
-  uploadPhotoStep,
-  deletePhotoSlot,
-  uploadPhotos,
-} from '../../api/images';
+import { uploadPhotoStep, deletePhotoSlot, uploadPhotos } from '../../api/images';
 import { BACKEND_BASE_URL, PLACEHOLDER_IMAGE } from '../../config';
 import ControlBar from '../ui/ControlBar';
 import Button from '../ui/Button';
@@ -18,8 +14,7 @@ import Button from '../ui/Button';
  * Normalize Windows backslashes (\) → forward slash (/)
  * Ensure single leading slash
  */
-const normalizePath = (p = '') =>
-  '/' + p.replace(/\\/g, '/').replace(/^\/+/, '');
+const normalizePath = (p = '') => '/' + p.replace(/\\/g, '/').replace(/^\/+/, '');
 
 export default function MultiStepPhotoUploader({
   userId,
@@ -54,9 +49,7 @@ export default function MultiStepPhotoUploader({
 
   // Sync incoming extraImages → localExtra
   useEffect(() => {
-    setLocalExtra(
-      Array.from({ length: maxSlots }, (_, i) => extraImages[i] || null)
-    );
+    setLocalExtra(Array.from({ length: maxSlots }, (_, i) => extraImages[i] || null));
   }, [extraImages, maxSlots]);
 
   /** Handle per‑slot file selection */
@@ -206,9 +199,7 @@ export default function MultiStepPhotoUploader({
           {t('Browse…')}
         </Button>
         <div className="flex-1 border bg-white px-3 py-2 rounded text-gray-700 text-sm truncate">
-          {bulkFiles.length
-            ? bulkFiles.map((f) => f.name).join(', ')
-            : t('No files chosen')}
+          {bulkFiles.length ? bulkFiles.map((f) => f.name).join(', ') : t('No files chosen')}
         </div>
         <Button
           variant="blue"
@@ -219,9 +210,7 @@ export default function MultiStepPhotoUploader({
           {t('Save')}
         </Button>
       </ControlBar>
-      {bulkError && (
-        <p className="text-red-600 text-sm mb-4">{bulkError}</p>
-      )}
+      {bulkError && <p className="text-red-600 text-sm mb-4">{bulkError}</p>}
 
       {/* Extra slots grid */}
       <div className="grid grid-cols-3 gap-4">
@@ -295,9 +284,9 @@ export default function MultiStepPhotoUploader({
 }
 
 MultiStepPhotoUploader.propTypes = {
-  userId:      PropTypes.string.isRequired,
-  isPremium:   PropTypes.bool,
+  userId: PropTypes.string.isRequired,
+  isPremium: PropTypes.bool,
   extraImages: PropTypes.arrayOf(PropTypes.string),
-  onSuccess:   PropTypes.func,
-  onError:     PropTypes.func,
+  onSuccess: PropTypes.func,
+  onError: PropTypes.func,
 };

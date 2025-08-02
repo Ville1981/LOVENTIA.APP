@@ -24,15 +24,7 @@ export default function Avatar({ src, alt, size = 40 }) {
     // --- REPLACE END
   };
 
-  return (
-    <img
-      src={src}
-      alt={alt}
-      style={style}
-      onError={handleError}
-      loading="lazy"
-    />
-  );
+  return <img src={src} alt={alt} style={style} onError={handleError} loading="lazy" />;
 }
 
 Avatar.propTypes = {

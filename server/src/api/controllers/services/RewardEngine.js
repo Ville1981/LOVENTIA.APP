@@ -28,8 +28,18 @@ export class RewardEngine {
       { new: true }
     );
     const bonusAmount = 10; // esim. 10 yksikköä
-    await RewardLog.create({ user: userId, referralCode: code, type: 'signup', amount: bonusAmount });
-    await ReferralBonus.create({ referral: referral._id, user: userId, amount: bonusAmount, type: 'signup' });
+    await RewardLog.create({
+      user: userId,
+      referralCode: code,
+      type: 'signup',
+      amount: bonusAmount,
+    });
+    await ReferralBonus.create({
+      referral: referral._id,
+      user: userId,
+      amount: bonusAmount,
+      type: 'signup',
+    });
     return { referral, bonusAmount };
   }
 }

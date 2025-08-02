@@ -24,7 +24,7 @@ router.get(
       // Fetch overview data from Message model
       const overviews = await Message.getOverviewForUser(req.user.id);
       return res.json(
-        overviews.map(conv => ({
+        overviews.map((conv) => ({
           ...conv,
           // --- REPLACE START: ensure timestamp is ISO string for client formatting ---
           lastMessageTime: new Date(conv.lastMessageTime).toISOString(),
@@ -56,8 +56,8 @@ router.get(
       const messages = await Message.find({
         $or: [
           { sender: userId, receiver: peerId },
-          { sender: peerId, receiver: userId }
-        ]
+          { sender: peerId, receiver: userId },
+        ],
       }).sort({ createdAt: 1 });
       return res.json(messages);
     } catch (err) {

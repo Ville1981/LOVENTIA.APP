@@ -5,8 +5,5 @@
   "age": 30,
   "gender": "female",
   "profilePicture": "/uploads/profiles/initial-avatar.jpg",
-  "extraImages": [
-    "/uploads/extra/initial1.jpg",
-    "/uploads/extra/initial2.jpg"
-  ]
+  "extraImages": ["/uploads/extra/initial1.jpg", "/uploads/extra/initial2.jpg"]
 }

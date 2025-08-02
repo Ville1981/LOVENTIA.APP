@@ -1,14 +1,14 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import api from "../utils/axiosInstance";
-import { useAuth } from "../context/AuthContext";
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import api from '../utils/axiosInstance';
+import { useAuth } from '../context/AuthContext';
 
 const Register = () => {
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [message, setMessage] = useState("");
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [message, setMessage] = useState('');
   const navigate = useNavigate();
   const { login } = useAuth();
 
@@ -17,24 +17,24 @@ const Register = () => {
 
     // Client-side validation
     if (password !== confirmPassword) {
-      setMessage("Salasanat eivät täsmää");
+      setMessage('Salasanat eivät täsmää');
       return;
     }
     if (password.length < 8) {
-      setMessage("Salasanan tulee olla vähintään 8 merkkiä pitkä");
+      setMessage('Salasanan tulee olla vähintään 8 merkkiä pitkä');
       return;
     }
 
     try {
       // 1. Luo käyttäjä /api/auth/register
-      await api.post("/auth/register", {
+      await api.post('/auth/register', {
         username,
         email,
         password,
       });
 
       // 2. Kirjaudu heti: /api/auth/login
-      const loginRes = await api.post("/auth/login", {
+      const loginRes = await api.post('/auth/login', {
         email,
         password,
       });
@@ -43,12 +43,12 @@ const Register = () => {
       login(loginRes.data.accessToken);
 
       // 4. Ilmoita ja siirry profiilisivulle
-      setMessage("Tili luotu ja kirjautuminen onnistui!");
-      navigate("/profile");
+      setMessage('Tili luotu ja kirjautuminen onnistui!');
+      navigate('/profile');
     } catch (err) {
       // Näytä backendin antama virheilmoitus tai yleinen
       const errMsg = err.response?.data?.error;
-      setMessage(errMsg || "Virhe rekisteröinnissä");
+      setMessage(errMsg || 'Virhe rekisteröinnissä');
     }
   };
 
@@ -97,9 +97,7 @@ const Register = () => {
       >
         Luo tili
       </button>
-      {message && (
-        <p className="text-sm text-red-600">{message}</p>
-      )}
+      {message && <p className="text-sm text-red-600">{message}</p>}
     </form>
   );
 };

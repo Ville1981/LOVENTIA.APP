@@ -6,7 +6,7 @@
  */
 module.exports.cookieOptions = {
   // --- REPLACE START: ensure HttpOnly so it's not accessible via JavaScript ---
-  httpOnly: true,                                // Cookie can only be sent via HTTP(S), not JS
+  httpOnly: true, // Cookie can only be sent via HTTP(S), not JS
   // --- REPLACE END ---
 
   // --- REPLACE START: secure flag enables sending only over HTTPS in production ---
@@ -17,6 +17,6 @@ module.exports.cookieOptions = {
   sameSite: 'Strict',
   // --- REPLACE END ---
 
-  path: '/',                                     // Cookie sent on all paths
-  maxAge: 7 * 24 * 60 * 60 * 1000,               // 7 days in milliseconds
+  path: '/', // Cookie sent on all paths
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
 };

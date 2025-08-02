@@ -58,12 +58,8 @@ describe('Profile Form E2E', () => {
 
   it('lähettää lomakkeen oikein kun validi', () => {
     // Syötetään kaikki pakolliset kentät
-    cy.get('[data-cy=FormBasicInfo__usernameInput]')
-      .clear()
-      .type('Matti');
-    cy.get('[data-cy=FormBasicInfo__emailInput]')
-      .clear()
-      .type('matti@example.com');
+    cy.get('[data-cy=FormBasicInfo__usernameInput]').clear().type('Matti');
+    cy.get('[data-cy=FormBasicInfo__emailInput]').clear().type('matti@example.com');
     cy.get('[data-cy=FormBasicInfo__ageSelect]').select('30');
     cy.get('[data-cy=FormBasicInfo__genderSelect]').select('Mies');
     cy.get('[data-cy=FormBasicInfo__orientationSelect]').select('Hetero');
@@ -72,8 +68,6 @@ describe('Profile Form E2E', () => {
     cy.get('[data-cy=ProfileForm__saveButton]').click();
 
     // Odotetaan stubattu päivitys ja varmistetaan 200
-    cy.wait('@updateProfile')
-      .its('response.statusCode')
-      .should('eq', 200);
+    cy.wait('@updateProfile').its('response.statusCode').should('eq', 200);
   });
 });

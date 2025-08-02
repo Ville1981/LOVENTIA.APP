@@ -24,10 +24,12 @@ export default function SpotifyFeed({ playlistId, count = 5 }) {
 
   return (
     <div className="spotify-feed">
-      {tracks.map(track => (
+      {tracks.map((track) => (
         <div key={track.id} className="track">
           <img src={track.albumArt} alt={track.name} />
-          <p>{track.name} — {track.artist}</p>
+          <p>
+            {track.name} — {track.artist}
+          </p>
         </div>
       ))}
     </div>

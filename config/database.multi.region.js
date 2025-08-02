@@ -21,15 +21,15 @@ const regions = {
     {
       region: 'us-east-1',
       host: process.env.DB_US_HOST || 'db-us.example.com',
-    }
-  ]
+    },
+  ],
 };
 
 /**
  * Hakee parhaan DB-yhteyden maantieteellisen sijainnin mukaan
  */
 export function getDbConfig(userRegion) {
-  const replica = regions.replicas.find(r => r.region === userRegion);
+  const replica = regions.replicas.find((r) => r.region === userRegion);
   if (replica) {
     return {
       host: replica.host,

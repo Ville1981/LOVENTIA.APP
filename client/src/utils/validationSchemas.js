@@ -8,9 +8,7 @@ import * as Yup from 'yup';
  * - password: required, min 8 characters
  */
 export const loginSchema = Yup.object().shape({
-  email: Yup.string()
-    .email('Please enter a valid email address')
-    .required('Email is required'),
+  email: Yup.string().email('Please enter a valid email address').required('Email is required'),
   password: Yup.string()
     .min(8, 'Password must be at least 8 characters')
     .required('Password is required'),
@@ -23,12 +21,8 @@ export const loginSchema = Yup.object().shape({
  * - password: required, complex rules
  */
 export const registerSchema = Yup.object().shape({
-  name: Yup.string()
-    .min(3, 'Name must be at least 3 characters')
-    .required('Name is required'),
-  email: Yup.string()
-    .email('Please enter a valid email address')
-    .required('Email is required'),
+  name: Yup.string().min(3, 'Name must be at least 3 characters').required('Name is required'),
+  email: Yup.string().email('Please enter a valid email address').required('Email is required'),
   password: Yup.string()
     .min(8, 'Password must be at least 8 characters')
     .matches(/[A-Z]/, 'Password must contain at least one uppercase letter')
@@ -46,12 +40,8 @@ export const registerSchema = Yup.object().shape({
  * - rating: required, integer between 1 and 5
  */
 export const feedbackSchema = Yup.object().shape({
-  name: Yup.string()
-    .min(3, 'Name must be at least 3 characters')
-    .required('Name is required'),
-  email: Yup.string()
-    .email('Please enter a valid email address')
-    .required('Email is required'),
+  name: Yup.string().min(3, 'Name must be at least 3 characters').required('Name is required'),
+  email: Yup.string().email('Please enter a valid email address').required('Email is required'),
   message: Yup.string()
     .min(10, 'Message must be at least 10 characters')
     .required('Message is required'),

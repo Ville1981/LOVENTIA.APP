@@ -4,7 +4,7 @@
 describe('Conversations Overview', () => {
   beforeEach(() => {
     // Clear any existing intercepts
-    cy.intercept('/api/messages/overview', req => req.continue());
+    cy.intercept('/api/messages/overview', (req) => req.continue());
   });
 
   it('displays loading state while fetching', () => {
@@ -12,7 +12,7 @@ describe('Conversations Overview', () => {
     cy.intercept('GET', '/api/messages/overview', {
       delay: 1000,
       statusCode: 200,
-      body: []
+      body: [],
     }).as('getOverview');
 
     cy.visit('/messages');
@@ -25,7 +25,7 @@ describe('Conversations Overview', () => {
   it('shows empty state when no conversations', () => {
     cy.intercept('GET', '/api/messages/overview', {
       statusCode: 200,
-      body: []
+      body: [],
     }).as('getEmpty');
 
     cy.visit('/messages');
@@ -37,7 +37,7 @@ describe('Conversations Overview', () => {
   it('shows error state on server error', () => {
     cy.intercept('GET', '/api/messages/overview', {
       statusCode: 500,
-      body: { message: 'Server error' }
+      body: { message: 'Server error' },
     }).as('getError');
 
     cy.visit('/messages');
@@ -54,7 +54,7 @@ describe('Conversations Overview', () => {
         peerAvatarUrl: '/avatar1.png',
         lastMessage: 'Hello!',
         lastMessageTimestamp: new Date().toISOString(),
-        unreadCount: 2
+        unreadCount: 2,
       },
       {
         userId: 'user456',
@@ -62,12 +62,12 @@ describe('Conversations Overview', () => {
         peerAvatarUrl: null,
         lastMessage: 'See you soon',
         lastMessageTimestamp: new Date().toISOString(),
-        unreadCount: 0
-      }
+        unreadCount: 0,
+      },
     ];
     cy.intercept('GET', '/api/messages/overview', {
       statusCode: 200,
-      body: mockConversations
+      body: mockConversations,
     }).as('getList');
 
     cy.visit('/messages');

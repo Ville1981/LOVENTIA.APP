@@ -36,10 +36,7 @@ export function ResetPassword() {
       setTimeout(() => navigate('/login'), 3000);
     } catch (err) {
       console.error('Reset password error:', err);
-      setError(
-        err.response?.data?.error ||
-        'Something went wrong. Please try again later.'
-      );
+      setError(err.response?.data?.error || 'Something went wrong. Please try again later.');
     }
   };
 
@@ -57,7 +54,7 @@ export function ResetPassword() {
               id="password"
               type="password"
               value={password}
-              onChange={e => setPassword(e.target.value)}
+              onChange={(e) => setPassword(e.target.value)}
               required
               className="w-full border border-gray-300 px-3 py-2 rounded"
               placeholder="••••••••"
@@ -71,7 +68,7 @@ export function ResetPassword() {
               id="confirm"
               type="password"
               value={confirm}
-              onChange={e => setConfirm(e.target.value)}
+              onChange={(e) => setConfirm(e.target.value)}
               required
               className="w-full border border-gray-300 px-3 py-2 rounded"
               placeholder="••••••••"
@@ -85,11 +82,7 @@ export function ResetPassword() {
           </button>
         </form>
       )}
-      {message && (
-        <p className="mt-4 text-green-600">
-          {message} Redirecting to login...
-        </p>
-      )}
+      {message && <p className="mt-4 text-green-600">{message} Redirecting to login...</p>}
     </div>
   );
 }

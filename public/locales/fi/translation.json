@@ -51,7 +51,6 @@
     "katso_kayttajat": "Katso käyttäjiä"
   },
 
-  
   "profile": {
     "username": "Käyttäjänimi",
     "email": "Sähköposti",
@@ -90,14 +89,12 @@
     "extraImages": "Lisäkuvat (max 6)",
     "save": "Tallenna muutokset",
     "delete": "Poista tili"
-    
   },
   "hero": {
-  "0": "Löydä kestävä rakkaus.",
-  "1": "Tapaa samanhenkisiä ihmisiä.",
-  "2": "Seuraava mätsisi on vain klikkauksen päässä."
-},
-
+    "0": "Löydä kestävä rakkaus.",
+    "1": "Tapaa samanhenkisiä ihmisiä.",
+    "2": "Seuraava mätsisi on vain klikkauksen päässä."
+  },
 
   "buttons": {
     "submit": "Lähetä",
@@ -115,104 +112,96 @@
   },
 
   "discover": {
-  "title": "Löydä käyttäjiä",
-  "nearYou": "lähelläsi",
-  "searchPlaceholder": "🔍 Hae nimellä tai kiinnostuksella...",
-  "geolocationNotSupported": "Selaimesi ei tue sijaintitietoja.",
-  "cityNotFound": "Sijaintiasi ei voitu tunnistaa kaupungin tasolla.",
-  "fetchError": "Virhe käyttäjien haussa.",
-  "liked": "Tykkäys lähetetty!",
-  "likeFailed": "Tykkäys epäonnistui.",
-  "superliked": "Superlike lähetetty!",
-  "superlikeFailed": "Superlike epäonnistui.",
-  "superlikeLimit": "❌ Superlike-raja (3/48h) saavutettu.",
-  "loading": "🔄 Ladataan käyttäjiä...",
-  "adAlt": "Mainostila – mainoksesi tähän",
-  "like": "Tykkää",
-  "superlike": "Superlike",
-  "viewProfile": "Näytä profiili",
-  "premium": "Premium-käyttäjä",
+    "title": "Löydä käyttäjiä",
+    "nearYou": "lähelläsi",
+    "searchPlaceholder": "🔍 Hae nimellä tai kiinnostuksella...",
+    "geolocationNotSupported": "Selaimesi ei tue sijaintitietoja.",
+    "cityNotFound": "Sijaintiasi ei voitu tunnistaa kaupungin tasolla.",
+    "fetchError": "Virhe käyttäjien haussa.",
+    "liked": "Tykkäys lähetetty!",
+    "likeFailed": "Tykkäys epäonnistui.",
+    "superliked": "Superlike lähetetty!",
+    "superlikeFailed": "Superlike epäonnistui.",
+    "superlikeLimit": "❌ Superlike-raja (3/48h) saavutettu.",
+    "loading": "🔄 Ladataan käyttäjiä...",
+    "adAlt": "Mainostila – mainoksesi tähän",
+    "like": "Tykkää",
+    "superlike": "Superlike",
+    "viewProfile": "Näytä profiili",
+    "premium": "Premium-käyttäjä",
 
-  
-  "premiumText": "Näet kuka on tykännyt sinusta, käytä Superlike ja saa enemmän osumia.",
-  "upgradeNow": "Päivitä nyt"
-  
-    
-    
-    
-    },
+    "premiumText": "Näet kuka on tykännyt sinusta, käytä Superlike ja saa enemmän osumia.",
+    "upgradeNow": "Päivitä nyt"
+  },
 
+  "chat": {
+    "title": "Keskustelu",
+    "placeholder": "Kirjoita viesti...",
+    "send": "Lähetä"
+  },
 
+  "admin": {
+    "title": "Admin-paneeli: Käyttäjien hallinta",
+    "name": "Nimi",
+    "location": "Sijainti",
+    "hidden": "Piilotettu?",
+    "actions": "Toiminnot",
+    "yes": "✅ Kyllä",
+    "no": "❌ Ei",
+    "hide": "Piilota",
+    "unhide": "Näytä",
+    "delete": "Poista",
+    "confirmDelete": "Haluatko varmasti poistaa käyttäjän?"
+  },
 
+  "map": {
+    "title": "Käyttäjät kartalla",
+    "cityNotFound": "Sijaintiasi ei voitu tunnistaa kaupungin tasolla.",
+    "locationError": "Sijaintia ei voitu hakea.",
+    "fetchError": "Virhe käyttäjien haussa.",
+    "youAreHere": "Sinä olet tässä",
+    "loadingLocation": "Haetaan sijaintia..."
+  },
 
-"chat": {
-  "title": "Keskustelu",
-  "placeholder": "Kirjoita viesti...",
-  "send": "Lähetä"
-},
+  "matches": {
+    "title": "Osumasi",
+    "noMatches": "Ei osumia vielä.",
+    "openChat": "Avaa chat",
+    "score": "Yhteensopivuus"
+  },
 
-"admin": {
-  "title": "Admin-paneeli: Käyttäjien hallinta",
-  "name": "Nimi",
-  "location": "Sijainti",
-  "hidden": "Piilotettu?",
-  "actions": "Toiminnot",
-  "yes": "✅ Kyllä",
-  "no": "❌ Ei",
-  "hide": "Piilota",
-  "unhide": "Näytä",
-  "delete": "Poista",
-  "confirmDelete": "Haluatko varmasti poistaa käyttäjän?"
-},
+  "premium": {
+    "successTitle": "Premium-tilaus onnistui",
+    "successMessage": "✅ Premium aktivoitu! Kiitos ostoksesta.",
+    "cancelTitle": "Maksu peruutettu",
+    "cancelMessage": "Et suorittanut maksua. Voit yrittää uudelleen milloin tahansa.",
+    "updating": "Päivitetään tilaa...",
+    "errorMessage": "❌ Premium-päivitys epäonnistui."
+  },
 
-"map": {
-  "title": "Käyttäjät kartalla",
-  "cityNotFound": "Sijaintiasi ei voitu tunnistaa kaupungin tasolla.",
-  "locationError": "Sijaintia ei voitu hakea.",
-  "fetchError": "Virhe käyttäjien haussa.",
-  "youAreHere": "Sinä olet tässä",
-  "loadingLocation": "Haetaan sijaintia..."
-},
-
-"matches": {
-  "title": "Osumasi",
-  "noMatches": "Ei osumia vielä.",
-  "openChat": "Avaa chat",
-  "score": "Yhteensopivuus"
-},
-
-"premium": {
-  "successTitle": "Premium-tilaus onnistui",
-  "successMessage": "✅ Premium aktivoitu! Kiitos ostoksesta.",
-  "cancelTitle": "Maksu peruutettu",
-  "cancelMessage": "Et suorittanut maksua. Voit yrittää uudelleen milloin tahansa.",
-  "updating": "Päivitetään tilaa...",
-  "errorMessage": "❌ Premium-päivitys epäonnistui."
-},
-
-"country": "Maa",
-"region": "Alue / lääni",
-"city": "Kaupunki",
-"countries": {
-  "Suomi": "Suomi",
-  "Ruotsi": "Ruotsi",
-  "Norja": "Norja",
-  "Saksa": "Saksa",
-  "Ranska": "Ranska",
-  "Yhdysvallat": "Yhdysvallat",
-  "Kanada": "Kanada",
-  "Iso-Britannia": "Iso-Britannia",
-  "Japani": "Japani",
-  "Kiina": "Kiina",
-  "Intia": "Intia",
-  "Venäjä": "Venäjä",
-  "Espanja": "Espanja",
-  "Brasilia": "Brasilia",
-  "Argentiina": "Argentiina",
-  "Chile": "Chile",
-  "Ukraina": "Ukraina",
-  "Kazakstan": "Kazakstan",
-  "Portugali": "Portugali",
-  "Italia": "Italia"
+  "country": "Maa",
+  "region": "Alue / lääni",
+  "city": "Kaupunki",
+  "countries": {
+    "Suomi": "Suomi",
+    "Ruotsi": "Ruotsi",
+    "Norja": "Norja",
+    "Saksa": "Saksa",
+    "Ranska": "Ranska",
+    "Yhdysvallat": "Yhdysvallat",
+    "Kanada": "Kanada",
+    "Iso-Britannia": "Iso-Britannia",
+    "Japani": "Japani",
+    "Kiina": "Kiina",
+    "Intia": "Intia",
+    "Venäjä": "Venäjä",
+    "Espanja": "Espanja",
+    "Brasilia": "Brasilia",
+    "Argentiina": "Argentiina",
+    "Chile": "Chile",
+    "Ukraina": "Ukraina",
+    "Kazakstan": "Kazakstan",
+    "Portugali": "Portugali",
+    "Italia": "Italia"
   }
 }

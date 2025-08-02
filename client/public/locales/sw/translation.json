@@ -12,7 +12,6 @@
     }
   },
 
-
   "Home": "Nyumbani",
   "Discover": "Gundua",
   "Login": "Ingia",
@@ -45,7 +44,7 @@
   "tagline": "Linganishwa vizuri. Penda kwa akili. 💘",
   "company": "Kampuni",
   "conditions": "Masharti",
-    "profile": {
+  "profile": {
     "username": "Jina la mtumiaji",
     "location": "Mahali",
     "interests": "Maslahi",
@@ -134,11 +133,10 @@
     "superlike": "Superlike",
     "viewProfile": "Tazama wasifu",
     "premium": "Mtumiaji wa Premium",
-        "minAge": "Umri wa chini kabisa",
+    "minAge": "Umri wa chini kabisa",
     "maxAge": "Umri wa juu kabisa",
     "instructions": "Chagua vichujio ili kupata wasifu unaolingana.",
     "filter": "Chuja"
-
   },
   "admin": {
     "title": "Jopo la Msimamizi: Usimamizi wa Watumiaji",
@@ -215,23 +213,19 @@
   },
 
   "common": {
-  "select": "Chagua",
-  "filter": "Chuja"
-},
+    "select": "Chagua",
+    "filter": "Chuja"
+  },
 
-"lifestyle": {
-  "title": "Mtindo wa maisha",
-  "smoke": "Uvutaji sigara",
-  "drink": "Pombe",
-  "drugs": "Madawa ya kulevya",
-  "no": "Hatumii",
-  "little": "Kidogo",
-  "average": "Kawaida",
-  "much": "Mengi",
-  "sober": "Huru kutokana na uraibu"
+  "lifestyle": {
+    "title": "Mtindo wa maisha",
+    "smoke": "Uvutaji sigara",
+    "drink": "Pombe",
+    "drugs": "Madawa ya kulevya",
+    "no": "Hatumii",
+    "little": "Kidogo",
+    "average": "Kawaida",
+    "much": "Mengi",
+    "sober": "Huru kutokana na uraibu"
+  }
 }
-
-
- }
-
-

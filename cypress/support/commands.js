@@ -16,12 +16,12 @@ Cypress.Commands.add('loginViaApi', () => {
   // --- REPLACE START: adjust URL and credentials as needed ---
   cy.request({
     method: 'POST',
-    url: '/api/auth/login',               // Backend login endpoint
+    url: '/api/auth/login', // Backend login endpoint
     body: {
       email: Cypress.env('TEST_USER_EMAIL'),
       password: Cypress.env('TEST_USER_PASSWORD'),
     },
-    withCredentials: true,                // Ensure refreshToken cookie is set
+    withCredentials: true, // Ensure refreshToken cookie is set
   }).then((resp) => {
     expect(resp.status).to.eq(200);
 

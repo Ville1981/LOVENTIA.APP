@@ -27,11 +27,14 @@ async function checkSLA() {
 
 // Jos tämä tiedosto suoritetaan suoraan, käynnistä ajoitettu tarkistus
 if (require.main === module) {
-  setInterval(() => {
-    checkSLA().catch(() => {
-      // virhe on jo lokattu
-    });
-  }, 5 * 60 * 1000); // 5 min välein
+  setInterval(
+    () => {
+      checkSLA().catch(() => {
+        // virhe on jo lokattu
+      });
+    },
+    5 * 60 * 1000
+  ); // 5 min välein
 }
 
 module.exports = { checkSLA };

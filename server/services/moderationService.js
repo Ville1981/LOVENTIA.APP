@@ -2,7 +2,7 @@
 
 /**
  * Service layer for moderation logic.
- * Handles creating reports, fetching pending reports, 
+ * Handles creating reports, fetching pending reports,
  * and resolving (approving/rejecting) reports.
  */
 
@@ -12,9 +12,9 @@ const Message = require('../models/Message');
 module.exports = {
   /**
    * Create a new moderation report.
-   * @param {string} messageId 
-   * @param {string} reporterId 
-   * @param {string} reason 
+   * @param {string} messageId
+   * @param {string} reporterId
+   * @param {string} reason
    * @returns {Promise<ModerationReport>}
    */
   createReport: async (messageId, reporterId, reason) => {
@@ -41,9 +41,9 @@ module.exports = {
 
   /**
    * Resolve a report by approving (deleting message) or rejecting it.
-   * @param {string} reportId 
-   * @param {'approve'|'reject'} action 
-   * @param {string} resolverId 
+   * @param {string} reportId
+   * @param {'approve'|'reject'} action
+   * @param {string} resolverId
    * @returns {Promise<ModerationReport>}
    */
   resolveReport: async (reportId, action, resolverId) => {

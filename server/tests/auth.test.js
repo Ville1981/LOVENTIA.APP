@@ -13,7 +13,8 @@ describe('Auth Endpoints', () => {
   describe('POST /api/auth/register', () => {
     it('should return 400 if email already exists', async () => {
       // First call for email check, second for username
-      User.findOne = jest.fn()
+      User.findOne = jest
+        .fn()
         .mockResolvedValueOnce({ _id: '1', email: 'test@example.com' })
         .mockResolvedValueOnce(null);
 
@@ -27,7 +28,8 @@ describe('Auth Endpoints', () => {
 
     it('should return 400 if username already exists', async () => {
       // First call for email checks null, second for username
-      User.findOne = jest.fn()
+      User.findOne = jest
+        .fn()
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce({ _id: '2', username: 'User' });
 

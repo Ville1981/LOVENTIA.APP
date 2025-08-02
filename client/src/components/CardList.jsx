@@ -1,6 +1,6 @@
 // client/src/components/CardList.jsx
-import React, { memo } from "react";
-import PropTypes from "prop-types";
+import React, { memo } from 'react';
+import PropTypes from 'prop-types';
 
 const CardList = ({ items, CardComponent, onAction, emptyMessage }) => {
   if (!items || items.length === 0) {
@@ -8,7 +8,7 @@ const CardList = ({ items, CardComponent, onAction, emptyMessage }) => {
   }
   return (
     <div className="flex flex-col items-center mt-6 space-y-6">
-      {items.map(item => (
+      {items.map((item) => (
         <div key={item._id || item.id} className="w-full max-w-[800px]">
           <CardComponent user={item} onAction={onAction} />
         </div>
@@ -26,7 +26,7 @@ CardList.propTypes = {
 
 CardList.defaultProps = {
   onAction: () => {},
-  emptyMessage: "🔍 Ei hakutuloksia",
+  emptyMessage: '🔍 Ei hakutuloksia',
 };
 
 export default memo(CardList);

@@ -1,7 +1,7 @@
 // src/components/HeaderAd.jsx
 
-import React, { useEffect, useState } from "react";
-import * as adData from "../utils/adsData"; // ✅ korjattu import-polku
+import React, { useEffect, useState } from 'react';
+import * as adData from '../utils/adsData'; // ✅ korjattu import-polku
 
 const HeaderAd = () => {
   const [index, setIndex] = useState(0);
@@ -24,9 +24,9 @@ const HeaderAd = () => {
   return (
     <div className="w-full bg-white pt-0 pb-4 shadow">
       <img
-        src={ads[index]?.src || "/ads/header1.png"}
-        alt={ads[index]?.alt || "Mainos"}
-        className={`ad-header ${fade ? "fade-out" : ""}`}
+        src={ads[index]?.src || '/ads/header1.png'}
+        alt={ads[index]?.alt || 'Mainos'}
+        className={`ad-header ${fade ? 'fade-out' : ''}`}
       />
     </div>
   );

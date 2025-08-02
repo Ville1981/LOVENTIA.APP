@@ -20,12 +20,10 @@ describe('Chat Flow', () => {
     cy.url().should('include', '/chat/123');
 
     // Send a message via input and Enter key
-    cy.get('[data-test=message-input]')
-      .type('Hello, this is a test message{enter}');
+    cy.get('[data-test=message-input]').type('Hello, this is a test message{enter}');
 
     // Verify message appears in the chat window
-    cy.get('[data-test=message-list]')
-      .should('contain', 'Hello, this is a test message');
+    cy.get('[data-test=message-list]').should('contain', 'Hello, this is a test message');
 
     // Simulate incoming socket message from peer
     cy.window().then((win) => {
@@ -42,7 +40,6 @@ describe('Chat Flow', () => {
     });
 
     // Verify incoming message is displayed
-    cy.get('[data-test=message-list]')
-      .should('contain', 'Reply message');
+    cy.get('[data-test=message-list]').should('contain', 'Reply message');
   });
 });

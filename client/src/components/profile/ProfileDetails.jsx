@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
 // Backendin perus-URL, päivitä tarvittaessa omaksesi
-const BACKEND_BASE_URL = "http://localhost:5000";
+const BACKEND_BASE_URL = 'http://localhost:5000';
 
 /**
  * ProfileDetails
- * 
+ *
  * Tämä komponentti hoitaa vanhojen profiilikenttien muokkauksen.
  * Props:
  *  - user: käyttäjädata, sisältää user.id ja user.profile
@@ -14,9 +14,9 @@ const BACKEND_BASE_URL = "http://localhost:5000";
  */
 const ProfileDetails = ({ user, onUpdate }) => {
   const [formData, setFormData] = useState({
-    aboutMe: "",
-    currentGoal: "",
-    talents: "",
+    aboutMe: '',
+    currentGoal: '',
+    talents: '',
     // …lisää tähän muut kentät, esim. traits, hobbies jne.
   });
   const [loading, setLoading] = useState(false);
@@ -25,9 +25,9 @@ const ProfileDetails = ({ user, onUpdate }) => {
     // Esitäytetään lomake backendistä haetulla profiilidatalla
     if (user.profile) {
       setFormData({
-        aboutMe: user.profile.aboutMe || "",
-        currentGoal: user.profile.currentGoal || "",
-        talents: user.profile.talents || "",
+        aboutMe: user.profile.aboutMe || '',
+        currentGoal: user.profile.currentGoal || '',
+        talents: user.profile.talents || '',
         // …esitäytä muut kentät samalla tavalla
       });
     }
@@ -42,14 +42,12 @@ const ProfileDetails = ({ user, onUpdate }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await axios.put(
-        `${BACKEND_BASE_URL}/api/profile/${user.id}`,
-        formData,
-        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
-      );
+      const response = await axios.put(`${BACKEND_BASE_URL}/api/profile/${user.id}`, formData, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
       onUpdate(response.data);
     } catch (err) {
-      console.error("Profiilin päivittäminen epäonnistui:", err);
+      console.error('Profiilin päivittäminen epäonnistui:', err);
     } finally {
       setLoading(false);
     }
@@ -94,12 +92,8 @@ const ProfileDetails = ({ user, onUpdate }) => {
 
       {/* Lisää mahdolliset muut kentät tähän samaan tapaan */}
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="bg-blue-600 text-white py-2 px-4 rounded"
-      >
-        {loading ? "Tallennetaan…" : "Tallenna profiili"}
+      <button type="submit" disabled={loading} className="bg-blue-600 text-white py-2 px-4 rounded">
+        {loading ? 'Tallennetaan…' : 'Tallenna profiili'}
       </button>
     </form>
   );

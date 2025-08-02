@@ -20,7 +20,11 @@ export default function MessageFeedback({ status }) {
   let icon;
   switch (status) {
     case 'sending':
-      icon = <span className="animate-spin" aria-label="Sending">⌛</span>;
+      icon = (
+        <span className="animate-spin" aria-label="Sending">
+          ⌛
+        </span>
+      );
       break;
     case 'sent':
       icon = <span aria-label="Sent">✓</span>;

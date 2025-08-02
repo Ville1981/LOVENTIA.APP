@@ -2,7 +2,6 @@
   "site": {
     "title": "DateSite"
   },
-  
 
   "Home": "Home",
   "Discover": "Odkryj",
@@ -49,8 +48,7 @@
     "aloita": "Rozpocznij",
     "lue_lisaa": "Czytaj więcej",
     "katso_kayttajat": "Zobacz użytkowników"
-  }
-  ,
+  },
   "discover": {
     "title": "Odkryj użytkowników",
     "nearYou": "w pobliżu",
@@ -69,11 +67,10 @@
     "superlike": "Superlike",
     "viewProfile": "Zobacz profil",
     "premium": "Użytkownik Premium",
-        "minAge": "Minimalny wiek",
+    "minAge": "Minimalny wiek",
     "maxAge": "Maksymalny wiek",
     "instructions": "Wybierz filtry, aby znaleźć dopasowane profile.",
     "filter": "Filtruj"
-
   },
   "chat": {
     "title": "Czat",
@@ -208,23 +205,19 @@
   },
 
   "common": {
-  "select": "Wybierz",
-  "filter": "Filtruj"
-},
+    "select": "Wybierz",
+    "filter": "Filtruj"
+  },
 
-"lifestyle": {
-  "title": "Styl życia",
-  "smoke": "Palenie",
-  "drink": "Alkohol",
-  "drugs": "Narkotyki",
-  "no": "Brak",
-  "little": "Trochę",
-  "average": "Średnio",
-  "much": "Dużo",
-  "sober": "Bez uzależnień"
+  "lifestyle": {
+    "title": "Styl życia",
+    "smoke": "Palenie",
+    "drink": "Alkohol",
+    "drugs": "Narkotyki",
+    "no": "Brak",
+    "little": "Trochę",
+    "average": "Średnio",
+    "much": "Dużo",
+    "sober": "Bez uzależnień"
+  }
 }
-
-
-}
-
-

@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 
 /**
  * MessagesOverview page
- * 
+ *
  * Renders the conversation overview list within the main layout.
  */
 export default function MessagesOverview() {
@@ -19,17 +19,12 @@ export default function MessagesOverview() {
         <title>{t('chat.overview.title', 'Conversations')} - MyApp</title>
         <meta
           name="description"
-          content={t(
-            'chat.overview.pageDescription',
-            'View and manage your conversations'
-          )}
+          content={t('chat.overview.pageDescription', 'View and manage your conversations')}
         />
       </Helmet>
 
       <header className="mb-4">
-        <h1 className="text-2xl font-bold">
-          {t('chat.overview.title', 'Conversations')}
-        </h1>
+        <h1 className="text-2xl font-bold">{t('chat.overview.title', 'Conversations')}</h1>
       </header>
 
       <ConversationList />

@@ -1,27 +1,27 @@
 // server/controllers/discoverController.js
-const User = require("../models/User");
+const User = require('../models/User');
 
 // Sallittujen query-parametrien whitelist
 const allowedFilters = [
-  "username",
-  "gender",
-  "orientation",
-  "religion",
-  "religionImportance",
-  "education",
-  "profession",
-  "country",
-  "region",
-  "city",
-  "children",
-  "pets",
-  "summary",
-  "goals",
-  "goal", // vanha tuki
-  "lookingFor",
-  "smoke",      // ✅ UUSI
-  "drink",      // ✅ UUSI
-  "drugs",      // ✅ UUSI
+  'username',
+  'gender',
+  'orientation',
+  'religion',
+  'religionImportance',
+  'education',
+  'profession',
+  'country',
+  'region',
+  'city',
+  'children',
+  'pets',
+  'summary',
+  'goals',
+  'goal', // vanha tuki
+  'lookingFor',
+  'smoke', // ✅ UUSI
+  'drink', // ✅ UUSI
+  'drugs', // ✅ UUSI
 ];
 
 exports.getDiscover = async (req, res) => {
@@ -31,7 +31,7 @@ exports.getDiscover = async (req, res) => {
 
     // Perusfiltterit (vain whitelistatut avaimet)
     Object.entries(req.query).forEach(([key, value]) => {
-      if (value != null && value !== "" && allowedFilters.includes(key)) {
+      if (value != null && value !== '' && allowedFilters.includes(key)) {
         filters[key] = value;
       }
     });
@@ -49,7 +49,7 @@ exports.getDiscover = async (req, res) => {
     // Hae käyttäjät MongoDB:stä ilman arkaluonteisia kenttiä
     const rawUsers = await User.find(filters)
       .limit(20)
-      .select("-password -email -blockedUsers")
+      .select('-password -email -blockedUsers')
       .lean();
 
     const users = rawUsers.map((u) => {
@@ -58,9 +58,9 @@ exports.getDiscover = async (req, res) => {
       const superLikes = Array.isArray(u.superLikes) ? u.superLikes : [];
 
       const normalizeUrl = (img) => {
-        if (typeof img !== "string" || img.trim() === "") return null;
-        if (img.startsWith("http")) return img;
-        return img.startsWith("/") ? img : `/uploads/${img}`;
+        if (typeof img !== 'string' || img.trim() === '') return null;
+        if (img.startsWith('http')) return img;
+        return img.startsWith('/') ? img : `/uploads/${img}`;
       };
 
       let photos = [];
@@ -86,10 +86,8 @@ exports.getDiscover = async (req, res) => {
 
     return res.json(users);
   } catch (err) {
-    console.error("getDiscover error:", err);
-    return res
-      .status(500)
-      .json({ error: "Server error fetching discover profiles" });
+    console.error('getDiscover error:', err);
+    return res.status(500).json({ error: 'Server error fetching discover profiles' });
   }
 };
 
@@ -108,31 +106,29 @@ exports.handleAction = async (req, res) => {
     if (!Array.isArray(user.superLikes)) user.superLikes = [];
 
     switch (actionType) {
-      case "like":
+      case 'like':
         if (!user.likes.includes(targetId)) {
           user.likes.push(targetId);
         }
         break;
-      case "pass":
+      case 'pass':
         if (!user.passes.includes(targetId)) {
           user.passes.push(targetId);
         }
         break;
-      case "superlike":
+      case 'superlike':
         if (!user.superLikes.includes(targetId)) {
           user.superLikes.push(targetId);
         }
         break;
       default:
-        return res.status(400).json({ error: "Unknown action type" });
+        return res.status(400).json({ error: 'Unknown action type' });
     }
 
     await user.save();
     return res.sendStatus(204);
   } catch (err) {
-    console.error("handleAction error:", err);
-    return res
-      .status(500)
-      .json({ error: "Server error recording action" });
+    console.error('handleAction error:', err);
+    return res.status(500).json({ error: 'Server error recording action' });
   }
 };

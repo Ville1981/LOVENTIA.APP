@@ -12,7 +12,8 @@ export async function executeWithProfiling(query, params = []) {
   const start = performance.now();
   const result = await db.query(query, params);
   const duration = performance.now() - start;
-  if (duration > 200) { // threshold millis
+  if (duration > 200) {
+    // threshold millis
     console.warn(`Slow query (${duration.toFixed(2)} ms): ${query}`);
   }
   return result;

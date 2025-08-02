@@ -1,12 +1,21 @@
 {
-  "name": "date-app",
+  "name": "datesite",
   "version": "1.0.0",
+  "private": true,
   "type": "module",
   "scripts": {
+    "prepare": "husky install",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "echo \"No client tests specified\" && exit 0"
+    "lint": "npx eslint . --ext .js,.jsx,.ts,.tsx",
+    "format": "prettier --write .",
+    "test": "echo \"No client tests specified\" && exit 0",
+    "cy:run": "cypress run",
+    "perf:load": "k6 run performance/load.test.js",
+    "perf:socket": "artillery run performance/socket-reconnect.test.js -o report.json",
+    "scan:zap": "zap.sh -cmd -configfile security/zap-config.json -quickurl http://localhost:3000 -quickout zap-report/zap-report.html",
+    "scan:dep": "npm audit --audit-level=moderate && if [ -f gradlew ]; then chmod +x gradlew && ./gradlew dependencyCheckAnalyze; fi"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
@@ -14,6 +23,7 @@
     "axios": "^1.9.0",
     "date-app": "file:",
     "date-fns": "^4.1.0",
+    "dotenv": "^17.2.1",
     "express": "^5.1.0",
     "express-validator": "^7.2.1",
     "i18next-browser-languagedetector": "^8.1.0",
@@ -38,8 +48,16 @@
     "@vitejs/plugin-react": "^4.0.0",
     "autoprefixer": "^10.4.21",
     "cypress": "^14.5.1",
+    "eslint": "^8.42.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-import": "^2.27.5",
+    "eslint-plugin-prettier": "^5.5.3",
+    "eslint-plugin-react": "^7.32.2",
+    "eslint-plugin-security": "^3.0.1",
+    "husky": "^9.1.7",
     "msw": "^2.10.4",
     "postcss": "^8.5.6",
+    "prettier": "^3.0.0",
     "tailwindcss": "^4.1.11",
     "vite": "^4.0.0"
   }

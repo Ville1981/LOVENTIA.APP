@@ -10,7 +10,7 @@ const {
   EMAIL_USER,
   EMAIL_PASS,
   ALERT_EMAIL_FROM,
-  ALERT_EMAIL_TO
+  ALERT_EMAIL_TO,
 } = process.env;
 // --- REPLACE END ---
 
@@ -47,7 +47,7 @@ async function sendEmailNotification(subject, message) {
   try {
     await mailTransporter.sendMail({
       from: ALERT_EMAIL_FROM,
-      to: ALERT_EMAIL_TO.split(',').map(s => s.trim()),
+      to: ALERT_EMAIL_TO.split(',').map((s) => s.trim()),
       subject,
       text: message,
     });

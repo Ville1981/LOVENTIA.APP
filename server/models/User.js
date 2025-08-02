@@ -1,6 +1,6 @@
 // server/models/User.js
 
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
 // Define User schema with all necessary fields
 const userSchema = new mongoose.Schema(
@@ -24,8 +24,8 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["user", "admin"],
-      default: "user",
+      enum: ['user', 'admin'],
+      default: 'user',
     },
     isPremium: {
       type: Boolean,
@@ -69,4 +69,4 @@ const userSchema = new mongoose.Schema(
 );
 
 // Export the Mongoose model directly
-module.exports = mongoose.model("User", userSchema);
+module.exports = mongoose.model('User', userSchema);

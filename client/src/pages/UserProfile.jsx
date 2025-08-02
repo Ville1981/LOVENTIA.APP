@@ -1,27 +1,27 @@
-import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import api from "../utils/axiosInstance";
-import ProfileForm from "../components/profileFields/ProfileForm";
+import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import api from '../utils/axiosInstance';
+import ProfileForm from '../components/profileFields/ProfileForm';
 
 const UserProfile = () => {
   const { userId: userIdParam } = useParams();
   const [user, setUser] = useState(null);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState('');
   const [success, setSuccess] = useState(false);
 
   // Lomakkeen lähettäjäfunktio, stubattavissa Cypressissä
   const handleSubmit = async (data) => {
     try {
       // PUT /users/profile (axiosInstance lisää baseURL=/api)
-      await api.put("/users/profile", data);
+      await api.put('/users/profile', data);
       setSuccess(true);
-      setMessage("Profiilitiedot päivitetty onnistuneesti.");
+      setMessage('Profiilitiedot päivitetty onnistuneesti.');
       // Päivitä local state
       setUser((prev) => ({ ...prev, ...data }));
     } catch (err) {
-      console.error("❌ Päivitys epäonnistui", err);
+      console.error('❌ Päivitys epäonnistui', err);
       setSuccess(false);
-      setMessage("Profiilitietojen päivitys epäonnistui.");
+      setMessage('Profiilitietojen päivitys epäonnistui.');
     }
   };
 
@@ -29,13 +29,13 @@ const UserProfile = () => {
     const fetchUser = async () => {
       try {
         // GET /users/me tai /users/:userId
-        const apiPath = userIdParam ? `/users/${userIdParam}` : "/users/me";
+        const apiPath = userIdParam ? `/users/${userIdParam}` : '/users/me';
         const res = await api.get(apiPath);
         const u = res.data.user || res.data;
         setUser(u);
       } catch (err) {
-        console.error("❌ Profiilin haku epäonnistui", err);
-        setMessage("Profiilin lataus epäonnistui.");
+        console.error('❌ Profiilin haku epäonnistui', err);
+        setMessage('Profiilin lataus epäonnistui.');
       }
     };
     fetchUser();
@@ -54,18 +54,12 @@ const UserProfile = () => {
 
   return (
     <div className="max-w-xl mx-auto">
-      <h2
-        className="text-2xl font-bold text-center mb-6"
-        data-cy="UserProfile__title"
-      >
-        👤 {userIdParam ? "Käyttäjän profiili" : "Oma profiili"}
+      <h2 className="text-2xl font-bold text-center mb-6" data-cy="UserProfile__title">
+        👤 {userIdParam ? 'Käyttäjän profiili' : 'Oma profiili'}
       </h2>
 
       {userIdParam ? (
-        <div
-          className="bg-white shadow rounded-lg p-6 space-y-4"
-          data-cy="UserProfile__public"
-        >
+        <div className="bg-white shadow rounded-lg p-6 space-y-4" data-cy="UserProfile__public">
           <h3 className="text-lg font-semibold">Tietoja käyttäjästä</h3>
           <p>
             <strong>Käyttäjätunnus:</strong> {user.username}
@@ -76,9 +70,7 @@ const UserProfile = () => {
         <>
           {message && (
             <div
-              className={`mb-4 text-center ${
-                success ? "text-green-600" : "text-red-600"
-              }`}
+              className={`mb-4 text-center ${success ? 'text-green-600' : 'text-red-600'}`}
               data-cy="UserProfile__message"
             >
               {message}

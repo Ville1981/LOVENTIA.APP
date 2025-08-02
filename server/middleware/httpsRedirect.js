@@ -2,7 +2,7 @@
 
 /**
  * Middleware to redirect HTTP requests to HTTPS in production.
- * 
+ *
  * Usage: app.use(require('./middleware/httpsRedirect'));
  */
 function httpsRedirect(req, res, next) {

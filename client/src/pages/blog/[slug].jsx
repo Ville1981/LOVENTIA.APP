@@ -23,12 +23,7 @@ export default function BlogPost() {
 
   return (
     <>
-      <SeoMeta
-        title={title}
-        description={description}
-        url={url}
-        image={image}
-      />
+      <SeoMeta title={title} description={description} url={url} image={image} />
       <article>
         <h1>{title}</h1>
         <img src={image} alt={title} />

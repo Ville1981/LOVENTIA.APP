@@ -42,8 +42,7 @@ const moderationRateLimiter = rateLimit({
 module.exports = {
   // **Profanity filter** to sanitize user input
   profanityFilter,
-  
+
   // **Rate limiter** to prevent abuse
   moderationRateLimiter,
 };
-
