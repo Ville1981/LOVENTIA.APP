@@ -2,7 +2,13 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import "./HeroSection.css";
 
-const images = ["/hero.jpg", "/hero1.jpg", "/hero2.jpg", "/hero3.jpg", "/hero4.jpg"];
+const images = [
+  "/hero.jpg",
+  "/hero1.jpg",
+  "/hero2.jpg",
+  "/hero3.jpg",
+  "/hero4.jpg",
+];
 
 function HeroSection() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -19,7 +25,11 @@ function HeroSection() {
     (!latinLangs.includes(i18n.language) && i18n.language !== "en");
 
   const textKeys = useModernText
-    ? ["etusivu.heroTekstit.0", "etusivu.heroTekstit.1", "etusivu.heroTekstit.2"]
+    ? [
+        "etusivu.heroTekstit.0",
+        "etusivu.heroTekstit.1",
+        "etusivu.heroTekstit.2",
+      ]
     : ["hero.0", "hero.1", "hero.2"];
 
   useEffect(() => {
@@ -42,11 +52,17 @@ function HeroSection() {
             key={index}
             src={img}
             alt={`Hero ${index}`}
-            className={`hero-slide ${index === currentImageIndex ? "active" : ""}`}
+            className={`hero-slide ${
+              index === currentImageIndex ? "active" : ""
+            }`}
           />
         ))}
 
-        <div className={`hero-overlay ${i18n.language === "ar" ? "rtl-align" : "left"}`}>
+        <div
+          className={`hero-overlay ${
+            i18n.language === "ar" ? "rtl-align" : "left"
+          }`}
+        >
           <h1 dir={i18n.language === "ar" ? "rtl" : "ltr"}>
             {t(textKeys[currentTextIndex])}
           </h1>

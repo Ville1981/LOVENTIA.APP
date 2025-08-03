@@ -1,5 +1,5 @@
-import React from "react";
 import PropTypes from "prop-types";
+import React from "react";
 import { useFormContext } from "react-hook-form";
 
 /**
@@ -12,7 +12,11 @@ import { useFormContext } from "react-hook-form";
  *   summaryField: the field name for the summary textarea (default: "summary")
  *   goalField: the field name for the goals textarea (default: "goal")
  */
-const FormGoalSummary = ({ t, summaryField = "summary", goalField = "goal" }) => {
+const FormGoalSummary = ({
+  t,
+  summaryField = "summary",
+  goalField = "goal",
+}) => {
   const {
     register,
     formState: { errors },

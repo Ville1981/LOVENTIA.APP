@@ -1,6 +1,10 @@
 // client/src/components/SocialFeed.jsx
-import React, { useEffect, useState } from 'react';
-import { fetchInstagramPosts, fetchSpotifyPlaylist } from '../utils/api/social.js';
+import React, { useEffect, useState } from "react";
+
+import {
+  fetchInstagramPosts,
+  fetchSpotifyPlaylist,
+} from "../utils/api/social.js";
 
 export function SocialFeed({ instagramUserId, spotifyPlaylistId }) {
   const [instagramPosts, setInstagramPosts] = useState([]);
@@ -17,7 +21,7 @@ export function SocialFeed({ instagramUserId, spotifyPlaylistId }) {
         setSpotifyData(spotifyRes.data);
         // --- REPLACE END ---
       } catch (error) {
-        console.error('Error loading social feeds:', error);
+        console.error("Error loading social feeds:", error);
       }
     }
     loadSocialFeeds();
@@ -28,12 +32,16 @@ export function SocialFeed({ instagramUserId, spotifyPlaylistId }) {
       <section className="instagram-feed">
         <h3>Instagram Feed</h3>
         <ul>
-          {instagramPosts.map(post => (
+          {instagramPosts.map((post) => (
             <li key={post.id}>
-              <a href={post.permalink} target="_blank" rel="noopener noreferrer">
+              <a
+                href={post.permalink}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <img
                   src={post.media_url}
-                  alt={post.caption || 'Instagram post'}
+                  alt={post.caption || "Instagram post"}
                 />
               </a>
             </li>

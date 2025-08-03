@@ -1,6 +1,6 @@
 // src/components/ErrorState.jsx
 
-import React from 'react';
+import React from "react";
 
 /**
  * ErrorState: displays an error message and a retry button

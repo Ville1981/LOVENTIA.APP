@@ -1,13 +1,15 @@
-import { defineConfig } from "cypress";
+// cypress.config.js
+const { defineConfig } = require('cypress');
 
-export default defineConfig({
+module.exports = defineConfig({
   e2e: {
-    // Base URL of your development server
-    baseUrl: "http://localhost:5174",
-    // Spec pattern to include integration tests
-    specPattern: "cypress/integration/**/*.{js,jsx,ts,tsx}",
+    baseUrl: 'http://localhost:5174',  // frontendin dev‐URL
+    supportFile: 'cypress/support/index.js',
+    specPattern: 'cypress/e2e/**/*.cy.{js,jsx}',
     setupNodeEvents(on, config) {
-      // implement node event listeners here
+      // voit laittaa esim. ympäristömuuttujien lataamisen tai reporterit
+      return config;
     },
   },
+  video: false,  // CI:ssä ei välttämättä tarvita videoita
 });

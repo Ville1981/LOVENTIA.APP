@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from '../utils/axiosInstance';
-import { useTranslation } from 'react-i18next';
-import styles from './ConversationsOverview.module.css';
+import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
+
+import styles from "./ConversationsOverview.module.css";
+import axios from "../utils/axiosInstance";
 
 /**
  * Returns a short relative time string like "5m", "2h", "3d".
@@ -29,22 +30,25 @@ export default function ConversationsOverview() {
     let isMounted = true;
 
     // --- REPLACE START: fetch overview conversations ---
-    axios.get('/api/messages/overview')
-    // --- REPLACE END ---
-      .then(res => {
+    axios
+      .get("/api/messages/overview")
+      // --- REPLACE END ---
+      .then((res) => {
         if (isMounted) {
           setConversations(res.data || []);
           setLoading(false);
         }
       })
-      .catch(err => {
+      .catch((err) => {
         if (isMounted) {
           setError(err);
           setLoading(false);
         }
       });
 
-    return () => { isMounted = false; };
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   if (loading) {
@@ -53,7 +57,7 @@ export default function ConversationsOverview() {
         className={styles.spinner}
         role="status"
         aria-live="polite"
-        aria-label={t('chat.loading', 'Loading conversations...')}
+        aria-label={t("chat.loading", "Loading conversations...")}
       />
     );
   }
@@ -62,13 +66,13 @@ export default function ConversationsOverview() {
     return (
       // --- REPLACE START: error display with retry ---
       <div role="alert" className={styles.error}>
-        <p>{t('chat.overview.error', 'Couldn’t load conversations.')}</p>
+        <p>{t("chat.overview.error", "Couldn’t load conversations.")}</p>
         <button
           onClick={() => window.location.reload()}
           className={styles.retryButton}
-          aria-label={t('chat.overview.retry', 'Retry')}
+          aria-label={t("chat.overview.retry", "Retry")}
         >
-          {t('chat.overview.retry', 'Retry')}
+          {t("chat.overview.retry", "Retry")}
         </button>
       </div>
       // --- REPLACE END ---
@@ -78,11 +82,11 @@ export default function ConversationsOverview() {
   if (conversations.length === 0) {
     // --- REPLACE START: i18n placeholder values ---
     const bunnyUser = {
-      userId: '1',
-      name: t('chat.overview.placeholderName', 'Bunny'),
-      avatarUrl: '/assets/bunny1.jpg',
+      userId: "1",
+      name: t("chat.overview.placeholderName", "Bunny"),
+      avatarUrl: "/assets/bunny1.jpg",
       snippet: t(
-        'chat.overview.placeholderSnippet',
+        "chat.overview.placeholderSnippet",
         "Hi there! Let's start our chat."
       ),
       lastMessageTimestamp: new Date().toISOString(),
@@ -101,7 +105,9 @@ export default function ConversationsOverview() {
           src={bunnyUser.avatarUrl}
           alt={bunnyUser.name}
           className={styles.placeholderAvatar}
-          onError={e => { e.currentTarget.src = '/assets/bunny1.jpg'; }}
+          onError={(e) => {
+            e.currentTarget.src = "/assets/bunny1.jpg";
+          }}
         />
         <div className={styles.placeholderContent}>
           <h3 className={styles.placeholderName}>{bunnyUser.name}</h3>
@@ -116,10 +122,12 @@ export default function ConversationsOverview() {
 
   return (
     <div className={styles.container}>
-      {conversations.map(conv => (
+      {conversations.map((conv) => (
         <div
           key={conv.userId}
-          className={`${styles.card} ${conv.unreadCount > 0 ? styles.cardHover : ''}`}
+          className={`${styles.card} ${
+            conv.unreadCount > 0 ? styles.cardHover : ""
+          }`}
           role="button"
           tabIndex={0}
           onClick={() => navigate(`/chat/${conv.userId}`)}
@@ -128,15 +136,17 @@ export default function ConversationsOverview() {
             src={conv.avatarUrl}
             alt={conv.displayName || conv.name}
             className={styles.avatar}
-            onError={e => { e.currentTarget.src = '/assets/bunny1.jpg'; }}
+            onError={(e) => {
+              e.currentTarget.src = "/assets/bunny1.jpg";
+            }}
           />
           <div className={styles.content}>
             <div className={styles.header}>
-              <h3 className={styles.title}>
-                {conv.displayName || conv.name}
-              </h3>
+              <h3 className={styles.title}>{conv.displayName || conv.name}</h3>
               <span className={styles.time}>
-                {formatDistanceToNow(new Date(conv.lastMessageTimestamp || conv.lastMessageTime))}
+                {formatDistanceToNow(
+                  new Date(conv.lastMessageTimestamp || conv.lastMessageTime)
+                )}
               </span>
             </div>
             <p className={styles.snippet}>{conv.snippet}</p>

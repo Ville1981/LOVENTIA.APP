@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import api from "../utils/axiosInstance";
+
 import ProfileForm from "../components/profileFields/ProfileForm";
+import api from "../utils/axiosInstance";
 
 const UserProfile = () => {
   const { userId: userIdParam } = useParams();

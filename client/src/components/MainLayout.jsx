@@ -1,10 +1,11 @@
 // src/components/MainLayout.jsx
 import React from "react";
 import { Outlet, useLocation } from "react-router-dom";
-import Navbar from "../components/Navbar";
+
+import AdColumn from "../components/AdColumn";
 import Footer from "../components/Footer";
 import HeroSection from "../components/HeroSection";
-import AdColumn from "../components/AdColumn";
+import Navbar from "../components/Navbar";
 import "../styles/ads.css";
 
 /**

@@ -1,9 +1,10 @@
 // client/src/components/forms/LoginForm.jsx
 
-import React from 'react';
-import PropTypes from 'prop-types';
-import { useFormValidation } from '../../hooks/useFormValidation';
-import { loginSchema } from '../../utils/validationSchemas';
+import PropTypes from "prop-types";
+import React from "react";
+
+import { useFormValidation } from "../../hooks/useFormValidation";
+import { loginSchema } from "../../utils/validationSchemas";
 
 /**
  * LoginForm
@@ -16,8 +17,8 @@ export default function LoginForm({ onSubmit }) {
     formState: { errors, isSubmitting },
   } = useFormValidation({
     schema: loginSchema,
-    defaultValues: { email: '', password: '' },
-    mode: 'onBlur',
+    defaultValues: { email: "", password: "" },
+    mode: "onBlur",
   });
 
   return (
@@ -27,8 +28,8 @@ export default function LoginForm({ onSubmit }) {
         <input
           id="email"
           type="email"
-          {...register('email')}
-          aria-invalid={errors.email ? 'true' : 'false'}
+          {...register("email")}
+          aria-invalid={errors.email ? "true" : "false"}
         />
         {errors.email && (
           <span role="alert" className="error">
@@ -42,8 +43,8 @@ export default function LoginForm({ onSubmit }) {
         <input
           id="password"
           type="password"
-          {...register('password')}
-          aria-invalid={errors.password ? 'true' : 'false'}
+          {...register("password")}
+          aria-invalid={errors.password ? "true" : "false"}
         />
         {errors.password && (
           <span role="alert" className="error">
@@ -53,7 +54,7 @@ export default function LoginForm({ onSubmit }) {
       </div>
 
       <button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? 'Logging in…' : 'Login'}
+        {isSubmitting ? "Logging in…" : "Login"}
       </button>
     </form>
   );

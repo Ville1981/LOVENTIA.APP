@@ -1,9 +1,12 @@
-// File: client/src/pages/blog/[slug].jsx
+// File: src/pages/blog/[slug].jsx
 
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { getArticleBySlug } from '../../utils/contentPublisher.js';
-import { SeoMeta } from '../../utils/seoMeta.js';
+import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+
+// --- REPLACE START: fix import paths to drop explicit “.js” extension ---
+import { getArticleBySlug } from "../../utils/contentPublisher";
+import { SeoMeta } from "../../utils/seoMeta";
+// --- REPLACE END ---
 
 export default function BlogPost() {
   const { slug } = useParams();
@@ -11,8 +14,12 @@ export default function BlogPost() {
 
   useEffect(() => {
     async function fetchArticle() {
-      const data = await getArticleBySlug(slug);
-      setArticle(data);
+      try {
+        const data = await getArticleBySlug(slug);
+        setArticle(data);
+      } catch (err) {
+        console.error("Failed to load article:", err);
+      }
     }
     fetchArticle();
   }, [slug]);
@@ -31,7 +38,7 @@ export default function BlogPost() {
       />
       <article>
         <h1>{title}</h1>
-        <img src={image} alt={title} />
+        {image && <img src={image} alt={title} />}
         <div dangerouslySetInnerHTML={{ __html: content }} />
       </article>
     </>

@@ -1,7 +1,8 @@
 // src/components/featureToggle/FeatureFlag.jsx
 
-import React from 'react';
-import { useFeatureFlag } from './FeatureToggleProvider.jsx';
+import React from "react";
+
+import { useFeatureFlag } from "./FeatureToggleProvider.jsx";
 
 /**
  * Näyttää lapset vain, jos flag on käytössä

@@ -1,24 +1,25 @@
-import { useState } from 'react';
-import api from '../utils/axiosInstance';
+import { useState } from "react";
+
+import api from "../utils/axiosInstance";
 
 export function ForgotPassword() {
-  const [email, setEmail] = useState('');
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setMessage('');
-    setError('');
+    setMessage("");
+    setError("");
     try {
       // Käytetään samaa Axios-instanssia kuin muuallakin
-      const res = await api.post('/auth/forgot-password', { email });
+      const res = await api.post("/auth/forgot-password", { email });
       setMessage(res.data.message);
     } catch (err) {
-      console.error('Forgot password error:', err);
+      console.error("Forgot password error:", err);
       setError(
         err.response?.data?.error ||
-        'Something went wrong. Please try again later.'
+          "Something went wrong. Please try again later."
       );
     }
   };
@@ -38,7 +39,7 @@ export function ForgotPassword() {
             id="email"
             type="email"
             value={email}
-            onChange={e => setEmail(e.target.value)}
+            onChange={(e) => setEmail(e.target.value)}
             required
             className="w-full border border-gray-300 px-3 py-2 rounded"
             placeholder="you@example.com"
@@ -51,16 +52,8 @@ export function ForgotPassword() {
           Send Reset Link
         </button>
       </form>
-      {message && (
-        <p className="mt-4 text-green-600">
-          {message}
-        </p>
-      )}
-      {error && (
-        <p className="mt-4 text-red-600">
-          {error}
-        </p>
-      )}
+      {message && <p className="mt-4 text-green-600">{message}</p>}
+      {error && <p className="mt-4 text-red-600">{error}</p>}
     </div>
   );
 }

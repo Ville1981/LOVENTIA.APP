@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from "react";
 import axios from "axios";
+import React, { useState, useEffect } from "react";
 
 // Backendin perus-URL, päivitä tarvittaessa omaksesi
 const BACKEND_BASE_URL = "http://localhost:5000";
 
 /**
  * ProfileDetails
- * 
+ *
  * Tämä komponentti hoitaa vanhojen profiilikenttien muokkauksen.
  * Props:
  *  - user: käyttäjädata, sisältää user.id ja user.profile
@@ -45,7 +45,9 @@ const ProfileDetails = ({ user, onUpdate }) => {
       const response = await axios.put(
         `${BACKEND_BASE_URL}/api/profile/${user.id}`,
         formData,
-        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        }
       );
       onUpdate(response.data);
     } catch (err) {
@@ -56,7 +58,10 @@ const ProfileDetails = ({ user, onUpdate }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-4 space-y-4">
+    <form
+      onSubmit={handleSubmit}
+      className="bg-white rounded-lg shadow p-4 space-y-4"
+    >
       <h3 className="text-lg font-semibold">Profiilitiedot</h3>
 
       <div>

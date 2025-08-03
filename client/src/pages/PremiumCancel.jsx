@@ -6,7 +6,9 @@ const PremiumCancel = () => {
 
   return (
     <div className="p-10 text-center">
-      <h1 className="text-2xl font-bold text-red-500 mb-4">❌ {t("premium.cancelTitle")}</h1>
+      <h1 className="text-2xl font-bold text-red-500 mb-4">
+        ❌ {t("premium.cancelTitle")}
+      </h1>
       <p>{t("premium.cancelMessage")}</p>
     </div>
   );

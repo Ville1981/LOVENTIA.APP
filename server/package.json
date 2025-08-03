@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "server": "npm run dev",
     "start": "node index.js",
@@ -30,10 +31,8 @@
     "sharp": "^0.34.2",
     "stripe": "^8.0.0",
     "socket.io": "^4.5.0",
-    
     "swagger-ui-express": "^4.6.3",
     "yamljs": "^0.3.0"
-   
   },
   "devDependencies": {
     "eslint": "^8.0.0",

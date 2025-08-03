@@ -1,14 +1,12 @@
 import React from "react";
+
 import api from "../utils/axiosInstance";
 
 const PremiumTestButton = () => {
   const handleUpgrade = async () => {
     try {
       // Lähetetään pyyntö premium-statuksen päivitykseen
-      const res = await api.post(
-        "/auth/upgrade-premium",
-        {}
-      );
+      const res = await api.post("/auth/upgrade-premium", {});
       alert("✅ Premium aktivoitu: " + (res.data.message || "Onnistui!"));
     } catch (err) {
       console.error("❌ Virhe:", err.response?.data || err);

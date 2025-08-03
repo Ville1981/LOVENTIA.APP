@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../utils/axiosInstance";
+
 import { useAuth } from "../context/AuthContext";
+import api from "../utils/axiosInstance";
 
 const Register = () => {
   const [username, setUsername] = useState("");
@@ -97,9 +98,7 @@ const Register = () => {
       >
         Luo tili
       </button>
-      {message && (
-        <p className="text-sm text-red-600">{message}</p>
-      )}
+      {message && <p className="text-sm text-red-600">{message}</p>}
     </form>
   );
 };

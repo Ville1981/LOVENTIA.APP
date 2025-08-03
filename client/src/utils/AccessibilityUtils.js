@@ -11,7 +11,7 @@ const AccessibilityUtils = {
    */
   setAriaLabel(el, label) {
     // --- REPLACE START: set aria-label attribute
-    el.setAttribute('aria-label', label);
+    el.setAttribute("aria-label", label);
     // --- REPLACE END: set aria-label attribute
   },
 
@@ -22,8 +22,8 @@ const AccessibilityUtils = {
    */
   onEnter(el, callback) {
     // --- REPLACE START: add Enter key listener
-    el.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
         e.preventDefault();
         callback(e);
       }
@@ -38,14 +38,14 @@ const AccessibilityUtils = {
    */
   onSpace(el, callback) {
     // --- REPLACE START: add Space key listener
-    el.addEventListener('keydown', (e) => {
-      if (e.key === ' ' || e.key === 'Spacebar') {
+    el.addEventListener("keydown", (e) => {
+      if (e.key === " " || e.key === "Spacebar") {
         e.preventDefault();
         callback(e);
       }
     });
     // --- REPLACE END: add Space key listener
-  }
+  },
 };
 
 export default AccessibilityUtils;

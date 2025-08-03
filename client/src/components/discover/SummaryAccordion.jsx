@@ -1,7 +1,7 @@
 // src/components/discover/SummaryAccordion.jsx
 
-import React, { useState } from "react";
 import PropTypes from "prop-types";
+import React, { useState } from "react";
 
 /**
  * SummaryAccordion
@@ -24,9 +24,14 @@ const SummaryAccordion = ({ summary = "" }) => {
       <div className="bg-[#111] text-white px-2 py-1 rounded-t-lg text-sm font-semibold">
         My self-summary
       </div>
-      <div className="border border-gray-200 border-t-0 rounded-b-lg p-2" style={{ overflowAnchor: "none" }}>
+      <div
+        className="border border-gray-200 border-t-0 rounded-b-lg p-2"
+        style={{ overflowAnchor: "none" }}
+      >
         <p
-          className={`text-gray-800 text-sm ${!isExpanded ? "line-clamp-2" : ""}`}
+          className={`text-gray-800 text-sm ${
+            !isExpanded ? "line-clamp-2" : ""
+          }`}
           style={{
             overflowAnchor: "none",
             // Maintain a two-line height when collapsed (approx. 3rem)

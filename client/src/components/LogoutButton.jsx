@@ -1,6 +1,7 @@
-import React from 'react';
-import { useTranslation } from 'react-i18next';
-import { useAuth } from '../context/AuthContext';
+import React from "react";
+import { useTranslation } from "react-i18next";
+
+import { useAuth } from "../context/AuthContext";
 
 /**
  * LogoutButton component that triggers user logout flow.
@@ -13,7 +14,7 @@ export default function LogoutButton() {
     try {
       await logout();
     } catch (err) {
-      console.error('Logout failed:', err);
+      console.error("Logout failed:", err);
     }
   };
 
@@ -21,9 +22,9 @@ export default function LogoutButton() {
     <button
       onClick={handleLogout}
       className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-      aria-label={t('Logout', 'Logout')}
+      aria-label={t("Logout", "Logout")}
     >
-      {t('Logout', 'Logout')}
+      {t("Logout", "Logout")}
     </button>
   );
 }

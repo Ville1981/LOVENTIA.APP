@@ -1,5 +1,5 @@
 // File: src/components/LoaderComponent.jsx
-import React from 'react';
+import React from "react";
 
 /**
  * Universal loading indicator component for various views

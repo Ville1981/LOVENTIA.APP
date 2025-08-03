@@ -1,16 +1,17 @@
 // src/pages/ConversationsOverview.jsx
 
-import React, { useEffect, useState } from 'react';
-import axios from '../utils/axiosInstance';
-import { useTranslation } from 'react-i18next';
+import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+
+import axios from "../utils/axiosInstance";
 
 /**
  * Placeholder conversation when none exist
  */
 const bunnyUser = {
-  userId: 'bunny',
-  name: 'Bunny',
-  avatarUrl: '/assets/bunny1.jpg',
+  userId: "bunny",
+  name: "Bunny",
+  avatarUrl: "/assets/bunny1.jpg",
   lastMessageTime: Date.now(),
   snippet: "Hi there! Let's start our chat.",
   unreadCount: 0,
@@ -46,7 +47,7 @@ export default function ConversationsOverview() {
     let isMounted = true;
 
     axios
-      .get('/api/messages/overview')
+      .get("/api/messages/overview")
       .then((res) => {
         if (isMounted) {
           setConversations(res.data || []);
@@ -68,9 +69,14 @@ export default function ConversationsOverview() {
   // Loading state
   if (loading) {
     return (
-      <section className="flex justify-center items-center h-full" aria-busy="true">
+      <section
+        className="flex justify-center items-center h-full"
+        aria-busy="true"
+      >
         <span className="spinner" />
-        <p className="sr-only">{t('chat.overview.loading', 'Loading conversations…')}</p>
+        <p className="sr-only">
+          {t("chat.overview.loading", "Loading conversations…")}
+        </p>
       </section>
     );
   }
@@ -79,7 +85,7 @@ export default function ConversationsOverview() {
   if (error) {
     return (
       <section className="text-center p-4 text-red-600" role="alert">
-        {t('chat.overview.error', 'Unable to load conversations.')}
+        {t("chat.overview.error", "Unable to load conversations.")}
       </section>
     );
   }
@@ -88,7 +94,10 @@ export default function ConversationsOverview() {
   const list = conversations.length > 0 ? conversations : [bunnyUser];
 
   return (
-    <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 p-4" aria-label={t('chat.overview.title', 'Conversations')}>
+    <section
+      className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 p-4"
+      aria-label={t("chat.overview.title", "Conversations")}
+    >
       {list.map((conv) => (
         <div
           key={conv.userId}
@@ -100,7 +109,7 @@ export default function ConversationsOverview() {
             alt={`${conv.name} avatar`}
             className="w-12 h-12 rounded-full mr-4 object-cover"
             onError={(e) => {
-              e.currentTarget.src = '/assets/bunny1.jpg';
+              e.currentTarget.src = "/assets/bunny1.jpg";
             }}
           />
           <div className="flex-1">

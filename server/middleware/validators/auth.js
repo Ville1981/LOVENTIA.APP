@@ -1,22 +1,25 @@
-const { body, validationResult } = require('express-validator');
+// server/middleware/validators/auth.js
 
-// Register-validaattorit ja sanitointi
+// --- REPLACE START: converted to ESM imports, translated comments and messages to English ---
+import { body, validationResult } from 'express-validator';
+
+// Registration validators and sanitization
 const validateRegister = [
   body('username')
     .trim()
     .escape()
-    .isString().withMessage('Käyttäjänimi on oltava tekstiä')
-    .isLength({ min: 3, max: 30 }).withMessage('Käyttäjänimen pituus 3–30 merkkiä'),
+    .isString().withMessage('Username must be a string')
+    .isLength({ min: 3, max: 30 }).withMessage('Username must be between 3 and 30 characters'),
   body('email')
     .trim()
     .normalizeEmail()
-    .isEmail().withMessage('Sähköpostin pitää olla validi'),
+    .isEmail().withMessage('Email must be valid'),
   body('password')
     .trim()
-    .isLength({ min: 8 }).withMessage('Salasanan tulee olla vähintään 8 merkkiä')
-    .matches(/\d/).withMessage('Salasanassa täytyy olla vähintään yksi numero')
-    .matches(/[A-Z]/).withMessage('Salasanassa täytyy olla vähintään yksi iso kirjain'),
-  // Validointi- ja virheentarkistus
+    .isLength({ min: 8 }).withMessage('Password must be at least 8 characters long')
+    .matches(/\d/).withMessage('Password must contain at least one number')
+    .matches(/[A-Z]/).withMessage('Password must contain at least one uppercase letter'),
+  // Validation and error handling
   (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -26,15 +29,16 @@ const validateRegister = [
   }
 ];
 
-// Login-validaattorit ja sanitointi
+// Login validators and sanitization
 const validateLogin = [
   body('email')
     .trim()
     .normalizeEmail()
-    .isEmail().withMessage('Sähköpostin pitää olla validi'),
+    .isEmail().withMessage('Email must be valid'),
   body('password')
     .trim()
-    .notEmpty().withMessage('Salasana ei saa olla tyhjä'),
+    .notEmpty().withMessage('Password cannot be empty'),
+  // Validation and error handling
   (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -44,4 +48,6 @@ const validateLogin = [
   }
 ];
 
-module.exports = { validateRegister, validateLogin };
+// Export validators for use in routes
+export { validateRegister, validateLogin };
+// --- REPLACE END ---

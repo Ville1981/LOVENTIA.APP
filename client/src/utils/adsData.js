@@ -5,28 +5,26 @@ export const heroAds = [
   {
     image: "/hero1.jpg",
     title: "Love Awaits",
-    text: "Start your journey with a meaningful match."
+    text: "Start your journey with a meaningful match.",
   },
   {
     image: "/hero2.jpg",
     title: "Welcome to DateSite!",
-    text: "Find meaningful connections easily and safely."
+    text: "Find meaningful connections easily and safely.",
   },
   {
     image: "/hero3.jpg",
     title: "Real People. Real Stories.",
-    text: "Your story begins here."
-  }
+    text: "Your story begins here.",
+  },
 ];
 
 // 🔹 Discover & Profile -sivujen ylämainokset
 
-
-
 export const headerAds = [
   { image: "/ads/header1.png" },
   { image: "/ads/header2.png" },
-  { image: "/ads/header3.png" }
+  { image: "/ads/header3.png" },
 ];
 
 // src/utils/adsData.js

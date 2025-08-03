@@ -1,0 +1,18 @@
+diff --git a/src/utils/locationData.js b/src/utils/locationData.js
+index abcdef0..1234567 100644
+--- a/src/utils/locationData.js
++++ b/src/utils/locationData.js
+@@ export const countryRegions = {
+-  "Czech Republic": ["Prague", "Brno", "Ostrava", "Pilsen"],
+@@
+-  Argentina: ["Buenos Aires", "Córdoba"],
+@@
+-  Australia: [
+-    "New South Wales",
+-    "Victoria",
+-    "Queensland",
+-    "Western Australia",
+-    "South Australia",
+-  ],
+@@
+-  Bangladesh: ["Dhaka", "Chittagong", "Khulna", "Rajshahi", "Sylhet"],

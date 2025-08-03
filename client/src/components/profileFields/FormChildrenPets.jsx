@@ -1,7 +1,7 @@
 // src/components/profileFields/FormChildrenPets.jsx
 
-import React from "react";
 import PropTypes from "prop-types";
+import React from "react";
 import { useFormContext } from "react-hook-form";
 
 /**
@@ -20,7 +20,10 @@ const FormChildrenPets = ({ t, includeAllOption = false }) => {
   } = useFormContext();
 
   return (
-    <div className="flex flex-col gap-4 w-full text-left" data-cy="FormChildrenPets__section">
+    <div
+      className="flex flex-col gap-4 w-full text-left"
+      data-cy="FormChildrenPets__section"
+    >
       {/* Lapset */}
       <div className="w-full">
         <label htmlFor="children" className="block font-medium mb-1">

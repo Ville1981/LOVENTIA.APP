@@ -149,16 +149,7 @@
     "like": "Gilla",
     "superlike": "Superlike",
     "viewProfile": "Visa profil",
-<<<<<<< HEAD
-    "premium": "Premiumanvändare",
-        "minAge": "Minimiålder",
-    "maxAge": "Maximiålder",
-    "instructions": "Välj filter för att hitta matchande profiler.",
-    "filter": "Filtrera"
-
-=======
     "premium": "Premiumanvändare"
->>>>>>> origin/main
   },
 
   "chat": {
@@ -230,15 +221,5 @@
     "Kazakstan": "Kazakstan",
     "Portugali": "Portugal",
     "Italia": "Italien"
-<<<<<<< HEAD
-  },
-
-  "common": {
-  "select": "Välj",
-  "filter": "Filtrera"
-}
-
-=======
   }
->>>>>>> origin/main
 }

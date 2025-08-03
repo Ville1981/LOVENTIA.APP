@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import api from "../utils/axiosInstance";
 import { useTranslation } from "react-i18next";
+
+import api from "../utils/axiosInstance";
 
 const PremiumSuccess = () => {
   const { t } = useTranslation();
@@ -32,7 +33,9 @@ const PremiumSuccess = () => {
 
   return (
     <div className="p-10 text-center">
-      <h1 className="text-2xl font-bold mb-4">⭐ {t("premium.successTitle")}</h1>
+      <h1 className="text-2xl font-bold mb-4">
+        ⭐ {t("premium.successTitle")}
+      </h1>
       <p>{message}</p>
     </div>
   );

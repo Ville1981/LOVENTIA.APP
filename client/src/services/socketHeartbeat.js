@@ -15,14 +15,14 @@ export function startHeartbeat(socket) {
   if (!socket) return;
 
   // Listen for pong responses
-  socket.on('pong', () => {
+  socket.on("pong", () => {
     missedPongs = 0;
   });
 
   // Send ping at regular intervals
   heartbeatInterval = setInterval(() => {
     if (socket.connected) {
-      socket.emit('ping');
+      socket.emit("ping");
       missedPongs += 1;
 
       if (missedPongs > MAX_MISSED_PONGS) {
@@ -44,6 +44,6 @@ export function stopHeartbeat(socket) {
     heartbeatInterval = null;
   }
   if (socket) {
-    socket.off('pong');
+    socket.off("pong");
   }
 }

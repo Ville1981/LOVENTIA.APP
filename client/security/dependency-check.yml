@@ -1,0 +1,46 @@
+# File: security/dependency-check.yml
+# GitHub Actions workflow for dependency vulnerability scanning
+
+name: Dependency Vulnerability Check
+
+on:
+  push:
+    paths:
+      - '**/package.json'
+      - '**/package-lock.json'
+      - 'gradle/**'
+  schedule:
+    - cron: '0 2 * * 0'  # weekly on Sunday at 02:00 UTC
+
+jobs:
+  dependency-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate
+
+      - name: Dependency‑Check Gradle
+        if: ${{ runner.os == 'Linux' && filesChanged('gradlew') }}
+        run: |
+          chmod +x gradlew
+          ./gradlew dependencyCheckAnalyze
+
+      - name: Upload dependency check report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: dependency-check-report
+          path: |
+            reports/dependency-check-report.html
+            reports/dependency-check-report.xml

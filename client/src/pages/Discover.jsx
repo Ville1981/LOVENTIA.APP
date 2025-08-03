@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import api from "../utils/axiosInstance";
-import { useAuth } from "../context/AuthContext";
-import DiscoverFilters from "../components/DiscoverFilters";
+
 import ProfileCardList from "../components/discover/ProfileCardList";
+import DiscoverFilters from "../components/DiscoverFilters";
 import SkeletonCard from "../components/SkeletonCard"; // skeleton placeholder
+import { useAuth } from "../context/AuthContext";
+import api from "../utils/axiosInstance";
 import { BACKEND_BASE_URL } from "../utils/config";
 
 // Bunny placeholder user for initial view or on error
@@ -69,7 +70,7 @@ const Discover = () => {
   }, [authUser]);
 
   /**
-   * Initial (and filtered) data load via GET /discover?... 
+   * Initial (and filtered) data load via GET /discover?...
    */
   const loadUsers = async (params = {}) => {
     setIsLoading(true);
@@ -83,8 +84,12 @@ const Discover = () => {
         ? data.map((u) => {
             const photos = Array.isArray(u.photos)
               ? u.photos.map((p) => {
-                  const path = typeof p === 'string' ? p : p.url;
-                  return { url: path.startsWith('http') ? path : `${BACKEND_BASE_URL}${path}` };
+                  const path = typeof p === "string" ? p : p.url;
+                  return {
+                    url: path.startsWith("http")
+                      ? path
+                      : `${BACKEND_BASE_URL}${path}`,
+                  };
                 })
               : [];
             return { ...u, id: u._id || u.id, photos };
@@ -95,8 +100,8 @@ const Discover = () => {
       setUsers([...normalized, bunnyUser]);
       setFilterKey(Date.now().toString());
     } catch (err) {
-      console.error('Error loading users:', err);
-      setError(t('discover.error'));
+      console.error("Error loading users:", err);
+      setError(t("discover.error"));
       // --- REPLACE START: fallback to only Bunny on error ---
       setUsers([bunnyUser]);
       // --- REPLACE END ---
@@ -114,13 +119,13 @@ const Discover = () => {
     setUsers((prev) => prev.filter((u) => u.id !== userId));
     requestAnimationFrame(() => {
       setTimeout(() => {
-        window.scrollTo({ top: currentScroll, behavior: 'auto' });
+        window.scrollTo({ top: currentScroll, behavior: "auto" });
       }, 0);
     });
     if (userId !== bunnyUser.id) {
-      api.post(`/api/discover/${userId}/${actionType}`).catch((err) =>
-        console.error(`Error executing ${actionType}:`, err)
-      );
+      api
+        .post(`/api/discover/${userId}/${actionType}`)
+        .catch((err) => console.error(`Error executing ${actionType}:`, err));
     }
   };
 
@@ -137,7 +142,7 @@ const Discover = () => {
       maxAge: Number(formValues.maxAge),
     };
     Object.keys(query).forEach((k) => {
-      if (query[k] === '' || query[k] == null) delete query[k];
+      if (query[k] === "" || query[k] == null) delete query[k];
     });
     loadUsers(query);
   };
@@ -198,7 +203,7 @@ const Discover = () => {
   return (
     <div
       className="w-full flex flex-col items-center bg-gray-100 min-h-screen"
-      style={{ overflowAnchor: 'none' }}
+      style={{ overflowAnchor: "none" }}
     >
       <div className="w-full max-w-[1400px] flex flex-col lg:flex-row justify-between px-4 mt-6">
         <aside className="hidden lg:block w-[200px] sticky top-[160px] space-y-6" />
@@ -237,7 +242,7 @@ const Discover = () => {
                   />
                   {users.length === 0 && (
                     <div className="mt-12 text-center text-gray-500">
-                      🔍 {t('discover.noResults')}
+                      🔍 {t("discover.noResults")}
                     </div>
                   )}
                 </>

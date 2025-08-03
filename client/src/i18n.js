@@ -1,24 +1,29 @@
-import i18n from "i18next";
-import { initReactI18next } from "react-i18next";
-import HttpBackend from "i18next-http-backend";
-import LanguageDetector from "i18next-browser-languagedetector";
+// src/i18n.js
 
-// Haetaan tallennettu kieli tai oletuksena suomi
-const storedLang = localStorage.getItem("language") || "fi";
-// Käytetään pelkästään kahden merkin kieltä (esim. "en" tai "fi")
-const language = storedLang.split('-')[0];
+import i18n from "i18next";
+import LanguageDetector from "i18next-browser-languagedetector";
+import HttpBackend from "i18next-http-backend";
+import { initReactI18next } from "react-i18next";
+
+// --- REPLACE START: guard against non-browser environments for localStorage/document ---
+const isBrowser = typeof window !== "undefined" && typeof document !== "undefined";
+const storedLang = isBrowser
+  ? localStorage.getItem("language") || "fi"
+  : "fi";
+const language = storedLang.split("-")[0];
+// --- REPLACE END ---
 
 i18n
-  // lataa käännöstiedostot HTTP-pyynnöllä
+  // load translations via HTTP
   .use(HttpBackend)
-  // havaitse käyttäjän kieliasetukset
+  // detect user language
   .use(LanguageDetector)
-  // React-integraatio
+  // hook into React
   .use(initReactI18next)
   .init({
-    // asetetaan aktiiviseksi kieleksi kahden merkin koodi
+    // set active language
     lng: language,
-    // fallback-kielet eri lokalisaatioille
+    // fallback languages map
     fallbackLng: {
       "en-US": ["en"],
       "en-GB": ["en"],
@@ -27,51 +32,63 @@ i18n
       "es-AR": ["es"],
       "es-CO": ["es"],
       "es-ES": ["es"],
-      default: ["en"]  // aina englanti, jos ei löytynyt
+      default: ["en"],
     },
-    // tuetut kielet (sisältää sekä 2- että 5-merkkiset koodit)
+    // supported languages list
     supportedLngs: [
-      "fi", "en", "en-US", "en-GB", "pl",
-      "pt", "pt-BR",
-      "es", "es-MX", "es-AR", "es-CO", "es-ES",
-      "fr", "it", "de", "ru", "tr", "sv",
-      "hi", "ur", "ar", "zh", "ja",
-      "he", "el", "sw"
+      "fi",
+      "en",
+      "en-US",
+      "en-GB",
+      "pl",
+      "pt",
+      "pt-BR",
+      "es",
+      "es-MX",
+      "es-AR",
+      "es-CO",
+      "es-ES",
+      "fr",
+      "it",
+      "de",
+      "ru",
+      "tr",
+      "sv",
+      "hi",
+      "ur",
+      "ar",
+      "zh",
+      "ja",
+      "he",
+      "el",
+      "sw",
     ],
-    // asetetaan, mistä haetaan käännöstiedostot
+    // where to load translation files from
     backend: {
-      loadPath: "/locales/{{lng}}/translation.json"
+      loadPath: "/locales/{{lng}}/translation.json",
     },
+    // language detector options
     detection: {
       order: ["localStorage", "navigator", "htmlTag"],
-      caches: ["localStorage"]
+      caches: ["localStorage"],
     },
     interpolation: {
-      escapeValue: false
+      escapeValue: false,
     },
     react: {
-      useSuspense: false
+      useSuspense: false,
     },
-    debug: false
+    debug: false,
   });
 
-// Määritellään RTL-kielet ja asetetaan sivun suunta
-const rtlLanguages = ["ar", "he", "fa", "ur"];
-const html = document.documentElement;
-html.setAttribute(
-  "dir",
-  rtlLanguages.includes(language) ? "rtl" : "ltr"
-);
+// --- REPLACE START: only set document direction in browser ---
+if (isBrowser) {
+  const rtlLanguages = ["ar", "he", "fa", "ur"];
+  document.documentElement.setAttribute(
+    "dir",
+    rtlLanguages.includes(language) ? "rtl" : "ltr"
+  );
+}
+// --- REPLACE END ---
 
 export default i18n;
-
-
-
-
-
-
-
-
-
-
-

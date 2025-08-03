@@ -1,4 +1,5 @@
 import axios from "axios";
+
 import { BACKEND_BASE_URL } from "../config";
 
 /**
@@ -37,8 +38,7 @@ export const uploadAvatar = async (userId, fileOrFormData) => {
     return { profilePicture: response.data.profilePicture };
   } catch (err) {
     console.error("uploadAvatar error:", err.response || err);
-    const message =
-      err.response?.data?.error || "Failed to upload avatar.";
+    const message = err.response?.data?.error || "Failed to upload avatar.";
     throw new Error(message);
   }
 };
@@ -66,8 +66,7 @@ export const removeAvatar = async (userId) => {
     return { profilePicture: response.data.extraImages[0] || null };
   } catch (err) {
     console.error("removeAvatar error:", err.response || err);
-    const message =
-      err.response?.data?.error || "Failed to remove avatar.";
+    const message = err.response?.data?.error || "Failed to remove avatar.";
     throw new Error(message);
   }
 };
@@ -105,8 +104,7 @@ export const uploadPhotos = async (userId, filesOrFormData) => {
     return { extraImages: response.data.extraImages };
   } catch (err) {
     console.error("uploadPhotos error:", err.response || err);
-    const message =
-      err.response?.data?.error || "Failed to upload photos.";
+    const message = err.response?.data?.error || "Failed to upload photos.";
     throw new Error(message);
   }
 };
@@ -178,8 +176,7 @@ export const deletePhotoSlot = async (userId, slot) => {
     return { extraImages: response.data.extraImages };
   } catch (err) {
     console.error("deletePhotoSlot error:", err.response || err);
-    const message =
-      err.response?.data?.error || "Failed to delete photo.";
+    const message = err.response?.data?.error || "Failed to delete photo.";
     throw new Error(message);
   }
 };

@@ -1,18 +1,19 @@
 // src/components/discover/DetailsSection.jsx
 
-import React from "react";
 import PropTypes from "prop-types";
+import React from "react";
 
 const DetailsSection = ({ details = {} }) => {
-  if (typeof details !== "object" || Object.keys(details).length === 0) return null;
+  if (typeof details !== "object" || Object.keys(details).length === 0)
+    return null;
 
   return (
     <div
       className="mt-6 focus:outline-none"
       tabIndex={-1}
       style={{
-        overflowAnchor: "none",  // estää scroll-ankkuroinnin
-        minHeight: "5rem",       // takaa vakauden eri profiileilla
+        overflowAnchor: "none", // estää scroll-ankkuroinnin
+        minHeight: "5rem", // takaa vakauden eri profiileilla
       }}
     >
       <div
@@ -27,14 +28,15 @@ const DetailsSection = ({ details = {} }) => {
         tabIndex={-1}
         style={{
           overflowAnchor: "none",
-          minHeight: "4rem",    // vakioidaan sisällön minikorkeus
+          minHeight: "4rem", // vakioidaan sisällön minikorkeus
         }}
       >
         {details.gender && (
           <div className="flex items-center space-x-2">
             <span>👤</span>
             <span>
-              {details.gender} | {details.orientation} | {details.relationshipStatus}
+              {details.gender} | {details.orientation} |{" "}
+              {details.relationshipStatus}
             </span>
           </div>
         )}
@@ -48,15 +50,20 @@ const DetailsSection = ({ details = {} }) => {
           <div className="flex items-center space-x-2">
             <span>🌐</span>
             <span>
-              {details.ethnicity} | {details.languages?.join(", ")} | {details.education} | {details.employment} | {details.religion}
+              {details.ethnicity} | {details.languages?.join(", ")} |{" "}
+              {details.education} | {details.employment} | {details.religion}
             </span>
           </div>
         )}
-        {(details.smoking || details.drinking || details.marijuana || details.diet) && (
+        {(details.smoking ||
+          details.drinking ||
+          details.marijuana ||
+          details.diet) && (
           <div className="flex items-center space-x-2">
             <span>🚬</span>
             <span>
-              {details.smoking} | {details.drinking} | {details.marijuana} | {details.diet}
+              {details.smoking} | {details.drinking} | {details.marijuana} |{" "}
+              {details.diet}
             </span>
           </div>
         )}
@@ -85,22 +92,22 @@ const DetailsSection = ({ details = {} }) => {
 
 DetailsSection.propTypes = {
   details: PropTypes.shape({
-    gender:             PropTypes.string,
-    orientation:        PropTypes.string,
+    gender: PropTypes.string,
+    orientation: PropTypes.string,
     relationshipStatus: PropTypes.string,
-    bodyType:           PropTypes.string,
-    ethnicity:          PropTypes.string,
-    languages:          PropTypes.arrayOf(PropTypes.string),
-    education:          PropTypes.string,
-    employment:         PropTypes.string,
-    religion:           PropTypes.string,
-    smoking:            PropTypes.string,
-    drinking:           PropTypes.string,
-    marijuana:          PropTypes.string,
-    diet:               PropTypes.string,
-    kids:               PropTypes.string,
-    pets:               PropTypes.string,
-    lookingFor:         PropTypes.string,
+    bodyType: PropTypes.string,
+    ethnicity: PropTypes.string,
+    languages: PropTypes.arrayOf(PropTypes.string),
+    education: PropTypes.string,
+    employment: PropTypes.string,
+    religion: PropTypes.string,
+    smoking: PropTypes.string,
+    drinking: PropTypes.string,
+    marijuana: PropTypes.string,
+    diet: PropTypes.string,
+    kids: PropTypes.string,
+    pets: PropTypes.string,
+    lookingFor: PropTypes.string,
   }),
 };
 

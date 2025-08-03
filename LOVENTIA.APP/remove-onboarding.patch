@@ -1,0 +1,12 @@
+*** Begin Patch
+*** Update File: client/src/pages/ProfileHub.jsx
+@@
+-          <h2 className="font-semibold mb-2">Steps to success</h2>
++          {/* <h2 className="font-semibold mb-2">Steps to success</h2> */}
+@@
+-            <p className="mt-2 text-sm text-gray-600">
++            {/* <p className="mt-2 text-sm text-gray-600"> */}
+@@
+-          <h2 className="font-semibold mb-2">Answer More Questions</h2>
++          {/* <h2 className="font-semibold mb-2">Answer More Questions</h2> */}
+*** End Patch

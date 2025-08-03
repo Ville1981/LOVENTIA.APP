@@ -1,25 +1,40 @@
-const jwt = require('jsonwebtoken');
+// middleware/authenticate.js
+
+// --- REPLACE START: convert to ESM imports ---
+import jwt from 'jsonwebtoken';
+import User from '../models/User.js';
+// --- REPLACE END ---
 
 /**
- * Simple Express middleware to authenticate by JWT.
- * On success, attaches decoded payload to req.user.
+ * Middleware to protect routes by validating JWT in Authorization header.
+ * Adds `req.user` containing the decoded token payload if valid.
  */
-function authenticate(req, res, next) {
-  // --- REPLACE START: no changes needed here; kept for consistency ---
-  const auth = req.headers.authorization;
-  if (!auth || !auth.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Missing or invalid Authorization header' });
-  }
-
-  const token = auth.slice(7);
-  jwt.verify(token, process.env.JWT_SECRET, (err, payload) => {
-    if (err) {
-      return res.status(401).json({ error: 'Invalid or expired token' });
+const authenticate = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'No token provided' });
     }
-    req.user = payload; // e.g. { id, email, ... }
-    next();
-  });
-  // --- REPLACE END ---
-}
 
-module.exports = authenticate;
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (!decoded || !decoded.id) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    const user = await User.findById(decoded.id).select('-password');
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    req.user = { id: decoded.id, role: decoded.role };
+    next();
+  } catch (err) {
+    console.error('Authentication error:', err);
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+};
+
+// --- REPLACE START: export middleware as ESM default ---
+export default authenticate;
+// --- REPLACE END ---

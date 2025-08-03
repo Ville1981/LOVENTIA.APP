@@ -1,11 +1,10 @@
-
 // 📁 File: src/utils/filtersData.js
 
 export const genderOptions = [
   { value: "", label: "profile.gender" },
   { value: "Mies", label: "profile.male" },
   { value: "Nainen", label: "profile.female" },
-  { value: "Muu", label: "profile.other" }
+  { value: "Muu", label: "profile.other" },
 ];
 
 export const orientationOptions = [
@@ -13,7 +12,7 @@ export const orientationOptions = [
   { value: "Hetero", label: "profile.hetero" },
   { value: "Homo", label: "profile.homo" },
   { value: "Bi", label: "profile.bi" },
-  { value: "Muu", label: "profile.other" }
+  { value: "Muu", label: "profile.other" },
 ];
 
 export const religionOptions = [
@@ -24,7 +23,7 @@ export const religionOptions = [
   { value: "Buddhalaisuus", label: "religion.buddhism" },
   { value: "Kansanusko", label: "religion.folk" },
   { value: "Uskonnottomuus", label: "religion.none" },
-  { value: "Muu", label: "common.other" }
+  { value: "Muu", label: "common.other" },
 ];
 
 export const interestOptions = [

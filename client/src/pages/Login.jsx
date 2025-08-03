@@ -1,31 +1,32 @@
 // src/pages/Login.jsx
 
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import api from '../utils/axiosInstance';
-import { useAuth } from '../context/AuthContext';
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+
+import { useAuth } from "../context/AuthContext";
+import api from "../utils/axiosInstance";
 
 const Login = () => {
-  const [email, setEmail]       = useState('');
-  const [password, setPassword] = useState('');
-  const [message, setMessage]   = useState('');
-  const navigate                = useNavigate();
-  const { login }               = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setMessage('');
+    setMessage("");
     try {
-      const res = await api.post('/auth/login', { email, password });
+      const res = await api.post("/auth/login", { email, password });
       // Backend sets refresh-token in an HttpOnly cookie.
       // Frontend stores the access token in context.
       login(res.data.accessToken);
-      setMessage('Login successful!');
-      navigate('/profile');
+      setMessage("Login successful!");
+      navigate("/profile");
     } catch (err) {
       setMessage(
         err.response?.data?.error ||
-        'Login failed. Please check your credentials.'
+          "Login failed. Please check your credentials."
       );
     }
   };
@@ -42,7 +43,7 @@ const Login = () => {
             id="email"
             type="email"
             value={email}
-            onChange={e => setEmail(e.target.value)}
+            onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
             className="w-full border p-2 rounded"
             required
@@ -56,7 +57,7 @@ const Login = () => {
             id="password"
             type="password"
             value={password}
-            onChange={e => setPassword(e.target.value)}
+            onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
             className="w-full border p-2 rounded"
             required
@@ -82,9 +83,9 @@ const Login = () => {
       {message && (
         <p
           className={`mt-4 text-center ${
-            message.toLowerCase().includes('successful')
-              ? 'text-green-600'
-              : 'text-red-600'
+            message.toLowerCase().includes("successful")
+              ? "text-green-600"
+              : "text-red-600"
           }`}
         >
           {message}

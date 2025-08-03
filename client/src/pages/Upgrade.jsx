@@ -1,7 +1,8 @@
 // client/src/pages/Upgrade.jsx
-import React from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import React from "react";
+import { useNavigate, Link } from "react-router-dom";
+
+import { useAuth } from "../context/AuthContext";
 
 const Upgrade = () => {
   const { isLoggedIn } = useAuth();
@@ -9,14 +10,16 @@ const Upgrade = () => {
 
   const handleUpgrade = () => {
     // Redirect to subscription/payment flow
-    navigate('/settings/subscriptions');
+    navigate("/settings/subscriptions");
   };
 
   if (!isLoggedIn) {
     return (
       <div className="max-w-2xl mx-auto p-6 text-center">
         <h1 className="text-2xl font-bold mb-4">Kirjaudu sisään</h1>
-        <p className="mb-4">Jotta näet Premium-edut ja voit liittyä Premiumiksi, kirjaudu sisään.</p>
+        <p className="mb-4">
+          Jotta näet Premium-edut ja voit liittyä Premiumiksi, kirjaudu sisään.
+        </p>
         <Link
           to="/login"
           className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
