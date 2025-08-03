@@ -1,6 +1,7 @@
 // src/utils/axiosInstance.js
 // @ts-nocheck
 import axios from "axios";
+
 import { BACKEND_BASE_URL } from "./config";
 
 /**
@@ -33,10 +34,7 @@ export const setAccessToken = (token) => {
  * Prioritizes BACKEND_BASE_URL, then VITE_API_URL env var.
  * Strips any trailing slash.
  */
-const rawUrl =
-  BACKEND_BASE_URL ||
-  import.meta.env.VITE_API_URL ||
-  "";
+const rawUrl = BACKEND_BASE_URL || import.meta.env.VITE_API_URL || "";
 const baseURL = rawUrl.replace(/\/$/, "");
 // --- REPLACE END ---
 
@@ -96,5 +94,5 @@ api.interceptors.response.use(
 
 export default api;
 
-// The replacement regions are marked between // --- REPLACE START and // --- REPLACE END  
+// The replacement regions are marked between // --- REPLACE START and // --- REPLACE END
 // so you can verify exactly what changed.

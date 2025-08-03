@@ -1,6 +1,6 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import classNames from 'classnames';
+import classNames from "classnames";
+import PropTypes from "prop-types";
+import React from "react";
 
 /**
  * Button
@@ -10,24 +10,24 @@ import classNames from 'classnames';
  */
 export default function Button({
   children,
-  variant = 'gray',
+  variant = "gray",
   disabled = false,
-  as: Component = 'button',
-  className = '',
+  as: Component = "button",
+  className = "",
   ...rest
 }) {
   // Base classes for padding, rounding, text color, shadow, hover & disabled states, focus outline, and transitions
   const baseClasses =
-    'px-4 py-2 rounded-2xl shadow focus:outline-none transition';
+    "px-4 py-2 rounded-2xl shadow focus:outline-none transition";
 
   // Color variants; orange added for Crop & Add
   const variantClasses = {
-    green:  'bg-green-600 text-white hover:bg-green-700',
-    purple: 'bg-purple-600 text-white hover:bg-purple-700',
-    red:    'bg-red-600 text-white hover:bg-red-700',
-    gray:   'bg-gray-100 text-gray-800 hover:bg-gray-200', // ← dark text on gray
-    blue:   'bg-blue-500 text-white hover:bg-blue-600',
-    orange: 'bg-orange-500 text-white hover:bg-orange-600',
+    green: "bg-green-600 text-white hover:bg-green-700",
+    purple: "bg-purple-600 text-white hover:bg-purple-700",
+    red: "bg-red-600 text-white hover:bg-red-700",
+    gray: "bg-gray-100 text-gray-800 hover:bg-gray-200", // ← dark text on gray
+    blue: "bg-blue-500 text-white hover:bg-blue-600",
+    orange: "bg-orange-500 text-white hover:bg-orange-600",
   };
 
   return (
@@ -35,7 +35,7 @@ export default function Button({
       className={classNames(
         baseClasses,
         variantClasses[variant] || variantClasses.gray,
-        { 'opacity-50 cursor-not-allowed': disabled },
+        { "opacity-50 cursor-not-allowed": disabled },
         className
       )}
       disabled={disabled}
@@ -47,9 +47,16 @@ export default function Button({
 }
 
 Button.propTypes = {
-  children:  PropTypes.node,
-  variant:   PropTypes.oneOf(['green', 'purple', 'red', 'gray', 'blue', 'orange']),
-  disabled:  PropTypes.bool,
-  as:        PropTypes.elementType,
+  children: PropTypes.node,
+  variant: PropTypes.oneOf([
+    "green",
+    "purple",
+    "red",
+    "gray",
+    "blue",
+    "orange",
+  ]),
+  disabled: PropTypes.bool,
+  as: PropTypes.elementType,
   className: PropTypes.string,
 };

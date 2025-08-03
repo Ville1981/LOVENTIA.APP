@@ -1,6 +1,6 @@
+import PropTypes from "prop-types";
 import React from "react";
 import { useFormContext } from "react-hook-form";
-import PropTypes from "prop-types";
 
 // Base options for smoke, drink, drugs
 const baseOptions = [
@@ -50,7 +50,10 @@ const FormLifestyle = ({ t, includeAllOption = false }) => {
     : [{ value: "", labelKey: "common.select" }, ...baseOptions];
 
   return (
-    <div className="flex flex-col gap-4 w-full text-left" data-cy="FormLifestyle__section">
+    <div
+      className="flex flex-col gap-4 w-full text-left"
+      data-cy="FormLifestyle__section"
+    >
       <h3 className="text-lg font-semibold mb-2" data-cy="FormLifestyle__title">
         {t("lifestyle.title")}
       </h3>
@@ -59,7 +62,10 @@ const FormLifestyle = ({ t, includeAllOption = false }) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Smoke */}
         <div>
-          <label className="block text-sm font-medium mb-1" data-cy="FormLifestyle__smokeLabel">
+          <label
+            className="block text-sm font-medium mb-1"
+            data-cy="FormLifestyle__smokeLabel"
+          >
             {t("lifestyle.smoke")}
           </label>
           <select
@@ -74,7 +80,10 @@ const FormLifestyle = ({ t, includeAllOption = false }) => {
             ))}
           </select>
           {errors.smoke && (
-            <p className="mt-1 text-sm text-red-600" data-cy="FormLifestyle__smokeError">
+            <p
+              className="mt-1 text-sm text-red-600"
+              data-cy="FormLifestyle__smokeError"
+            >
               {errors.smoke.message}
             </p>
           )}
@@ -82,7 +91,10 @@ const FormLifestyle = ({ t, includeAllOption = false }) => {
 
         {/* Drink */}
         <div>
-          <label className="block text-sm font-medium mb-1" data-cy="FormLifestyle__drinkLabel">
+          <label
+            className="block text-sm font-medium mb-1"
+            data-cy="FormLifestyle__drinkLabel"
+          >
             {t("lifestyle.drink")}
           </label>
           <select
@@ -97,7 +109,10 @@ const FormLifestyle = ({ t, includeAllOption = false }) => {
             ))}
           </select>
           {errors.drink && (
-            <p className="mt-1 text-sm text-red-600" data-cy="FormLifestyle__drinkError">
+            <p
+              className="mt-1 text-sm text-red-600"
+              data-cy="FormLifestyle__drinkError"
+            >
               {errors.drink.message}
             </p>
           )}
@@ -105,7 +120,10 @@ const FormLifestyle = ({ t, includeAllOption = false }) => {
 
         {/* Drugs */}
         <div>
-          <label className="block text-sm font-medium mb-1" data-cy="FormLifestyle__drugsLabel">
+          <label
+            className="block text-sm font-medium mb-1"
+            data-cy="FormLifestyle__drugsLabel"
+          >
             {t("lifestyle.drugs")}
           </label>
           <select
@@ -120,7 +138,10 @@ const FormLifestyle = ({ t, includeAllOption = false }) => {
             ))}
           </select>
           {errors.drugs && (
-            <p className="mt-1 text-sm text-red-600" data-cy="FormLifestyle__drugsError">
+            <p
+              className="mt-1 text-sm text-red-600"
+              data-cy="FormLifestyle__drugsError"
+            >
               {errors.drugs.message}
             </p>
           )}
@@ -131,7 +152,10 @@ const FormLifestyle = ({ t, includeAllOption = false }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
         {/* Dietary Preferences (single-select) */}
         <div>
-          <label className="block text-sm font-medium mb-1" data-cy="FormLifestyle__dietLabel">
+          <label
+            className="block text-sm font-medium mb-1"
+            data-cy="FormLifestyle__dietLabel"
+          >
             {t("lifestyle.diet")}
           </label>
           <select
@@ -147,7 +171,10 @@ const FormLifestyle = ({ t, includeAllOption = false }) => {
             ))}
           </select>
           {errors.nutritionPreferences && (
-            <p className="mt-1 text-sm text-red-600" data-cy="FormLifestyle__dietError">
+            <p
+              className="mt-1 text-sm text-red-600"
+              data-cy="FormLifestyle__dietError"
+            >
               {errors.nutritionPreferences.message}
             </p>
           )}
@@ -155,7 +182,10 @@ const FormLifestyle = ({ t, includeAllOption = false }) => {
 
         {/* Exercise Habits */}
         <div>
-          <label className="block text-sm font-medium mb-1" data-cy="FormLifestyle__exerciseLabel">
+          <label
+            className="block text-sm font-medium mb-1"
+            data-cy="FormLifestyle__exerciseLabel"
+          >
             {t("lifestyle.exercise")}
           </label>
           <select
@@ -171,7 +201,10 @@ const FormLifestyle = ({ t, includeAllOption = false }) => {
             ))}
           </select>
           {errors.activityLevel && (
-            <p className="mt-1 text-sm text-red-600" data-cy="FormLifestyle__exerciseError">
+            <p
+              className="mt-1 text-sm text-red-600"
+              data-cy="FormLifestyle__exerciseError"
+            >
               {errors.activityLevel.message}
             </p>
           )}
@@ -187,5 +220,3 @@ FormLifestyle.propTypes = {
 };
 
 export default FormLifestyle;
-
-

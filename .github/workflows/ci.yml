@@ -21,6 +21,22 @@ jobs:
           node-version: 18
           cache: npm
 
+      # --- REPLACE START: Validate required ENV vars
+      - name: Validate environment variables
+        run: node scripts/validate-env.js
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          STRIPE_PREMIUM_PRICE_ID: ${{ secrets.STRIPE_PREMIUM_PRICE_ID }}
+          PAYPAL_CLIENT_ID: ${{ secrets.PAYPAL_CLIENT_ID }}
+          PAYPAL_SECRET: ${{ secrets.PAYPAL_SECRET }}
+          PAYPAL_PREMIUM_PRICE: ${{ secrets.PAYPAL_PREMIUM_PRICE }}
+          PAYPAL_WEBHOOK_ID: ${{ secrets.PAYPAL_WEBHOOK_ID }}
+          CLIENT_URL: ${{ secrets.CLIENT_URL }}
+      # --- REPLACE END
+
   server-tests:
     needs: setup
     runs-on: ubuntu-latest
@@ -38,7 +54,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run Jest tests
         run: npm test -- --coverage
@@ -70,13 +86,13 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run React Testing Library tests
         run: npm test -- --coverage
 
       - name: Enforce coverage threshold
-        run: npm test -- --coverageThreshold='{"global":{"branches":80,"functions":80,"lines":80,"statements":80}}'
+        run: npm test -- --coverage --coverageThreshold='{"global":{"branches":80,"functions":80,"lines":80,"statements":80}}'
 
       - name: Upload coverage report
         if: success()
@@ -84,6 +100,32 @@ jobs:
         with:
           name: client-coverage
           path: coverage
+
+  # --- Cypress E2E job added after client-tests ---
+  cypress-e2e:
+    needs: client-tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - name: Install dependencies
+        run: |
+          cd server && npm ci &
+          cd client && npm ci
+      - name: Start Server & Client
+        run: |
+          cd server && npm run dev & 
+          cd ../client && npm run dev &
+          npx wait-on http://localhost:5000/health
+          npx wait-on http://localhost:5174
+      - name: Run Cypress tests
+        run: npx cypress run
+  # --- /Cypress E2E job ---
 
   lint:
     needs: setup
@@ -103,4 +145,35 @@ jobs:
       - name: Run ESLint on client
         run: cd client && npm run lint
 
+  build-and-audit:
+    needs: [server-tests, client-tests, lint]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
+      - name: Build Docker images (no-cache)
+        run: docker-compose -f docker-compose.yml -f docker-compose.override.yml build --no-cache
+
+      - name: npm audit (high severity)
+        run: npm audit --audit-level=high
+
+  terraform:
+    needs: build-and-audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # --- REPLACE START: Terraform checks and plan
+      - name: Terraform Init & Format Check
+        working-directory: ./terraform
+        run: |
+          terraform init -backend=false
+          terraform fmt -check
+          terraform validate
+
+      - name: Terraform Plan
+        working-directory: ./terraform
+        run: terraform plan -no-color
+      # --- REPLACE END

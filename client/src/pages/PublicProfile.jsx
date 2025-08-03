@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+
 import api from "../utils/axiosInstance";
 
 const PublicProfile = () => {
@@ -49,18 +50,42 @@ const PublicProfile = () => {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-        <div><strong>Suhdetila:</strong> {user.status}</div>
-        <div><strong>Uskonto/arvot:</strong> {user.religion}</div>
-        <div><strong>Lapsia:</strong> {user.children}</div>
-        <div><strong>Lemmikkejä:</strong> {user.pets}</div>
-        <div><strong>Pituus:</strong> {user.height}</div>
-        <div><strong>Paino:</strong> {user.weight}</div>
+        <div>
+          <strong>Suhdetila:</strong> {user.status}
+        </div>
+        <div>
+          <strong>Uskonto/arvot:</strong> {user.religion}
+        </div>
+        <div>
+          <strong>Lapsia:</strong> {user.children}
+        </div>
+        <div>
+          <strong>Lemmikkejä:</strong> {user.pets}
+        </div>
+        <div>
+          <strong>Pituus:</strong> {user.height}
+        </div>
+        <div>
+          <strong>Paino:</strong> {user.weight}
+        </div>
       </div>
 
       <div className="mt-4">
-        <p><strong>📖 Itsekuvaus:</strong><br />{user.summary}</p>
-        <p className="mt-2"><strong>🎯 Tavoitteet:</strong><br />{user.goal}</p>
-        <p className="mt-2"><strong>💞 Mitä etsin:</strong><br />{user.lookingFor}</p>
+        <p>
+          <strong>📖 Itsekuvaus:</strong>
+          <br />
+          {user.summary}
+        </p>
+        <p className="mt-2">
+          <strong>🎯 Tavoitteet:</strong>
+          <br />
+          {user.goal}
+        </p>
+        <p className="mt-2">
+          <strong>💞 Mitä etsin:</strong>
+          <br />
+          {user.lookingFor}
+        </p>
       </div>
     </div>
   );

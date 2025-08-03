@@ -14,8 +14,12 @@ const LookingForField = ({ lookingFor, setLookingFor, t }) => (
       <option value="Deittailua">{t("looking.dating")}</option>
       <option value="Treffejä">{t("looking.dates")}</option>
       <option value="Pitkäaikaista suhdetta">{t("looking.longTerm")}</option>
-      <option value="Pitkää vakavaa parisuhdetta / avioliittoa">{t("looking.marriage")}</option>
-      <option value="Vain juttuseuraa / keskustelukaveria">{t("looking.chatOnly")}</option>
+      <option value="Pitkää vakavaa parisuhdetta / avioliittoa">
+        {t("looking.marriage")}
+      </option>
+      <option value="Vain juttuseuraa / keskustelukaveria">
+        {t("looking.chatOnly")}
+      </option>
       <option value="Satunnaisia tapaamisia">{t("looking.casual")}</option>
       <option value="En tiedä vielä">{t("looking.undecided")}</option>
       <option value="Muu">{t("common.other")}</option>

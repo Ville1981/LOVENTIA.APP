@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -11,7 +11,7 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, info) {
-    console.error('ErrorBoundary caught an error:', error, info);
+    console.error("ErrorBoundary caught an error:", error, info);
     // You could log to an external service here
   }
 
@@ -20,7 +20,9 @@ class ErrorBoundary extends React.Component {
       return (
         <div className="flex flex-col items-center justify-center h-full p-6">
           <h1 className="text-2xl font-bold mb-4">😥 Something went wrong.</h1>
-          <p className="mb-2">An unexpected error occurred. Please try refreshing the page.</p>
+          <p className="mb-2">
+            An unexpected error occurred. Please try refreshing the page.
+          </p>
           <button
             onClick={() => window.location.reload()}
             className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"

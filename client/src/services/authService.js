@@ -1,7 +1,7 @@
 // src/services/authService.js
 // Service for authentication actions: login, logout, revoke tokens
 
-import api, { setAccessToken } from '../utils/axiosInstance';
+import api, { setAccessToken } from "../utils/axiosInstance";
 
 const authService = {
   /**
@@ -12,7 +12,7 @@ const authService = {
    */
   login: async function (credentials) {
     // --- REPLACE START: login endpoint ---
-    const response = await api.post('/auth/login', credentials);
+    const response = await api.post("/auth/login", credentials);
     // --- REPLACE END ---
     const { accessToken, user } = response.data;
     setAccessToken(accessToken);
@@ -25,10 +25,10 @@ const authService = {
   logout: async function () {
     try {
       // --- REPLACE START: logout endpoint ---
-      await api.post('/auth/logout');
+      await api.post("/auth/logout");
       // --- REPLACE END ---
     } catch (err) {
-      console.error('Error during logout:', err);
+      console.error("Error during logout:", err);
     } finally {
       setAccessToken(null);
     }
@@ -40,12 +40,12 @@ const authService = {
   revokeToken: async function () {
     try {
       // --- REPLACE START: revoke endpoint (alias for logout) ---
-      await api.post('/auth/logout');
+      await api.post("/auth/logout");
       // --- REPLACE END ---
     } catch (err) {
-      console.error('Error revoking token:', err);
+      console.error("Error revoking token:", err);
     }
-  }
+  },
 };
 
 export default authService;

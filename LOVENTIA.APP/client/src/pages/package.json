@@ -1,0 +1,6 @@
+{
+  "name": "datesite",
+  "dependencies": {
+    "datesite": "file:"
+  }
+}

@@ -1,19 +1,21 @@
 // src/pages/Settings.jsx
-import React from 'react';
-import { useAuth } from '../context/AuthContext';
-import api from '../utils/axiosInstance';
+import React from "react";
+
+import { useAuth } from "../context/AuthContext";
+import api from "../utils/axiosInstance";
 
 export default function Settings() {
   const { logout } = useAuth();
 
   const handleDelete = async () => {
-    if (!window.confirm('Oletko varma, että haluat poistaa tilisi pysyvästi?')) return;
+    if (!window.confirm("Oletko varma, että haluat poistaa tilisi pysyvästi?"))
+      return;
     try {
-      await api.delete('/auth/delete');
+      await api.delete("/auth/delete");
       logout();
     } catch (err) {
-      console.error('Tilin poisto epäonnistui:', err);
-      alert('Tilin poisto epäonnistui. Yritä hetken kuluttua uudelleen.');
+      console.error("Tilin poisto epäonnistui:", err);
+      alert("Tilin poisto epäonnistui. Yritä hetken kuluttua uudelleen.");
     }
   };
 

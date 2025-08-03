@@ -1,11 +1,7 @@
 {
-<<<<<<< HEAD
-  "site": { "title": "DateSite" },
-=======
   "site": {
     "title": "DateSite"
   },
->>>>>>> origin/main
   "Home": "Accueil",
   "Discover": "Découvrir",
   "Login": "Connexion",
@@ -17,10 +13,6 @@
   "Admin": "Admin",
   "Logout": "Déconnexion",
   "Privacy": "Confidentialité",
-<<<<<<< HEAD
-
-=======
->>>>>>> origin/main
   "about": "À propos",
   "careers": "Carrières",
   "press": "Presse",
@@ -63,9 +55,6 @@
     "name": "Nom",
     "email": "Email",
     "age": "Âge",
-<<<<<<< HEAD
-    "gender": "Genre",
-=======
     "height": "Taille (cm)",
     "weight": "Poids (kg)",
     "status": "Statut relationnel",
@@ -81,7 +70,6 @@
     "delete": "Supprimer le compte",
     "saveSuccess": "✅ Profil mis à jour avec succès !",
         "gender": "Genre",
->>>>>>> origin/main
     "male": "Homme",
     "female": "Femme",
     "other": "Autre",
@@ -89,12 +77,6 @@
     "hetero": "Hétérosexuel",
     "homo": "Homosexuel",
     "bi": "Bisexuel",
-<<<<<<< HEAD
-    "height": "Taille (cm)",
-    "heightUnit": "Unité de taille",
-    "weight": "Poids (kg)",
-    "status": "Statut relationnel",
-=======
     "country": "Pays",
     "region": "Région",
     "city": "Ville",
@@ -104,7 +86,6 @@
     "manualRegion": "Ou entrer une région manuellement",
     "selectCity": "Sélectionner une ville",
     "manualCity": "Ou entrer une ville manuellement",
->>>>>>> origin/main
     "education": "Niveau d'études",
     "basicEducation": "Éducation de base",
     "secondary": "Diplôme secondaire",
@@ -112,50 +93,6 @@
     "upperUni": "Master ou équivalent",
     "phd": "Doctorat (PhD)",
     "profession": "Profession",
-<<<<<<< HEAD
-    "professionPlaceholder": "Entrez votre profession…",
-    "professionCategory": "Catégorie de profession",
-    "categories": {
-      "Technical": "Technique",
-      "Healthcare": "Santé",
-      "Education": "Éducation",
-      "Entrepreneur": "Entrepreneur",
-      "Other": "Autre"
-    },
-    "religion": "Religion ou valeurs",
-    "religionImportance": "Importance de la religion",
-    "notImportant": "Pas important",
-    "somewhatImportant": "Assez important",
-    "veryImportant": "Très important",
-    "children": "Enfants",
-    "pets": "Animaux de compagnie",
-    "interests": "Centres d'intérêt",
-    "images": "Images supplémentaires",
-    "mainImage": "Image principale du profil",
-    "extraImages": "Images supplémentaires (max. 6)",
-    "updateProfile": "Mettre à jour le profil",
-    "save": "Enregistrer les modifications",
-    "deleteAccount": "Supprimer le compte",
-    "saveSuccess": "✅ Profil mis à jour avec succès !",
-    "fetchError": "❌ Échec du chargement du profil.",
-    "updateError": "❌ Échec de la mise à jour du profil.",
-    "confirmDelete": "Voulez-vous vraiment supprimer votre compte ?",
-    "premiumMember": "Vous êtes membre Premium 🎉",
-
-    "noFileChosen": "Aucun fichier sélectionné",
-    "browse": "Parcourir…",
-    "saveExtraPhotos": "Enregistrer les photos",
-    "removePicture": "Supprimer l’image",
-    "addCaption": "Ajouter une légende…",
-    "saveCropped": "Enregistrer la photo"
-  },
-
-  "hero": {
-    "0": "Trouvez un amour durable.",
-    "1": "Rencontrez des personnes partageant vos valeurs.",
-    "2": "Votre prochaine rencontre est à un clic."
-  },
-=======
     "religionImportance": "Quelle importance accordez-vous à la religion ?",
     "notImportant": "Pas important",
     "somewhatImportant": "Assez important",
@@ -181,7 +118,6 @@
   "2": "Votre prochaine rencontre est à un clic."
 },
 
->>>>>>> origin/main
 
   "buttons": {
     "submit": "Envoyer",
@@ -192,11 +128,7 @@
   },
 
   "messages": {
-<<<<<<< HEAD
-    "loading": "Chargement…",
-=======
     "loading": "Chargement...",
->>>>>>> origin/main
     "error": "Une erreur s'est produite",
     "notFound": "Page non trouvée",
     "success": "Action réussie"
@@ -205,18 +137,6 @@
   "discover": {
     "title": "Découvrir des utilisateurs",
     "nearYou": "près de vous",
-<<<<<<< HEAD
-    "searchPlaceholder": "🔍 Rechercher par nom ou intérêt…",
-    "geolocationNotSupported": "Votre navigateur ne prend pas en charge la géolocalisation.",
-    "cityNotFound": "Impossible d'identifier votre ville.",
-    "fetchError": "Erreur lors de la récupération des utilisateurs.",
-    "liked": "Utilisateur aimé !",
-    "likeFailed": "Échec du like.",
-    "superliked": "Superlike !",
-    "superlikeFailed": "Échec du superlike.",
-    "superlikeLimit": "❌ Limite de Superlike atteinte (3/48 h).",
-    "loading": "🔄 Chargement des utilisateurs…",
-=======
     "searchPlaceholder": "🔍 Rechercher par nom ou intérêt...",
     "geolocationNotSupported": "Votre navigateur ne prend pas en charge la géolocalisation.",
     "cityNotFound": "Votre ville n'a pas pu être identifiée.",
@@ -227,29 +147,16 @@
     "superlikeFailed": "Échec du superlike.",
     "superlikeLimit": "❌ Limite de Superlike atteinte (3/48h).",
     "loading": "🔄 Chargement des utilisateurs...",
->>>>>>> origin/main
     "adAlt": "Espace pub – votre annonce ici",
     "like": "J'aime",
     "superlike": "Superlike",
     "viewProfile": "Voir le profil",
-<<<<<<< HEAD
-    "premium": "Utilisateur Premium",
-    "minAge": "Âge minimum",
-    "maxAge": "Âge maximum",
-    "instructions": "Sélectionnez les filtres pour trouver des profils compatibles.",
-    "filter": "Filtrer"
-=======
     "premium": "Utilisateur Premium"
->>>>>>> origin/main
   },
 
   "chat": {
     "title": "Chat",
-<<<<<<< HEAD
-    "placeholder": "Tapez un message…",
-=======
     "placeholder": "Tapez un message...",
->>>>>>> origin/main
     "send": "Envoyer"
   },
 
@@ -273,11 +180,7 @@
     "locationError": "Impossible d'obtenir votre position.",
     "fetchError": "Erreur lors de la récupération des utilisateurs.",
     "youAreHere": "Vous êtes ici",
-<<<<<<< HEAD
-    "loadingLocation": "Recherche de la position…"
-=======
     "loadingLocation": "Recherche de la position..."
->>>>>>> origin/main
   },
 
   "matches": {
@@ -292,11 +195,7 @@
     "successMessage": "✅ Premium activé ! Merci pour votre achat.",
     "cancelTitle": "Paiement annulé",
     "cancelMessage": "Vous n'avez pas finalisé le paiement. Vous pouvez réessayer à tout moment.",
-<<<<<<< HEAD
-    "updating": "Mise à jour…",
-=======
     "updating": "Mise à jour...",
->>>>>>> origin/main
     "errorMessage": "❌ Échec de l'activation Premium."
   },
 
@@ -324,37 +223,5 @@
     "Kazakstan": "Kazakhstan",
     "Portugali": "Portugal",
     "Italia": "Italie"
-<<<<<<< HEAD
-  },
-
-  "common": {
-    "select": "Sélectionner",
-    "filter": "Filtrer",
-    "other": "Autre"
-  },
-
-  "lifestyle": {
-    "title": "Mode de vie",
-    "smoke": "Tabac",
-    "drink": "Alcool",
-    "drugs": "Drogues",
-    "no": "Aucun",
-    "little": "Un peu",
-    "average": "Moyennement",
-    "much": "Beaucoup",
-    "sober": "Sobre",
-    "diet": "Préférences alimentaires",
-    "dietOmnivore": "Omnivore",
-    "dietVegetarian": "Végétarien",
-    "dietVegan": "Végan",
-    "dietPescatarian": "Pescatarien",
-    "dietKeto": "Keto",
-    "exercise": "Habitudes d'exercice",
-    "exerciseNever": "Jamais",
-    "exerciseOccasionally": "Occasionnellement",
-    "exerciseWeekly": "Hebdomadaire",
-    "exerciseDaily": "Quotidien"
-=======
->>>>>>> origin/main
   }
 }

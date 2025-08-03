@@ -1,6 +1,11 @@
 import React from "react";
 
-const ProfessionReligionFields = ({ profession, setProfession, religion, setReligion }) => (
+const ProfessionReligionFields = ({
+  profession,
+  setProfession,
+  religion,
+  setReligion,
+}) => (
   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
     <div>
       <label className="block font-medium">💼 Ammatti</label>

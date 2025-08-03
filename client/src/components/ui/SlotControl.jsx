@@ -1,8 +1,9 @@
 // src/ui/SlotControl.jsx
-import React from 'react';
-import PropTypes from 'prop-types';
-import ControlBar from './ControlBar';
-import Button from './Button';
+import PropTypes from "prop-types";
+import React from "react";
+
+import Button from "./Button";
+import ControlBar from "./ControlBar";
 
 /**
  * SlotControl
@@ -33,7 +34,7 @@ export default function SlotControl({
   disableRemove = false,
 }) {
   return (
-    <ControlBar className={isActive ? 'bg-blue-200' : ''}>
+    <ControlBar className={isActive ? "bg-blue-200" : ""}>
       <Button variant="orange" onClick={() => onAdd(index)}>
         Crop & Add…
       </Button>
@@ -72,12 +73,12 @@ export default function SlotControl({
 }
 
 SlotControl.propTypes = {
-  index:         PropTypes.number.isRequired,
-  isActive:      PropTypes.bool,
-  onAdd:         PropTypes.func.isRequired,
-  onUpload:      PropTypes.func.isRequired,
-  onSave:        PropTypes.func.isRequired,
-  onRemove:      PropTypes.func.isRequired,
-  disableSave:   PropTypes.bool,
+  index: PropTypes.number.isRequired,
+  isActive: PropTypes.bool,
+  onAdd: PropTypes.func.isRequired,
+  onUpload: PropTypes.func.isRequired,
+  onSave: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired,
+  disableSave: PropTypes.bool,
   disableRemove: PropTypes.bool,
 };

@@ -1,0 +1,36 @@
+name: Cypress E2E Tests
+
+on:
+  push:
+    branches: [ main, varaoksa14 ]   # --- REPLACE START: added feature branch for CI validation
+  pull_request:
+    branches: [ main, varaoksa14 ]   # --- REPLACE END
+
+jobs:
+  cypress-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Cypress E2E
+        uses: cypress-io/github-action@v6
+        with:
+          start: npm start
+          wait-on: http://localhost:3000
+          wait-on-timeout: 60
+          command: npm run cy:run
+
+      - name: Archive Cypress videos and screenshots
+        uses: actions/upload-artifact@v3
+        with:
+          name: cypress-artifacts
+          path: cypress/videos, cypress/screenshots

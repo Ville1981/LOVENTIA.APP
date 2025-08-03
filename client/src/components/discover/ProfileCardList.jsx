@@ -1,8 +1,9 @@
 // src/components/discover/ProfileCardList.jsx
 
-import React, { memo, useMemo, useRef, useEffect } from "react";
 import PropTypes from "prop-types";
+import React, { memo, useMemo, useRef, useEffect } from "react";
 import Slider from "react-slick";
+
 import ProfileCard from "./ProfileCard";
 
 // Slick-carouselin tyylit (pidetään App.jsx:ssä myös, mutta varmistetaan)
@@ -16,9 +17,7 @@ import "slick-carousel/slick/slick-theme.css";
 const ProfileCardList = ({ users = [], onAction }) => {
   if (!Array.isArray(users) || users.length === 0) {
     return (
-      <p className="text-center text-gray-500 mt-6">
-        🔍 No results found
-      </p>
+      <p className="text-center text-gray-500 mt-6">🔍 No results found</p>
     );
   }
 

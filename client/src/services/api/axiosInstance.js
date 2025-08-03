@@ -1,7 +1,7 @@
 // src/services/api/axiosInstance.js
 // Centralized Axios instance with JWT management and automatic token refresh
 
-import axios from 'axios';
+import axios from "axios";
 
 // Internal access token; set via setAccessToken after login/refresh
 let accessToken = null;
@@ -16,9 +16,9 @@ export function setAccessToken(token) {
 
 // Create Axios instance
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/',
+  baseURL: import.meta.env.VITE_API_BASE_URL || "/",
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
@@ -47,7 +47,7 @@ api.interceptors.response.use(
       try {
         // Call refresh endpoint; assumes refreshToken stored in HttpOnly cookie
         const res = await axios.post(
-          '/api/auth/refresh',
+          "/api/auth/refresh",
           {},
           { withCredentials: true }
         );
@@ -58,7 +58,7 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         // Redirect to login or propagate error
-        console.error('Token refresh failed:', refreshError);
+        console.error("Token refresh failed:", refreshError);
         return Promise.reject(refreshError);
       }
     }

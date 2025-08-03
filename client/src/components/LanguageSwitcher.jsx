@@ -7,7 +7,10 @@ const LanguageSwitcher = () => {
   useEffect(() => {
     const rtlLanguages = ["ar", "he", "fa", "ur"];
     const updateDir = (lng) => {
-      document.documentElement.setAttribute("dir", rtlLanguages.includes(lng) ? "rtl" : "ltr");
+      document.documentElement.setAttribute(
+        "dir",
+        rtlLanguages.includes(lng) ? "rtl" : "ltr"
+      );
     };
 
     updateDir(i18n.language);
@@ -70,9 +73,8 @@ const LanguageSwitcher = () => {
       </optgroup>
 
       <optgroup label="🌍 AFRICA">
-      <option value="sw">🇰🇪 Kiswahili (Swahili)</option>
+        <option value="sw">🇰🇪 Kiswahili (Swahili)</option>
       </optgroup>
-
     </select>
   );
 };

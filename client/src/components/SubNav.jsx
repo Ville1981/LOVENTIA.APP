@@ -1,5 +1,5 @@
-import React, { useState, useEffect, memo } from "react";
 import PropTypes from "prop-types";
+import React, { useState, useEffect, memo } from "react";
 
 const SubNav = ({ tabs, activeKey = "", onChange = () => {} }) => {
   const [active, setActive] = useState(

@@ -150,16 +150,7 @@
     "like": "Like",
     "superlike": "Superlike",
     "viewProfile": "Profil ansehen",
-<<<<<<< HEAD
-    "premium": "Premium-Nutzer",
-        "minAge": "Mindestalter",
-    "maxAge": "Höchstalter",
-    "instructions": "Wähle Filter, um passende Profile zu finden.",
-    "filter": "Filtern"
-
-=======
     "premium": "Premium-Nutzer"
->>>>>>> origin/main
   },
 
   "chat": {
@@ -231,27 +222,5 @@
     "Kazakstan": "Kasachstan",
     "Portugali": "Portugal",
     "Italia": "Italien"
-<<<<<<< HEAD
-  },
-  "common": {
-  "select": "Auswählen",
-  "filter": "Filtern"
-},
-
-"lifestyle": {
-  "title": "Lebensstil",
-  "smoke": "Rauchen",
-  "drink": "Alkohol",
-  "drugs": "Drogen",
-  "no": "Kein Konsum",
-  "little": "Wenig",
-  "average": "Durchschnittlich",
-  "much": "Viel",
-  "sober": "Suchtfrei"
-}
-
-
-=======
   }
->>>>>>> origin/main
 }

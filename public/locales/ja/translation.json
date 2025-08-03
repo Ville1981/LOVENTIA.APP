@@ -150,16 +150,7 @@
     "like": "いいね",
     "superlike": "スーパーライク",
     "viewProfile": "プロフィールを見る",
-<<<<<<< HEAD
-    "premium": "プレミアムユーザー",
-        "minAge": "最小年齢",
-    "maxAge": "最大年齢",
-    "instructions": "条件を選択して、相性の良いプロフィールを見つけましょう。",
-    "filter": "フィルター"
-
-=======
     "premium": "プレミアムユーザー"
->>>>>>> origin/main
   },
 
   "chat": {
@@ -231,28 +222,5 @@
     "Kazakstan": "カザフスタン",
     "Portugali": "ポルトガル",
     "Italia": "イタリア"
-<<<<<<< HEAD
-  },
-
-  "common": {
-  "select": "選択",
-  "filter": "フィルター"
-},
-
-"lifestyle": {
-  "title": "ライフスタイル",
-  "smoke": "喫煙",
-  "drink": "飲酒",
-  "drugs": "薬物",
-  "no": "なし",
-  "little": "少し",
-  "average": "普通",
-  "much": "多い",
-  "sober": "依存なし"
-}
-
-
-=======
   }
->>>>>>> origin/main
 }

@@ -2,7 +2,7 @@
 
 /**
  * Base URL for backend API.
- * 
+ *
  * - Uses VITE_BACKEND_URL if provided (e.g. "http://localhost:5000" or "https://api.myapp.com")
  * - Falls back to "http://localhost:5000" if not set
  * - Strips off any trailing "/api" (so we don’t accidentally call "/api/api/…")

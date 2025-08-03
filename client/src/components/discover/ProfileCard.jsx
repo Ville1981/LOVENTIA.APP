@@ -1,14 +1,14 @@
 // src/components/discover/ProfileCard.jsx
 
-import React, { memo, useState, useEffect } from "react";
 import PropTypes from "prop-types";
+import React, { memo, useState, useEffect } from "react";
 
-import PhotoCarousel from "./PhotoCarousel";
 import ActionButtons from "./ActionButtons";
-import LocationText from "./LocationText";
-import SummaryAccordion from "./SummaryAccordion";
-import StatsPanel from "./StatsPanel";
 import DetailsSection from "./DetailsSection";
+import LocationText from "./LocationText";
+import PhotoCarousel from "./PhotoCarousel";
+import StatsPanel from "./StatsPanel";
+import SummaryAccordion from "./SummaryAccordion";
 
 // Static fallback photos from public/assets (relative polut)
 const FALLBACK_PHOTOS = [
@@ -69,24 +69,16 @@ const ProfileCard = ({ user, onPass, onLike, onSuperlike }) => {
 
   if (loading) {
     return (
-      <div className="p-6 text-center text-gray-500">
-        Loading profile…
-      </div>
+      <div className="p-6 text-center text-gray-500">Loading profile…</div>
     );
   }
 
   if (error) {
-    return (
-      <div className="p-6 text-center text-red-500">
-        {error}
-      </div>
-    );
+    return <div className="p-6 text-center text-red-500">{error}</div>;
   }
 
   return (
-    <div
-      className="relative bg-white border border-gray-200 rounded-lg shadow-md overflow-hidden w-full"
-    >
+    <div className="relative bg-white border border-gray-200 rounded-lg shadow-md overflow-hidden w-full">
       {/* Karuselli: korkeus on rajoitettu PhotoCarousel-komponentissa */}
       <PhotoCarousel photos={photos} />
 

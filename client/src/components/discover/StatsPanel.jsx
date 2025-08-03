@@ -1,12 +1,12 @@
 // src/components/discover/StatsPanel.jsx
 
-import React from "react";
 import PropTypes from "prop-types";
+import React from "react";
 
 const StatsPanel = ({ user, onAction = () => {} }) => {
   const displayName = user.name || user.username || "Unknown";
-  const youPhoto    = user.youPhoto      || "/assets/your-avatar.jpg";
-  const profilePhoto= user.profilePhoto  || "/assets/bunny-avatar.jpg";
+  const youPhoto = user.youPhoto || "/assets/your-avatar.jpg";
+  const profilePhoto = user.profilePhoto || "/assets/bunny-avatar.jpg";
   const compatibility = user.compatibility != null ? user.compatibility : 0;
 
   const userId = user.id || user._id;
@@ -21,13 +21,11 @@ const StatsPanel = ({ user, onAction = () => {} }) => {
     <div
       className="mt-6"
       style={{
-        overflowAnchor: "none",        // estetään scroll-ankkurointi
-        minHeight: "4.5rem"           // vakioidaan korkeus layout-shifteiltä
+        overflowAnchor: "none", // estetään scroll-ankkurointi
+        minHeight: "4.5rem", // vakioidaan korkeus layout-shifteiltä
       }}
     >
-      <h4 className="text-gray-700 font-semibold mb-2">
-        You & {displayName}
-      </h4>
+      <h4 className="text-gray-700 font-semibold mb-2">You & {displayName}</h4>
       <div className="flex items-center space-x-2 mb-2">
         <img
           src={youPhoto}
@@ -90,16 +88,16 @@ const StatsPanel = ({ user, onAction = () => {} }) => {
 
 StatsPanel.propTypes = {
   user: PropTypes.shape({
-    id:             PropTypes.string,
-    _id:            PropTypes.string.isRequired,
-    username:       PropTypes.string,
-    name:           PropTypes.string,
-    compatibility:  PropTypes.number,
-    youPhoto:       PropTypes.string,
-    profilePhoto:   PropTypes.string,
-    agreeCount:     PropTypes.number,
-    disagreeCount:  PropTypes.number,
-    findOutCount:   PropTypes.number,
+    id: PropTypes.string,
+    _id: PropTypes.string.isRequired,
+    username: PropTypes.string,
+    name: PropTypes.string,
+    compatibility: PropTypes.number,
+    youPhoto: PropTypes.string,
+    profilePhoto: PropTypes.string,
+    agreeCount: PropTypes.number,
+    disagreeCount: PropTypes.number,
+    findOutCount: PropTypes.number,
   }).isRequired,
   onAction: PropTypes.func,
 };

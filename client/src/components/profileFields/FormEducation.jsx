@@ -1,8 +1,8 @@
 // src/components/profileFields/FormEducation.jsx
 
+import PropTypes from "prop-types";
 import React from "react";
 import { useFormContext } from "react-hook-form";
-import PropTypes from "prop-types";
 
 /**
  * FormEducation
@@ -40,7 +40,9 @@ const FormEducation = ({ t, includeAllOption = false }) => {
           <option value="Peruskoulu">{t("education.basic")}</option>
           <option value="Toinen aste">{t("education.secondary")}</option>
           <option value="Ammatillinen">{t("education.vocational")}</option>
-          <option value="Korkeakoulu / yliopisto">{t("education.higher")}</option>
+          <option value="Korkeakoulu / yliopisto">
+            {t("education.higher")}
+          </option>
           <option value="Tohtori / tutkimus">{t("education.phd")}</option>
           <option value="Muu">{t("common.other")}</option>
         </select>

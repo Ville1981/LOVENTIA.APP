@@ -1,6 +1,7 @@
 // src/components/HeaderAd.jsx
 
 import React, { useEffect, useState } from "react";
+
 import * as adData from "../utils/adsData"; // ✅ korjattu import-polku
 
 const HeaderAd = () => {

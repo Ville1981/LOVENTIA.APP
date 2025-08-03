@@ -1,47 +1,38 @@
-// routes/auth.js
+// server/routes/auth.js
 
-const express = require('express');
-const router = express.Router();
-const jwt = require('jsonwebtoken');
-const cookieParser = require('cookie-parser');
-const crypto = require('crypto');
-const bcrypt = require('bcryptjs');
+// --- REPLACE START: convert CommonJS requires to ESM imports ---
+import express from 'express';
+import jwt from 'jsonwebtoken';
+import cookieParser from 'cookie-parser';
+import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 
 // Load environment variables
-// ==========================
-const SALT_ROUNDS = parseInt(process.env.SALT_ROUNDS, 10) || 10;
+import 'dotenv/config';
 
 // Models and Utilities
-// =====================
-const User = require('../models/User');
-const sendEmail = require('../utils/sendEmail');
+import User from '../models/User.js';
+import sendEmail from '../utils/sendEmail.js';
 
 // Controllers
-// ===========
-const {
-  registerUser,
-  loginUser,
-} = require('../controllers/userController');
+import { registerUser, loginUser } from '../controllers/userController.js';
 
 // Middleware
-// ==========
-const upload = require('../middleware/upload');
-const authenticate = require('../middleware/authenticate');
-const {
-  validateRegister,
-  validateLogin,
-} = require('../middleware/validators/auth');
-const { sanitizeFields } = require('../middleware/sanitizer');
+import upload from '../middleware/upload.js';
+import authenticate from '../middleware/authenticate.js';
+import { sanitizeAndValidateProfile } from '../middleware/profileValidator.js';
+import { validateRegister, validateLogin } from '../middleware/validators/auth.js';
+
+// Cookie options
+import { cookieOptions } from '../utils/cookieOptions.js';
+// --- REPLACE END ---
+
+const router = express.Router();
 
 // Body parsing and cookie handling
-// ================================
 router.use(express.json());
 router.use(express.urlencoded({ extended: true }));
 router.use(cookieParser());
-
-// --- REPLACE START: import centralized cookieOptions for Secure, HttpOnly cookies ---
-const { cookieOptions } = require('../utils/cookieOptions');
-// --- REPLACE END ---
 
 // -----------------------------
 // 1) Refresh Access Token
@@ -52,29 +43,16 @@ router.post('/refresh', (req, res) => {
   if (!token) {
     return res.status(401).json({ error: 'No refresh token provided' });
   }
-
   try {
     const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
     if (!decoded?.id) {
       return res.status(401).json({ error: 'Invalid token payload' });
     }
-
     const accessToken = jwt.sign(
       { id: decoded.id, role: decoded.role },
       process.env.JWT_SECRET,
       { expiresIn: '15m' }
     );
-
-    // (Optional) Rotate the refresh token:
-    // --- REPLACE START: rotate refreshToken cookie if you want rotation ---
-    // const newRefreshToken = jwt.sign(
-    //   { userId: decoded.id },
-    //   process.env.JWT_REFRESH_SECRET,
-    //   { expiresIn: '7d' }
-    // );
-    // res.cookie('refreshToken', newRefreshToken, cookieOptions);
-    // --- REPLACE END ---
-
     return res.json({ accessToken });
   } catch (err) {
     console.error('Refresh token error:', err);
@@ -127,23 +105,15 @@ router.post('/forgot-password', async (req, res) => {
   if (!email) {
     return res.status(400).json({ error: 'Email is required' });
   }
-
   try {
     const user = await User.findOne({ email });
     if (!user) {
       return res.json({ message: 'If that email is registered, a reset link has been sent' });
     }
-
-    // Generate reset token
     const token = crypto.randomBytes(32).toString('hex');
-    user.passwordResetToken = crypto
-      .createHash('sha256')
-      .update(token)
-      .digest('hex');
-    user.passwordResetExpires = Date.now() + 60 * 60 * 1000; // 1 hour
+    user.passwordResetToken = crypto.createHash('sha256').update(token).digest('hex');
+    user.passwordResetExpires = Date.now() + 60 * 60 * 1000;
     await user.save();
-
-    // Build reset URL and email message
     const resetURL = `${process.env.CLIENT_URL}/reset-password?token=${token}&id=${user._id}`;
     const message = [
       'You requested a password reset. Click the link below to set a new password:',
@@ -151,7 +121,6 @@ router.post('/forgot-password', async (req, res) => {
       '',
       'If you did not request this, ignore this email.',
     ].join('\n\n');
-
     await sendEmail(user.email, 'Password Reset Request', message);
     return res.json({ message: 'If that email is registered, a reset link has been sent' });
   } catch (err) {
@@ -169,7 +138,6 @@ router.post('/reset-password', async (req, res) => {
   if (!id || !token || !newPassword) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
-
   try {
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
     const user = await User.findOne({
@@ -177,17 +145,13 @@ router.post('/reset-password', async (req, res) => {
       passwordResetToken: hashedToken,
       passwordResetExpires: { $gt: Date.now() },
     });
-
     if (!user) {
       return res.status(400).json({ error: 'Invalid or expired reset token' });
     }
-
-    // Update password and clear reset tokens
     user.password = await bcrypt.hash(newPassword, SALT_ROUNDS);
     user.passwordResetToken = undefined;
     user.passwordResetExpires = undefined;
     await user.save();
-
     return res.json({ message: 'Password has been reset successfully' });
   } catch (err) {
     console.error('Reset password error:', err);
@@ -205,14 +169,10 @@ router.get(
   authenticate,
   async (req, res) => {
     try {
-      const user = await User.findById(req.user.id)
-        .select('_id email role profilePicture extraImages isPremium')
-        .lean();
-
+      const user = await User.findById(req.user.id).select('-password');
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
-
       return res.json({ user });
     } catch (err) {
       console.error('Fetch /me error:', err);
@@ -229,7 +189,7 @@ router.get(
 router.put(
   '/profile',
   authenticate,
-  sanitizeFields,
+  sanitizeAndValidateProfile,
   upload.fields([
     { name: 'image', maxCount: 1 },
     { name: 'extraImages', maxCount: 6 },
@@ -237,8 +197,6 @@ router.put(
   async (req, res) => {
     try {
       const updateData = {};
-
-      // Coordinates
       if (req.body.latitude !== undefined) {
         const lat = parseFloat(req.body.latitude);
         if (!isNaN(lat)) updateData.latitude = lat;
@@ -247,8 +205,6 @@ router.put(
         const lng = parseFloat(req.body.longitude);
         if (!isNaN(lng)) updateData.longitude = lng;
       }
-
-      // Nested location fields
       if (req.body.location) {
         const loc = req.body.location;
         if (loc.country) updateData.country = loc.country;
@@ -258,29 +214,12 @@ router.put(
         if (loc.manualRegion) updateData.customRegion = loc.manualRegion;
         if (loc.manualCity) updateData.customCity = loc.manualCity;
       }
-
-      // Whitelisted attributes
       ['name','email','age','height','weight','status','religion','children','pets','summary','goal','lookingFor','bodyType','weightUnit','profession','professionCategory']
-        .forEach(field => {
-          if (req.body[field] !== undefined) updateData[field] = req.body[field];
-        });
-
-      // Profile image
-      if (req.files?.image) {
-        updateData.profilePicture = `uploads/${req.files.image[0].filename}`;
-      }
-      // Extra images
-      if (req.files?.extraImages) {
-        updateData.extraImages = req.files.extraImages.map(file => `uploads/${file.filename}`);
-      }
-
-      const updatedUser = await User.findByIdAndUpdate(
-        req.user.id,
-        updateData,
-        { new: true }
-      ).select('-password');
-
-      return res.json(updatedUser);
+        .forEach(field => { if (req.body[field] !== undefined) updateData[field] = req.body[field]; });
+      if (req.files.image) updateData.profilePicture = `uploads/${req.files.image[0].filename}`;
+      if (req.files.extraImages) updateData.extraImages = req.files.extraImages.map(f => `uploads/${f.filename}`);
+      const updated = await User.findByIdAndUpdate(req.user.id, updateData, { new: true }).select('-password');
+      return res.json(updated);
     } catch (err) {
       console.error('Profile update error:', err);
       return res.status(500).json({ error: 'Profile update failed' });
@@ -307,7 +246,6 @@ router.delete(
   }
 );
 
-// Export the router for application use
-// ======================================
-module.exports = router;
-
+// --- REPLACE START: export router as ESM default ---
+export default router;
+// --- REPLACE END ---

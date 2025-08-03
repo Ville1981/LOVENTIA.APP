@@ -1,7 +1,7 @@
 // src/components/abTest/ABTest.jsx
 
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import axios from "axios";
+import React, { useEffect, useState } from "react";
 
 /**
  * A/B-testikomponentti
@@ -17,7 +17,9 @@ export function ABTest({ experimentName, variants }) {
       const res = await axios.get(`/api/abtest/${experimentName}`);
       setVariantKey(res.data.variant);
       // Trackaa osallistuminen
-      await axios.post(`/api/abtest/${experimentName}/track`, { variant: res.data.variant });
+      await axios.post(`/api/abtest/${experimentName}/track`, {
+        variant: res.data.variant,
+      });
     }
     fetchVariant();
   }, [experimentName]);

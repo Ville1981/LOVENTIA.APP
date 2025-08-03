@@ -1,17 +1,17 @@
 // src/components/profileFields/ProfileForm.jsx
 
-import React, { useState, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
-import { useForm, FormProvider } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
+import React, { useState, useEffect, useMemo } from "react";
+import { useForm, FormProvider } from "react-hook-form";
+import { Link } from "react-router-dom";
 import * as yup from "yup";
 
 import FormBasicInfo from "./FormBasicInfo";
-import FormLocation from "./FormLocation";
-import FormEducation from "./FormEducation";
 import FormChildrenPets from "./FormChildrenPets";
-import FormLifestyle from "./FormLifestyle";
+import FormEducation from "./FormEducation";
 import FormGoalSummary from "./FormGoalSummary";
+import FormLifestyle from "./FormLifestyle";
+import FormLocation from "./FormLocation";
 import FormLookingFor from "./FormLookingFor";
 import MultiStepPhotoUploader from "./MultiStepPhotoUploader";
 import { BACKEND_BASE_URL } from "../../config";
@@ -20,21 +20,57 @@ import { BACKEND_BASE_URL } from "../../config";
 // Constants for selects
 // =============================================
 const professionCategories = [
-  "Administration","Finance","Military","Technical","Healthcare",
-  "Education","Entrepreneur","Law","Farmer/Forest worker","Theologian/Priest",
-  "Service","Artist","DivineServant","Homeparent","FoodIndustry",
-  "Retail","Arts","Government","Retired","Athlete","Other",
+  "Administration",
+  "Finance",
+  "Military",
+  "Technical",
+  "Healthcare",
+  "Education",
+  "Entrepreneur",
+  "Law",
+  "Farmer/Forest worker",
+  "Theologian/Priest",
+  "Service",
+  "Artist",
+  "DivineServant",
+  "Homeparent",
+  "FoodIndustry",
+  "Retail",
+  "Arts",
+  "Government",
+  "Retired",
+  "Athlete",
+  "Other",
 ];
 
 const dietOptions = [
-  "none","omnivore","vegetarian","vegan","pescatarian","flexitarian","keto","other",
+  "none",
+  "omnivore",
+  "vegetarian",
+  "vegan",
+  "pescatarian",
+  "flexitarian",
+  "keto",
+  "other",
 ];
 
 const religionOptions = [
-  "", "Christianity","Islam","Hinduism","Buddhism","Folk","None","Other","Atheism"
+  "",
+  "Christianity",
+  "Islam",
+  "Hinduism",
+  "Buddhism",
+  "Folk",
+  "None",
+  "Other",
+  "Atheism",
 ];
 const religionImportanceOptions = [
-  "", "Not at all important","Somewhat important","Very important","Essential"
+  "",
+  "Not at all important",
+  "Somewhat important",
+  "Very important",
+  "Essential",
 ];
 
 // =============================================
@@ -42,17 +78,21 @@ const religionImportanceOptions = [
 // =============================================
 const schema = yup.object().shape({
   username: yup.string().required("Required"),
-  email:    yup.string().email("Invalid email").required("Required"),
-  age:      yup.number().typeError("Age must be a number").min(18, "Must be at least 18").required("Required"),
-  gender:       yup.string().required("Required"),
-  orientation:  yup.string().required("Required"),
+  email: yup.string().email("Invalid email").required("Required"),
+  age: yup
+    .number()
+    .typeError("Age must be a number")
+    .min(18, "Must be at least 18")
+    .required("Required"),
+  gender: yup.string().required("Required"),
+  orientation: yup.string().required("Required"),
 
-  country:       yup.string(),
-  region:        yup.string(),
-  city:          yup.string(),
+  country: yup.string(),
+  region: yup.string(),
+  city: yup.string(),
   customCountry: yup.string(),
-  customRegion:  yup.string(),
-  customCity:    yup.string(),
+  customRegion: yup.string(),
+  customCity: yup.string(),
 
   education: yup.string(),
 
@@ -61,19 +101,27 @@ const schema = yup.object().shape({
     .oneOf(["", ...professionCategories], "Invalid profession category"),
   profession: yup.string().required("Required"),
 
-  religion:           yup.string().oneOf(religionOptions, "Invalid religion"),
-  religionImportance: yup.string().oneOf(religionImportanceOptions, "Invalid importance"),
+  religion: yup.string().oneOf(religionOptions, "Invalid religion"),
+  religionImportance: yup
+    .string()
+    .oneOf(religionImportanceOptions, "Invalid importance"),
 
   children: yup.string(),
-  pets:     yup.string(),
-  smoke:    yup.string(),
-  drink:    yup.string(),
-  drugs:    yup.string(),
+  pets: yup.string(),
+  smoke: yup.string(),
+  drink: yup.string(),
+  drugs: yup.string(),
 
-  height:     yup.number().nullable().transform((v,o)=> o===""? null : v),
-  heightUnit: yup.string().oneOf(["","Cm","FtIn"], "Invalid unit"),
-  weight:     yup.number().nullable().transform((v,o)=> o===""? null : v),
-  bodyType:     yup.string(),
+  height: yup
+    .number()
+    .nullable()
+    .transform((v, o) => (o === "" ? null : v)),
+  heightUnit: yup.string().oneOf(["", "Cm", "FtIn"], "Invalid unit"),
+  weight: yup
+    .number()
+    .nullable()
+    .transform((v, o) => (o === "" ? null : v)),
+  bodyType: yup.string(),
   activityLevel: yup.string(),
 
   nutritionPreferences: yup
@@ -81,14 +129,20 @@ const schema = yup.object().shape({
     .oneOf(["", ...dietOptions], "Invalid diet"),
   healthInfo: yup.string(),
 
-  summary:    yup.string(),
-  goal:       yup.string(),
+  summary: yup.string(),
+  goal: yup.string(),
   lookingFor: yup.string(),
 
   profilePhoto: yup.string(),
 
-  latitude:  yup.number().nullable().transform((v,o)=> o===""? null : v),
-  longitude: yup.number().nullable().transform((v,o)=> o===""? null : v),
+  latitude: yup
+    .number()
+    .nullable()
+    .transform((v, o) => (o === "" ? null : v)),
+  longitude: yup
+    .number()
+    .nullable()
+    .transform((v, o) => (o === "" ? null : v)),
 
   extraImages: yup.array().of(yup.string()),
 });
@@ -103,42 +157,42 @@ export default function ProfileForm({
   onUserUpdate,
   onSubmit: onSubmitProp,
   hideAvatarSection = false,
-  hidePhotoSection  = false,
+  hidePhotoSection = false,
 }) {
   const methods = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
       username: user.username || "",
-      email:    user.email    || "",
-      age:      user.age       || "",
-      gender:       user.gender      || "",
-      orientation:  user.orientation || "",
+      email: user.email || "",
+      age: user.age || "",
+      gender: user.gender || "",
+      orientation: user.orientation || "",
 
-      country:       user.country       || "",
-      region:        user.region        || "",
-      city:          user.city          || "",
+      country: user.country || "",
+      region: user.region || "",
+      city: user.city || "",
       customCountry: user.customCountry || "",
-      customRegion:  user.customRegion  || "",
-      customCity:    user.customCity    || "",
+      customRegion: user.customRegion || "",
+      customCity: user.customCity || "",
 
       education: user.education || "",
 
       professionCategory: user.professionCategory || "",
-      profession:         user.profession         || "",
+      profession: user.profession || "",
 
-      religion:           user.religion           || "",
+      religion: user.religion || "",
       religionImportance: user.religionImportance || "",
 
       children: user.children || "",
-      pets:     user.pets     || "",
-      smoke:    user.smoke    || "",
-      drink:    user.drink    || "",
-      drugs:    user.drugs    || "",
+      pets: user.pets || "",
+      smoke: user.smoke || "",
+      drink: user.drink || "",
+      drugs: user.drugs || "",
 
-      height:     user.height      ?? null,
-      heightUnit: user.heightUnit  || "",
-      weight:     user.weight      ?? null,
-      bodyType:     user.bodyType     || "",
+      height: user.height ?? null,
+      heightUnit: user.heightUnit || "",
+      weight: user.weight ?? null,
+      bodyType: user.bodyType || "",
       activityLevel: user.activityLevel || "",
 
       nutritionPreferences: Array.isArray(user.nutritionPreferences)
@@ -146,13 +200,13 @@ export default function ProfileForm({
         : user.nutritionPreferences || "",
       healthInfo: user.healthInfo || "",
 
-      summary:    user.summary    || "",
-      goal:       user.goal       || "",
+      summary: user.summary || "",
+      goal: user.goal || "",
       lookingFor: user.lookingFor || "",
 
       profilePhoto: user.profilePicture || "",
 
-      latitude:  user.latitude  ?? null,
+      latitude: user.latitude ?? null,
       longitude: user.longitude ?? null,
 
       extraImages: user.extraImages || [],
@@ -180,7 +234,9 @@ export default function ProfileForm({
   }, [user, reset, getValues]);
 
   // Local state for extra-images & avatar preview
-  const [localExtraImages, setLocalExtraImages] = useState(user.extraImages || []);
+  const [localExtraImages, setLocalExtraImages] = useState(
+    user.extraImages || []
+  );
   const [avatarPreview, setAvatarPreview] = useState(
     user.profilePicture
       ? user.profilePicture.startsWith("http")
@@ -202,7 +258,9 @@ export default function ProfileForm({
   const onFormSubmit = async (data) => {
     const payload = {
       ...data,
-      nutritionPreferences: data.nutritionPreferences ? [data.nutritionPreferences] : [],
+      nutritionPreferences: data.nutritionPreferences
+        ? [data.nutritionPreferences]
+        : [],
       extraImages: localExtraImages,
       profilePhoto: data.profilePhoto,
     };
@@ -392,11 +450,7 @@ export default function ProfileForm({
         />
 
         {/* Looking For */}
-        <FormLookingFor
-          t={t}
-          errors={errors}
-          fieldName="lookingFor"
-        />
+        <FormLookingFor t={t} errors={errors} fieldName="lookingFor" />
 
         {/* Extra Photo Uploader */}
         {!hidePhotoSection && userId && (

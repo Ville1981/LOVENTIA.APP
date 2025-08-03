@@ -149,16 +149,7 @@
     "like": "Me gusta",
     "superlike": "Superlike",
     "viewProfile": "Ver perfil",
-<<<<<<< HEAD
-    "premium": "Usuario Premium",
-        "minAge": "Edad mínima",
-    "maxAge": "Edad máxima",
-    "instructions": "Selecciona los criterios para encontrar perfiles compatibles.",
-    "filter": "Filtrar"
-
-=======
     "premium": "Usuario Premium"
->>>>>>> origin/main
   },
 
   "chat": {
@@ -230,28 +221,5 @@
     "Kazakstan": "Kazajistán",
     "Portugali": "Portugal",
     "Italia": "Italia"
-<<<<<<< HEAD
-  },
-
-  "common": {
-  "select": "Seleccionar",
-  "filter": "Filtrar"
-},
-
-"lifestyle": {
-  "title": "Estilo de vida",
-  "smoke": "Fumar",
-  "drink": "Alcohol",
-  "drugs": "Drogas",
-  "no": "Ninguno",
-  "little": "Un poco",
-  "average": "Promedio",
-  "much": "Mucho",
-  "sober": "Libre de adicción"
-}
-
-
-=======
   }
->>>>>>> origin/main
 }

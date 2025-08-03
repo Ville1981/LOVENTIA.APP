@@ -16,9 +16,9 @@ class NotificationService {
    * @private
    */
   _initToastContainer() {
-    this.toastsContainer = document.createElement('div');
-    this.toastsContainer.setAttribute('aria-live', 'polite');
-    this.toastsContainer.className = 'fixed bottom-4 right-4 space-y-2 z-50';
+    this.toastsContainer = document.createElement("div");
+    this.toastsContainer.setAttribute("aria-live", "polite");
+    this.toastsContainer.className = "fixed bottom-4 right-4 space-y-2 z-50";
     document.body.appendChild(this.toastsContainer);
   }
 
@@ -28,12 +28,12 @@ class NotificationService {
    */
   async showBrowserNotification({ title, options = {} }) {
     // --- REPLACE START: Browser notification flow
-    if (!('Notification' in window)) return;
-    if (Notification.permission === 'granted') {
+    if (!("Notification" in window)) return;
+    if (Notification.permission === "granted") {
       new Notification(title, options);
-    } else if (Notification.permission !== 'denied') {
+    } else if (Notification.permission !== "denied") {
       const permission = await Notification.requestPermission();
-      if (permission === 'granted') {
+      if (permission === "granted") {
         new Notification(title, options);
       }
     }
@@ -46,14 +46,15 @@ class NotificationService {
    */
   showToast({ message, durationMs = 3000 }) {
     // --- REPLACE START: Toast display logic
-    const toast = document.createElement('div');
-    toast.className = 'bg-gray-800 text-white px-4 py-2 rounded shadow-lg animate-fade-in-out';
+    const toast = document.createElement("div");
+    toast.className =
+      "bg-gray-800 text-white px-4 py-2 rounded shadow-lg animate-fade-in-out";
     toast.textContent = message;
     this.toastsContainer.appendChild(toast);
 
     setTimeout(() => {
-      toast.classList.add('opacity-0');
-      toast.addEventListener('transitionend', () => toast.remove());
+      toast.classList.add("opacity-0");
+      toast.addEventListener("transitionend", () => toast.remove());
     }, durationMs);
     // --- REPLACE END: Toast display logic
   }

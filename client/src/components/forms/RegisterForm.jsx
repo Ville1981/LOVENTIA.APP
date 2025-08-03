@@ -1,9 +1,10 @@
 // client/src/components/forms/RegisterForm.jsx
 
-import React from 'react';
-import PropTypes from 'prop-types';
-import { useFormValidation } from '../../hooks/useFormValidation';
-import { registerSchema } from '../../utils/validationSchemas';
+import PropTypes from "prop-types";
+import React from "react";
+
+import { useFormValidation } from "../../hooks/useFormValidation";
+import { registerSchema } from "../../utils/validationSchemas";
 
 /**
  * RegisterForm
@@ -16,8 +17,8 @@ export default function RegisterForm({ onSubmit }) {
     formState: { errors, isSubmitting },
   } = useFormValidation({
     schema: registerSchema,
-    defaultValues: { name: '', email: '', password: '' },
-    mode: 'onBlur',
+    defaultValues: { name: "", email: "", password: "" },
+    mode: "onBlur",
   });
 
   return (
@@ -27,8 +28,8 @@ export default function RegisterForm({ onSubmit }) {
         <input
           id="name"
           type="text"
-          {...register('name')}
-          aria-invalid={errors.name ? 'true' : 'false'}
+          {...register("name")}
+          aria-invalid={errors.name ? "true" : "false"}
         />
         {errors.name && (
           <span role="alert" className="error">
@@ -42,8 +43,8 @@ export default function RegisterForm({ onSubmit }) {
         <input
           id="email"
           type="email"
-          {...register('email')}
-          aria-invalid={errors.email ? 'true' : 'false'}
+          {...register("email")}
+          aria-invalid={errors.email ? "true" : "false"}
         />
         {errors.email && (
           <span role="alert" className="error">
@@ -57,8 +58,8 @@ export default function RegisterForm({ onSubmit }) {
         <input
           id="password"
           type="password"
-          {...register('password')}
-          aria-invalid={errors.password ? 'true' : 'false'}
+          {...register("password")}
+          aria-invalid={errors.password ? "true" : "false"}
         />
         {errors.password && (
           <span role="alert" className="error">
@@ -68,7 +69,7 @@ export default function RegisterForm({ onSubmit }) {
       </div>
 
       <button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? 'Registering…' : 'Register'}
+        {isSubmitting ? "Registering…" : "Register"}
       </button>
     </form>
   );

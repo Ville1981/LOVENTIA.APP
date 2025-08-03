@@ -1,20 +1,29 @@
+import PropTypes from "prop-types";
 import React from "react";
 import { useForm, FormProvider } from "react-hook-form";
-import PropTypes from "prop-types";
 
-import FormBasicInfo    from "./profileFields/FormBasicInfo";
-import FormLocation     from "./profileFields/FormLocation";
-import FormEducation    from "./profileFields/FormEducation";
+// --- REPLACE START: remove unused import FormBasicInfo
+// import FormBasicInfo from "./profileFields/FormBasicInfo";
+// --- REPLACE END
 import FormChildrenPets from "./profileFields/FormChildrenPets";
-import FormLifestyle    from "./profileFields/FormLifestyle";
-import FormGoalSummary  from "./profileFields/FormGoalSummary";
-import FormLookingFor   from "./profileFields/FormLookingFor";
+import FormEducation from "./profileFields/FormEducation";
+import FormGoalSummary from "./profileFields/FormGoalSummary";
+import FormLifestyle from "./profileFields/FormLifestyle";
+import FormLocation from "./profileFields/FormLocation";
+import FormLookingFor from "./profileFields/FormLookingFor";
 
 /**
  * DiscoverFilters
- * Haku- ja suodatuskomponentti React Hook Formilla
+ * Search and filter component using React Hook Form
  */
-const DiscoverFilters = ({ values, setters, handleFilter, t }) => {
+const DiscoverFilters = ({
+  values,
+  // --- REPLACE START: remove unused setters prop
+  // setters,
+  // --- REPLACE END
+  handleFilter,
+  t,
+}) => {
   const methods = useForm({
     defaultValues: values,
     mode: "onSubmit",
@@ -29,17 +38,27 @@ const DiscoverFilters = ({ values, setters, handleFilter, t }) => {
           onSubmit={handleSubmit(handleFilter)}
           className="flex flex-col gap-6"
         >
-          {/* Otsikko ja ohjeet */}
+          {/* --- REPLACE START: translate comment */}
+          {/* Title and instructions */}
+          {/* --- REPLACE END */}
           <div className="text-center">
-            <h2 data-cy="DiscoverFilters__title" className="text-3xl font-bold mb-2">
+            <h2
+              data-cy="DiscoverFilters__title"
+              className="text-3xl font-bold mb-2"
+            >
               {t("discover.title")}
             </h2>
-            <p data-cy="DiscoverFilters__instructions" className="text-gray-600">
+            <p
+              data-cy="DiscoverFilters__instructions"
+              className="text-gray-600"
+            >
               {t("discover.instructions")}
             </p>
           </div>
 
-          {/* Ikähaitari: minAge ja maxAge */}
+          {/* --- REPLACE START: translate comment */}
+          {/* Age range slider: minAge and maxAge */}
+          {/* --- REPLACE END */}
           <div className="flex flex-col gap-2">
             <label htmlFor="minAge" className="font-medium">
               {t("discover.ageRange")}
@@ -64,7 +83,9 @@ const DiscoverFilters = ({ values, setters, handleFilter, t }) => {
             </div>
           </div>
 
-          {/* Käyttäjänimi (vain hakuperusteena) */}
+          {/* --- REPLACE START: translate comment */}
+          {/* Username (filter only) */}
+          {/* --- REPLACE END */}
           <div>
             <label className="block font-medium mb-1">
               {t("discover.username")}
@@ -76,12 +97,17 @@ const DiscoverFilters = ({ values, setters, handleFilter, t }) => {
             />
           </div>
 
-          {/* Sukupuoli */}
+          {/* --- REPLACE START: translate comment */}
+          {/* Gender */}
+          {/* --- REPLACE END */}
           <div>
             <label className="block font-medium mb-1">
               {t("discover.gender")}
             </label>
-            <select {...register("gender")} className="w-full p-2 border rounded">
+            <select
+              {...register("gender")}
+              className="w-full p-2 border rounded"
+            >
               <option value="">{t("common.all")}</option>
               <option value="Male">{t("profile.male")}</option>
               <option value="Female">{t("profile.female")}</option>
@@ -89,12 +115,17 @@ const DiscoverFilters = ({ values, setters, handleFilter, t }) => {
             </select>
           </div>
 
-          {/* Seksuaalinen suuntautuminen */}
+          {/* --- REPLACE START: translate comment */}
+          {/* Sexual orientation */}
+          {/* --- REPLACE END */}
           <div>
             <label className="block font-medium mb-1">
               ❤️ {t("discover.orientation")}
             </label>
-            <select {...register("orientation")} className="w-full p-2 border rounded">
+            <select
+              {...register("orientation")}
+              className="w-full p-2 border rounded"
+            >
               <option value="">{t("common.all")}</option>
               <option value="Straight">{t("profile.straight")}</option>
               <option value="Gay">{t("profile.gay")}</option>
@@ -103,7 +134,9 @@ const DiscoverFilters = ({ values, setters, handleFilter, t }) => {
             </select>
           </div>
 
-          {/* Sijainti (country/region/city + manual) */}
+          {/* --- REPLACE START: translate comment */}
+          {/* Location (country/region/city + custom) */}
+          {/* --- REPLACE END */}
           <FormLocation
             t={t}
             countryFieldName="country"
@@ -115,28 +148,40 @@ const DiscoverFilters = ({ values, setters, handleFilter, t }) => {
             includeAllOption
           />
 
-          {/* Koulutus */}
+          {/* --- REPLACE START: translate comment */}
+          {/* Education */}
+          {/* --- REPLACE END */}
           <FormEducation t={t} includeAllOption />
 
-          {/* Ammatti */}
+          {/* --- REPLACE START: translate comment */}
+          {/* Profession */}
+          {/* --- REPLACE END */}
           <div>
             <label className="block font-medium mb-1">
               {t("discover.profession")}
             </label>
-            <select {...register("profession")} className="w-full p-2 border rounded">
+            <select
+              {...register("profession")}
+              className="w-full p-2 border rounded"
+            >
               <option value="">{t("common.all")}</option>
-              {/* …ammattilistaus… */}
+              {/* …profession list… */}
             </select>
           </div>
 
-          {/* Uskonto & sen tärkeys */}
+          {/* --- REPLACE START: translate comment */}
+          {/* Religion & importance */}
+          {/* --- REPLACE END */}
           <div>
             <label className="block font-medium mb-1">
               🛐 {t("discover.religion")}
             </label>
-            <select {...register("religion")} className="w-full p-2 border rounded">
+            <select
+              {...register("religion")}
+              className="w-full p-2 border rounded"
+            >
               <option value="">{t("common.all")}</option>
-              {/* …uskonnot… */}
+              {/* …religion options… */}
             </select>
           </div>
           <div>
@@ -148,23 +193,33 @@ const DiscoverFilters = ({ values, setters, handleFilter, t }) => {
               className="w-full p-2 border rounded"
             >
               <option value="">{t("common.all")}</option>
-              {/* …tärkeysasteet… */}
+              {/* …importance levels… */}
             </select>
           </div>
 
-          {/* Lapset & lemmikit */}
+          {/* --- REPLACE START: translate comment */}
+          {/* Children & pets */}
+          {/* --- REPLACE END */}
           <FormChildrenPets t={t} includeAllOption />
 
-          {/* Elämäntavat */}
+          {/* --- REPLACE START: translate comment */}
+          {/* Lifestyle */}
+          {/* --- REPLACE END */}
           <FormLifestyle t={t} includeAllOption />
 
-          {/* Tavoitteet & Yhteenveto */}
+          {/* --- REPLACE START: translate comment */}
+          {/* Goals & summary */}
+          {/* --- REPLACE END */}
           <FormGoalSummary t={t} includeAllOption />
 
-          {/* Mitä etsit? */}
+          {/* --- REPLACE START: translate comment */}
+          {/* What are you looking for? */}
+          {/* --- REPLACE END */}
           <FormLookingFor t={t} includeAllOption />
 
-          {/* Lähetä-nappi */}
+          {/* --- REPLACE START: translate comment */}
+          {/* Submit button */}
+          {/* --- REPLACE END */}
           <div className="text-center pt-3">
             <button
               data-cy="DiscoverFilters__submitButton"
@@ -182,7 +237,9 @@ const DiscoverFilters = ({ values, setters, handleFilter, t }) => {
 
 DiscoverFilters.propTypes = {
   values: PropTypes.object.isRequired,
-  setters: PropTypes.object.isRequired,
+  // --- REPLACE START: remove unused setters propType
+  // setters: PropTypes.object.isRequired,
+  // --- REPLACE END
   handleFilter: PropTypes.func.isRequired,
   t: PropTypes.func.isRequired,
 };

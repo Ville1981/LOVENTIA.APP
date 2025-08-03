@@ -1,7 +1,7 @@
 // src/components/discover/PhotoCarousel.jsx
 
-import React, { memo, useRef, useEffect } from "react";
 import PropTypes from "prop-types";
+import React, { memo, useRef, useEffect } from "react";
 import Slider from "react-slick";
 
 import "slick-carousel/slick/slick.css";
@@ -118,7 +118,9 @@ const PhotoCarousel = ({ photos = [] }) => {
           const raw = typeof item === "string" ? item : item.url || "";
           const src = raw.startsWith("http")
             ? raw
-            : `${window.location.origin}${raw.startsWith("/") ? "" : "/"}${raw}`;
+            : `${window.location.origin}${
+                raw.startsWith("/") ? "" : "/"
+              }${raw}`;
 
           return (
             <div
@@ -139,7 +141,9 @@ const PhotoCarousel = ({ photos = [] }) => {
                     const fallback = typeof fb === "string" ? fb : fb.url || "";
                     e.currentTarget.src = fallback.startsWith("http")
                       ? fallback
-                      : `${window.location.origin}${fallback.startsWith("/") ? "" : "/"}${fallback}`;
+                      : `${window.location.origin}${
+                          fallback.startsWith("/") ? "" : "/"
+                        }${fallback}`;
                   }}
                   style={{ overflowAnchor: "none" }}
                 />

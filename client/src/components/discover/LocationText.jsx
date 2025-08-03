@@ -1,7 +1,7 @@
 // src/components/discover/LocationText.jsx
 
-import React from "react";
 import PropTypes from "prop-types";
+import React from "react";
 
 /**
  * LocationText
@@ -21,7 +21,7 @@ const LocationText = ({ city = "", region = "", country = "" }) => {
       className="text-gray-500"
       style={{
         overflowAnchor: "none", // Prevents scroll anchoring
-        minHeight: "1.25rem",   // Ensures one-line height consistency
+        minHeight: "1.25rem", // Ensures one-line height consistency
       }}
     >
       {text}
@@ -30,8 +30,8 @@ const LocationText = ({ city = "", region = "", country = "" }) => {
 };
 
 LocationText.propTypes = {
-  city:    PropTypes.string,
-  region:  PropTypes.string,
+  city: PropTypes.string,
+  region: PropTypes.string,
   country: PropTypes.string,
 };
 

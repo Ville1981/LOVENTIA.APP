@@ -1,8 +1,8 @@
-// src/pages/ChatPage.jsx
+/* eslint-env browser */
 import React, { useEffect, useState, useRef } from "react";
-import api from "../utils/axiosInstance";
-import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useParams } from "react-router-dom";
+
 // --- REPLACE START: import socket helpers for reconnect & dedupe ---
 import {
   connectSocket,
@@ -13,6 +13,7 @@ import {
   offNewMessage,
   sendMessage as sendSocketMessage,
 } from "../services/socket";
+import api from "../utils/axiosInstance";
 // --- REPLACE END ---
 
 /**
@@ -25,7 +26,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef(null);
-  const messageIdsRef = useRef(new Set()); // duplicate‑guard
+  const messageIdsRef = useRef(new Set()); // duplicate-guard
 
   // scroll to bottom helper
   const scrollToBottom = () => {
@@ -41,8 +42,8 @@ export default function ChatPage() {
     try {
       const payload = JSON.parse(atob(raw.split(".")[1]));
       myId = payload.id;
-    } catch {
-      console.error("Invalid accessToken payload");
+    } catch (err) {
+      // ignore invalid token payload
     }
 
     // Fetch history via REST
@@ -102,7 +103,9 @@ export default function ChatPage() {
     try {
       const payload = JSON.parse(atob(raw.split(".")[1]));
       myId = payload.id;
-    } catch {}
+    } catch (err) {
+      // ignore parsing errors
+    }
 
     const conversationId = [myId, userId].sort().join("_");
 
@@ -127,7 +130,9 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col max-w-2xl mx-auto h-screen p-4">
-      <h2 className="text-xl font-bold mb-2 text-center">💬 {t("chat.title")}</h2>
+      <h2 className="text-xl font-bold mb-2 text-center">
+        💬 {t("chat.title")}
+      </h2>
 
       <div className="flex-1 overflow-y-auto bg-gray-100 p-4 rounded shadow-sm">
         {messages.map((msg, idx) => {
@@ -173,5 +178,6 @@ export default function ChatPage() {
   );
 }
 
-// The replacement region is marked between // --- REPLACE START and // --- REPLACE END  
+// The replacement region is marked between // --- REPLACE START and // --- REPLACE END
 // so you can verify exactly what changed.
+

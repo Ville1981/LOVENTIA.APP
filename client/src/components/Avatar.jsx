@@ -1,7 +1,7 @@
 // src/components/Avatar.jsx
 // Reusable Avatar component with fallback image
-import React from 'react';
-import PropTypes from 'prop-types';
+import PropTypes from "prop-types";
+import React from "react";
 
 /**
  * Avatar
@@ -13,14 +13,14 @@ export default function Avatar({ src, alt, size = 40 }) {
   const style = {
     width: size,
     height: size,
-    borderRadius: '50%',
-    objectFit: 'cover',
+    borderRadius: "50%",
+    objectFit: "cover",
   };
 
   const handleError = (e) => {
     // --- REPLACE START
     // Fallback to default avatar on error
-    e.currentTarget.src = '/assets/default-avatar.png';
+    e.currentTarget.src = "/assets/default-avatar.png";
     // --- REPLACE END
   };
 
@@ -42,7 +42,7 @@ Avatar.propTypes = {
 };
 
 Avatar.defaultProps = {
-  src: '/assets/default-avatar.png',
-  alt: 'User avatar',
+  src: "/assets/default-avatar.png",
+  alt: "User avatar",
   size: 40,
 };

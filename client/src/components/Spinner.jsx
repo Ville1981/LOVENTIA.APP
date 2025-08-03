@@ -1,6 +1,6 @@
 // src/components/Spinner.jsx
 
-import React from 'react';
+import React from "react";
 
 /**
  * Spinner: simple loading indicator using Tailwind CSS

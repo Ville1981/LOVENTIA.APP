@@ -1,7 +1,8 @@
 // src/components/UserCardList.jsx
 
-import React, { memo } from "react";
 import PropTypes from "prop-types";
+import React, { memo } from "react";
+
 import UserCard from "./UserCard";
 import { BACKEND_BASE_URL } from "../utils/config";
 
@@ -14,9 +15,7 @@ import { BACKEND_BASE_URL } from "../utils/config";
 const UserCardList = ({ users, onAction }) => {
   if (!users || users.length === 0) {
     return (
-      <p className="text-center text-gray-500 mt-6">
-        🔍 No results found
-      </p>
+      <p className="text-center text-gray-500 mt-6">🔍 No results found</p>
     );
   }
 

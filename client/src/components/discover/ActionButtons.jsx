@@ -1,7 +1,7 @@
 // src/components/discover/ActionButtons.jsx
 
-import React from "react";
 import PropTypes from "prop-types";
+import React from "react";
 
 /**
  * ActionButtons
@@ -21,7 +21,7 @@ const ActionButtons = ({ userId, onPass, onLike, onSuperlike }) => {
   return (
     <div
       className="mt-4 flex justify-between space-x-2"
-      style={{ overflowAnchor: 'none' }}
+      style={{ overflowAnchor: "none" }}
     >
       <button
         type="button"
@@ -64,9 +64,9 @@ const ActionButtons = ({ userId, onPass, onLike, onSuperlike }) => {
 };
 
 ActionButtons.propTypes = {
-  userId:      PropTypes.string.isRequired,
-  onPass:      PropTypes.func.isRequired,
-  onLike:      PropTypes.func.isRequired,
+  userId: PropTypes.string.isRequired,
+  onPass: PropTypes.func.isRequired,
+  onLike: PropTypes.func.isRequired,
   onSuperlike: PropTypes.func.isRequired,
 };
 

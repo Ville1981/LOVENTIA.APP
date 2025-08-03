@@ -1,6 +1,7 @@
+import PropTypes from "prop-types";
 import React from "react";
 import { useFormContext } from "react-hook-form";
-import PropTypes from "prop-types";
+
 import { countryRegions, regionCities } from "../../utils/locationData";
 
 /**
@@ -29,14 +30,12 @@ const FormLocation = ({
     formState: { errors },
   } = useFormContext();
 
-  const country      = watch(countryFieldName);
-  const region       = watch(regionFieldName);
+  const country = watch(countryFieldName);
+  const region = watch(regionFieldName);
   const customRegion = watch(customRegionFieldName);
 
   const regions = country ? countryRegions[country] || [] : [];
-  const cities  = country && region
-    ? regionCities[country]?.[region] || []
-    : [];
+  const cities = country && region ? regionCities[country]?.[region] || [] : [];
 
   return (
     <div className="flex flex-col space-y-6 w-full text-left">
@@ -51,7 +50,7 @@ const FormLocation = ({
         >
           {includeAllOption && <option value="">{t("common.all")}</option>}
           <option value="">{t("common.selectCountry")}</option>
-          {Object.keys(countryRegions).map(c => (
+          {Object.keys(countryRegions).map((c) => (
             <option key={c} value={c}>
               {t(`countries.${c}`, c)}
             </option>
@@ -87,7 +86,7 @@ const FormLocation = ({
         >
           {includeAllOption && <option value="">{t("common.all")}</option>}
           <option value="">{t("common.selectRegion")}</option>
-          {regions.map(r => (
+          {regions.map((r) => (
             <option key={r} value={r}>
               {t(`regions.${r}`, r)}
             </option>
@@ -123,7 +122,7 @@ const FormLocation = ({
         >
           {includeAllOption && <option value="">{t("common.all")}</option>}
           <option value="">{t("common.selectCity")}</option>
-          {cities.map(ct => (
+          {cities.map((ct) => (
             <option key={ct} value={ct}>
               {t(`cities.${ct}`, ct)}
             </option>
@@ -152,13 +151,13 @@ const FormLocation = ({
 
 FormLocation.propTypes = {
   t: PropTypes.func.isRequired,
-  countryFieldName:       PropTypes.string.isRequired,
-  regionFieldName:        PropTypes.string.isRequired,
-  cityFieldName:          PropTypes.string.isRequired,
+  countryFieldName: PropTypes.string.isRequired,
+  regionFieldName: PropTypes.string.isRequired,
+  cityFieldName: PropTypes.string.isRequired,
   customCountryFieldName: PropTypes.string.isRequired,
-  customRegionFieldName:  PropTypes.string.isRequired,
-  customCityFieldName:    PropTypes.string.isRequired,
-  includeAllOption:       PropTypes.bool,
+  customRegionFieldName: PropTypes.string.isRequired,
+  customCityFieldName: PropTypes.string.isRequired,
+  includeAllOption: PropTypes.bool,
 };
 
 export default FormLocation;

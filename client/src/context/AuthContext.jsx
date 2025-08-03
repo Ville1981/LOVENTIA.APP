@@ -1,6 +1,7 @@
 // src/context/AuthContext.jsx
 
 import React, { createContext, useContext, useEffect, useState } from "react";
+
 import api, { setAccessToken } from "../utils/axiosInstance";
 
 // Initialize context with defaults to avoid undefined errors
@@ -16,7 +17,7 @@ const AuthContext = createContext({
 
 export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null); // JWT token
-  const [user, setUser] = useState(null);   // { id, email, role }
+  const [user, setUser] = useState(null); // { id, email, role }
   const [loading, setLoading] = useState(true); // block children until init complete
 
   // Fetch current user from backend
@@ -85,11 +86,7 @@ export const AuthProvider = ({ children }) => {
 
   // While loading, show a placeholder message
   if (loading) {
-    return (
-      <div className="text-center py-8">
-        Checking authentication…
-      </div>
-    );
+    return <div className="text-center py-8">Checking authentication…</div>;
   }
 
   return (

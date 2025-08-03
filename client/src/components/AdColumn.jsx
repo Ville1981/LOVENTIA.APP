@@ -1,5 +1,6 @@
 // src/components/AdColumn.jsx
 import React from "react";
+
 import { leftAds, rightAds } from "../utils/adsData";
 import "../styles/ads.css";
 

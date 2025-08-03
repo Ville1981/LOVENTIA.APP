@@ -1,44 +1,45 @@
-import { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import api from '../utils/axiosInstance';
+import { useState, useEffect } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+
+import api from "../utils/axiosInstance";
 
 export function ResetPassword() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const token = searchParams.get('token');
-  const id = searchParams.get('id');
+  const token = searchParams.get("token");
+  const id = searchParams.get("id");
 
-  const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!token || !id) {
-      setError('Invalid password reset link.');
+      setError("Invalid password reset link.");
     }
   }, [token, id]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setMessage('');
-    setError('');
+    setMessage("");
+    setError("");
     if (password !== confirm) {
-      return setError('Passwords do not match.');
+      return setError("Passwords do not match.");
     }
     try {
-      const res = await api.post('/auth/reset-password', {
+      const res = await api.post("/auth/reset-password", {
         id,
         token,
         newPassword: password,
       });
       setMessage(res.data.message);
-      setTimeout(() => navigate('/login'), 3000);
+      setTimeout(() => navigate("/login"), 3000);
     } catch (err) {
-      console.error('Reset password error:', err);
+      console.error("Reset password error:", err);
       setError(
         err.response?.data?.error ||
-        'Something went wrong. Please try again later.'
+          "Something went wrong. Please try again later."
       );
     }
   };
@@ -57,7 +58,7 @@ export function ResetPassword() {
               id="password"
               type="password"
               value={password}
-              onChange={e => setPassword(e.target.value)}
+              onChange={(e) => setPassword(e.target.value)}
               required
               className="w-full border border-gray-300 px-3 py-2 rounded"
               placeholder="••••••••"
@@ -71,7 +72,7 @@ export function ResetPassword() {
               id="confirm"
               type="password"
               value={confirm}
-              onChange={e => setConfirm(e.target.value)}
+              onChange={(e) => setConfirm(e.target.value)}
               required
               className="w-full border border-gray-300 px-3 py-2 rounded"
               placeholder="••••••••"
@@ -86,9 +87,7 @@ export function ResetPassword() {
         </form>
       )}
       {message && (
-        <p className="mt-4 text-green-600">
-          {message} Redirecting to login...
-        </p>
+        <p className="mt-4 text-green-600">{message} Redirecting to login...</p>
       )}
     </div>
   );

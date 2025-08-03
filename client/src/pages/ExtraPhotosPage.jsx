@@ -1,18 +1,21 @@
 // src/pages/ExtraPhotosPage.jsx
 
+import axios from "axios";
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
-import { useAuth } from "../context/AuthContext";
+
+// Removed unused imports for avatar uploads
+// --- REPLACE START: remove unused image API imports ---
+// import { uploadAvatar, removeAvatar as apiRemoveAvatar } from "../api/images";
+// --- REPLACE END ---
 import MultiStepPhotoUploader from "../components/profileFields/MultiStepPhotoUploader";
-// uploadAvatar & apiRemoveAvatar are no longer used here, but left imported in case you wire them elsewhere
-import { uploadAvatar, removeAvatar as apiRemoveAvatar } from "../api/images";
-import { BACKEND_BASE_URL } from "../config";
-import ControlBar from "../components/ui/ControlBar";
 import Button from "../components/ui/Button";
+import ControlBar from "../components/ui/ControlBar";
+import { BACKEND_BASE_URL } from "../config";
+import { useAuth } from "../context/AuthContext";
 
 /**
- * Ensure leading slash and forward‑slashes only.
+ * Ensure leading slash and forward-slashes only.
  */
 const normalizePath = (p = "") =>
   "/" + p.replace(/\\/g, "/").replace(/^\/+/, "");
@@ -64,7 +67,7 @@ export default function ExtraPhotosPage() {
       <h1 className="text-2xl font-semibold">Manage Photos</h1>
 
       {isOwner ? (
-        // --- REPLACE START: remove standalone avatar form entirely ---
+        // --- REPLACE START: use unified MultiStepPhotoUploader for all steps ---
         <MultiStepPhotoUploader
           userId={userId}
           isPremium={user.isPremium}

@@ -1,7 +1,7 @@
 // src/components/UserCard.jsx
 
-import React, { useState, memo } from "react";
 import PropTypes from "prop-types";
+import React, { useState, memo } from "react";
 
 const UserCard = ({ user, onAction }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -23,9 +23,10 @@ const UserCard = ({ user, onAction }) => {
   // Fallback‐kentät
   const compatibility = user.compatibility != null ? user.compatibility : 0;
   const age = user.age != null ? user.age : "?";
-  const location = `${user.city || ""}${user.region ? ", " + user.region : ""}${
-    user.country ? ", " + user.country : ""
-  }`.replace(/^, /, "") || "Unknown location";
+  const location =
+    `${user.city || ""}${user.region ? ", " + user.region : ""}${
+      user.country ? ", " + user.country : ""
+    }`.replace(/^, /, "") || "Unknown location";
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-md overflow-hidden">

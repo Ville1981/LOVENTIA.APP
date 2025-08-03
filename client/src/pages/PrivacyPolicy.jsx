@@ -4,9 +4,9 @@ const PrivacyPolicy = () => {
       <h1 className="text-2xl font-semibold mb-4">Tietosuojaseloste</h1>
 
       <p className="mb-4">
-        Tämä sivusto kerää ja käsittelee henkilötietoja tarjotakseen
-        turvallisen ja toimivan deittipalvelun. Kerättäviä tietoja ovat esimerkiksi
-        nimi, sähköposti, ikä, sijainti, kiinnostuksen kohteet ja viestit.
+        Tämä sivusto kerää ja käsittelee henkilötietoja tarjotakseen turvallisen
+        ja toimivan deittipalvelun. Kerättäviä tietoja ovat esimerkiksi nimi,
+        sähköposti, ikä, sijainti, kiinnostuksen kohteet ja viestit.
       </p>
 
       <p className="mb-4">Tietoja käytetään mm. seuraaviin tarkoituksiin:</p>
@@ -19,8 +19,8 @@ const PrivacyPolicy = () => {
 
       <p className="mb-4">
         Tietoja ei jaeta ulkopuolisille ilman suostumustasi, lukuun ottamatta
-        maksupalveluntarjoajaa (Stripe). Käytämme evästeitä sivuston toiminnan ja
-        käyttökokemuksen parantamiseksi.
+        maksupalveluntarjoajaa (Stripe). Käytämme evästeitä sivuston toiminnan
+        ja käyttökokemuksen parantamiseksi.
       </p>
 
       <p className="mb-4">

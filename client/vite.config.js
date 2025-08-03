@@ -1,26 +1,26 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import path from 'path';
-import { fileURLToPath } from 'url';
+// vite.config.js
+
+import react from "@vitejs/plugin-react";
+import path from "path";
+import { fileURLToPath } from "url";
+import { defineConfig } from "vite";
 
 // Resolve __dirname in ESM
 const __filename = fileURLToPath(import.meta.url);
-const __dirname  = path.dirname(__filename);
+const __dirname = path.dirname(__filename);
 
 export default defineConfig({
-  plugins: [
-    react(),
-  ],
+  plugins: [react()],
 
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, 'src'),
+      "@": path.resolve(__dirname, "src"),
     },
   },
 
   css: {
     // Explicitly reference your PostCSS config
-    postcss: path.resolve(__dirname, 'postcss.config.cjs'),
+    postcss: path.resolve(__dirname, "postcss.config.cjs"),
   },
 
   server: {
@@ -28,14 +28,14 @@ export default defineConfig({
     hmr: { overlay: false },
     proxy: {
       // Proxy all /api/* requests to the backend unchanged
-      '/api': {
-        target: 'http://localhost:5000',
+      "/api": {
+        target: "http://localhost:5000",
         changeOrigin: true,
         secure: false,
       },
       // Proxy uploaded assets
-      '/uploads': {
-        target: 'http://localhost:5000',
+      "/uploads": {
+        target: "http://localhost:5000",
         changeOrigin: true,
         secure: false,
       },
@@ -43,18 +43,24 @@ export default defineConfig({
     fs: {
       allow: [
         path.resolve(__dirname),
-        path.resolve(__dirname, 'node_modules', 'slick-carousel', 'slick', 'fonts'),
+        path.resolve(
+          __dirname,
+          "node_modules",
+          "slick-carousel",
+          "slick",
+          "fonts"
+        ),
       ],
     },
   },
 
   build: {
-    assetsDir: 'assets',
+    assetsDir: "assets",
   },
 
   // --- REPLACE START: ensure MSW is pre-bundled for browser mocks
   optimizeDeps: {
-    include: ['msw'],
+    include: ["msw"],
   },
   // --- REPLACE END
 });

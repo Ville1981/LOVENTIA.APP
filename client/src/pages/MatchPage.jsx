@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useNavigate, Link } from "react-router-dom";
+
 import api from "../utils/axiosInstance";
 
 const MatchPage = () => {
@@ -22,7 +23,8 @@ const MatchPage = () => {
 
       // Suodatetaan estot
       const filtered = data.filter(
-        (u) => !me.blockedUsers?.includes(u._id) && !u.blockedUsers?.includes(me._id)
+        (u) =>
+          !me.blockedUsers?.includes(u._id) && !u.blockedUsers?.includes(me._id)
       );
 
       setMatches(filtered);
@@ -43,13 +45,15 @@ const MatchPage = () => {
     if (
       currentUser.preferredGender === "any" ||
       user.gender?.toLowerCase() === currentUser.preferredGender?.toLowerCase()
-    ) score += 20;
+    )
+      score += 20;
 
     if (
       user.age &&
       user.age >= (currentUser.preferredMinAge || 18) &&
       user.age <= (currentUser.preferredMaxAge || 100)
-    ) score += 20;
+    )
+      score += 20;
 
     const commonInterests = currentUser.preferredInterests?.filter((interest) =>
       user.interests?.includes(interest)
@@ -61,7 +65,9 @@ const MatchPage = () => {
 
   return (
     <div className="container mx-auto p-4">
-      <h2 className="text-2xl font-semibold mb-6 text-center">💘 {t("matches.title")}</h2>
+      <h2 className="text-2xl font-semibold mb-6 text-center">
+        💘 {t("matches.title")}
+      </h2>
 
       {matches.length === 0 ? (
         <p className="text-center text-gray-600">{t("matches.noMatches")}</p>
@@ -70,7 +76,10 @@ const MatchPage = () => {
           {matches.map((user) => {
             const matchScore = calculateMatchScore(user);
             return (
-              <div key={user._id} className="bg-white p-4 rounded shadow-md text-center">
+              <div
+                key={user._id}
+                className="bg-white p-4 rounded shadow-md text-center"
+              >
                 <img
                   src={
                     user.profilePicture

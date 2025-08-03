@@ -1,6 +1,6 @@
 // client/src/utils/validationSchemas.js
 
-import * as Yup from 'yup';
+import * as Yup from "yup";
 
 /**
  * Login form validation schema
@@ -9,11 +9,11 @@ import * as Yup from 'yup';
  */
 export const loginSchema = Yup.object().shape({
   email: Yup.string()
-    .email('Please enter a valid email address')
-    .required('Email is required'),
+    .email("Please enter a valid email address")
+    .required("Email is required"),
   password: Yup.string()
-    .min(8, 'Password must be at least 8 characters')
-    .required('Password is required'),
+    .min(8, "Password must be at least 8 characters")
+    .required("Password is required"),
 });
 
 /**
@@ -24,18 +24,21 @@ export const loginSchema = Yup.object().shape({
  */
 export const registerSchema = Yup.object().shape({
   name: Yup.string()
-    .min(3, 'Name must be at least 3 characters')
-    .required('Name is required'),
+    .min(3, "Name must be at least 3 characters")
+    .required("Name is required"),
   email: Yup.string()
-    .email('Please enter a valid email address')
-    .required('Email is required'),
+    .email("Please enter a valid email address")
+    .required("Email is required"),
   password: Yup.string()
-    .min(8, 'Password must be at least 8 characters')
-    .matches(/[A-Z]/, 'Password must contain at least one uppercase letter')
-    .matches(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .matches(/[0-9]/, 'Password must contain at least one number')
-    .matches(/[@$!%*?&]/, 'Password must contain at least one special character')
-    .required('Password is required'),
+    .min(8, "Password must be at least 8 characters")
+    .matches(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .matches(/[a-z]/, "Password must contain at least one lowercase letter")
+    .matches(/[0-9]/, "Password must contain at least one number")
+    .matches(
+      /[@$!%*?&]/,
+      "Password must contain at least one special character"
+    )
+    .required("Password is required"),
 });
 
 /**
@@ -47,17 +50,17 @@ export const registerSchema = Yup.object().shape({
  */
 export const feedbackSchema = Yup.object().shape({
   name: Yup.string()
-    .min(3, 'Name must be at least 3 characters')
-    .required('Name is required'),
+    .min(3, "Name must be at least 3 characters")
+    .required("Name is required"),
   email: Yup.string()
-    .email('Please enter a valid email address')
-    .required('Email is required'),
+    .email("Please enter a valid email address")
+    .required("Email is required"),
   message: Yup.string()
-    .min(10, 'Message must be at least 10 characters')
-    .required('Message is required'),
+    .min(10, "Message must be at least 10 characters")
+    .required("Message is required"),
   rating: Yup.number()
-    .integer('Rating must be an integer')
-    .min(1, 'Rating must be at least 1')
-    .max(5, 'Rating can be at most 5')
-    .required('Rating is required'),
+    .integer("Rating must be an integer")
+    .min(1, "Rating must be at least 1")
+    .max(5, "Rating can be at most 5")
+    .required("Rating is required"),
 });

@@ -1,0 +1,11 @@
+*** Begin Patch
+*** Update File: server/routes/userRoutes.js
+@@ -142,7 +142,7 @@
+     body('weight').optional().isNumeric().withMessage('Weight must be a number'),
+-    body('weightUnit')
++    body('weightUnit')  // hyväksytään myös 'Kg' ja 'Lb'
+       .optional({ checkFalsy: true })
+-      .isIn(['kg','lb','Kg','Lb'])
++      .isIn(['kg','lb','Kg','Lb'])
+       .withMessage('Invalid weight unit'),
+*** End Patch

@@ -1,6 +1,6 @@
 // src/components/EmptyState.jsx
 
-import React from 'react';
+import React from "react";
 
 /**
  * EmptyState: displays a message and optional icon when list is empty

@@ -1,36 +1,17 @@
 // server/models/User.js
 
-const mongoose = require("mongoose");
+// --- REPLACE START: convert to ESM import ---
+import mongoose from 'mongoose';
+// --- REPLACE END ---
 
 // Define User schema with all necessary fields
 const userSchema = new mongoose.Schema(
   {
-    username: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-    },
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
-      trim: true,
-    },
-    password: {
-      type: String,
-      required: true,
-    },
-    role: {
-      type: String,
-      enum: ["user", "admin"],
-      default: "user",
-    },
-    isPremium: {
-      type: Boolean,
-      default: false,
-    },
+    username: { type: String, required: true, unique: true, trim: true },
+    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    password: { type: String, required: true },
+    role: { type: String, enum: ['user', 'admin'], default: 'user' },
+    isPremium: { type: Boolean, default: false },
     // Profile details
     name: String,
     age: Number,
@@ -49,11 +30,7 @@ const userSchema = new mongoose.Schema(
     heightUnit: String,
     weight: Number,
     weightUnit: String,
-    location: {
-      country: String,
-      region: String,
-      city: String,
-    },
+    location: { country: String, region: String, city: String },
     latitude: Number,
     longitude: Number,
     // Images
@@ -63,10 +40,9 @@ const userSchema = new mongoose.Schema(
     passwordResetToken: String,
     passwordResetExpires: Date,
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-// Export the Mongoose model directly
-module.exports = mongoose.model("User", userSchema);
+// --- REPLACE START: export User model as ESM default ---
+export default mongoose.model('User', userSchema);
+// --- REPLACE END ---

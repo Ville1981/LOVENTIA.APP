@@ -1,12 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import axios from '../utils/axiosInstance';
-import { useTranslation } from 'react-i18next';
+import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+
+import axios from "../utils/axiosInstance";
 
 // Placeholder conversation when none exist
 const bunnyUser = {
-  userId: 'bunny',
-  name: 'Bunny',
-  avatarUrl: '/assets/bunny1.jpg',
+  userId: "bunny",
+  name: "Bunny",
+  avatarUrl: "/assets/bunny1.jpg",
   lastMessageTime: Date.now(),
   snippet: "Hi there! Let's start our chat.",
   unreadCount: 0,
@@ -35,7 +36,7 @@ export default function ConversationsOverview() {
   useEffect(() => {
     let isMounted = true;
     axios
-      .get('/api/messages/overview')
+      .get("/api/messages/overview")
       .then((res) => {
         if (isMounted) {
           setConversations(res.data || []);
@@ -64,7 +65,7 @@ export default function ConversationsOverview() {
   if (error) {
     return (
       <div className="text-center p-4 text-red-600">
-        {t('overview.error', 'Failed to load conversations')}
+        {t("overview.error", "Failed to load conversations")}
       </div>
     );
   }
@@ -95,7 +96,7 @@ export default function ConversationsOverview() {
               alt={name}
               className="w-12 h-12 rounded-full mr-4"
               onError={(e) => {
-                e.currentTarget.src = '/assets/bunny1.jpg';
+                e.currentTarget.src = "/assets/bunny1.jpg";
               }}
             />
             <div className="flex-1">
