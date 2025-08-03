@@ -1,104 +1,83 @@
-const express = require('express');
-const router = express.Router();
-const mongoose = require('mongoose');
-// --- REPLACE START: use authenticate middleware ---
-const authenticate = require('../middleware/authenticate');
+// server/routes/messageRoutes.js
+
+// --- REPLACE START: convert CommonJS to ES modules and export default router ---
+import express from 'express';
+import mongoose from 'mongoose';
+import authenticateToken from '../middleware/auth.js';
+import { sendMessage, getMessagesBetween, getConversations } from '../controllers/messageController.js';
 // --- REPLACE END ---
 
-const Message = require('../models/Message');
+const router = express.Router();
 
 /**
- * GET /api/messages/overview
- * Returns an array of conversation overviews for the authenticated user.
+ * GET /api/messages/conversations
+ * Retrieves list of conversation summaries for the authenticated user
  */
 router.get(
-  '/overview',
-  authenticate,
+  '/conversations',
+  authenticateToken,
   async (req, res) => {
     try {
-      const userId = req.user.id;
-      const msgs = await Message.find({
-        $or: [
-          { sender: userId },
-          { receiver: userId }
-        ]
-      }).sort({ createdAt: -1 });
-
-      const peersMap = {};
-      msgs.forEach(msg => {
-        const peer = msg.sender.toString() === userId ? msg.receiver : msg.sender;
-        const peerId = peer.toString();
-        if (!peersMap[peerId]) {
-          peersMap[peerId] = {
-            userId: peerId,
-            snippet: msg.text,
-            lastMessageTime: msg.createdAt.toISOString(),
-            unreadCount: 0
-          };
-        }
-      });
-      return res.json(Object.values(peersMap));
+      const userId = req.userId;
+      const conversations = await getConversations(userId);
+      return res.json(conversations);
     } catch (err) {
-      console.error('Error fetching conversation overview:', err);
-      return res.status(500).json({ error: 'Internal server error' });
+      console.error('Error fetching conversations:', err);
+      return res.status(500).json({ error: 'Failed to fetch conversations' });
     }
   }
 );
 
 /**
- * GET /api/messages/:userId
- * Fetch all messages between authenticated user and specified peer.
+ * GET /api/messages/:partnerId
+ * Retrieves messages between authenticated user and partner
  */
 router.get(
-  '/:userId',
-  authenticate,
+  '/:partnerId',
+  authenticateToken,
   async (req, res) => {
     try {
-      const userId = req.user.id;
-      const peerId = req.params.userId;
+      const userId = req.userId;
+      const partnerId = req.params.partnerId;
 
-      // --- REPLACE START: handle non-ObjectId mock peerId ---
-      if (!mongoose.isValidObjectId(peerId)) {
-        // return empty array for mock users
+      // --- REPLACE START: handle non-ObjectId mock partnerId ---
+      if (!mongoose.isValidObjectId(partnerId)) {
         return res.json([]);
       }
       // --- REPLACE END ---
 
-      const messages = await Message.find({
-        $or: [
-          { sender: userId, receiver: peerId },
-          { sender: peerId, receiver: userId }
-        ]
-      }).sort({ createdAt: 1 });
+      const messages = await getMessagesBetween(userId, partnerId);
       return res.json(messages);
     } catch (err) {
       console.error('Error fetching messages:', err);
-      return res.status(500).json({ error: 'Internal server error' });
+      return res.status(500).json({ error: 'Failed to fetch messages' });
     }
   }
 );
 
 /**
- * POST /api/messages/:userId
- * Send a new message from authenticated user to specified peer.
+ * POST /api/messages/:partnerId
+ * Sends a message from authenticated user to partner
  */
 router.post(
-  '/:userId',
-  authenticate,
+  '/:partnerId',
+  authenticateToken,
   async (req, res) => {
     try {
-      const sender = req.user.id;
-      const receiver = req.params.userId;
+      const senderId = req.userId;
+      const recipientId = req.params.partnerId;
       const { text } = req.body;
+      if (!text || typeof text !== 'string') {
+        return res.status(400).json({ error: 'Message text is required' });
+      }
 
-      // --- REPLACE START: handle non-ObjectId mock receiver ---
-      if (!mongoose.isValidObjectId(receiver)) {
-        // return mock message stub
+      // --- REPLACE START: handle non-ObjectId mock recipient ---
+      if (!mongoose.isValidObjectId(recipientId)) {
         const now = new Date();
         const mockMsg = {
           _id: new mongoose.Types.ObjectId(),
-          sender,
-          receiver,
+          sender: senderId,
+          receiver: recipientId,
           text,
           createdAt: now,
           updatedAt: now
@@ -107,14 +86,15 @@ router.post(
       }
       // --- REPLACE END ---
 
-      const newMessage = new Message({ sender, receiver, text });
-      const saved = await newMessage.save();
-      return res.status(201).json(saved);
+      const message = await sendMessage(senderId, recipientId, text);
+      return res.status(201).json(message);
     } catch (err) {
       console.error('Error sending message:', err);
-      return res.status(500).json({ error: 'Internal server error' });
+      return res.status(500).json({ error: 'Failed to send message' });
     }
   }
 );
 
-module.exports = router;
+// --- REPLACE START: export default router ---
+export default router;
+// --- REPLACE END ---

@@ -1,10 +1,10 @@
-// index.js
+// server/index.js
 
 // --- REPLACE START: load environment variables as early as possible ---
 import 'dotenv/config';
 // --- REPLACE END ---
 
-// --- REPLACE START: import core modules using ESM ---
+// --- REPLACE START: core module imports using ES modules ---
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
@@ -23,19 +23,19 @@ const __dirname = path.dirname(__filename);
 import './models/User.js';
 import './models/Message.js';
 
-// --- REPLACE START: import webhook routers using ESM ---
+// --- REPLACE START: import webhook routers using ES modules ---
 import stripeWebhookRouter from './routes/stripeWebhook.js';
 import paypalWebhookRouter from './routes/paypalWebhook.js';
 // --- REPLACE END ---
 
-// --- REPLACE START: import application routes using ESM ---
+// --- REPLACE START: import application routes using ES modules ---
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/userRoutes.js';
 import imageRoutes from './routes/imageRoutes.js';
 import paymentRoutes from './routes/payment.js';
 import discoverRoutes from './routes/discover.js';
-import authenticate from './middleware/authenticate.js';
 import messageRoutes from './routes/messageRoutes.js';
+import authenticate from './middleware/auth.js';
 // --- REPLACE END ---
 
 const app = express();
@@ -47,7 +47,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 // --- REPLACE END ---
 
 // ── Stripe & PayPal webhooks ───────────────────────────────────────────────────
-// These need to see the raw body, so they must come before express.json()
+// Raw body needed for signature validation
 app.use('/api/payment/stripe-webhook', stripeWebhookRouter);
 app.use('/api/payment/paypal-webhook', paypalWebhookRouter);
 
@@ -69,12 +69,12 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ── Mount application routes ────────────────────────────────────────────────────
-// Mount Auth routes (no auth middleware)
-// --- REPLACE START: ensure /api/auth is mounted before protected routes ---
+// Public routes
+// --- REPLACE START: mount auth routes before protected routes ---
 app.use('/api/auth', authRoutes);
 // --- REPLACE END ---
 
-// Mount protected routes
+// Protected routes
 app.use('/api/messages', authenticate, messageRoutes);
 app.use('/api/users', authenticate, userRoutes);
 app.use('/api/images', authenticate, imageRoutes);
@@ -82,7 +82,7 @@ app.use('/api/payment', authenticate, paymentRoutes);
 app.use('/api/discover', authenticate, discoverRoutes);
 
 // ── Temporary mock users endpoint ───────────────────────────────────────────────
-app.get('/api/mock-users', (req, res) => {
+app.get('/api/mock-users', (_req, res) => {
   const user = {
     _id: '1',
     name: 'Bunny',
@@ -91,11 +91,7 @@ app.get('/api/mock-users', (req, res) => {
     region: 'Chonburi',
     country: 'Thailand',
     compatibility: 88,
-    photos: [
-      '/uploads/bunny1.jpg',
-      '/uploads/bunny2.jpg',
-      '/uploads/bunny3.jpg',
-    ],
+    photos: ['/uploads/bunny1.jpg', '/uploads/bunny2.jpg', '/uploads/bunny3.jpg'],
     youPhoto: '/uploads/your-avatar.jpg',
     profilePhoto: '/uploads/bunny-avatar.jpg',
     agreeCount: 6,
@@ -108,7 +104,7 @@ app.get('/api/mock-users', (req, res) => {
 });
 
 // ── Multer-specific error handler ──────────────────────────────────────────────
-app.use((err, req, res, next) => {
+app.use((err, _req, res, next) => {
   if (err.name === 'MulterError') {
     return res.status(413).json({ error: err.message });
   }
@@ -116,12 +112,10 @@ app.use((err, req, res, next) => {
 });
 
 // ── 404 Not Found handler ──────────────────────────────────────────────────────
-app.use((req, res) => {
-  res.status(404).json({ error: 'Not Found' });
-});
+app.use((_req, res) => res.status(404).json({ error: 'Not Found' }));
 
 // ── Global error handler ───────────────────────────────────────────────────────
-app.use((err, req, res, next) => {
+app.use((err, _req, res) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Server Error' });
 });
