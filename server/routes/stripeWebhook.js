@@ -1,50 +1,55 @@
 // server/routes/stripeWebhook.js
-const express = require('express');
-const router = express.Router();
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
-const Subscription = require('../models/Subscription');
 
-// Tämä reitti käyttää express.raw, joten rekisteröi se ennen express.json()-parseria
+// --- REPLACE START: convert CommonJS to ES modules and export default router ---
+import express from 'express';
+import Stripe from 'stripe';
+import 'dotenv/config';
+
+const router = express.Router();
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2022-11-15' });
+
+/**
+ * POST /api/payment/stripe-webhook
+ * Receives Stripe webhook events and handles subscription status
+ */
 router.post(
-  '/',
+  '/stripe-webhook',
   express.raw({ type: 'application/json' }),
-  async (req, res) => {
+  (req, res) => {
     const sig = req.headers['stripe-signature'];
     let event;
 
     try {
-      event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+      event = stripe.webhooks.constructEvent(
+        req.body,
+        sig,
+        process.env.STRIPE_WEBHOOK_SECRET
+      );
     } catch (err) {
-      console.error('⚠️ Webhook signature verification failed.', err.message);
+      console.error('Stripe webhook signature verification failed:', err.message);
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
-    // Käsitellään vain checkout.session.completed -tapahtuma
-    if (event.type === 'checkout.session.completed') {
-      const session = event.data.object;
-      const userId = session.metadata.userId;
-      try {
-        await Subscription.findOneAndUpdate(
-          { user: userId },
-          {
-            plan: 'premium',
-            status: 'active',
-            startedAt: new Date(),
-            endsAt: null
-          },
-          { upsert: true, new: true }
-        );
-        console.log(`Subscription updated for user ${userId}`);
-      } catch (error) {
-        console.error('Error updating subscription:', error);
-      }
-    } else {
-      console.log(`Unhandled stripe event type ${event.type}`);
+    // Handle the event
+    switch (event.type) {
+      case 'checkout.session.completed':
+        // Subscription created successfully
+        console.log('Checkout session completed:', event.data.object.id);
+        break;
+      case 'invoice.paid':
+        console.log('Invoice paid:', event.data.object.id);
+        break;
+      case 'invoice.payment_failed':
+        console.warn('Invoice payment failed:', event.data.object.id);
+        break;
+      default:
+        console.log(`Unhandled event type ${event.type}`);
     }
 
-    res.json({ received: true });
+    res.sendStatus(200);
   }
 );
 
-module.exports = router;
+// --- REPLACE END ---
+
+export default router;

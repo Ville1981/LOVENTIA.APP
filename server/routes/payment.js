@@ -1,18 +1,20 @@
 // server/routes/payment.js
 
-const express = require('express');
-const router = express.Router();
-const authenticateToken = require('../middleware/auth');
-require('dotenv').config();
+// --- REPLACE START: convert CommonJS to ES modules and export default router ---
+import express from 'express';
+import authenticateToken from '../middleware/auth.js';
+import 'dotenv/config';
 
 // Stripe setup
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+import Stripe from 'stripe';
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // PayPal SDK setup
-const paypal = require('@paypal/checkout-server-sdk');
-const { Subscription } = require('../models/Subscription');
+import paypal from '@paypal/checkout-server-sdk';
+import Subscription from '../models/Subscription.js';
 
-// PayPal environment (Sandbox tai Live sen mukaan, mikä .env:ssä on)
+
+// PayPal environment based on .env
 const payPalEnv = process.env.PAYPAL_MODE === 'live'
   ? new paypal.core.LiveEnvironment(
       process.env.PAYPAL_CLIENT_ID,
@@ -23,11 +25,14 @@ const payPalEnv = process.env.PAYPAL_MODE === 'live'
       process.env.PAYPAL_SECRET
     );
 const payPalClient = new paypal.core.PayPalHttpClient(payPalEnv);
+// --- REPLACE END ---
 
-// =======================
-// STRIPE: Checkout Session
-// POST /api/payment/stripe-session
-// =======================
+const router = express.Router();
+
+/**
+ * POST /api/payment/stripe-session
+ * Creates a Stripe Checkout session for subscriptions
+ */
 router.post(
   '/stripe-session',
   authenticateToken,
@@ -36,15 +41,11 @@ router.post(
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
         mode: 'subscription',
-        line_items: [{
-          price: process.env.STRIPE_PREMIUM_PRICE_ID,
-          quantity: 1
-        }],
+        line_items: [{ price: process.env.STRIPE_PREMIUM_PRICE_ID, quantity: 1 }],
         metadata: { userId: req.userId },
         success_url: `${process.env.CLIENT_URL}/subscription-success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.CLIENT_URL}/subscription-cancel`
+        cancel_url: `${process.env.CLIENT_URL}/subscription-cancel`,
       });
-
       res.json({ url: session.url });
     } catch (err) {
       console.error('Stripe session error:', err);
@@ -53,10 +54,10 @@ router.post(
   }
 );
 
-// =======================
-// PAYPAL: Create Order
-// POST /api/payment/paypal-order
-// =======================
+/**
+ * POST /api/payment/paypal-order
+ * Creates a PayPal order for subscriptions
+ */
 router.post(
   '/paypal-order',
   authenticateToken,
@@ -68,15 +69,12 @@ router.post(
         intent: 'CAPTURE',
         purchase_units: [{
           reference_id: req.userId,
-          amount: {
-            currency_code: 'USD',
-            value: process.env.PAYPAL_PREMIUM_PRICE
-          }
+          amount: { currency_code: 'USD', value: process.env.PAYPAL_PREMIUM_PRICE },
         }],
         application_context: {
           return_url: `${process.env.CLIENT_URL}/subscription-success-paypal`,
-          cancel_url: `${process.env.CLIENT_URL}/subscription-cancel`
-        }
+          cancel_url: `${process.env.CLIENT_URL}/subscription-cancel`,
+        },
       });
 
       const order = await payPalClient.execute(request);
@@ -88,10 +86,10 @@ router.post(
   }
 );
 
-// =======================
-// PAYPAL: Capture Order
-// POST /api/payment/paypal-capture
-// =======================
+/**
+ * POST /api/payment/paypal-capture
+ * Captures a PayPal order and records subscription
+ */
 router.post(
   '/paypal-capture',
   authenticateToken,
@@ -103,14 +101,12 @@ router.post(
       captureRequest.requestBody({});
 
       const capture = await payPalClient.execute(captureRequest);
-      // Record subscription in DB
       await Subscription.create({
         user: req.userId,
         plan: 'premium',
         provider: 'paypal',
-        subscriptionId: capture.result.id
+        subscriptionId: capture.result.id,
       });
-
       res.json({ status: capture.result.status, details: capture.result });
     } catch (err) {
       console.error('PayPal capture error:', err);
@@ -119,24 +115,22 @@ router.post(
   }
 );
 
-// =======================
-// PAYPAL: Webhook Endpoint
-// POST /api/payment/paypal-webhook
-// =======================
+/**
+ * POST /api/payment/paypal-webhook
+ * Handles PayPal webhook events
+ */
 router.post(
   '/paypal-webhook',
-  // express.raw antaa meille pääsyn raakadataan validointia varten
   express.raw({ type: 'application/json' }),
   async (req, res) => {
-    const transmissionId   = req.headers['paypal-transmission-id'];
+    const transmissionId = req.headers['paypal-transmission-id'];
     const transmissionTime = req.headers['paypal-transmission-time'];
-    const certUrl          = req.headers['paypal-cert-url'];
-    const authAlgo         = req.headers['paypal-auth-algo'];
-    const transmissionSig  = req.headers['paypal-transmission-sig'];
-    const webhookId        = process.env.PAYPAL_WEBHOOK_ID;
-    const body             = req.body.toString();
+    const certUrl = req.headers['paypal-cert-url'];
+    const authAlgo = req.headers['paypal-auth-algo'];
+    const transmissionSig = req.headers['paypal-transmission-sig'];
+    const webhookId = process.env.PAYPAL_WEBHOOK_ID;
+    const body = req.body.toString();
 
-    // Verify webhook signature
     const verifyReq = new paypal.notification.WebhookEventVerifySignatureRequest();
     verifyReq.requestBody({
       auth_algo: authAlgo,
@@ -145,7 +139,7 @@ router.post(
       transmission_sig: transmissionSig,
       transmission_time: transmissionTime,
       webhook_id: webhookId,
-      webhook_event: JSON.parse(body)
+      webhook_event: JSON.parse(body),
     });
 
     try {
@@ -153,25 +147,21 @@ router.post(
       if (response.result.verification_status === 'SUCCESS') {
         const event = JSON.parse(body);
         console.log('Verified PayPal webhook event:', event.event_type);
-
-        // Käsitellään eventit
         switch (event.event_type) {
           case 'PAYMENT.CAPTURE.COMPLETED':
             await Subscription.create({
               user: event.resource.supplementary_data.related_ids.order_id,
               plan: 'premium',
               provider: 'paypal',
-              subscriptionId: event.resource.id
+              subscriptionId: event.resource.id,
             });
             break;
           case 'PAYMENT.CAPTURE.DENIED':
             console.warn('PayPal payment denied:', event.resource);
             break;
-          // Lisää muita eventtejä tarpeen mukaan
           default:
             console.log(`Unhandled PayPal event: ${event.event_type}`);
         }
-
         res.sendStatus(200);
       } else {
         console.error('PayPal webhook verification failed:', response.result);
@@ -184,4 +174,6 @@ router.post(
   }
 );
 
-module.exports = router;
+// --- REPLACE START: export default router ---
+export default router;
+// --- REPLACE END ---
