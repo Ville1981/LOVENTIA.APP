@@ -1,16 +1,11 @@
 {
-<<<<<<< HEAD
   "name": "loventia-app-client",
-=======
-  "name": "date-app",
->>>>>>> origin/main
   "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-<<<<<<< HEAD
     "test": "echo \"No client tests specified\" && exit 0",
     "cy:run": "cypress run",
     "perf:socket": "artillery run performance/socket-reconnect.test.js -o report.json",
@@ -18,26 +13,14 @@
     "scan:dep": "npm audit --audit-level=moderate && if [ -f gradlew ]; then chmod +x gradlew && ./gradlew dependencyCheckAnalyze; fi",
     "lint": "eslint src --ext .js,.jsx",
     "lint:fix": "eslint src --ext .js,.jsx --fix"
-    
-
-=======
-    "test": "echo \"No client tests specified\" && exit 0"
->>>>>>> origin/main
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
     "@tanstack/react-query": "^5.83.0",
     "axios": "^1.9.0",
-<<<<<<< HEAD
     "date-app": "file:../server",
     "date-fns": "^2.30.0",
     "i18next": "^25.3.2",
-=======
-    "date-app": "file:",
-    "date-fns": "^4.1.0",
-    "express": "^5.1.0",
-    "express-validator": "^7.2.1",
->>>>>>> origin/main
     "i18next-browser-languagedetector": "^8.1.0",
     "i18next-http-backend": "^3.0.2",
     "leaflet": "^1.9.4",
@@ -46,15 +29,11 @@
     "react-dom": "^18.0.0",
     "react-helmet": "^6.1.0",
     "react-hook-form": "^7.59.0",
-<<<<<<< HEAD
     "react-i18next": "^15.6.0",
-=======
->>>>>>> origin/main
     "react-leaflet": "^4.2.1",
     "react-router-dom": "^6.0.0",
     "react-slick": "^0.30.3",
     "slick-carousel": "^1.8.1",
-<<<<<<< HEAD
     "socket.io-client": "^4.8.1",
     "yup": "^1.6.1"
   },
@@ -75,26 +54,8 @@
     "eslint-plugin-react": "^7.37.5",
     "msw": "^2.10.4",
     "postcss": "^8.5.6",
-    "prettier": "2.8.8",
+    "prettier": "^2.8.8",
     "tailwindcss": "^4.1.11",
     "vite": "^4.5.14"
-  },
-  "axobject-query": "1.2.2"
-=======
-    "swagger-ui-express": "^5.0.1",
-    "yamljs": "^0.3.0",
-    "yup": "^1.6.1"
-  },
-  "devDependencies": {
-    "@tailwindcss/postcss": "^4.1.11",
-    "@types/express": "^5.0.3",
-    "@vitejs/plugin-react": "^4.0.0",
-    "autoprefixer": "^10.4.21",
-    "cypress": "^14.5.1",
-    "msw": "^2.10.4",
-    "postcss": "^8.5.6",
-    "tailwindcss": "^4.1.11",
-    "vite": "^4.0.0"
   }
->>>>>>> origin/main
 }
