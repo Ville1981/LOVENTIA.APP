@@ -48,6 +48,7 @@
     "kuvaus": "Löydä seuraa, ystäviä tai rakkautta helposti ja turvallisesti.",
     "aloita": "Aloita nyt",
     "lue_lisaa": "Lue lisää",
+<<<<<<< HEAD
     "katso_käyttäjät": "Katso käyttäjiä"
   },
 
@@ -59,6 +60,14 @@
     "removePicture": "Poista kuva",
     "addCaption": "Lisää kuvateksti…",
     "saveCropped": "Tallenna kuva",
+=======
+    "katso_kayttajat": "Katso käyttäjiä"
+  },
+
+  
+  "profile": {
+    "username": "Käyttäjänimi",
+>>>>>>> origin/main
     "email": "Sähköposti",
     "age": "Ikä",
     "gender": "Sukupuoli",
@@ -70,6 +79,7 @@
     "manualCountry": "Kirjoita maa (jos ei listassa)",
     "manualRegion": "Kirjoita alue (jos ei listassa)",
     "manualCity": "Kirjoita kaupunki (jos ei listassa)",
+<<<<<<< HEAD
     "height": "Pituus",
     "heightUnit": "Pituusyksikkö",
     "weight": "Paino",
@@ -97,6 +107,15 @@
     "notImportant": "Ei tärkeä",
     "somewhatImportant": "Jonkin verran tärkeä",
     "veryImportant": "Erittäin tärkeä",
+=======
+    "height": "Pituus (cm)",
+    "weight": "Paino (kg)",
+    "status": "Suhdetilanne",
+    "education": "Koulutus",
+    "profession": "Ammatti",
+    "religion": "Uskonto",
+    "religionImportance": "Uskonnon merkitys",
+>>>>>>> origin/main
     "children": "Lapsia",
     "pets": "Lemmikit",
     "interests": "Kiinnostuksen kohteet",
@@ -110,17 +129,32 @@
     "name": "Nimi",
     "lookingFor": "Mitä etsit?",
     "summary": "Itsestäni",
+<<<<<<< HEAD
     "goal": "Tavoitteet",
+=======
+    "goal": "Tavoitteet / aspirations",
+>>>>>>> origin/main
     "profilePicture": "Pääprofiilikuva",
     "extraImages": "Lisäkuvat (max 6)",
     "save": "Tallenna muutokset",
     "delete": "Poista tili"
+<<<<<<< HEAD
   },
     "hero": {
     "0": "Löydä kestävä rakkaus.",
     "1": "Tapaa samanhenkisiä ihmisiä.",
     "2": "Seuraava mätsisi on vain klikkauksen päässä."
   },
+=======
+    
+  },
+  "hero": {
+  "0": "Löydä kestävä rakkaus.",
+  "1": "Tapaa samanhenkisiä ihmisiä.",
+  "2": "Seuraava mätsisi on vain klikkauksen päässä."
+},
+
+>>>>>>> origin/main
 
   "buttons": {
     "submit": "Lähetä",
@@ -138,6 +172,7 @@
   },
 
   "discover": {
+<<<<<<< HEAD
     "title": "Löydä käyttäjiä",
     "nearYou": "lähelläsi",
     "searchPlaceholder": "🔍 Hae nimellä tai kiinnostuksella…",
@@ -269,3 +304,106 @@
 
 
 
+=======
+  "title": "Löydä käyttäjiä",
+  "nearYou": "lähelläsi",
+  "searchPlaceholder": "🔍 Hae nimellä tai kiinnostuksella...",
+  "geolocationNotSupported": "Selaimesi ei tue sijaintitietoja.",
+  "cityNotFound": "Sijaintiasi ei voitu tunnistaa kaupungin tasolla.",
+  "fetchError": "Virhe käyttäjien haussa.",
+  "liked": "Tykkäys lähetetty!",
+  "likeFailed": "Tykkäys epäonnistui.",
+  "superliked": "Superlike lähetetty!",
+  "superlikeFailed": "Superlike epäonnistui.",
+  "superlikeLimit": "❌ Superlike-raja (3/48h) saavutettu.",
+  "loading": "🔄 Ladataan käyttäjiä...",
+  "adAlt": "Mainostila – mainoksesi tähän",
+  "like": "Tykkää",
+  "superlike": "Superlike",
+  "viewProfile": "Näytä profiili",
+  "premium": "Premium-käyttäjä",
+
+  
+  "premiumText": "Näet kuka on tykännyt sinusta, käytä Superlike ja saa enemmän osumia.",
+  "upgradeNow": "Päivitä nyt"
+  
+    
+    
+    
+    },
+
+
+
+
+"chat": {
+  "title": "Keskustelu",
+  "placeholder": "Kirjoita viesti...",
+  "send": "Lähetä"
+},
+
+"admin": {
+  "title": "Admin-paneeli: Käyttäjien hallinta",
+  "name": "Nimi",
+  "location": "Sijainti",
+  "hidden": "Piilotettu?",
+  "actions": "Toiminnot",
+  "yes": "✅ Kyllä",
+  "no": "❌ Ei",
+  "hide": "Piilota",
+  "unhide": "Näytä",
+  "delete": "Poista",
+  "confirmDelete": "Haluatko varmasti poistaa käyttäjän?"
+},
+
+"map": {
+  "title": "Käyttäjät kartalla",
+  "cityNotFound": "Sijaintiasi ei voitu tunnistaa kaupungin tasolla.",
+  "locationError": "Sijaintia ei voitu hakea.",
+  "fetchError": "Virhe käyttäjien haussa.",
+  "youAreHere": "Sinä olet tässä",
+  "loadingLocation": "Haetaan sijaintia..."
+},
+
+"matches": {
+  "title": "Osumasi",
+  "noMatches": "Ei osumia vielä.",
+  "openChat": "Avaa chat",
+  "score": "Yhteensopivuus"
+},
+
+"premium": {
+  "successTitle": "Premium-tilaus onnistui",
+  "successMessage": "✅ Premium aktivoitu! Kiitos ostoksesta.",
+  "cancelTitle": "Maksu peruutettu",
+  "cancelMessage": "Et suorittanut maksua. Voit yrittää uudelleen milloin tahansa.",
+  "updating": "Päivitetään tilaa...",
+  "errorMessage": "❌ Premium-päivitys epäonnistui."
+},
+
+"country": "Maa",
+"region": "Alue / lääni",
+"city": "Kaupunki",
+"countries": {
+  "Suomi": "Suomi",
+  "Ruotsi": "Ruotsi",
+  "Norja": "Norja",
+  "Saksa": "Saksa",
+  "Ranska": "Ranska",
+  "Yhdysvallat": "Yhdysvallat",
+  "Kanada": "Kanada",
+  "Iso-Britannia": "Iso-Britannia",
+  "Japani": "Japani",
+  "Kiina": "Kiina",
+  "Intia": "Intia",
+  "Venäjä": "Venäjä",
+  "Espanja": "Espanja",
+  "Brasilia": "Brasilia",
+  "Argentiina": "Argentiina",
+  "Chile": "Chile",
+  "Ukraina": "Ukraina",
+  "Kazakstan": "Kazakstan",
+  "Portugali": "Portugali",
+  "Italia": "Italia"
+  }
+}
+>>>>>>> origin/main

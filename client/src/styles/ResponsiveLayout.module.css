@@ -1,0 +1,61 @@
+/* File: src/styles/ResponsiveLayout.module.css */
+
+/* --- REPLACE START: Responsive layout styles with breakpoints and English comments */
+
+/* Base container settings */
+.container {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* Base grid layout (mobile-first) */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+/* Small screens (>= 640px) */
+@media (min-width: 640px) {
+  .container {
+    max-width: 640px;
+  }
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Medium screens (>= 768px) */
+@media (min-width: 768px) {
+  .container {
+    max-width: 768px;
+  }
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Large screens (>= 1024px) */
+@media (min-width: 1024px) {
+  .container {
+    max-width: 1024px;
+  }
+  .grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Extra large screens (>= 1280px) */
+@media (min-width: 1280px) {
+  .container {
+    max-width: 1280px;
+  }
+  .grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+/* --- REPLACE END: Responsive layout styles */
