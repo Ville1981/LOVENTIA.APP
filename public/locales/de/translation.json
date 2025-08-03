@@ -150,12 +150,16 @@
     "like": "Like",
     "superlike": "Superlike",
     "viewProfile": "Profil ansehen",
+<<<<<<< HEAD
     "premium": "Premium-Nutzer",
         "minAge": "Mindestalter",
     "maxAge": "Höchstalter",
     "instructions": "Wähle Filter, um passende Profile zu finden.",
     "filter": "Filtern"
 
+=======
+    "premium": "Premium-Nutzer"
+>>>>>>> origin/main
   },
 
   "chat": {
@@ -227,6 +231,7 @@
     "Kazakstan": "Kasachstan",
     "Portugali": "Portugal",
     "Italia": "Italien"
+<<<<<<< HEAD
   },
   "common": {
   "select": "Auswählen",
@@ -246,4 +251,7 @@
 }
 
 
+=======
+  }
+>>>>>>> origin/main
 }

@@ -144,12 +144,16 @@
     "like": "Beğen",
     "superlike": "Süper Beğeni",
     "viewProfile": "Profili Görüntüle",
+<<<<<<< HEAD
     "premium": "Premium kullanıcı",
         "minAge": "Minimum yaş",
     "maxAge": "Maksimum yaş",
     "instructions": "Uygun profilleri bulmak için filtreleri seçin.",
     "filter": "Filtrele"
 
+=======
+    "premium": "Premium kullanıcı"
+>>>>>>> origin/main
   },
   "chat": {
     "title": "Sohbet",
@@ -220,6 +224,7 @@
   "0": "Kalıcı bir aşk bul.",
   "1": "Değerlerini paylaşan insanlarla tanış.",
   "2": "Bir sonraki eşin sadece bir tık uzağında."
+<<<<<<< HEAD
 },
 
 "common": {
@@ -241,4 +246,8 @@
 
 
 
+=======
+}
+
+>>>>>>> origin/main
 }
