@@ -13,9 +13,7 @@ import "./styles/ads.css";
 import App from "./App";
 // The replacement region is marked between // --- REPLACE START and // --- REPLACE END so you can verify exactly what changed
 // --- REPLACE START: correct AuthContext import path ---
-// --- REPLACE START: correct AuthContext import path ---
 import { AuthProvider } from "./contexts/AuthContext";
-// --- REPLACE END ---
 // --- REPLACE END ---
 
 // MSW mocks

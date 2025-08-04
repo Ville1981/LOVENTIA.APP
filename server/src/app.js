@@ -7,8 +7,9 @@ const { checkThreshold } = require("./utils/alertRules");
 
 const express      = require("express");
 const mongoose     = require("mongoose");
+
 // --- REPLACE START: use centralized CORS config instead of inline cors(...) ---
-const corsConfig   = require("./config/corsConfig");
+const corsConfig   = require("../config/corsConfig");
 // --- REPLACE END ---
 const cookieParser = require("cookie-parser");
 const path         = require("path");
@@ -22,26 +23,26 @@ const swagger = require("./swagger-config");
 // --- REPLACE END ---
 
 // --- REPLACE START: import XSS & SQL sanitizers ---
-const xssSanitizer = require("./middleware/xssSanitizer");
-const sqlSanitizer = require("./middleware/sqlSanitizer");
+const xssSanitizer = require("../middleware/xssSanitizer");
+const sqlSanitizer = require("../middleware/sqlSanitizer");
 // --- REPLACE END ---
 
 // --- REPLACE START: import request validators & schemas ---
-const { validateBody }            = require("./middleware/validateRequest");
+const { validateBody }             = require("../middleware/validateRequest");
 const { loginSchema, registerSchema } = require("./validators/authValidator");
-const { createUserSchema }        = require("./validators/userValidator");
-const authController              = require("./controllers/authController");
-const userController              = require("./controllers/userController");
+const { createUserSchema }         = require("../validators/userValidator");
+const authController               = require("../controllers/authController");
+const userController               = require("../controllers/userController");
 // --- REPLACE END ---
 
 // --- REPLACE START: import auth check & role-based authorization ---
-const authenticate   = require("./middleware/authenticate");
-const authorizeRoles = require("./middleware/roleAuthorization");
+const authenticate   = require("../middleware/authenticate");
+const authorizeRoles = require("../middleware/roleAuthorization");
 // --- REPLACE END ---
 
 // Ensure models are registered before middleware/routes
-require("./models/User");
-require("./models/Message");
+require("../models/User");
+require("../models/Message");
 
 const app = express();
 
@@ -87,7 +88,7 @@ app.use(cookieParser({
   httpOnly: true,
   sameSite: 'Strict',
 }));
-app.use(require("./middleware/httpsRedirect"));
+app.use(require("../middleware/httpsRedirect"));
 // --- REPLACE END ---
 
 // ── Parse bodies ────────────────────────────────────────────────────────────────
@@ -113,8 +114,8 @@ app.get("/test-alerts", async (req, res) => {
 // --- REPLACE END ---
 
 // ── Webhook routes (before body parsers) ────────────────────────────────────────
-const stripeWebhookRouter = require("./routes/stripeWebhook");
-const paypalWebhookRouter = require("./routes/paypalWebhook");
+const stripeWebhookRouter = require("../routes/stripeWebhook");
+const paypalWebhookRouter = require("../routes/paypalWebhook");
 
 app.use("/api/payment/stripe-webhook", stripeWebhookRouter);
 app.use("/api/payment/paypal-webhook", paypalWebhookRouter);
@@ -142,7 +143,7 @@ app.use("/api/auth", authRoutes);
 
 // ── Protected user routes (admin + user) ───────────────────────────────────────
 // --- REPLACE START: protect user routes with auth + roles + validation ---
-const userRoutes = require("./routes/user");
+const userRoutes = require("../routes/user");
 app.use(
   "/api/users",
   authenticate,
@@ -153,7 +154,7 @@ app.use(
 // --- REPLACE END ---
 
 // ── Protected message routes (user only) ───────────────────────────────────────
-const messageRoutes = require("./routes/message");
+const messageRoutes = require("../routes/message");
 app.use(
   "/api/messages",
   authenticate,
@@ -162,7 +163,7 @@ app.use(
 );
 
 // ── Protected payment routes (user only) ───────────────────────────────────────
-const paymentRoutes = require("./routes/payment");
+const paymentRoutes = require("../routes/payment");
 app.use(
   "/api/payment",
   authenticate,
@@ -171,7 +172,7 @@ app.use(
 );
 
 // ── Admin-only routes ──────────────────────────────────────────────────────────
-const adminRoutes = require("./routes/admin");
+const adminRoutes = require("../routes/admin");
 app.use(
   "/api/admin",
   authenticate,
@@ -180,7 +181,7 @@ app.use(
 );
 
 // ── Protected discover routes (user only) ──────────────────────────────────────
-const discoverRoutes = require("./routes/discover");
+const discoverRoutes = require("../routes/discover");
 app.use(
   "/api/discover",
   authenticate,
