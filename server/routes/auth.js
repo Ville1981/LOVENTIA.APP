@@ -9,13 +9,13 @@ import bcrypt from 'bcryptjs';
 import 'dotenv/config';
 
 import User from '../models/User.js';
-import sendEmail from '../utils/sendEmail.js';
+import sendEmail from '../src/utils/sendEmail.js';
 import { registerUser, loginUser } from '../controllers/userController.js';
 import upload from '../middleware/upload.js';
 import authenticate from '../middleware/authenticate.js';
 import { sanitizeAndValidateProfile } from '../middleware/profileValidator.js';
 import { validateRegister, validateLogin } from '../middleware/validators/auth.js';
-import { cookieOptions } from '../utils/cookieOptions.js';
+import { cookieOptions } from '../src/utils/cookieOptions.js';
 
 const router = express.Router();
 

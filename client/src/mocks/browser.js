@@ -1,10 +1,18 @@
-// File: src/mocks/browser.js
+// src/mocks/browser.js
 
-// --- REPLACE START: import setupWorker from MSW core package ---
-import { setupWorker } from 'msw';
+/*
+  This file sets up the Mock Service Worker (MSW) in development.
+  Replacement regions are marked between:
+    // --- REPLACE START …
+    // --- REPLACE END
+  so you can verify exactly what changed.
+*/
+
+// --- REPLACE START: import setupWorker, rest from MSW core package ---
+import { setupWorker, rest } from 'msw';
 // --- REPLACE END ---
 
-// --- REPLACE START: import your handlers ---
+// --- REPLACE START: import your request handlers ---
 import { handlers } from './handlers';
 // --- REPLACE END ---
 

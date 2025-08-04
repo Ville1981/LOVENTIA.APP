@@ -1,11 +1,9 @@
-// vite.config.js
-
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 /*
   The replacement regions are marked between:
-    // --- REPLACE START … 
+    // --- REPLACE START …
     // --- REPLACE END
   so you can verify exactly what changed.
 */

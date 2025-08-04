@@ -54,10 +54,11 @@ api.interceptors.response.use(
     ) {
       originalRequest._retry = true;
       try {
-        // --- REPLACE START: refresh token via determined baseURL ---
-        const refreshUrl = `${baseURL}/auth/refresh`;
-        const res = await axios.post(
-          refreshUrl,
+        // --- REPLACE START: refresh token via proxy-aware api.post ---
+        // Previously you did axios.post(`${baseURL}/auth/refresh`, …)
+        // Now we use our `api` instance so Vite’s `/api` proxy is applied
+        const res = await api.post(
+          '/auth/refresh',
           {},
           { withCredentials: true }
         );

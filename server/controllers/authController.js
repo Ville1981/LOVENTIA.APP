@@ -1,4 +1,4 @@
-// controllers/authController.js
+// server/src/controllers/authController.js
 
 import jwt from 'jsonwebtoken';
 import { cookieOptions } from '../utils/cookieOptions.js';
@@ -31,12 +31,12 @@ export const login = async (req, res, next) => {
     );
 
     // --- REPLACE START: set secure, HttpOnly, SameSite=None cookie for refreshToken ---
-    // This ensures the cookie is stored by the browser and sent on subsequent requests.
+    // Ensures the cookie is stored by the browser and sent on subsequent requests.
     res.cookie('refreshToken', refreshToken, {
       ...cookieOptions,
-      httpOnly: true,                            // inaccessible to JS
-      sameSite: 'None',                          // allow cross-site usage
-      secure: process.env.NODE_ENV === 'production', // HTTPS only in prod
+      httpOnly: true,                             // inaccessible to JS
+      sameSite: 'None',                           // allow cross-site usage
+      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
     });
     // --- REPLACE END ---
 
