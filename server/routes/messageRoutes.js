@@ -1,10 +1,15 @@
 // server/routes/messageRoutes.js
 
-// --- REPLACE START: convert CommonJS to ES modules and export default router ---
+// --- REPLACE START: convert CommonJS to ES modules and import correct middleware ---
 import express from 'express';
 import mongoose from 'mongoose';
-import authenticateToken from '../middleware/auth.js';
-import { sendMessage, getMessagesBetween, getConversations } from '../controllers/messageController.js';
+// renamed to match your authenticate middleware export
+import authenticate from '../middleware/authenticate.js';
+import {
+  sendMessage,
+  getMessagesBetween,
+  getConversations
+} from '../controllers/messageController.js';
 // --- REPLACE END ---
 
 const router = express.Router();
@@ -15,10 +20,10 @@ const router = express.Router();
  */
 router.get(
   '/conversations',
-  authenticateToken,
+  authenticate,
   async (req, res) => {
     try {
-      const userId = req.userId;
+      const userId = req.user.id;
       const conversations = await getConversations(userId);
       return res.json(conversations);
     } catch (err) {
@@ -34,10 +39,10 @@ router.get(
  */
 router.get(
   '/:partnerId',
-  authenticateToken,
+  authenticate,
   async (req, res) => {
     try {
-      const userId = req.userId;
+      const userId = req.user.id;
       const partnerId = req.params.partnerId;
 
       // --- REPLACE START: handle non-ObjectId mock partnerId ---
@@ -61,10 +66,10 @@ router.get(
  */
 router.post(
   '/:partnerId',
-  authenticateToken,
+  authenticate,
   async (req, res) => {
     try {
-      const senderId = req.userId;
+      const senderId = req.user.id;
       const recipientId = req.params.partnerId;
       const { text } = req.body;
       if (!text || typeof text !== 'string') {

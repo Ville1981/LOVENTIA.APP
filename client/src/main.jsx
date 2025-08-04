@@ -9,18 +9,21 @@ import "./i18n";
 import "leaflet/dist/leaflet.css";
 import "./styles/ads.css";
 
-// Context
+// App & Context
 import App from "./App";
-import { AuthProvider } from "./context/AuthContext";
-
-// Components/Layout
+// The replacement region is marked between // --- REPLACE START and // --- REPLACE END so you can verify exactly what changed
+// --- REPLACE START: correct AuthContext import path ---
+// --- REPLACE START: correct AuthContext import path ---
+import { AuthProvider } from "./contexts/AuthContext";
+// --- REPLACE END ---
+// --- REPLACE END ---
 
 // MSW mocks
 // --- REPLACE START: MSW setup (run before React mounts) ---
 if (import.meta.env.DEV) {
   import("./mocks/browser")
     .then(({ worker }) => {
-      // worker.stop()  // if you want real API instead of mocks
+      // To bypass mocks and hit real API use worker.stop()
       worker.start({ onUnhandledRequest: "bypass" });
     })
     .catch((err) => {
@@ -38,7 +41,7 @@ const queryClient = new QueryClient();
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <React.StrictMode>
-    {/* --- REPLACE START: wrap App in QueryClientProvider --- */}
+    {/* --- REPLACE START: wrap App in QueryClientProvider and AuthProvider --- */}
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <App />

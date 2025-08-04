@@ -1,10 +1,8 @@
-
 // server/routes/userRoutes.js
 
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
-import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import multer from 'multer';
 import { body, validationResult } from 'express-validator';
@@ -19,9 +17,9 @@ import {
   uploadPhotoStep,
   deletePhotoSlot,
 } from '../controllers/userController.js';
-// --- REPLACE START: import authenticate as named export from authMiddleware
-import { authenticate } from '../middleware/authMiddleware.js';
-// --- REPLACE END
+// --- REPLACE START: import authenticate middleware correctly ---
+import authenticate from '../middleware/authenticate.js';
+// --- REPLACE END ---
 
 // Configure Multer for file uploads
 const storage = multer.diskStorage({
@@ -224,8 +222,6 @@ router.get('/:id', async (req, res) => {
 });
 
 export default router;
-
-
 
 
 

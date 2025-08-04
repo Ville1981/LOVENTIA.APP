@@ -6,7 +6,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { uploadAvatar } from "../api/images";
 import MultiStepPhotoUploader from "../components/profileFields/MultiStepPhotoUploader";
 import { BACKEND_BASE_URL } from "../config";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../contexts/AuthContext";
 
 /**
  * PhotosPage: separate page for managing profile images

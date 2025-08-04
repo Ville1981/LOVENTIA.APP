@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 
 import LanguageSwitcher from "./LanguageSwitcher";
 import LogoutButton from "./LogoutButton";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../contexts/AuthContext";
 
 const Navbar = () => {
   const { t } = useTranslation();

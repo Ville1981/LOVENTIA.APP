@@ -20,7 +20,7 @@ import MainLayout from "./components/MainLayout";
 
 // 6. Utility Components
 import { ResetPassword } from "./components/ResetPassword";
-import { AuthProvider, useAuth } from "./context/AuthContext";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
 // 7. Pages (Alphabetical)
 import AdminPanel from "./pages/AdminPanel";

@@ -1,10 +1,12 @@
-// src/pages/Login.jsx
-
+// client/src/pages/Login.jsx
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
-import { useAuth } from "../context/AuthContext";
-import api from "../utils/axiosInstance";
+// --- REPLACE START: correct context folder name (singular) ---
+import { useAuth } from "../contexts/AuthContext";
+// --- REPLACE END ---
+
+import api from "../services/api/axiosInstance";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -17,10 +19,12 @@ const Login = () => {
     e.preventDefault();
     setMessage("");
     try {
+      // --- REPLACE START: use api with /auth/login ---
       const res = await api.post("/auth/login", { email, password });
+      // --- REPLACE END ---
       // Backend sets refresh-token in an HttpOnly cookie.
-      // Frontend stores the access token in context.
-      login(res.data.accessToken);
+      // Frontend stores the access token via AuthContext.login
+      await login(email, password); // login hook handles token & profile fetch
       setMessage("Login successful!");
       navigate("/profile");
     } catch (err) {
@@ -96,3 +100,6 @@ const Login = () => {
 };
 
 export default Login;
+
+// The replacement region is marked between // --- REPLACE START and // --- REPLACE END 
+// so you can verify exactly what changed.

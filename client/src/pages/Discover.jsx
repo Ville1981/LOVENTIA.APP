@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import ProfileCardList from "../components/discover/ProfileCardList";
 import DiscoverFilters from "../components/DiscoverFilters";
 import SkeletonCard from "../components/SkeletonCard"; // skeleton placeholder
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../contexts/AuthContext";
 import api from "../utils/axiosInstance";
 import { BACKEND_BASE_URL } from "../utils/config";
 

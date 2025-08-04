@@ -1,9 +1,10 @@
-// src/services/api/axiosInstance.js
+// client/src/services/api/axiosInstance.js
+
 // Centralized Axios instance with JWT management and automatic token refresh
 
 import axios from 'axios';
 
-// Internal access token; set via setAccessToken after login/refresh
+// Internal in-memory access token; set via setAccessToken after login/refresh
 let accessToken = null;
 
 /**
@@ -14,12 +15,19 @@ export function setAccessToken(token) {
   accessToken = token;
 }
 
+// --- REPLACE START: use explicit DEV check for baseURL ---
+const baseURL = import.meta.env.DEV
+  ? '/api'
+  : (import.meta.env.VITE_API_BASE_URL || '/api');
+// --- REPLACE END ---
+
 // Create Axios instance
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/',
+  baseURL,
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // include cookies for refresh/logout
 });
 
 // Request interceptor: attach Authorization header
@@ -45,19 +53,22 @@ api.interceptors.response.use(
     ) {
       originalRequest._retry = true;
       try {
-        // Call refresh endpoint; assumes refreshToken stored in HttpOnly cookie
+        // --- REPLACE START: refresh token via determined baseURL ---
+        const refreshUrl = `${baseURL}/auth/refresh`;
         const res = await axios.post(
-          '/api/auth/refresh',
+          refreshUrl,
           {},
           { withCredentials: true }
         );
+        // --- REPLACE END ---
+
         const newToken = res.data.accessToken;
         setAccessToken(newToken);
+
         // Update header and retry original request
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
         return api(originalRequest);
       } catch (refreshError) {
-        // Redirect to login or propagate error
         console.error('Token refresh failed:', refreshError);
         return Promise.reject(refreshError);
       }

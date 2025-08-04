@@ -1,4 +1,4 @@
-// client/src/context/AuthContext.jsx
+// client/src/contexts/AuthContext.jsx
 
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import api, { setAccessToken } from '../services/api/axiosInstance';
@@ -23,7 +23,6 @@ export function AuthProvider({ children }) {
     async function initAuth() {
       try {
         // --- REPLACE START: call refresh endpoint and set token ---
-        // Note: baseURL is already "/api", so here we call '/auth/refresh'
         const refreshRes = await api.post(
           '/auth/refresh',
           {},
@@ -33,9 +32,10 @@ export function AuthProvider({ children }) {
         if (accessToken) {
           setAccessToken(accessToken);
           // Fetch current user profile
-          const profileRes = await api.get('/auth/me', {
-            withCredentials: true,
-          });
+          const profileRes = await api.get(
+            '/auth/me',
+            { withCredentials: true }
+          );
           setUser(profileRes.data);
         }
         // --- REPLACE END ---
@@ -53,19 +53,21 @@ export function AuthProvider({ children }) {
    * Logs in with email & password, stores token, fetches profile
    */
   const login = async (email, password) => {
-    // --- REPLACE START: call login endpoint ---
+    // --- REPLACE START: call login endpoint and set token ---
     const res = await api.post(
       '/auth/login',
       { email, password },
       { withCredentials: true }
     );
-    const { accessToken } = res.data;
-    setAccessToken(accessToken);
+    const { accessToken: newToken } = res.data;
+    setAccessToken(newToken);
     // --- REPLACE END ---
+
     // Fetch profile
-    const profileRes = await api.get('/auth/me', {
-      withCredentials: true,
-    });
+    const profileRes = await api.get(
+      '/auth/me',
+      { withCredentials: true }
+    );
     setUser(profileRes.data);
     return profileRes.data;
   };
@@ -76,11 +78,16 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     try {
       // --- REPLACE START: call logout endpoint ---
-      await api.post('/auth/logout', {}, { withCredentials: true });
+      await api.post(
+        '/auth/logout',
+        {},
+        { withCredentials: true }
+      );
       // --- REPLACE END ---
     } catch (err) {
       console.warn('Logout request failed:', err);
     }
+
     setAccessToken(null);
     setUser(null);
   };
@@ -99,5 +106,4 @@ export function useAuth() {
   return useContext(AuthContext);
 }
 
-// The replacement region is marked between // --- REPLACE START and // --- REPLACE END
-// so you can verify exactly what changed.
+// The replacement region is marked between // --- REPLACE START and // --- REPLACE END so you can verify exactly what changed

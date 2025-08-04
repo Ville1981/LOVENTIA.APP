@@ -1,5 +1,6 @@
-// server/src/config/corsConfig.js
+// The replacement region is marked between // --- REPLACE START and // --- REPLACE END
 
+// --- REPLACE START: centralized CORS config ---
 /**
  * Centralized CORS configuration.
  * Strictly allows only whitelisted origins, methods, and headers.
@@ -40,3 +41,4 @@ const corsOptions = {
 
 // Export the configured middleware
 module.exports = cors(corsOptions);
+// --- REPLACE END ---
