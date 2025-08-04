@@ -12,7 +12,7 @@ import MultiStepPhotoUploader from "../components/profileFields/MultiStepPhotoUp
 import Button from "../components/ui/Button";
 import ControlBar from "../components/ui/ControlBar";
 import { BACKEND_BASE_URL } from "../config";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../contexts/AuthContext";
 
 /**
  * Ensure leading slash and forward-slashes only.

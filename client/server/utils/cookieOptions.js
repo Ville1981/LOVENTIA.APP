@@ -1,22 +1,19 @@
-// utils/cookieOptions.js
+// server/src/utils/cookieOptions.js
 
+// The replacement region is marked between // --- REPLACE START and // --- REPLACE END
+
+// --- REPLACE START: define and export cookieOptions as named ESM export ---
 /**
- * Options for the refreshToken cookie.
- * These ensure the cookie is Secure, HttpOnly, and SameSite=Strict.
+ * Centralized cookie options for refresh token cookies.
+ * - httpOnly: not accessible via JS
+ * - secure: only sent over HTTPS in production
+ * - sameSite: lax to allow top-level navigation
+ * - maxAge: 7 days in milliseconds
  */
-module.exports.cookieOptions = {
-  // --- REPLACE START: ensure HttpOnly so it's not accessible via JavaScript ---
-  httpOnly: true,                                // Cookie can only be sent via HTTP(S), not JS
-  // --- REPLACE END ---
-
-  // --- REPLACE START: secure flag enables sending only over HTTPS in production ---
+export const cookieOptions = {
+  httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
-  // --- REPLACE END ---
-
-  // --- REPLACE START: SameSite=Strict to mitigate CSRF attacks ---
-  sameSite: 'Strict',
-  // --- REPLACE END ---
-
-  path: '/',                                     // Cookie sent on all paths
-  maxAge: 7 * 24 * 60 * 60 * 1000,               // 7 days in milliseconds
+  sameSite: 'lax',
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
+// --- REPLACE END ---

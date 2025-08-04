@@ -40,18 +40,17 @@ import authenticate from './middleware/auth.js';
 
 const app = express();
 
-// ── Swagger-UI Integration ─────────────────────────────────────────────────────
+// Swagger-UI Integration
 // --- REPLACE START: Swagger integration (fixed OpenAPI path) ---
 const swaggerDocument = YAML.load(path.join(__dirname, 'openapi.yaml'));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 // --- REPLACE END ---
 
-// ── Stripe & PayPal webhooks ───────────────────────────────────────────────────
-// Raw body needed for signature validation
+// Stripe & PayPal webhooks (raw body for signature checks)
 app.use('/api/payment/stripe-webhook', stripeWebhookRouter);
 app.use('/api/payment/paypal-webhook', paypalWebhookRouter);
 
-// ── Common middleware ───────────────────────────────────────────────────────────
+// Common middleware
 app.use(cookieParser());
 app.use(
   cors({
@@ -65,11 +64,10 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ── Serve uploads folder as static files ────────────────────────────────────────
+// Serve uploads directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ── Mount application routes ────────────────────────────────────────────────────
-// Public routes
+// Mount routes
 // --- REPLACE START: mount auth routes before protected routes ---
 app.use('/api/auth', authRoutes);
 // --- REPLACE END ---
@@ -81,7 +79,7 @@ app.use('/api/images', authenticate, imageRoutes);
 app.use('/api/payment', authenticate, paymentRoutes);
 app.use('/api/discover', authenticate, discoverRoutes);
 
-// ── Temporary mock users endpoint ───────────────────────────────────────────────
+// Temporary mock-users endpoint
 app.get('/api/mock-users', (_req, res) => {
   const user = {
     _id: '1',
@@ -103,7 +101,7 @@ app.get('/api/mock-users', (_req, res) => {
   return res.json([user]);
 });
 
-// ── Multer-specific error handler ──────────────────────────────────────────────
+// Multer-specific error handler
 app.use((err, _req, res, next) => {
   if (err.name === 'MulterError') {
     return res.status(413).json({ error: err.message });
@@ -111,16 +109,16 @@ app.use((err, _req, res, next) => {
   next(err);
 });
 
-// ── 404 Not Found handler ──────────────────────────────────────────────────────
+// 404 handler
 app.use((_req, res) => res.status(404).json({ error: 'Not Found' }));
 
-// ── Global error handler ───────────────────────────────────────────────────────
+// Global error handler
 app.use((err, _req, res) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Server Error' });
 });
 
-// ── Start server & connect to MongoDB ──────────────────────────────────────────
+// Start server & connect to MongoDB
 mongoose.set('strictQuery', true);
 const PORT = process.env.PORT || 5000;
 

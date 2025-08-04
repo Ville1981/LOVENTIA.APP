@@ -5,13 +5,13 @@ require("dotenv").config();
 const { checkThreshold } = require("./utils/alertRules");
 // --- REPLACE END ---
 
-const express       = require("express");
-const mongoose      = require("mongoose");
+const express      = require("express");
+const mongoose     = require("mongoose");
 // --- REPLACE START: use centralized CORS config instead of inline cors(...) ---
-const corsConfig    = require("./config/corsConfig");
+const corsConfig   = require("./config/corsConfig");
 // --- REPLACE END ---
-const cookieParser  = require("cookie-parser");
-const path          = require("path");
+const cookieParser = require("cookie-parser");
+const path         = require("path");
 
 // --- REPLACE START: import security headers middleware ---
 const securityHeaders = require("./utils/securityHeaders");
@@ -27,16 +27,16 @@ const sqlSanitizer = require("./middleware/sqlSanitizer");
 // --- REPLACE END ---
 
 // --- REPLACE START: import request validators & schemas ---
-const { validateBody } = require("./middleware/validateRequest");
+const { validateBody }            = require("./middleware/validateRequest");
 const { loginSchema, registerSchema } = require("./validators/authValidator");
-const { createUserSchema } = require("./validators/userValidator");
-const authController = require("./controllers/authController");
-const userController = require("./controllers/userController");
+const { createUserSchema }        = require("./validators/userValidator");
+const authController              = require("./controllers/authController");
+const userController              = require("./controllers/userController");
 // --- REPLACE END ---
 
 // --- REPLACE START: import auth check & role-based authorization ---
-const authenticate    = require("./middleware/authenticate");
-const authorizeRoles  = require("./middleware/roleAuthorization");
+const authenticate   = require("./middleware/authenticate");
+const authorizeRoles = require("./middleware/roleAuthorization");
 // --- REPLACE END ---
 
 // Ensure models are registered before middleware/routes
@@ -76,13 +76,16 @@ app.options(
   (req, res) => res.sendStatus(200)
 );
 
+// ── Security Headers ───────────────────────────────────────────────────────────
+app.use(securityHeaders);
+
 // ── Secure cookies & HTTPS enforcement ──────────────────────────────────────────
 // --- REPLACE START: secure cookies & HTTPS enforcement ---
 app.set("trust proxy", 1);
 app.use(cookieParser({
-  secure: process.env.NODE_ENV === "production",
+  secure:   process.env.NODE_ENV === "production",
   httpOnly: true,
-  sameSite: "strict"
+  sameSite: 'Strict',
 }));
 app.use(require("./middleware/httpsRedirect"));
 // --- REPLACE END ---
@@ -133,12 +136,13 @@ app.post(
 );
 // --- REPLACE END ---
 
-// ── Mount application routes ────────────────────────────────────────────────────
-// Public auth routes (other than login/register)
+// Mount public auth routes (other than login/register)
+const authRoutes = require("./routes/authRoutes");
 app.use("/api/auth", authRoutes);
 
-// Protected user routes (admin + user)
-// --- REPLACE START: protect user routes with auth + roles + create-user validation ---
+// ── Protected user routes (admin + user) ───────────────────────────────────────
+// --- REPLACE START: protect user routes with auth + roles + validation ---
+const userRoutes = require("./routes/user");
 app.use(
   "/api/users",
   authenticate,
@@ -148,7 +152,8 @@ app.use(
 );
 // --- REPLACE END ---
 
-// Protected message routes (user only)
+// ── Protected message routes (user only) ───────────────────────────────────────
+const messageRoutes = require("./routes/message");
 app.use(
   "/api/messages",
   authenticate,
@@ -156,7 +161,8 @@ app.use(
   messageRoutes
 );
 
-// Protected payment routes (user only)
+// ── Protected payment routes (user only) ───────────────────────────────────────
+const paymentRoutes = require("./routes/payment");
 app.use(
   "/api/payment",
   authenticate,
@@ -164,7 +170,8 @@ app.use(
   paymentRoutes
 );
 
-// Admin-only routes
+// ── Admin-only routes ──────────────────────────────────────────────────────────
+const adminRoutes = require("./routes/admin");
 app.use(
   "/api/admin",
   authenticate,
@@ -172,7 +179,8 @@ app.use(
   adminRoutes
 );
 
-// Protected discover routes (user only)
+// ── Protected discover routes (user only) ──────────────────────────────────────
+const discoverRoutes = require("./routes/discover");
 app.use(
   "/api/discover",
   authenticate,
@@ -182,7 +190,7 @@ app.use(
 
 // ── Temporary mock users endpoint ────────────────────────────────────────────────
 app.get("/api/users", (req, res) => {
-  /* …unchanged mock data… */
+  // …unchanged mock data…
   res.json([/* … */]);
 });
 
@@ -207,8 +215,8 @@ app.use((err, req, res, next) => {
 
 // ── SOCKET.IO INTEGRATION ──────────────────────────────────────────────────────
 const { initializeSocket } = require("./socket");
-const httpServer = initializeSocket(app);
-const PORT = process.env.PORT || 5000;
+const httpServer           = initializeSocket(app);
+const PORT                 = process.env.PORT || 5000;
 httpServer.listen(PORT, () => {
   console.log(`🚀 Server + Socket.io running on port ${PORT}`);
 });
@@ -217,4 +225,3 @@ httpServer.listen(PORT, () => {
 // app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
 
 module.exports = app;
-

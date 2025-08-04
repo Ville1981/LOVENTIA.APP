@@ -5,7 +5,7 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs/promises';
 import sharp from 'sharp';
-import authenticate from '../middleware/auth.js';
+import authenticate from '../middleware/authenticate.js';
 import { upload } from '../config/multer.js';  // <-- correct named import
 import Image from '../models/Image.js';
 import User from '../models/User.js';
@@ -29,7 +29,7 @@ router.post(
   async (req, res) => {
     try {
       const { userId } = req.params;
-      if (req.userId !== userId) {
+      if (req.user.id !== userId) {
         return res.status(403).json({ error: 'Forbidden' });
       }
       if (!req.file) {
@@ -83,7 +83,7 @@ router.post(
   async (req, res) => {
     try {
       const { userId } = req.params;
-      if (req.userId !== userId) {
+      if (req.user.id !== userId) {
         return res.status(403).json({ error: 'Forbidden' });
       }
 
@@ -141,7 +141,7 @@ router.post(
   async (req, res) => {
     try {
       const { userId } = req.params;
-      if (req.userId !== userId) {
+      if (req.user.id !== userId) {
         return res.status(403).json({ error: 'Forbidden' });
       }
       if (!req.file) {
@@ -277,7 +277,7 @@ router.delete(
   async (req, res) => {
     try {
       const { userId, slot } = req.params;
-      if (req.userId !== userId) {
+      if (req.user.id !== userId) {
         return res.status(403).json({ error: 'Forbidden' });
       }
 
@@ -318,4 +318,3 @@ router.delete(
 );
 
 export default router;
-
