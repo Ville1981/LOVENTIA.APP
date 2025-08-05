@@ -1,5 +1,3 @@
-// client/src/contexts/AuthContext.jsx
-
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import api, { setAccessToken } from '../services/api/axiosInstance';
 
@@ -23,19 +21,12 @@ export function AuthProvider({ children }) {
     async function initAuth() {
       try {
         // --- REPLACE START: call refresh endpoint and set token ---
-        const refreshRes = await api.post(
-          '/auth/refresh',
-          {},
-          { withCredentials: true }
-        );
+        const refreshRes = await api.post('/auth/refresh');
         const { accessToken } = refreshRes.data;
         if (accessToken) {
           setAccessToken(accessToken);
           // Fetch current user profile
-          const profileRes = await api.get(
-            '/auth/me',
-            { withCredentials: true }
-          );
+          const profileRes = await api.get('/auth/me');
           setUser(profileRes.data);
         }
         // --- REPLACE END ---
@@ -54,20 +45,13 @@ export function AuthProvider({ children }) {
    */
   const login = async (email, password) => {
     // --- REPLACE START: call login endpoint and set token ---
-    const res = await api.post(
-      '/auth/login',
-      { email, password },
-      { withCredentials: true }
-    );
+    const res = await api.post('/auth/login', { email, password });
     const { accessToken: newToken } = res.data;
     setAccessToken(newToken);
     // --- REPLACE END ---
 
     // Fetch profile
-    const profileRes = await api.get(
-      '/auth/me',
-      { withCredentials: true }
-    );
+    const profileRes = await api.get('/auth/me');
     setUser(profileRes.data);
     return profileRes.data;
   };
@@ -78,11 +62,7 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     try {
       // --- REPLACE START: call logout endpoint ---
-      await api.post(
-        '/auth/logout',
-        {},
-        { withCredentials: true }
-      );
+      await api.post('/auth/logout');
       // --- REPLACE END ---
     } catch (err) {
       console.warn('Logout request failed:', err);
@@ -106,4 +86,5 @@ export function useAuth() {
   return useContext(AuthContext);
 }
 
-// The replacement region is marked between // --- REPLACE START and // --- REPLACE END so you can verify exactly what changed
+// The replacement region is marked between // --- REPLACE START and // --- REPLACE END
+// so you can verify exactly what changed.

@@ -7,10 +7,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "echo \"No client tests specified\" && exit 0",
-    
     "lint": "eslint . --ext .js,.jsx",
     "lint:fix": "eslint . --ext .js,.jsx --fix"
-    
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
