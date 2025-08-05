@@ -1,30 +1,29 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-/*
-  The replacement regions are marked between:
-    // --- REPLACE START …
-    // --- REPLACE END
-  so you can verify exactly what changed.
-*/
-
+// https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+  ],
+
+  // --- REPLACE START: ensure MSW is pre-bundled as ESM so that `rest` is available ---
+  optimizeDeps: {
+    include: ['msw'],
+  },
+  // --- REPLACE END ---
+
   server: {
     port: 5174,
     proxy: {
-      // --- REPLACE START: proxy /api to backend ---
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:8000', // your backend URL
         changeOrigin: true,
         secure: false,
       },
-      // --- REPLACE END ---
     },
   },
-  optimizeDeps: {
-    // --- REPLACE START: pre-bundle MSW to expose `rest` correctly ---
-    include: ['msw'],
-    // --- REPLACE END ---
+  build: {
+    outDir: 'dist',
   },
 });

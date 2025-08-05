@@ -1,66 +1,34 @@
-// vite.config.js
+// File: vite.config.js
 
-import react from "@vitejs/plugin-react";
-import path from "path";
-import { fileURLToPath } from "url";
-import { defineConfig } from "vite";
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
-// Resolve __dirname in ESM
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
+// https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+  ],
 
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "src"),
-    },
+  // --- REPLACE START: ensure MSW is pre-bundled as ESM so that `rest` is available ---
+  optimizeDeps: {
+    include: [
+      'msw',
+      'msw/browser'
+    ],
   },
-
-  css: {
-    // Explicitly reference your PostCSS config
-    postcss: path.resolve(__dirname, "postcss.config.cjs"),
-  },
+  // --- REPLACE END ---
 
   server: {
     port: 5174,
-    hmr: { overlay: false },
     proxy: {
-      // Proxy all /api/* requests to the backend unchanged
-      "/api": {
-        target: "http://localhost:5000",
+      '/api': {
+        target: 'http://localhost:8000', // your backend URL
         changeOrigin: true,
         secure: false,
       },
-      // Proxy uploaded assets
-      "/uploads": {
-        target: "http://localhost:5000",
-        changeOrigin: true,
-        secure: false,
-      },
-    },
-    fs: {
-      allow: [
-        path.resolve(__dirname),
-        path.resolve(
-          __dirname,
-          "node_modules",
-          "slick-carousel",
-          "slick",
-          "fonts"
-        ),
-      ],
     },
   },
-
   build: {
-    assetsDir: "assets",
+    outDir: 'dist',
   },
-
-  // --- REPLACE START: ensure MSW is pre-bundled for browser mocks
-  optimizeDeps: {
-    include: ["msw"],
-  },
-  // --- REPLACE END
 });

@@ -1,19 +1,11 @@
-// server/src/utils/cookieOptions.js
+// Default cookie options for refreshToken
+// The replacement region is marked between // --- REPLACE START and // --- REPLACE END so you can verify exactly what changed
 
-// The replacement region is marked between // --- REPLACE START and // --- REPLACE END
-
-// --- REPLACE START: define and export cookieOptions as named ESM export ---
-/**
- * Centralized cookie options for refresh token cookies.
- * - httpOnly: not accessible via JS
- * - secure: only sent over HTTPS in production
- * - sameSite: lax to allow top-level navigation
- * - maxAge: 7 days in milliseconds
- */
+// --- REPLACE START: define default cookie options including path ---
 export const cookieOptions = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax',
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  httpOnly: true,                           // inaccessible to JS
+  sameSite: 'None',                         // allow cross-site usage
+  secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+  path: '/',                                // ensures cookie is sent on all routes
 };
 // --- REPLACE END ---

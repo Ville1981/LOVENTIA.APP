@@ -1,7 +1,6 @@
-// client/src/services/api/axiosInstance.js
+// File: client/src/services/api/axiosInstance.js
 
 // Centralized Axios instance with JWT management and automatic token refresh
-
 import axios from 'axios';
 
 // Internal in-memory access token; set via setAccessToken after login/refresh
@@ -16,6 +15,8 @@ export function setAccessToken(token) {
 }
 
 // Determine baseURL: in dev, always use Vite proxy at "/api"; in prod use configured URL
+// The replacement region is marked between // --- REPLACE START and // --- REPLACE END so you can verify exactly what changed
+
 // --- REPLACE START: use explicit DEV check for baseURL ---
 const baseURL = import.meta.env.DEV
   ? '/api'
@@ -47,6 +48,7 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+
     if (
       error.response &&
       error.response.status === 401 &&
@@ -55,8 +57,8 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       try {
         // --- REPLACE START: refresh token via proxy-aware api.post ---
-        // Previously you did axios.post(`${baseURL}/auth/refresh`, …)
-        // Now we use our `api` instance so Vite’s `/api` proxy is applied
+        // Previously you might have done axios.post(`${baseURL}/auth/refresh`, …)
+        // Now we use our `api` instance so Vite’s `/api` proxy and withCredentials are applied
         const res = await api.post(
           '/auth/refresh',
           {},
@@ -75,6 +77,7 @@ api.interceptors.response.use(
         return Promise.reject(refreshError);
       }
     }
+
     return Promise.reject(error);
   }
 );

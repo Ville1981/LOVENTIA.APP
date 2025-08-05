@@ -2,10 +2,9 @@
 
 // The replacement region is marked between // --- REPLACE START and // --- REPLACE END so you can verify exactly what changed
 
-// --- REPLACE START: disable named import lint for MSW ---
+// Disable ESLint named-import error for MSW
 // eslint-disable-next-line import/named
 import { rest } from 'msw';
-// --- REPLACE END ---
 
 // Mock data for conversations overview
 const mockConversations = [
@@ -34,27 +33,38 @@ const mockUser = {
   email: 'test@example.com',
 };
 
-// --- REPLACE START: add auth endpoint handlers ---
-// Handler for POST /api/auth/login
+// --- REPLACE START: ensure MSW sets a refreshToken cookie on login/refresh ---
+const cookieSettings = {
+  path: '/',         // must match backend configuration
+  sameSite: 'None',  // allow cross-site usage
+  secure: false,     // set to true in production
+};
+
 const loginHandler = rest.post('/api/auth/login', (req, res, ctx) => {
+  const fakeToken = 'fakeRefreshToken';
   return res(
+    ctx.cookie('refreshToken', fakeToken, cookieSettings),
     ctx.status(200),
     ctx.json({ accessToken: 'fakeAccessToken' })
   );
 });
 
-// Handler for POST /api/auth/refresh
 const refreshHandler = rest.post('/api/auth/refresh', (req, res, ctx) => {
+  const newFakeToken = 'rotatedFakeRefreshToken';
   return res(
+    ctx.cookie('refreshToken', newFakeToken, cookieSettings),
     ctx.status(200),
-    ctx.json({ accessToken: 'fakeRefreshToken' })
+    ctx.json({ accessToken: 'fakeAccessToken' })
   );
 });
+// --- REPLACE END ---
 
 // Handler for POST /api/auth/logout
 const logoutHandler = rest.post('/api/auth/logout', (req, res, ctx) => {
   return res(
-    ctx.status(200)
+    ctx.status(200),
+    // clear the cookie so browser forgets it
+    ctx.cookie('refreshToken', '', { ...cookieSettings, maxAge: 0 })
   );
 });
 
@@ -65,21 +75,20 @@ const meHandler = rest.get('/api/auth/me', (req, res, ctx) => {
     ctx.json(mockUser)
   );
 });
-// --- REPLACE END ---
 
 // Export named handlers array for MSW
 export const handlers = [
-  // Handler for GET /api/messages/overview
+  // messages overview
   rest.get('/api/messages/overview', (req, res, ctx) => {
     return res(
       ctx.status(200),
       ctx.json(mockConversations)
     );
   }),
-  // --- REPLACE START: include auth handlers in exported array ---
+
+  // Inject our auth handlers
   loginHandler,
   refreshHandler,
   logoutHandler,
   meHandler,
-  // --- REPLACE END ---
 ];
