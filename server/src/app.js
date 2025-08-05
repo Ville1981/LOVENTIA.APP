@@ -72,6 +72,11 @@ mongoose.connect(process.env.MONGO_URI, {
 // --- REPLACE START: apply centralized CORS config ---
 app.use(corsConfig);
 // --- REPLACE END ---
+
+// --- REPLACE START: add CORS preflight for refresh token endpoint ---
+app.options('/api/auth/refresh', corsConfig, (req, res) => res.sendStatus(200));
+// --- REPLACE END ---
+
 app.options(
   '/api/users/:userId/photos/upload-photo-step',
   corsConfig,
@@ -87,7 +92,7 @@ const { cookieOptions } = require('./utils/cookieOptions');
 app.set('trust proxy', 1);
 app.use(cookieParser()); // parses cookies
 app.use((req, res, next) => {
-  // ensure refreshToken cookie settings are applied elsewhere (in authController)
+  // ensure refreshToken cookie settings are applied in authController
   next();
 });
 app.use(require('../middleware/httpsRedirect'));

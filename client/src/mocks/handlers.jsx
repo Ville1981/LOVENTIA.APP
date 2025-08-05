@@ -4,7 +4,9 @@
 
 // Disable ESLint named-import error for MSW
 // eslint-disable-next-line import/named
-import { rest } from 'msw';
+// --- REPLACE START: import http from MSW as top‐level ESM export ---
+import { http } from 'msw';
+// --- REPLACE END ---
 
 // Mock data for conversations overview
 const mockConversations = [
@@ -40,7 +42,7 @@ const cookieSettings = {
   secure: false,     // set to true in production
 };
 
-const loginHandler = rest.post('/api/auth/login', (req, res, ctx) => {
+const loginHandler = http.post('/api/auth/login', (req, res, ctx) => {
   const fakeToken = 'fakeRefreshToken';
   return res(
     ctx.cookie('refreshToken', fakeToken, cookieSettings),
@@ -49,7 +51,7 @@ const loginHandler = rest.post('/api/auth/login', (req, res, ctx) => {
   );
 });
 
-const refreshHandler = rest.post('/api/auth/refresh', (req, res, ctx) => {
+const refreshHandler = http.post('/api/auth/refresh', (req, res, ctx) => {
   const newFakeToken = 'rotatedFakeRefreshToken';
   return res(
     ctx.cookie('refreshToken', newFakeToken, cookieSettings),
@@ -59,8 +61,8 @@ const refreshHandler = rest.post('/api/auth/refresh', (req, res, ctx) => {
 });
 // --- REPLACE END ---
 
-// Handler for POST /api/auth/logout
-const logoutHandler = rest.post('/api/auth/logout', (req, res, ctx) => {
+// --- REPLACE START: replace old rest handlers with http versions ---
+const logoutHandler = http.post('/api/auth/logout', (req, res, ctx) => {
   return res(
     ctx.status(200),
     // clear the cookie so browser forgets it
@@ -68,18 +70,17 @@ const logoutHandler = rest.post('/api/auth/logout', (req, res, ctx) => {
   );
 });
 
-// Handler for GET /api/auth/me
-const meHandler = rest.get('/api/auth/me', (req, res, ctx) => {
+const meHandler = http.get('/api/auth/me', (req, res, ctx) => {
   return res(
     ctx.status(200),
     ctx.json(mockUser)
   );
 });
+// --- REPLACE END ---
 
-// Export named handlers array for MSW
 export const handlers = [
   // messages overview
-  rest.get('/api/messages/overview', (req, res, ctx) => {
+  http.get('/api/messages/overview', (req, res, ctx) => {
     return res(
       ctx.status(200),
       ctx.json(mockConversations)
