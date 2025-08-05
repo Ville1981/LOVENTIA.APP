@@ -1,24 +1,23 @@
-/**
- * Mock Service Worker (MSW) - Service Worker file
- * This file intercepts network requests based on the handlers defined in your client code.
- *
- * NOTE: This is a minimal stub. To generate the full, official service worker script,
- * run the following command in your project root:
- *
- *   npx msw init public/ --save
- *
- * The command will copy the complete `mockServiceWorker.js` into this `public/` folder.
- */
+/*
+  This file sets up the Mock Service Worker (MSW) in development.
+  Replacement regions are marked between:
+    // --- REPLACE START …
+    // --- REPLACE END
+  so you can verify exactly what changed.
+*/
 
-// Install event: skip waiting to activate the new service worker immediately
-self.addEventListener('install', () => self.skipWaiting())
+// --- REPLACE START: import setupWorker and http from MSW as top‐level ESM export ---
+import { setupWorker } from 'msw/browser';
+import { http } from 'msw';
+// --- REPLACE END ---
 
-// Activate event: take control of uncontrolled clients
-self.addEventListener('activate', () => self.clients.claim())
+// --- REPLACE START: import your request handlers ---
+import { handlers } from './handlers';
+// --- REPLACE END ---
 
-// Fetch event: handlers will be injected by MSW runtime in development
-self.addEventListener('fetch', (event) => {
-  // Placeholder: MSW will override this handler in development mode.
-  // If requests aren't being intercepted, regenerate this file by running:
-  //   npx msw init public/ --save
-})
+// Initialize and export the MSW worker with your handlers
+export const worker = setupWorker(...handlers);
+
+// --- REPLACE START: note on `rest` re-export removed ---
+// Handlers should import `http` directly from 'msw' instead of `rest`.
+// --- REPLACE END ---

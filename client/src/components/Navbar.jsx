@@ -1,5 +1,3 @@
-// File: src/components/Navbar.jsx
-
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -99,8 +97,3 @@ const Navbar = () => {
 };
 
 export default Navbar;
-
-// The replacement region is marked between 
-// // --- REPLACE START and // --- REPLACE END 
-// so you can verify exactly what changed.
-

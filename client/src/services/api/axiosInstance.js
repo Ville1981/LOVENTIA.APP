@@ -1,6 +1,3 @@
-// File: client/src/services/api/axiosInstance.js
-
-// Centralized Axios instance with JWT management and automatic token refresh
 import axios from 'axios';
 
 // Internal in-memory access token; set via setAccessToken after login/refresh
@@ -49,6 +46,16 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // --- REPLACE START: prevent infinite loop on refresh failure ---
+    // If the failed request was the refresh endpoint itself, reject immediately
+    if (
+      error.response?.status === 401 &&
+      originalRequest.url?.endsWith('/auth/refresh')
+    ) {
+      return Promise.reject(error);
+    }
+    // --- REPLACE END ---
+
     if (
       error.response &&
       error.response.status === 401 &&
@@ -57,13 +64,8 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       try {
         // --- REPLACE START: refresh token via proxy-aware api.post ---
-        // Previously you might have done axios.post(`${baseURL}/auth/refresh`, …)
-        // Now we use our `api` instance so Vite’s `/api` proxy and withCredentials are applied
-        const res = await api.post(
-          '/auth/refresh',
-          {},
-          { withCredentials: true }
-        );
+        // Using our `api` instance so Vite’s `/api` proxy and withCredentials are applied
+        const res = await api.post('/auth/refresh');
         // --- REPLACE END ---
 
         const newToken = res.data.accessToken;

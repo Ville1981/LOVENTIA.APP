@@ -6,9 +6,9 @@
   so you can verify exactly what changed.
 */
 
-// --- REPLACE START: import setupWorker and rest from MSW as top‐level ESM export ---
+// --- REPLACE START: import setupWorker and http from MSW as top‐level ESM export ---
 import { setupWorker } from 'msw/browser';
-import { rest } from 'msw';
+import { http } from 'msw';
 // --- REPLACE END ---
 
 // --- REPLACE START: import your request handlers ---
@@ -18,9 +18,6 @@ import { handlers } from './handlers';
 // Initialize and export the MSW worker with your handlers
 export const worker = setupWorker(...handlers);
 
-// --- REPLACE START: re-export rest so it can be imported from here ---
-/*
-  Removed re-export of `rest` here.
-  Handlers should import `rest` directly from 'msw'.
-*/
+// --- REPLACE START: note on `rest` re-export removed ---
+// Handlers should import `http` directly from 'msw' instead of `rest`.
 // --- REPLACE END ---

@@ -7,16 +7,17 @@ import api, { setAccessToken } from '../services/api/axiosInstance';
 const AuthContext = createContext({
   user: null,
   loading: true,
+  // --- REPLACE START: add isLoggedIn default value ---
+  isLoggedIn: false,
+  // --- REPLACE END ---
   login: async () => {},
   logout: async () => {},
 });
 
 export function AuthProvider({ children }) {
-  // user can be null or an object with user info
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // On mount, attempt silent refresh and fetch user
   useEffect(() => {
     async function initAuth() {
       try {
@@ -25,7 +26,6 @@ export function AuthProvider({ children }) {
         const { accessToken } = refreshRes.data;
         if (accessToken) {
           setAccessToken(accessToken);
-          // Fetch current user profile
           const profileRes = await api.get('/auth/me');
           setUser(profileRes.data);
         }
@@ -40,9 +40,6 @@ export function AuthProvider({ children }) {
     initAuth();
   }, []);
 
-  /**
-   * Logs in with email & password, stores token, fetches profile
-   */
   const login = async (email, password) => {
     // --- REPLACE START: call login endpoint and set token ---
     const res = await api.post('/auth/login', { email, password });
@@ -50,15 +47,11 @@ export function AuthProvider({ children }) {
     setAccessToken(newToken);
     // --- REPLACE END ---
 
-    // Fetch profile
     const profileRes = await api.get('/auth/me');
     setUser(profileRes.data);
     return profileRes.data;
   };
 
-  /**
-   * Logs out by clearing token and user state, and calling backend logout
-   */
   const logout = async () => {
     try {
       // --- REPLACE START: call logout endpoint ---
@@ -67,24 +60,27 @@ export function AuthProvider({ children }) {
     } catch (err) {
       console.warn('Logout request failed:', err);
     }
-
     setAccessToken(null);
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        // --- REPLACE START: derive isLoggedIn from user state ---
+        isLoggedIn: !!user,
+        // --- REPLACE END ---
+        login,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 }
 
-/**
- * Custom hook to use auth
- */
 export function useAuth() {
   return useContext(AuthContext);
 }
-
-// The replacement region is marked between // --- REPLACE START and // --- REPLACE END
-// so you can verify exactly what changed.
