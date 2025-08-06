@@ -1,22 +1,35 @@
 # client/Dockerfile
-# 1) Build-vaihe
+
+# --- REPLACE START: multi-stage build for React app with nginx fallback ---
+
+# 1) Build stage
 FROM node:18-alpine AS builder
 WORKDIR /app
 
-COPY package*.json vite.config.* ./
+# Install dependencies
+COPY package*.json vite.config.js ./
 RUN npm ci
+
+# Copy source and build
 COPY . .
 RUN npm run build
 
-# 2) Runtime-vaihe nginx:llä
+# 2) Runtime stage
 FROM nginx:alpine
 
-# Poista oletussisältö ja kopioi build-hakemisto
-RUN rm -rf /usr/share/nginx/html/*
-COPY --from=builder /app/dist /usr/share/nginx/html
+# Set working directory to nginx html folder
+WORKDIR /usr/share/nginx/html
 
-# Oma nginx-konfiguraatio
+# Remove default static contents
+RUN rm -rf ./*
+
+# Copy build artifacts from builder
+COPY --from=builder /app/dist .
+
+# Replace default nginx config with SPA-friendly config
 COPY nginx/nginx.conf /etc/nginx/conf.d/default.conf
 
+# Expose port 80 and start nginx
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
+# --- REPLACE END ---

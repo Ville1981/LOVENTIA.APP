@@ -4,6 +4,15 @@
 import 'dotenv/config';
 // --- REPLACE END ---
 
+// --- REPLACE START: Sentry initialization for monitoring ---
+import * as Sentry from '@sentry/node';
+import * as Tracing from '@sentry/tracing';
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  tracesSampleRate: parseFloat(process.env.SENTRY_TRACES_SAMPLE_RATE) || 1.0,
+});
+// --- REPLACE END ---
+
 // --- REPLACE START: core module imports using ES modules ---
 import express from 'express';
 import mongoose from 'mongoose';
@@ -39,6 +48,11 @@ import authenticate from './middleware/auth.js';
 // --- REPLACE END ---
 
 const app = express();
+
+// --- REPLACE START: Sentry request handler integration ---
+app.use(Sentry.Handlers.requestHandler());
+app.use(Sentry.Handlers.tracingHandler());
+// --- REPLACE END ---
 
 // Swagger-UI Integration
 // --- REPLACE START: Swagger integration (fixed OpenAPI path) ---
@@ -113,6 +127,12 @@ app.use((err, _req, res, next) => {
   next(err);
 });
 
+// --- REPLACE START: add health endpoint for Docker healthcheck ---
+app.get('/health', (_req, res) => {
+  res.status(200).json({ status: 'ok', uptime: process.uptime() });
+});
+// --- REPLACE END ---
+
 // --- REPLACE START: fallback to index.html for SPA routes ---
 app.get('/*', (_req, res) => {
   res.sendFile(path.join(__dirname, 'client-dist', 'index.html'));
@@ -123,6 +143,9 @@ app.get('/*', (_req, res) => {
 app.use((_req, res) => res.status(404).json({ error: 'Not Found' }));
 
 // Global error handler
+// --- REPLACE START: Sentry error handler ---
+app.use(Sentry.Handlers.errorHandler());
+// --- REPLACE END ---
 app.use((err, _req, res) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Server Error' });
