@@ -67,6 +67,10 @@ app.use(express.urlencoded({ extended: true }));
 // Serve uploads directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// --- REPLACE START: serve static files from client-dist for production ---
+app.use(express.static(path.join(__dirname, 'client-dist')));
+// --- REPLACE END ---
+
 // Mount routes
 // --- REPLACE START: mount auth routes before protected routes ---
 app.use('/api/auth', authRoutes);
@@ -109,6 +113,12 @@ app.use((err, _req, res, next) => {
   next(err);
 });
 
+// --- REPLACE START: fallback to index.html for SPA routes ---
+app.get('/*', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'client-dist', 'index.html'));
+});
+// --- REPLACE END ---
+
 // 404 handler
 app.use((_req, res) => res.status(404).json({ error: 'Not Found' }));
 
@@ -135,9 +145,24 @@ mongoose
         console.log(`  ${methods.padEnd(6)} ${layer.route.path}`);
       }
     });
-    app.listen(PORT, () =>
-      console.log(`✅ Server running on http://localhost:${PORT}`)
-    );
+
+    // --- REPLACE START: handle EADDRINUSE on listen ---
+    const server = app.listen(PORT, () => {
+      console.log(`✅ Server running on http://localhost:${PORT}`);
+    });
+
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        console.error(`⚠️ Port ${PORT} in use, retrying on port ${PORT + 1}...`);
+        server.listen(PORT + 1, () =>
+          console.log(`✅ Server running on http://localhost:${PORT + 1}`)
+        );
+      } else {
+        console.error('❌ Server error:', err);
+        process.exit(1);
+      }
+    });
+    // --- REPLACE END ---
   })
   .catch((err) => console.error('❌ MongoDB connection error:', err));
 

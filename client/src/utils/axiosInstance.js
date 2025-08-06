@@ -1,4 +1,3 @@
-// File: src/utils/axiosInstance.js
 // @ts-nocheck
 import axios from "axios";
 
@@ -93,6 +92,3 @@ api.interceptors.response.use(
 );
 
 export default api;
-
-// The replacement regions are marked between // --- REPLACE START and // --- REPLACE END
-// so you can verify exactly what changed.
