@@ -1,5 +1,4 @@
 // src/mocks/handlers.jsx
-
 // The replacement region is marked between // --- REPLACE START and // --- REPLACE END so you can verify exactly what changed
 
 // Disable ESLint named-import error for MSW
