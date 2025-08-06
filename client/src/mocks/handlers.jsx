@@ -1,4 +1,4 @@
-// File: src/mocks/handlers.jsx
+// src/mocks/handlers.jsx
 
 // The replacement region is marked between // --- REPLACE START and // --- REPLACE END so you can verify exactly what changed
 
@@ -65,7 +65,6 @@ const refreshHandler = http.post('/api/auth/refresh', (req, res, ctx) => {
 const logoutHandler = http.post('/api/auth/logout', (req, res, ctx) => {
   return res(
     ctx.status(200),
-    // clear the cookie so browser forgets it
     ctx.cookie('refreshToken', '', { ...cookieSettings, maxAge: 0 })
   );
 });

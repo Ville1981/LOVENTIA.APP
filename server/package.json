@@ -10,13 +10,15 @@
     "dev": "nodemon index.js",
     "test": "jest --runInBand --detectOpenHandles --forceExit --coverage",
     "lint": "eslint . --ext .js,.jsx",
-    "coverage": "jest --coverage"
+    "coverage": "jest --coverage",
+    "build:client": "npm --prefix ../client run build",
+    "postinstall": "npm run build:client && rm -rf ./client-dist && cp -r ../client/dist ./client-dist"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "axios": "^1.4.0",
     "@paypal/checkout-server-sdk": "^x.x.x",
+    "axios": "^1.4.0",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
@@ -24,13 +26,13 @@
     "express": "^4.17.1",
     "express-validator": "^7.2.1",
     "joi": "^17.13.3",
-    "jsonwebtoken": "^8.5.1",
+    "jsonwebtoken": "^9.0.2",
     "mongoose": "^6.0.12",
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^7.0.5",
     "sharp": "^0.34.2",
-    "stripe": "^8.0.0",
     "socket.io": "^4.5.0",
+    "stripe": "^8.0.0",
     "swagger-ui-express": "^4.6.3",
     "yamljs": "^0.3.0"
   },

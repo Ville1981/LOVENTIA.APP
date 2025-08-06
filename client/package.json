@@ -57,5 +57,10 @@
     "prettier": "^2.8.8",
     "tailwindcss": "^4.1.11",
     "vite": "^4.5.14"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
   }
 }

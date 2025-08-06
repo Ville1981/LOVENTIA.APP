@@ -1,0 +1,258 @@
+{
+  "site": {
+    "title": "DateSite"
+  },
+  "Home": "ホーム",
+  "Discover": "発見",
+  "Login": "ログイン",
+  "Register": "登録",
+  "Profile": "プロフィール",
+  "Matches": "マッチ",
+  "Likes": "いいね",
+  "Map": "マップ",
+  "Admin": "管理",
+  "Logout": "ログアウト",
+  "Privacy": "プライバシー",
+  "about": "私たちについて",
+  "careers": "採用情報",
+  "press": "プレス",
+  "terms": "利用規約",
+  "cookies": "クッキー",
+  "community": "コミュニティ",
+  "health": "健康ポリシー",
+  "coInfo": "コロラド情報",
+  "contact": "お問い合わせ",
+  "support": "サポート",
+  "security": "セキュリティ",
+  "safety": "安全対策",
+  "impressum": "インプリント",
+  "follow": "フォロー",
+  "blog": "ブログ",
+  "special": "スペシャル",
+  "download": "ダウンロード",
+  "rights": "全著作権所有。",
+  "tagline": "より良いマッチング。賢く愛そう。💘",
+  "company": "会社情報",
+  "conditions": "条件",
+
+  "etusivu": {
+    "heroOtsikko": "DateSiteへようこそ！",
+    "heroTeksti": "意味のある出会いを簡単・安全に見つけよう。",
+    "heroTekstit": [
+      "長続きする愛を見つけよう。",
+      "価値観を共有する人と出会おう。",
+      "次のマッチはすぐそこに。"
+    ],
+    "tervetuloa": "DateSiteへようこそ！",
+    "kuvaus": "仲間、友情、恋愛を安全に見つけよう。",
+    "aloita": "始める",
+    "lue_lisaa": "詳細はこちら",
+    "katso_kayttajat": "ユーザーを見る"
+  },
+
+  "profile": {
+    "title": "プロフィール",
+    "name": "名前",
+    "email": "メールアドレス",
+    "age": "年齢",
+    "height": "身長 (cm)",
+    "weight": "体重 (kg)",
+    "status": "交際ステータス",
+    "religion": "宗教または価値観",
+    "children": "子供はいますか？",
+    "pets": "ペットはいますか？",
+    "lookingFor": "探しているもの",
+    "summary": "自己紹介",
+    "goal": "目標 / 志",
+    "profilePicture": "プロフィール写真",
+    "save": "変更を保存",
+    "delete": "アカウントを削除",
+    "saveSuccess": "✅ プロフィールが正常に更新されました！",
+    "gender": "性別",
+    "male": "男性",
+    "female": "女性",
+    "other": "その他",
+    "orientation": "性的指向",
+    "hetero": "異性愛者",
+    "homo": "同性愛者",
+    "bi": "両性愛者",
+    "country": "国",
+    "region": "地域 / 都道府県",
+    "city": "市区町村",
+    "selectCountry": "国を選択",
+    "manualCountry": "または国名を手動で入力",
+    "selectRegion": "地域を選択",
+    "manualRegion": "または地域名を手動で入力",
+    "selectCity": "市区町村を選択",
+    "manualCity": "または市区町村を手動で入力",
+    "education": "学歴",
+    "basicEducation": "義務教育",
+    "secondary": "高校卒業",
+    "lowerUni": "短期大学または学士号",
+    "upperUni": "修士号",
+    "phd": "博士号",
+    "profession": "職業",
+    "religionImportance": "宗教はどのくらい重要ですか？",
+    "notImportant": "重要ではない",
+    "somewhatImportant": "やや重要",
+    "veryImportant": "非常に重要",
+    "about": "自己紹介",
+    "goals": "目標 / 希望",
+    "searchingFor": "あなたが探しているものは？",
+    "mainImage": "メインプロフィール画像",
+    "extraImages": "追加画像（最大6枚）",
+    "saveChanges": "変更を保存",
+    "deleteAccount": "アカウントを削除",
+    "saved": "✅ プロフィールが更新されました！",
+    "fetchError": "❌ プロフィールの読み込みに失敗しました。",
+    "updateError": "❌ プロフィールの更新に失敗しました。",
+    "confirmDelete": "本当にアカウントを完全に削除しますか？",
+    "premiumMember": "プレミアム会員です 🎉"
+
+
+  },
+
+  "buttons": {
+    "submit": "送信",
+    "cancel": "キャンセル",
+    "delete": "削除",
+    "edit": "編集",
+    "back": "戻る"
+  },
+  "hero": {
+  "0": "真実の愛を見つけよう。",
+  "1": "あなたの価値観を共有する人々と出会おう。",
+  "2": "次のマッチングはワンクリック先。"
+},
+
+
+  "messages": {
+    "loading": "読み込み中...",
+    "error": "エラーが発生しました",
+    "notFound": "ページが見つかりません",
+    "success": "操作が成功しました"
+  },
+
+  "discover": {
+    "title": "ユーザーを探す",
+    "nearYou": "近くのユーザー",
+    "searchPlaceholder": "🔍 名前または関心で検索...",
+    "geolocationNotSupported": "ブラウザが位置情報に対応していません。",
+    "cityNotFound": "都市を特定できませんでした。",
+    "fetchError": "ユーザー取得エラー。",
+    "liked": "ユーザーにいいねしました！",
+    "likeFailed": "いいねに失敗しました。",
+    "superliked": "スーパーライク！",
+    "superlikeFailed": "スーパーライクに失敗しました。",
+    "superlikeLimit": "❌ スーパーライクの上限に達しました (3回/48時間)。",
+    "loading": "🔄 ユーザー読み込み中...",
+    "adAlt": "広告スペース - ここに広告を表示",
+    "like": "いいね",
+    "superlike": "スーパーライク",
+    "viewProfile": "プロフィールを見る",
+<<<<<<< HEAD
+    "premium": "プレミアムユーザー",
+        "minAge": "最小年齢",
+    "maxAge": "最大年齢",
+    "instructions": "条件を選択して、相性の良いプロフィールを見つけましょう。",
+    "filter": "フィルター"
+
+=======
+    "premium": "プレミアムユーザー"
+>>>>>>> origin/main
+  },
+
+  "chat": {
+    "title": "チャット",
+    "placeholder": "メッセージを入力...",
+    "send": "送信"
+  },
+
+  "admin": {
+    "title": "管理パネル：ユーザー管理",
+    "name": "名前",
+    "location": "場所",
+    "hidden": "非表示？",
+    "actions": "操作",
+    "yes": "✅ はい",
+    "no": "❌ いいえ",
+    "hide": "非表示にする",
+    "unhide": "表示する",
+    "delete": "削除",
+    "confirmDelete": "このユーザーを本当に削除しますか？"
+  },
+
+  "map": {
+    "title": "マップ上のユーザー",
+    "cityNotFound": "都市が特定できませんでした。",
+    "locationError": "位置情報の取得に失敗しました。",
+    "fetchError": "ユーザーの取得に失敗しました。",
+    "youAreHere": "現在地",
+    "loadingLocation": "位置情報を取得中..."
+  },
+
+  "matches": {
+    "title": "マッチリスト",
+    "noMatches": "まだマッチはありません。",
+    "openChat": "チャットを開く",
+    "score": "マッチスコア"
+  },
+
+  "premium": {
+    "successTitle": "プレミアム登録成功",
+    "successMessage": "✅ プレミアムが有効になりました！ありがとうございます。",
+    "cancelTitle": "支払いがキャンセルされました",
+    "cancelMessage": "お支払いが完了しませんでした。再試行可能です。",
+    "updating": "ステータスを更新中...",
+    "errorMessage": "❌ プレミアムの更新に失敗しました。"
+  },
+
+  "country": "国",
+  "region": "地域 / 都道府県",
+  "city": "市区町村",
+  "countries": {
+    "Suomi": "フィンランド",
+    "Ruotsi": "スウェーデン",
+    "Norja": "ノルウェー",
+    "Saksa": "ドイツ",
+    "Ranska": "フランス",
+    "Yhdysvallat": "アメリカ合衆国",
+    "Kanada": "カナダ",
+    "Iso-Britannia": "イギリス",
+    "Japani": "日本",
+    "Kiina": "中国",
+    "Intia": "インド",
+    "Venäjä": "ロシア",
+    "Espanja": "スペイン",
+    "Brasilia": "ブラジル",
+    "Argentiina": "アルゼンチン",
+    "Chile": "チリ",
+    "Ukraina": "ウクライナ",
+    "Kazakstan": "カザフスタン",
+    "Portugali": "ポルトガル",
+    "Italia": "イタリア"
+<<<<<<< HEAD
+  },
+
+  "common": {
+  "select": "選択",
+  "filter": "フィルター"
+},
+
+"lifestyle": {
+  "title": "ライフスタイル",
+  "smoke": "喫煙",
+  "drink": "飲酒",
+  "drugs": "薬物",
+  "no": "なし",
+  "little": "少し",
+  "average": "普通",
+  "much": "多い",
+  "sober": "依存なし"
+}
+
+
+=======
+  }
+>>>>>>> origin/main
+}
