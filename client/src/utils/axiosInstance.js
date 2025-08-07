@@ -1,8 +1,9 @@
-// src/utils/axiosInstance.js
 // @ts-nocheck
 import axios from "axios";
 
-import { BACKEND_BASE_URL } from "./config";
+
+
+import { BACKEND_BASE_URL } from "../services/api/config";
 
 /**
  * Internal storage for the access token.
@@ -93,6 +94,3 @@ api.interceptors.response.use(
 );
 
 export default api;
-
-// The replacement regions are marked between // --- REPLACE START and // --- REPLACE END
-// so you can verify exactly what changed.

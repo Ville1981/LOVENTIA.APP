@@ -1,4 +1,3 @@
-// src/components/MainLayout.jsx
 import React from "react";
 import { Outlet, useLocation } from "react-router-dom";
 
@@ -72,5 +71,3 @@ const MainLayout = () => {
 };
 
 export default MainLayout;
-
-// The replacement region is marked between // --- REPLACE START and // --- REPLACE END

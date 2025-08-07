@@ -1,5 +1,8 @@
-const mongoose = require('mongoose');
+// server/models/Subscription.js
 
+import mongoose from 'mongoose';
+
+// --- REPLACE START: define Subscription schema and export default model ---
 const subscriptionSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
@@ -8,21 +11,25 @@ const subscriptionSchema = new mongoose.Schema({
   },
   plan: {
     type: String,
-    enum: ['free', 'premium'],
-    default: 'free'
+    enum: ['premium', 'basic'],
+    required: true
   },
-  status: {
+  provider: {
     type: String,
-    enum: ['active', 'canceled'],
-    default: 'active'
+    enum: ['stripe', 'paypal'],
+    required: true
   },
-  startedAt: {
+  subscriptionId: {
+    type: String,
+    required: true,
+    unique: true
+  },
+  createdAt: {
     type: Date,
     default: Date.now
-  },
-  endsAt: {
-    type: Date
   }
 });
 
-module.exports = mongoose.model('Subscription', subscriptionSchema);
+const Subscription = mongoose.model('Subscription', subscriptionSchema);
+export default Subscription;
+// --- REPLACE END ---

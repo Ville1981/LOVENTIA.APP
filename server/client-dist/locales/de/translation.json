@@ -1,0 +1,257 @@
+{
+  "site": {
+    "title": "DateSite"
+  },
+  "Home": "Startseite",
+  "Discover": "Entdecken",
+  "Login": "Anmelden",
+  "Register": "Registrieren",
+  "Profile": "Profil",
+  "Matches": "Treffer",
+  "Likes": "Likes",
+  "Map": "Karte",
+  "Admin": "Admin",
+  "Logout": "Abmelden",
+  "Privacy": "Datenschutz",
+  "about": "Über uns",
+  "careers": "Karriere",
+  "press": "Presse",
+  "terms": "Nutzungsbedingungen",
+  "cookies": "Cookies",
+  "community": "Community",
+  "health": "Gesundheitshinweis",
+  "coInfo": "Colorado-Info",
+  "contact": "Kontakt",
+  "support": "Support",
+  "security": "Sicherheit",
+  "safety": "Sicherheitstipps",
+  "impressum": "Impressum",
+  "follow": "Folgen",
+  "blog": "Blog",
+  "special": "Spezial",
+  "download": "Download",
+  "rights": "Alle Rechte vorbehalten.",
+  "tagline": "Besser verlieben. Klüger lieben. 💘",
+  "company": "Unternehmen",
+  "conditions": "Bedingungen",
+
+  "etusivu": {
+    "heroOtsikko": "Willkommen bei DateSite!",
+    "heroTeksti": "Finde sinnvolle Verbindungen einfach und sicher.",
+    "heroTekstit": [
+      "Finde die Liebe fürs Leben.",
+      "Treffe Menschen mit ähnlichen Werten.",
+      "Dein nächstes Match ist nur einen Klick entfernt."
+    ],
+    "tervetuloa": "Willkommen bei DateSite!",
+    "kuvaus": "Finde Freundschaft, Begleitung oder Liebe einfach und sicher.",
+    "aloita": "Loslegen",
+    "lue_lisaa": "Mehr erfahren",
+    "katso_kayttajat": "Benutzer ansehen"
+  },
+
+  "hero": {
+  "0": "Finde wahre Liebe.",
+  "1": "Triff Menschen mit deinen Werten.",
+  "2": "Dein nächstes Match ist nur einen Klick entfernt."
+},
+
+
+  "profile": {
+    "title": "Profil",
+    "name": "Name",
+    "email": "E-Mail",
+    "age": "Alter",
+    "height": "Größe (cm)",
+    "weight": "Gewicht (kg)",
+    "status": "Beziehungsstatus",
+    "religion": "Religion oder Werte",
+    "children": "Hast du Kinder?",
+    "pets": "Hast du Haustiere?",
+    "lookingFor": "Wonach suchst du?",
+    "summary": "Über mich",
+    "goal": "Ziele / Wünsche",
+    "profilePicture": "Profilbild",
+    "save": "Änderungen speichern",
+    "delete": "Konto löschen",
+    "saveSuccess": "✅ Profil erfolgreich aktualisiert!",
+        "gender": "Geschlecht",
+    "male": "Männlich",
+    "female": "Weiblich",
+    "other": "Divers",
+    "orientation": "Sexuelle Orientierung",
+    "hetero": "Heterosexuell",
+    "homo": "Homosexuell",
+    "bi": "Bisexuell",
+    "country": "Land",
+    "region": "Region",
+    "city": "Stadt",
+    "selectCountry": "Land auswählen",
+    "manualCountry": "Oder Land manuell eingeben",
+    "selectRegion": "Region auswählen",
+    "manualRegion": "Oder Region manuell eingeben",
+    "selectCity": "Stadt auswählen",
+    "manualCity": "Oder Stadt manuell eingeben",
+    "education": "Bildung",
+    "basicEducation": "Grundbildung",
+    "secondary": "Sekundarabschluss",
+    "lowerUni": "Bachelor oder gleichwertig",
+    "upperUni": "Master oder gleichwertig",
+    "phd": "Doktortitel (PhD)",
+    "profession": "Beruf",
+    "religionImportance": "Wie wichtig ist dir Religion?",
+    "notImportant": "Nicht wichtig",
+    "somewhatImportant": "Einigermaßen wichtig",
+    "veryImportant": "Sehr wichtig",
+    "about": "Über mich",
+    "goals": "Ziele / Wünsche",
+    "searchingFor": "Was suchst du?",
+    "mainImage": "Hauptprofilbild",
+    "extraImages": "Weitere Bilder (max. 6)",
+    "saveChanges": "Änderungen speichern",
+    "deleteAccount": "Konto löschen",
+    "saved": "✅ Profil erfolgreich aktualisiert!",
+    "fetchError": "❌ Fehler beim Laden des Profils.",
+    "updateError": "❌ Fehler beim Aktualisieren des Profils.",
+    "confirmDelete": "Möchtest du dein Konto wirklich dauerhaft löschen?",
+    "premiumMember": "Du bist ein Premium-Mitglied 🎉"
+
+  },
+
+  "buttons": {
+    "submit": "Absenden",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "back": "Zurück"
+  },
+
+  "messages": {
+    "loading": "Lade...",
+    "error": "Ein Fehler ist aufgetreten",
+    "notFound": "Seite nicht gefunden",
+    "success": "Aktion erfolgreich"
+  },
+
+  "discover": {
+    "title": "Benutzer entdecken",
+    "nearYou": "in deiner Nähe",
+    "searchPlaceholder": "🔍 Suche nach Namen oder Interessen...",
+    "geolocationNotSupported": "Dein Browser unterstützt keine Geolokalisierung.",
+    "cityNotFound": "Deine Stadt konnte nicht ermittelt werden.",
+    "fetchError": "Fehler beim Laden der Benutzer.",
+    "liked": "Benutzer geliked!",
+    "likeFailed": "Like fehlgeschlagen.",
+    "superliked": "Superlike!",
+    "superlikeFailed": "Superlike fehlgeschlagen.",
+    "superlikeLimit": "❌ Superlike-Limit erreicht (3/48h).",
+    "loading": "🔄 Benutzer werden geladen...",
+    "adAlt": "Werbefläche – deine Anzeige hier",
+    "like": "Like",
+    "superlike": "Superlike",
+    "viewProfile": "Profil ansehen",
+<<<<<<< HEAD
+    "premium": "Premium-Nutzer",
+        "minAge": "Mindestalter",
+    "maxAge": "Höchstalter",
+    "instructions": "Wähle Filter, um passende Profile zu finden.",
+    "filter": "Filtern"
+
+=======
+    "premium": "Premium-Nutzer"
+>>>>>>> origin/main
+  },
+
+  "chat": {
+    "title": "Chat",
+    "placeholder": "Nachricht eingeben...",
+    "send": "Senden"
+  },
+
+  "admin": {
+    "title": "Admin-Panel: Benutzerverwaltung",
+    "name": "Name",
+    "location": "Standort",
+    "hidden": "Versteckt?",
+    "actions": "Aktionen",
+    "yes": "✅ Ja",
+    "no": "❌ Nein",
+    "hide": "Verstecken",
+    "unhide": "Einblenden",
+    "delete": "Löschen",
+    "confirmDelete": "Bist du sicher, dass du diesen Benutzer löschen möchtest?"
+  },
+
+  "map": {
+    "title": "Benutzer auf der Karte",
+    "cityNotFound": "Stadt konnte nicht ermittelt werden.",
+    "locationError": "Standort konnte nicht geladen werden.",
+    "fetchError": "Fehler beim Abrufen der Benutzer.",
+    "youAreHere": "Du bist hier",
+    "loadingLocation": "Standort wird abgerufen..."
+  },
+
+  "matches": {
+    "title": "Deine Matches",
+    "noMatches": "Noch keine Matches.",
+    "openChat": "Chat öffnen",
+    "score": "Match-Score"
+  },
+
+  "premium": {
+    "successTitle": "Premium erfolgreich aktiviert",
+    "successMessage": "✅ Premium ist aktiv! Danke für deinen Kauf.",
+    "cancelTitle": "Zahlung abgebrochen",
+    "cancelMessage": "Du hast die Zahlung nicht abgeschlossen. Versuche es erneut.",
+    "updating": "Status wird aktualisiert...",
+    "errorMessage": "❌ Premium-Aktualisierung fehlgeschlagen."
+  },
+
+  "country": "Land",
+  "region": "Region / Bundesland",
+  "city": "Stadt",
+  "countries": {
+    "Suomi": "Finnland",
+    "Ruotsi": "Schweden",
+    "Norja": "Norwegen",
+    "Saksa": "Deutschland",
+    "Ranska": "Frankreich",
+    "Yhdysvallat": "Vereinigte Staaten",
+    "Kanada": "Kanada",
+    "Iso-Britannia": "Vereinigtes Königreich",
+    "Japani": "Japan",
+    "Kiina": "China",
+    "Intia": "Indien",
+    "Venäjä": "Russland",
+    "Espanja": "Spanien",
+    "Brasilia": "Brasilien",
+    "Argentiina": "Argentinien",
+    "Chile": "Chile",
+    "Ukraina": "Ukraine",
+    "Kazakstan": "Kasachstan",
+    "Portugali": "Portugal",
+    "Italia": "Italien"
+<<<<<<< HEAD
+  },
+  "common": {
+  "select": "Auswählen",
+  "filter": "Filtern"
+},
+
+"lifestyle": {
+  "title": "Lebensstil",
+  "smoke": "Rauchen",
+  "drink": "Alkohol",
+  "drugs": "Drogen",
+  "no": "Kein Konsum",
+  "little": "Wenig",
+  "average": "Durchschnittlich",
+  "much": "Viel",
+  "sober": "Suchtfrei"
+}
+
+
+=======
+  }
+>>>>>>> origin/main
+}

@@ -1,33 +1,37 @@
 # server/Dockerfile
 
-# 1) Build-vaihe (TypeScript/moderni JS)
+# --- REPLACE START: Multi-stage build for server with Sentry and healthcheck ---
+
+# 1) Builder stage: install all dependencies (including Sentry) and build
 FROM node:18-alpine AS builder
 WORKDIR /usr/src/app
 
-# Kopioidaan vain pakettilistat ja tsconfig, asennetaan dev-riippuvuudet
-COPY package*.json tsconfig*.json ./
+# Copy only package definitions and configs
+COPY package*.json tsconfig.json ./
 RUN npm ci
 
-# Kopioidaan lähdekoodi ja käännetään
+# Copy source and build server
 COPY . .
 RUN npm run build
 
-# 2) Runtime-vaihe
-FROM node:18-alpine
+# 2) Production stage: minimal runtime with node_modules preserved
+FROM node:18-alpine AS runner
 WORKDIR /usr/src/app
 
-# Kopioidaan tuotantorakenne ja pakettitiedostot
+# Copy built artifacts and package files (to preserve dependency tree)
 COPY --from=builder /usr/src/app/dist ./dist
+COPY --from=builder /usr/src/app/node_modules ./node_modules
 COPY --from=builder /usr/src/app/package*.json ./
 
-# Asennetaan vain production-riippuvuudet
-RUN npm ci --only=production
-
-# Ympäristömuuttuja ja portti
+# Set environment
 ENV NODE_ENV=production
+# SENTRY_DSN should be injected at runtime (docker run -e SENTRY_DSN=...)
 EXPOSE 5000
 
-# Käynnistyskomento
+# Define healthcheck for orchestration
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:5000/health || exit 1
+
+# Start the server
 CMD ["node", "dist/index.js"]
-
-
+# --- REPLACE END ---

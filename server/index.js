@@ -1,10 +1,19 @@
-// index.js
+// server/index.js
 
 // --- REPLACE START: load environment variables as early as possible ---
 import 'dotenv/config';
 // --- REPLACE END ---
 
-// --- REPLACE START: import core modules using ESM ---
+// --- REPLACE START: Sentry initialization for monitoring ---
+import * as Sentry from '@sentry/node';
+import * as Tracing from '@sentry/tracing';
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  tracesSampleRate: parseFloat(process.env.SENTRY_TRACES_SAMPLE_RATE) || 1.0,
+});
+// --- REPLACE END ---
+
+// --- REPLACE START: core module imports using ES modules ---
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
@@ -23,35 +32,39 @@ const __dirname = path.dirname(__filename);
 import './models/User.js';
 import './models/Message.js';
 
-// --- REPLACE START: import webhook routers using ESM ---
+// --- REPLACE START: import webhook routers using ES modules ---
 import stripeWebhookRouter from './routes/stripeWebhook.js';
 import paypalWebhookRouter from './routes/paypalWebhook.js';
 // --- REPLACE END ---
 
-// --- REPLACE START: import application routes using ESM ---
+// --- REPLACE START: import application routes using ES modules ---
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/userRoutes.js';
 import imageRoutes from './routes/imageRoutes.js';
 import paymentRoutes from './routes/payment.js';
 import discoverRoutes from './routes/discover.js';
-import authenticate from './middleware/authenticate.js';
 import messageRoutes from './routes/messageRoutes.js';
+import authenticate from './middleware/auth.js';
 // --- REPLACE END ---
 
 const app = express();
 
-// ── Swagger-UI Integration ─────────────────────────────────────────────────────
+// --- REPLACE START: Sentry request handler integration ---
+app.use(Sentry.Handlers.requestHandler());
+app.use(Sentry.Handlers.tracingHandler());
+// --- REPLACE END ---
+
+// Swagger-UI Integration
 // --- REPLACE START: Swagger integration (fixed OpenAPI path) ---
 const swaggerDocument = YAML.load(path.join(__dirname, 'openapi.yaml'));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 // --- REPLACE END ---
 
-// ── Stripe & PayPal webhooks ───────────────────────────────────────────────────
-// These need to see the raw body, so they must come before express.json()
+// Stripe & PayPal webhooks (raw body for signature checks)
 app.use('/api/payment/stripe-webhook', stripeWebhookRouter);
 app.use('/api/payment/paypal-webhook', paypalWebhookRouter);
 
-// ── Common middleware ───────────────────────────────────────────────────────────
+// Common middleware
 app.use(cookieParser());
 app.use(
   cors({
@@ -65,24 +78,27 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ── Serve uploads folder as static files ────────────────────────────────────────
+// Serve uploads directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ── Mount application routes ────────────────────────────────────────────────────
-// Mount Auth routes (no auth middleware)
-// --- REPLACE START: ensure /api/auth is mounted before protected routes ---
+// --- REPLACE START: serve static files from client-dist for production ---
+app.use(express.static(path.join(__dirname, 'client-dist')));
+// --- REPLACE END ---
+
+// Mount routes
+// --- REPLACE START: mount auth routes before protected routes ---
 app.use('/api/auth', authRoutes);
 // --- REPLACE END ---
 
-// Mount protected routes
+// Protected routes
 app.use('/api/messages', authenticate, messageRoutes);
 app.use('/api/users', authenticate, userRoutes);
 app.use('/api/images', authenticate, imageRoutes);
 app.use('/api/payment', authenticate, paymentRoutes);
 app.use('/api/discover', authenticate, discoverRoutes);
 
-// ── Temporary mock users endpoint ───────────────────────────────────────────────
-app.get('/api/mock-users', (req, res) => {
+// Temporary mock-users endpoint
+app.get('/api/mock-users', (_req, res) => {
   const user = {
     _id: '1',
     name: 'Bunny',
@@ -91,11 +107,7 @@ app.get('/api/mock-users', (req, res) => {
     region: 'Chonburi',
     country: 'Thailand',
     compatibility: 88,
-    photos: [
-      '/uploads/bunny1.jpg',
-      '/uploads/bunny2.jpg',
-      '/uploads/bunny3.jpg',
-    ],
+    photos: ['/uploads/bunny1.jpg', '/uploads/bunny2.jpg', '/uploads/bunny3.jpg'],
     youPhoto: '/uploads/your-avatar.jpg',
     profilePhoto: '/uploads/bunny-avatar.jpg',
     agreeCount: 6,
@@ -107,26 +119,39 @@ app.get('/api/mock-users', (req, res) => {
   return res.json([user]);
 });
 
-// ── Multer-specific error handler ──────────────────────────────────────────────
-app.use((err, req, res, next) => {
+// Multer-specific error handler
+app.use((err, _req, res, next) => {
   if (err.name === 'MulterError') {
     return res.status(413).json({ error: err.message });
   }
   next(err);
 });
 
-// ── 404 Not Found handler ──────────────────────────────────────────────────────
-app.use((req, res) => {
-  res.status(404).json({ error: 'Not Found' });
+// --- REPLACE START: add health endpoint for Docker healthcheck ---
+app.get('/health', (_req, res) => {
+  res.status(200).json({ status: 'ok', uptime: process.uptime() });
 });
+// --- REPLACE END ---
 
-// ── Global error handler ───────────────────────────────────────────────────────
-app.use((err, req, res, next) => {
+// --- REPLACE START: fallback to index.html for SPA routes ---
+app.get('/*', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'client-dist', 'index.html'));
+});
+// --- REPLACE END ---
+
+// 404 handler
+app.use((_req, res) => res.status(404).json({ error: 'Not Found' }));
+
+// Global error handler
+// --- REPLACE START: Sentry error handler ---
+app.use(Sentry.Handlers.errorHandler());
+// --- REPLACE END ---
+app.use((err, _req, res) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Server Error' });
 });
 
-// ── Start server & connect to MongoDB ──────────────────────────────────────────
+// Start server & connect to MongoDB
 mongoose.set('strictQuery', true);
 const PORT = process.env.PORT || 5000;
 
@@ -143,9 +168,24 @@ mongoose
         console.log(`  ${methods.padEnd(6)} ${layer.route.path}`);
       }
     });
-    app.listen(PORT, () =>
-      console.log(`✅ Server running on http://localhost:${PORT}`)
-    );
+
+    // --- REPLACE START: handle EADDRINUSE on listen ---
+    const server = app.listen(PORT, () => {
+      console.log(`✅ Server running on http://localhost:${PORT}`);
+    });
+
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        console.error(`⚠️ Port ${PORT} in use, retrying on port ${PORT + 1}...`);
+        server.listen(PORT + 1, () =>
+          console.log(`✅ Server running on http://localhost:${PORT + 1}`)
+        );
+      } else {
+        console.error('❌ Server error:', err);
+        process.exit(1);
+      }
+    });
+    // --- REPLACE END ---
   })
   .catch((err) => console.error('❌ MongoDB connection error:', err));
 

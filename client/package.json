@@ -6,11 +6,11 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "echo \"No client tests specified\" && exit 0",
+    "test": "vitest run --coverage",
     "cy:run": "cypress run",
     "perf:socket": "artillery run performance/socket-reconnect.test.js -o report.json",
-    "scan:zap": "zap.sh -cmd -configfile security/zap-config.json -quickurl http://localhost:3000 -quickout zap-report/zap-report.html",
-    "scan:dep": "npm audit --audit-level=moderate && if [ -f gradlew ]; then chmod +x gradlew && ./gradlew dependencyCheckAnalyze; fi",
+    "scan:zap": "zap.sh -cmd -configfile security/zap-config.json -quickurl http://localhost:5174 -quickout zap-report/zap-report.html",
+    "scan:dep": "npm audit --audit-level=moderate",
     "lint": "eslint src --ext .js,.jsx",
     "lint:fix": "eslint src --ext .js,.jsx --fix"
   },
@@ -56,6 +56,12 @@
     "postcss": "^8.5.6",
     "prettier": "^2.8.8",
     "tailwindcss": "^4.1.11",
-    "vite": "^4.5.14"
+    "vite": "^4.5.14",
+    "vitest": "^0.31.4"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
   }
 }

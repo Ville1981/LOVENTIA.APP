@@ -1,12 +1,14 @@
 // server/routes/paypalWebhook.js
 
-const express = require('express');
-const router = express.Router();
-const { Subscription } = require('../models/Subscription');
-const paypal = require('@paypal/checkout-server-sdk');
-require('dotenv').config();
+// --- REPLACE START: convert CommonJS to ES modules and export default router ---
+import express from 'express';
+import Subscription from '../models/Subscription.js';
+import paypal from '@paypal/checkout-server-sdk';
+import 'dotenv/config';
 
-// PayPal environment (Sandbox or Live)
+const router = express.Router();
+
+// Configure PayPal environment
 const payPalEnv = process.env.PAYPAL_MODE === 'live'
   ? new paypal.core.LiveEnvironment(
       process.env.PAYPAL_CLIENT_ID,
@@ -17,20 +19,23 @@ const payPalEnv = process.env.PAYPAL_MODE === 'live'
       process.env.PAYPAL_SECRET
     );
 const payPalClient = new paypal.core.PayPalHttpClient(payPalEnv);
+// --- REPLACE END ---
 
-// Webhook endpoint
-// Note: use express.raw() to get raw body for signature verification
+/**
+ * POST /api/payment/paypal-webhook
+ * Handles PayPal webhook events with signature verification
+ */
 router.post(
   '/paypal/webhook',
   express.raw({ type: 'application/json' }),
   async (req, res) => {
-    const transmissionId   = req.headers['paypal-transmission-id'];
+    const transmissionId = req.headers['paypal-transmission-id'];
     const transmissionTime = req.headers['paypal-transmission-time'];
-    const certUrl          = req.headers['paypal-cert-url'];
-    const authAlgo         = req.headers['paypal-auth-algo'];
-    const transmissionSig  = req.headers['paypal-transmission-sig'];
-    const webhookId        = process.env.PAYPAL_WEBHOOK_ID;
-    const body             = req.body.toString();
+    const certUrl = req.headers['paypal-cert-url'];
+    const authAlgo = req.headers['paypal-auth-algo'];
+    const transmissionSig = req.headers['paypal-transmission-sig'];
+    const webhookId = process.env.PAYPAL_WEBHOOK_ID;
+    const body = req.body.toString();
 
     // Build verification request
     const verifyReq = new paypal.notification.WebhookEventVerifySignatureRequest();
@@ -41,7 +46,7 @@ router.post(
       transmission_sig: transmissionSig,
       transmission_time: transmissionTime,
       webhook_id: webhookId,
-      webhook_event: JSON.parse(body)
+      webhook_event: JSON.parse(body),
     });
 
     try {
@@ -50,22 +55,19 @@ router.post(
         const event = JSON.parse(body);
         console.log('Verified PayPal webhook event:', event.event_type);
 
-        // Handle events
+        // Process event types
         switch (event.event_type) {
           case 'PAYMENT.CAPTURE.COMPLETED':
             await Subscription.create({
               user: event.resource.supplementary_data.related_ids.order_id,
               plan: 'premium',
               provider: 'paypal',
-              subscriptionId: event.resource.id
+              subscriptionId: event.resource.id,
             });
             break;
-
           case 'PAYMENT.CAPTURE.DENIED':
             console.warn('PayPal payment denied:', event.resource);
             break;
-
-          // Handle other event types here
           default:
             console.log(`Unhandled PayPal event: ${event.event_type}`);
         }
@@ -82,4 +84,6 @@ router.post(
   }
 );
 
-module.exports = router;
+// --- REPLACE START: export default router ---
+export default router;
+// --- REPLACE END ---
