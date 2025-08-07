@@ -1,10 +1,9 @@
-// client/vite.config.js
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import path from 'path';
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import path from 'path'
 
 export default defineConfig({
-  // --- REPLACE START: adjust root, publicDir, base, and build.outDir ---
+  // --- REPLACE START: set project root & output dirs ---
   root: __dirname,
   publicDir: path.resolve(__dirname, 'public'),
   base: '/',
@@ -19,10 +18,12 @@ export default defineConfig({
   ],
 
   optimizeDeps: {
+    // --- REPLACE START: prebundle both MSW core & browser modules ---
     include: [
       'msw',
-      'msw/browser'
+      'msw/browser',
     ],
+    // --- REPLACE END ---
   },
 
   server: {
@@ -35,4 +36,4 @@ export default defineConfig({
       },
     },
   },
-});
+})
