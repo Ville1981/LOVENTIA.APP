@@ -1,4 +1,4 @@
-// client/src/config.js
+// client/src/services/api/config.js
 
 /**
  * Base URL for backend API.
