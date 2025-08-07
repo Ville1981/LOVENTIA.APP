@@ -1,7 +1,7 @@
 // src/pages/Settings.jsx
 import React from "react";
 
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../contexts/AuthContext";
 import api from "../utils/axiosInstance";
 
 export default function Settings() {

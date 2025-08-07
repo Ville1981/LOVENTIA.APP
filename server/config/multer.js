@@ -1,8 +1,8 @@
 // server/config/multer.js
 
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 
 /**
  * Multer configuration for handling user profile and extra photo uploads.
@@ -12,21 +12,17 @@ const fs = require('fs');
  * - Enforce file size limits
  */
 
-// Define absolute paths for upload directories
-const PROFILES_DIR = path.join(__dirname, '../uploads/profiles');
-const EXTRA_DIR    = path.join(__dirname, '../uploads/extra');
+const PROFILES_DIR = path.join(process.cwd(), 'uploads', 'profiles');
+const EXTRA_DIR = path.join(process.cwd(), 'uploads', 'extra');
 
-// Ensure upload directories exist
-[PROFILES_DIR, EXTRA_DIR].forEach(dir => {
+[PROFILES_DIR, EXTRA_DIR].forEach((dir) => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
 });
 
-// Storage engine: choose destination by fieldname and assign unique, sanitized filename
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    // 'profilePhoto' goes to profiles; everything else (photo/photos) to extra
     if (file.fieldname === 'profilePhoto') {
       cb(null, PROFILES_DIR);
     } else {
@@ -35,36 +31,26 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
-    // Sanitize base name: allow letters, numbers, underscore, dash
-    const base = path.basename(file.originalname, ext)
-      .replace(/[^a-zA-Z0-9_-]/g, '_');
+    const base = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9_-]/g, '_');
     const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
     cb(null, `${base}-${unique}${ext}`);
   },
 });
 
-// File filter: only accept common image types (including GIF for bypass)
 const fileFilter = (req, file, cb) => {
   const ext = path.extname(file.originalname).toLowerCase();
   const allowedExts = ['.jpg', '.jpeg', '.png', '.gif'];
   if (allowedExts.includes(ext)) {
     cb(null, true);
   } else {
-    cb(
-      new multer.MulterError(
-        'LIMIT_UNEXPECTED_FILE',
-        `Only ${allowedExts.join(', ')} files are allowed`
-      )
-    );
+    cb(new multer.MulterError('LIMIT_UNEXPECTED_FILE', `Only ${allowedExts.join(', ')} files are allowed`));
   }
 };
 
-// Upload limits
 const limits = {
-  fileSize: 10 * 1024 * 1024, // 10 MB max per file
+  fileSize: 10 * 1024 * 1024, // 10 MB
 };
 
-// Export configured multer middleware
-const upload = multer({ storage, fileFilter, limits });
-
-module.exports = { upload };
+// --- REPLACE START: export named `upload` for ESM import ---
+export const upload = multer({ storage, fileFilter, limits });
+// --- REPLACE END ---

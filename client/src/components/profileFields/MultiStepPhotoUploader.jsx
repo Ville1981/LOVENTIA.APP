@@ -11,7 +11,7 @@ import {
   deletePhotoSlot,
   uploadPhotos,
 } from "../../api/images";
-import { BACKEND_BASE_URL, PLACEHOLDER_IMAGE } from "../../config";
+import { BACKEND_BASE_URL, PLACEHOLDER_IMAGE } from "../../services/api/config";
 import Button from "../ui/Button";
 import ControlBar from "../ui/ControlBar";
 

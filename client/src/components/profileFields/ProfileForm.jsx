@@ -14,7 +14,7 @@ import FormLifestyle from "./FormLifestyle";
 import FormLocation from "./FormLocation";
 import FormLookingFor from "./FormLookingFor";
 import MultiStepPhotoUploader from "./MultiStepPhotoUploader";
-import { BACKEND_BASE_URL } from "../../config";
+import { BACKEND_BASE_URL } from "../../services/api/config";
 
 // =============================================
 // Constants for selects

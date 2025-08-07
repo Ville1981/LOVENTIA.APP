@@ -17,9 +17,18 @@ const authenticate = async (req, res, next) => {
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (!decoded || !decoded.id) {
+
+    // --- REPLACE START: robust verify with nested try/catch ---
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
       return res.status(401).json({ error: 'Invalid token' });
+    }
+    // --- REPLACE END ---
+
+    if (!decoded.id) {
+      return res.status(401).json({ error: 'Invalid token payload' });
     }
 
     const user = await User.findById(decoded.id).select('-password');
@@ -27,6 +36,7 @@ const authenticate = async (req, res, next) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    // Attach user info to request
     req.user = { id: decoded.id, role: decoded.role };
     next();
   } catch (err) {

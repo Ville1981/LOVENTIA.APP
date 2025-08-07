@@ -1,12 +1,10 @@
-// File: src/components/Navbar.jsx
-
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 import LanguageSwitcher from "./LanguageSwitcher";
 import LogoutButton from "./LogoutButton";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../contexts/AuthContext";
 
 const Navbar = () => {
   const { t } = useTranslation();
@@ -99,8 +97,3 @@ const Navbar = () => {
 };
 
 export default Navbar;
-
-// The replacement region is marked between 
-// // --- REPLACE START and // --- REPLACE END 
-// so you can verify exactly what changed.
-

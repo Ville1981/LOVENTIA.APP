@@ -1,18 +1,20 @@
 // server/routes/discover.js
 
-// --- REPLACE START: convert CommonJS to ES module imports ---
+// --- REPLACE START: ES modules & default authenticateToken import ---
 import express from 'express';
-import { authenticateToken } from '../middleware/auth.js';
+import authenticateToken from '../middleware/auth.js';
 import { getDiscover, handleAction } from '../controllers/discoverController.js';
 // --- REPLACE END ---
 
 const router = express.Router();
 const validActions = ['pass', 'like', 'superlike'];
 
-// GET /api/discover
-router.get('/', getDiscover);
+// GET /api/discover (protected)
+// --- REPLACE START: apply authentication middleware ---
+router.get('/', authenticateToken, getDiscover);
+// --- REPLACE END ---
 
-// POST /api/discover/:userId/:actionType
+// POST /api/discover/:userId/:actionType (protected)
 router.post(
   '/:userId/:actionType',
   authenticateToken,
@@ -26,6 +28,6 @@ router.post(
   handleAction
 );
 
-// --- REPLACE START: export router as ES module default ---
+// --- REPLACE START: export default router ---
 export default router;
 // --- REPLACE END ---
