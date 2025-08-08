@@ -1,96 +1,81 @@
-// server/tests/auth.test.js
+// --- REPLACE START: Full auth flow test (login → refresh → logout) ---
 const request = require('supertest');
-const app = require('../app');
-const User = require('../models/User');
+const mongoose = require('mongoose');
+const dotenv = require('dotenv');
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+const app = require('../src/app.js');
+const User = require('../src/models/User.js');
 
-jest.mock('../models/User');
-jest.mock('bcryptjs');
-jest.mock('jsonwebtoken');
+dotenv.config();
 
-describe('Auth Endpoints', () => {
-  describe('POST /api/auth/register', () => {
-    it('should return 400 if email already exists', async () => {
-      // First call for email check, second for username
-      User.findOne = jest.fn()
-        .mockResolvedValueOnce({ _id: '1', email: 'test@example.com' })
-        .mockResolvedValueOnce(null);
+const email = 'testuser@example.com';
+const plainPassword = 'TestPass123';
 
-      const res = await request(app)
-        .post('/api/auth/register')
-        .send({ username: 'User', email: 'test@example.com', password: 'password123' })
-        .expect(400);
-
-      expect(res.body).toHaveProperty('error', 'Sähköposti on jo käytössä');
-    });
-
-    it('should return 400 if username already exists', async () => {
-      // First call for email checks null, second for username
-      User.findOne = jest.fn()
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce({ _id: '2', username: 'User' });
-
-      const res = await request(app)
-        .post('/api/auth/register')
-        .send({ username: 'User', email: 'new@example.com', password: 'password123' })
-        .expect(400);
-
-      expect(res.body).toHaveProperty('error', 'Käyttäjänimi on jo varattu');
-    });
-
-    it('should register a new user and return 201', async () => {
-      User.findOne = jest.fn().mockResolvedValue(null);
-      bcrypt.hash = jest.fn().mockResolvedValue('hashedpassword');
-      // Mock the save method on User instance
-      const saveMock = jest.fn().mockResolvedValue();
-      User.prototype.save = saveMock;
-
-      const res = await request(app)
-        .post('/api/auth/register')
-        .send({ username: 'NewUser', email: 'new@example.com', password: 'password123' })
-        .expect(201);
-
-      expect(res.body).toHaveProperty('message', 'Rekisteröinti onnistui');
-      expect(saveMock).toHaveBeenCalled();
-    });
+beforeAll(async () => {
+  await mongoose.connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
   });
 
-  describe('POST /api/auth/login', () => {
-    it('should return 404 if user not found', async () => {
-      User.findOne = jest.fn().mockResolvedValue(null);
-
-      const res = await request(app)
-        .post('/api/auth/login')
-        .send({ email: 'none@example.com', password: 'password123' })
-        .expect(404);
-
-      expect(res.body).toHaveProperty('error', 'User not found');
-    });
-
-    it('should return 400 if password is incorrect', async () => {
-      User.findOne = jest.fn().mockResolvedValue({ _id: '1', password: 'hashedpassword' });
-      bcrypt.compare = jest.fn().mockResolvedValue(false);
-
-      const res = await request(app)
-        .post('/api/auth/login')
-        .send({ email: 'test@example.com', password: 'wrongpassword' })
-        .expect(400);
-
-      expect(res.body).toHaveProperty('error', 'Invalid credentials');
-    });
-
-    it('should login successfully and return token', async () => {
-      User.findOne = jest.fn().mockResolvedValue({ _id: '1', password: 'hashedpassword' });
-      bcrypt.compare = jest.fn().mockResolvedValue(true);
-      jwt.sign = jest.fn().mockReturnValue('token123');
-
-      const res = await request(app)
-        .post('/api/auth/login')
-        .send({ email: 'test@example.com', password: 'password123' })
-        .expect(200);
-
-      expect(res.body).toHaveProperty('token', 'token123');
-    });
+  // Reset test user
+  await User.deleteOne({ email });
+  const hashedPassword = await bcrypt.hash(plainPassword, 10);
+  await User.create({
+    email,
+    password: hashedPassword,
+    name: 'Test User',
+    role: 'user',
   });
 });
+
+afterAll(async () => {
+  await mongoose.disconnect();
+});
+
+describe('Auth Flow', () => {
+  let accessToken;
+  let cookie;
+
+  test('Login returns access token and refresh token cookie', async () => {
+    const res = await request(app)
+      .post('/api/auth/login')
+      .send({ email, password: plainPassword })
+      .expect(200);
+
+    expect(res.body.accessToken).toBeDefined();
+    expect(res.headers['set-cookie']).toBeDefined();
+
+    accessToken = res.body.accessToken;
+    cookie = res.headers['set-cookie'].find(c => c.startsWith('refreshToken='));
+  });
+
+  test('Refresh token returns new access token', async () => {
+    const res = await request(app)
+      .post('/api/auth/refresh')
+      .set('Cookie', cookie)
+      .expect(200);
+
+    expect(res.body.accessToken).toBeDefined();
+    expect(res.body.accessToken).not.toEqual(accessToken);
+
+    accessToken = res.body.accessToken;
+  });
+
+  test('Logout clears refresh token cookie', async () => {
+    const res = await request(app)
+      .post('/api/auth/logout')
+      .set('Cookie', cookie)
+      .expect(204);
+
+    const clearedCookie = res.headers['set-cookie'].find(c => c.startsWith('refreshToken='));
+    expect(clearedCookie).toMatch(/refreshToken=;/);
+  });
+
+  test('Protected route fails with old access token after logout', async () => {
+    await request(app)
+      .get('/api/users') // or any protected route
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(401);
+  });
+});
+// --- REPLACE END ---

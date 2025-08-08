@@ -1,4 +1,7 @@
-// server/src/middleware/roleAuthorization.js
+// File: server/src/middleware/roleAuthorization.js
+
+// --- REPLACE START: ensure strict mode and maintain CommonJS style ---
+'use strict';
 
 /**
  * Middleware to restrict access based on user roles.
@@ -28,3 +31,4 @@ function authorizeRoles(...allowedRoles) {
 }
 
 module.exports = authorizeRoles;
+// --- REPLACE END ---

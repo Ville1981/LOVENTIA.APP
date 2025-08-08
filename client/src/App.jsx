@@ -1,7 +1,7 @@
+// src/App.jsx
+
 // --- REPLACE START: import grouping and PrivateRoute declaration ---
 import React, { useEffect, Suspense } from "react";
-
-// React Router
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
 // Styles
@@ -10,14 +10,14 @@ import "slick-carousel/slick/slick-theme.css";
 
 // Context & Utilities
 import ErrorBoundary from "./components/ErrorBoundary";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
 // Components/Layout
-import { ForgotPassword } from "./components/ForgotPassword";
 import MainLayout from "./components/MainLayout";
 
 // Utility Components
+import { ForgotPassword } from "./components/ForgotPassword";
 import { ResetPassword } from "./components/ResetPassword";
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
 // Pages (Alphabetical)
 import AdminPanel from "./pages/AdminPanel";
@@ -42,15 +42,20 @@ import WhoLikedMe from "./pages/WhoLikedMe";
 // --- REPLACE START: update PrivateRoute to use user & loading from context ---
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
+
+  // While auth state is loading, show a spinner or placeholder
   if (loading) {
     return <div className="p-4">Loading...</div>;
   }
+
+  // If user is authenticated, render children; otherwise redirect to login
   return user ? children : <Navigate to="/login" replace />;
 }
 // --- REPLACE END ---
 
 export default function App() {
   useEffect(() => {
+    // Prevent automatic scroll restoration on navigation
     if ("scrollRestoration" in window.history) {
       window.history.scrollRestoration = "manual";
     }
@@ -66,6 +71,7 @@ export default function App() {
               <Route path="/" element={<MainLayout />}>
                 <Route index element={<Etusivu />} />
                 <Route path="discover" element={<Discover />} />
+
                 <Route
                   path="profile"
                   element={
@@ -90,6 +96,7 @@ export default function App() {
                     </PrivateRoute>
                   }
                 />
+
                 <Route
                   path="matches"
                   element={
@@ -130,8 +137,10 @@ export default function App() {
                     </PrivateRoute>
                   }
                 />
+
                 <Route path="login" element={<Login />} />
                 <Route path="register" element={<Register />} />
+
                 <Route
                   path="upgrade"
                   element={
@@ -165,6 +174,7 @@ export default function App() {
                     </PrivateRoute>
                   }
                 />
+
                 <Route path="forgot-password" element={<ForgotPassword />} />
                 <Route path="reset-password" element={<ResetPassword />} />
                 <Route path="*" element={<NotFound />} />

@@ -9,22 +9,15 @@ import {
 
 const router = Router();
 
-// POST /api/auth/login
-router.post(
-  '/login',
-  login
-);
+// --- REPLACE START: define auth routes clearly with proper HTTP verbs ---
+// Login route - authenticates user and issues tokens
+router.post('/login', login);
 
-// POST /api/auth/refresh
-router.post(
-  '/refresh',
-  refreshToken
-);
+// Refresh route - validates refresh token and returns new access token
+router.post('/refresh', refreshToken);
 
-// POST /api/auth/logout
-router.post(
-  '/logout',
-  logout
-);
+// Logout route - clears refresh token cookie
+router.post('/logout', logout);
+// --- REPLACE END ---
 
 export default router;

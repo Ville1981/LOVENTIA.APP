@@ -1,19 +1,21 @@
 /*
-  This file sets up the Mock Service Worker (MSW) in development.
+  Mock Service Worker (MSW) setup in development.
   Replacement regions are marked between:
     // --- REPLACE START …
     // --- REPLACE END
-  so you can verify exactly what changed.
 */
 
-// --- REPLACE START: import setupWorker and rest from MSW browser entrypoint ---
-import { setupWorker } from 'msw/browser'
-import { rest } from 'msw'
+// --- REPLACE START: import setupWorker from 'msw/browser' (not 'msw') ---
+import { setupWorker } from 'msw/browser';
 // --- REPLACE END ---
 
-// --- REPLACE START: import your request handlers ---
-import { handlers } from './handlers'
+// --- REPLACE START: import your handlers ---
+import { handlers } from './handlers';
 // --- REPLACE END ---
 
-// Initialize and export the MSW worker with your handlers
-export const worker = setupWorker(...handlers)
+// Create the service worker with provided request handlers
+export const worker = setupWorker(...handlers);
+
+// --- REPLACE START: do NOT auto-start here; main.tsx controls .start() ---
+/* worker.start() is intentionally invoked from main.tsx */
+// --- REPLACE END ---

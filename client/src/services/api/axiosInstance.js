@@ -1,6 +1,7 @@
+// File: client/src/services/api/axiosInstance.js
 // @ts-nocheck
 import axios from "axios";
-import { BACKEND_BASE_URL } from "./config";
+import { BACKEND_BASE_URL } from "../../config"; // ← fixed path
 
 /**
  * Internal storage for the access token.
@@ -26,14 +27,14 @@ export const setAccessToken = (token) => {
   }
 };
 
-// --- REPLACE START: use raw BACKEND_BASE_URL or VITE_API_URL as-is, no trailing slash ---
+// --- REPLACE START: build full API baseURL including '/api' ---
 /**
  * Determine the baseURL for all API requests.
  * Prioritizes BACKEND_BASE_URL, then VITE_API_URL env var.
- * Strips any trailing slash.
+ * Strips any trailing slash, then appends '/api'.
  */
 const rawUrl = BACKEND_BASE_URL || import.meta.env.VITE_API_URL || "";
-const baseURL = rawUrl.replace(/\/$/, "");
+const baseURL = rawUrl.replace(/\/$/, "") + "/api";
 // --- REPLACE END ---
 
 // Create Axios instance with credentials support

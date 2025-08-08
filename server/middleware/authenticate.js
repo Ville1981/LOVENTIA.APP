@@ -1,8 +1,11 @@
-// middleware/authenticate.js
+// File: server/middleware/authenticate.js
 
-// --- REPLACE START: convert to ESM imports ---
-import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
+// --- REPLACE START: convert to CommonJS requires ---
+'use strict';
+
+const path = require('path');
+const jwt = require('jsonwebtoken');
+const User = require(path.resolve(__dirname, '../models/User.js'));
 // --- REPLACE END ---
 
 /**
@@ -45,6 +48,6 @@ const authenticate = async (req, res, next) => {
   }
 };
 
-// --- REPLACE START: export middleware as ESM default ---
-export default authenticate;
+// --- REPLACE START: export middleware as CommonJS module ---
+module.exports = authenticate;
 // --- REPLACE END ---

@@ -5,7 +5,7 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import { uploadAvatar } from "../api/images";
 import MultiStepPhotoUploader from "../components/profileFields/MultiStepPhotoUploader";
-import { BACKEND_BASE_URL } from "../services/api/config";
+import { BACKEND_BASE_URL } from "../config";
 import { useAuth } from "../contexts/AuthContext";
 
 /**

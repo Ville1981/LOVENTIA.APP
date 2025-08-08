@@ -9,41 +9,34 @@ import bcrypt from 'bcryptjs';
 import 'dotenv/config';
 
 import User from '../models/User.js';
-// --- REPLACE START: correct import path for sendEmail ---
-import sendEmail from '../src/utils/sendEmail.js';
-// --- REPLACE END ---
+import sendEmail from '../utils/sendEmail.js';
 import { registerUser, loginUser } from '../controllers/userController.js';
-import upload from '../middleware/upload.js';
 import authenticate from '../middleware/authenticate.js';
-import { sanitizeAndValidateProfile } from '../middleware/profileValidator.js';
 import { validateRegister, validateLogin } from '../middleware/validators/auth.js';
-// --- REPLACE START: correct import path for cookieOptions ---
-import { cookieOptions } from '../src/utils/cookieOptions.js';
-// --- REPLACE END ---
+import { sanitizeAndValidateProfile } from '../middleware/profileValidator.js';
+import upload from '../middleware/upload.js';
+import { cookieOptions } from '../utils/cookieOptions.js';
 
 const router = express.Router();
 
-// parse JSON, urlencoded bodies, and cookies
+// Middleware to parse JSON, URL-encoded bodies, and cookies
 router.use(express.json());
 router.use(express.urlencoded({ extended: true }));
 router.use(cookieParser());
 
-// -----------------------------
 // 1) Refresh Access Token
-//    POST /api/auth/refresh
-// -----------------------------
 router.post('/refresh', (req, res) => {
-  const token = req.cookies && req.cookies.refreshToken;
+  const token = req.cookies.refreshToken;
   if (!token) {
     return res.status(401).json({ error: 'No refresh token provided' });
   }
   try {
-    const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
-    if (!decoded || !decoded.userId) {
+    const payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+    if (!payload || !payload.userId) {
       return res.status(401).json({ error: 'Invalid token payload' });
     }
     const accessToken = jwt.sign(
-      { userId: decoded.userId, role: decoded.role },
+      { userId: payload.userId, role: payload.role },
       process.env.JWT_SECRET,
       { expiresIn: '15m' }
     );
@@ -54,10 +47,7 @@ router.post('/refresh', (req, res) => {
   }
 });
 
-// -----------------------------
 // 2) Logout User
-//    POST /api/auth/logout
-// -----------------------------
 router.post('/logout', (req, res) => {
   try {
     res.clearCookie('refreshToken', cookieOptions);
@@ -68,22 +58,13 @@ router.post('/logout', (req, res) => {
   }
 });
 
-// -----------------------------
 // 3) Register New User
-//    POST /api/auth/register
-// -----------------------------
 router.post('/register', validateRegister, registerUser);
 
-// -----------------------------
 // 4) Login User
-//    POST /api/auth/login
-// -----------------------------
 router.post('/login', validateLogin, loginUser);
 
-// -----------------------------
 // 5) Forgot Password
-//    POST /api/auth/forgot-password
-// -----------------------------
 router.post('/forgot-password', async (req, res) => {
   const { email } = req.body;
   if (!email) {
@@ -94,17 +75,15 @@ router.post('/forgot-password', async (req, res) => {
     if (!user) {
       return res.json({ message: 'If that email is registered, a reset link has been sent' });
     }
-    const token = crypto.randomBytes(32).toString('hex');
-    user.passwordResetToken = crypto.createHash('sha256').update(token).digest('hex');
-    user.passwordResetExpires = Date.now() + 3600000; // 1h
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    user.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+    user.passwordResetExpires = Date.now() + 3600000; // 1 hour
     await user.save();
-    const resetURL = `${process.env.CLIENT_URL}/reset-password?token=${token}&id=${user._id}`;
-    const message = [
-      'You requested a password reset. Click the link below to set a new password:',
-      resetURL,
-      '',
-      'If you did not request this, ignore this email.'
-    ].join('\n\n');
+    const resetURL = `${process.env.CLIENT_URL}/reset-password?token=${resetToken}&id=${user._id}`;
+    const message =
+      'You requested a password reset. Click the link below to set a new password:\n\n' +
+      resetURL +
+      '\n\nIf you did not request this, ignore this email.';
     await sendEmail(user.email, 'Password Reset Request', message);
     return res.json({ message: 'If that email is registered, a reset link has been sent' });
   } catch (err) {
@@ -113,10 +92,7 @@ router.post('/forgot-password', async (req, res) => {
   }
 });
 
-// -----------------------------
 // 6) Reset Password
-//    POST /api/auth/reset-password
-// -----------------------------
 router.post('/reset-password', async (req, res) => {
   const { id, token, newPassword } = req.body;
   if (!id || !token || !newPassword) {
@@ -143,10 +119,7 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
-// -----------------------------
 // 7) Get Current User Profile
-//    GET /api/auth/me
-// -----------------------------
 router.get('/me', authenticate, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select('-password');
@@ -160,10 +133,7 @@ router.get('/me', authenticate, async (req, res) => {
   }
 });
 
-// -----------------------------
 // 8) Update User Profile
-//    PUT /api/auth/profile
-// -----------------------------
 router.put(
   '/profile',
   authenticate,
@@ -188,20 +158,24 @@ router.put(
         if (loc.country) updateData.country = loc.country;
         if (loc.region) updateData.region = loc.region;
         if (loc.city) updateData.city = loc.city;
-        if (loc.manualCountry) updateData.customCountry = loc.manualCountry;
-        if (loc.manualRegion) updateData.customRegion = loc.manualRegion;
-        if (loc.manualCity) updateData.customCity = loc.manualCity;
       }
-      [
+      const fields = [
         'name','email','age','height','weight','status','religion',
         'children','pets','summary','goal','lookingFor','bodyType',
         'weightUnit','profession','professionCategory'
-      ].forEach(field => {
+      ];
+      fields.forEach(field => {
         if (req.body[field] !== undefined) updateData[field] = req.body[field];
       });
       if (req.files.image) updateData.profilePicture = `uploads/${req.files.image[0].filename}`;
-      if (req.files.extraImages) updateData.extraImages = req.files.extraImages.map(f => `uploads/${f.filename}`);
-      const updated = await User.findByIdAndUpdate(req.user.userId, updateData, { new: true }).select('-password');
+      if (req.files.extraImages) {
+        updateData.extraImages = req.files.extraImages.map(f => `uploads/${f.filename}`);
+      }
+      const updated = await User.findByIdAndUpdate(
+        req.user.userId,
+        updateData,
+        { new: true }
+      ).select('-password');
       return res.json(updated);
     } catch (err) {
       console.error('Profile update error:', err);
@@ -210,10 +184,7 @@ router.put(
   }
 );
 
-// -----------------------------
 // 9) Delete User Account
-//    DELETE /api/auth/delete
-// -----------------------------
 router.delete('/delete', authenticate, async (req, res) => {
   try {
     await User.findByIdAndDelete(req.user.userId);
@@ -224,5 +195,4 @@ router.delete('/delete', authenticate, async (req, res) => {
   }
 });
 
-// ESM export
 export default router;

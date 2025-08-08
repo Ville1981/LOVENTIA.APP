@@ -11,7 +11,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import MultiStepPhotoUploader from "../components/profileFields/MultiStepPhotoUploader";
 import Button from "../components/ui/Button";
 import ControlBar from "../components/ui/ControlBar";
-import { BACKEND_BASE_URL } from "../services/api/config";
+import { BACKEND_BASE_URL } from "../config";
 import { useAuth } from "../contexts/AuthContext";
 
 /**

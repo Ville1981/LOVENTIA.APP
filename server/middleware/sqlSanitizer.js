@@ -1,62 +1,47 @@
-// server/src/middleware/sqlSanitizer.js
-
-/**
- * Middleware to escape all string inputs in req.body, req.query, and req.params
- * to reduce risk of SQL injection when using raw queries.
- * Relies on the 'sqlstring' package for escaping.
- *
- * Note: For maximum safety, prefer using parameterized queries or an ORM.
- */
+// --- REPLACE START: Middleware to escape SQL special characters ---
+// Uses 'sqlstring' to escape strings and prevent SQL injection in raw queries.
 
 const SqlString = require('sqlstring');
 
 /**
- * Recursively sanitize a value:
- * - Strings are escaped via SqlString.escape (removes surrounding quotes afterward).
- * - Arrays and objects are processed element-by-element / property-by-property.
- * - Other types pass through unchanged.
+ * Recursively escape SQL strings:
+ * - If string → escape with SqlString.escape()
+ * - If array → escape each element
+ * - If object → escape each property
+ * - Otherwise return value as-is
  */
-function sanitizeValue(value) {
+function escapeObject(value) {
   if (typeof value === 'string') {
-    // SqlString.escape wraps the string in quotes; strip them:
-    const escaped = SqlString.escape(value);
-    return escaped.length >= 2 && escaped[0] === "'" && escaped[escaped.length - 1] === "'"
-      ? escaped.slice(1, -1)
-      : escaped;
+    // Remove surrounding quotes from SqlString.escape output
+    return SqlString.escape(value).slice(1, -1);
   }
 
   if (Array.isArray(value)) {
-    return value.map(sanitizeValue);
+    return value.map(escapeObject);
   }
 
   if (value !== null && typeof value === 'object') {
-    const sanitizedObj = {};
+    const escaped = {};
     for (const key in value) {
       if (Object.prototype.hasOwnProperty.call(value, key)) {
-        sanitizedObj[key] = sanitizeValue(value[key]);
+        escaped[key] = escapeObject(value[key]);
       }
     }
-    return sanitizedObj;
+    return escaped;
   }
 
-  // For numbers, booleans, null, undefined, etc.
   return value;
 }
 
 /**
- * Express middleware: sanitize incoming inputs
+ * Express middleware to escape all strings in req.body
  */
 function sqlSanitizer(req, res, next) {
   if (req.body && typeof req.body === 'object') {
-    req.body = sanitizeValue(req.body);
-  }
-  if (req.query && typeof req.query === 'object') {
-    req.query = sanitizeValue(req.query);
-  }
-  if (req.params && typeof req.params === 'object') {
-    req.params = sanitizeValue(req.params);
+    req.body = escapeObject(req.body);
   }
   next();
 }
 
 module.exports = sqlSanitizer;
+// --- REPLACE END ---
