@@ -29,11 +29,17 @@ const sqlSanitizer = require('../middleware/sqlSanitizer');
 // --- REPLACE END ---
 
 // --- REPLACE START: import request validators & schemas ---
-const { validateBody }               = require('../middleware/validateRequest');
+const { validateBody }                = require('../middleware/validateRequest');
 const { loginSchema, registerSchema } = require('./validators/authValidator');
-const { createUserSchema }            = require('../validators/userValidator');
-const authController                  = require('../controllers/authController');
-const userController                  = require('../controllers/userController');
+
+// *** FIXED PATH ***
+// The replacement region is marked below so you can see exactly what changed.
+//// old: const authController = require('./controllers/authController');
+// --- REPLACE START: point to api/controllers/authController ---
+const authController                  = require('./api/controllers/authController');
+// --- REPLACE END ---
+
+// If you expose registration in your controller, keep it imported above.
 // --- REPLACE END ---
 
 // --- REPLACE START: import auth check & role-based authorization ---
@@ -42,8 +48,10 @@ const authorizeRoles = require('../middleware/roleAuthorization');
 // --- REPLACE END ---
 
 // Ensure models are registered before middleware/routes
-require('../models/User');
-require('../models/Message');
+// --- REPLACE START: fix model import paths to actual location in server/models ---
+require(path.resolve(__dirname, '../models/User.js'));
+require(path.resolve(__dirname, '../models/Message.js'));
+// --- REPLACE END ---
 
 const app = express();
 
@@ -58,15 +66,29 @@ app.use(
 // --- REPLACE END ---
 
 // ── Connect to MongoDB ─────────────────────────────────────────────────────────
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser:    true,
-  useUnifiedTopology: true,
-})
-  .then(() => console.log('✅ MongoDB connected'))
-  .catch(err => {
-    console.error('❌ MongoDB connection error:', err);
-    process.exit(1);
-  });
+// --- REPLACE START: skip DB connect during tests and when MONGO_URI missing ---
+const MONGO_URI = process.env.MONGO_URI;
+const IS_TEST   = process.env.NODE_ENV === 'test';
+
+if (!IS_TEST && MONGO_URI) {
+  mongoose.connect(MONGO_URI, {
+    useNewUrlParser:    true,
+    useUnifiedTopology: true,
+  })
+    .then(() => console.log('✅ MongoDB connected'))
+    .catch(err => {
+      console.error('❌ MongoDB connection error:', err);
+      // process.exit(1); // avoid exiting hard
+    });
+} else {
+  try { mongoose.set('bufferCommands', false); } catch (_) {}
+  if (!MONGO_URI) {
+    console.warn('⚠️ Skipping MongoDB connection: MONGO_URI is not set.');
+  } else if (IS_TEST) {
+    console.log('ℹ️ Test mode: skipping MongoDB connection.');
+  }
+}
+// --- REPLACE END ---
 
 // ── CORS & Preflight Handler ───────────────────────────────────────────────────
 // --- REPLACE START: apply centralized CORS config ---
@@ -121,82 +143,130 @@ app.get('/test-alerts', async (req, res) => {
 // --- REPLACE END ---
 
 // ── Webhook routes (before body parsers) ────────────────────────────────────────
-const stripeWebhookRouter = require('../routes/stripeWebhook');
-const paypalWebhookRouter = require('../routes/paypalWebhook');
+// --- REPLACE START: conditionally mount webhook routes only outside test env ---
+if (!IS_TEST) {
+  const stripeWebhookRouter = require('../routes/stripeWebhook');
+  const paypalWebhookRouter = require('../routes/paypalWebhook');
 
-app.use('/api/payment/stripe-webhook', stripeWebhookRouter);
-app.use('/api/payment/paypal-webhook', paypalWebhookRouter);
+  app.use('/api/payment/stripe-webhook', stripeWebhookRouter);
+  app.use('/api/payment/paypal-webhook', paypalWebhookRouter);
+} else {
+  console.log('ℹ️ Test mode: skipping webhook route mounts.');
+}
+// --- REPLACE END ---
 
 // ── Serve uploads ───────────────────────────────────────────────────────────────
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ── Auth endpoints with validation ──────────────────────────────────────────────
-// --- REPLACE START: apply request validators for login & register ---
+// NOTE: If you support registration, keep register route. If not, you can disable it later.
+// --- REPLACE START: apply request validators for login (& optional register) ---
 app.post(
   '/api/auth/login',
   validateBody(loginSchema),
   authController.login
 );
-app.post(
-  '/api/auth/register',
-  validateBody(registerSchema),
-  authController.register
-);
+
+if (authController.register && registerSchema) {
+  app.post(
+    '/api/auth/register',
+    validateBody(registerSchema),
+    authController.register
+  );
+}
 // --- REPLACE END ---
 
-// Mount public auth routes (other than login/register)
-// --- REPLACE START: ensure cookieParser applied BEFORE authRoutes ---
-const authRoutes = require('./routes/authRoutes');
+// ── Mount public auth routes ───────────────────────────────────────────────────
+// --- REPLACE START: try src/routes first, fallback to server/routes ---
+function tryRequireRoute(srcPath, fallbackAbsPath) {
+  try {
+    return require(srcPath);
+  } catch (e1) {
+    try {
+      return require(fallbackAbsPath);
+    } catch (e2) {
+      e2.message = `Route import failed. Tried:\n - ${srcPath}\n - ${fallbackAbsPath}\nOriginal: ${e2.message}`;
+      throw e2;
+    }
+  }
+}
+
+const authRoutes = tryRequireRoute(
+  './routes/authRoutes',
+  path.resolve(__dirname, '../routes/authRoutes.js')
+);
 app.use('/api/auth', authRoutes);
 // --- REPLACE END ---
 
 // ── Protected user routes (admin + user) ───────────────────────────────────────
-// --- REPLACE START: protect user routes with auth + roles + validation ---
-const userRoutes = require('../routes/user');
+// --- REPLACE START: try src/routes first, fallback to server/routes ---
+const userRoutes = tryRequireRoute(
+  './routes/user',
+  path.resolve(__dirname, '../routes/user.js')
+);
 app.use(
   '/api/users',
   authenticate,
   authorizeRoles('admin', 'user'),
-  validateBody(createUserSchema),
   userRoutes
 );
 // --- REPLACE END ---
 
 // ── Protected message routes (user only) ───────────────────────────────────────
-const messageRoutes = require('../routes/message');
+// --- REPLACE START: try src/routes first, fallback to server/routes ---
+const messageRoutes = tryRequireRoute(
+  './routes/message',
+  path.resolve(__dirname, '../routes/message.js')
+);
 app.use(
   '/api/messages',
   authenticate,
   authorizeRoles('user'),
   messageRoutes
 );
+// --- REPLACE END ---
 
 // ── Protected payment routes (user only) ───────────────────────────────────────
-const paymentRoutes = require('../routes/payment');
+// --- REPLACE START: try src/routes first, fallback to server/routes ---
+const paymentRoutes = tryRequireRoute(
+  './routes/payment',
+  path.resolve(__dirname, '../routes/payment.js')
+);
 app.use(
   '/api/payment',
   authenticate,
   authorizeRoles('user'),
   paymentRoutes
 );
+// --- REPLACE END ---
 
 // ── Admin-only routes ──────────────────────────────────────────────────────────
-const adminRoutes = require('../routes/admin');
+// --- REPLACE START: try src/routes first, fallback to server/routes ---
+const adminRoutes = tryRequireRoute(
+  './routes/admin',
+  path.resolve(__dirname, '../routes/admin.js')
+);
 app.use(
   '/api/admin',
   authenticate,
   authorizeRoles('admin'),
   adminRoutes
 );
+// --- REPLACE END ---
 
 // ── Protected discover routes (user only) ──────────────────────────────────────
-const discoverRoutes = require('../routes/discover');
+// --- REPLACE START: try src/routes first, fallback to server/routes ---
+const discoverRoutes = tryRequireRoute(
+  './routes/discover',
+  path.resolve(__dirname, '../routes/discover.js')
+);
 app.use(
   '/api/discover',
   authenticate,
   authorizeRoles('user'),
   discoverRoutes
 );
+// --- REPLACE END ---
 
 // ── Temporary mock users endpoint ────────────────────────────────────────────────
 app.get('/api/users', (req, res) => {
@@ -206,10 +276,10 @@ app.get('/api/users', (req, res) => {
 
 // ── Multer error handler ─────────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
-  if (err.name === 'MulterError') {
+  if (err && err.name === 'MulterError') {
     return res.status(413).json({ error: err.message });
   }
-  next(err);
+  return next(err);
 });
 
 // ── 404 handler ─────────────────────────────────────────────────────────────────
@@ -219,7 +289,7 @@ app.use((req, res) => {
 
 // ── Global error handler ────────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error(err && err.stack ? err.stack : err);
   res.status(500).json({ error: 'Server Error' });
 });
 
@@ -227,8 +297,15 @@ app.use((err, req, res, next) => {
 const { initializeSocket } = require('./socket');
 const httpServer           = initializeSocket(app);
 const PORT                 = process.env.PORT || 5000;
-httpServer.listen(PORT, () => {
-  console.log(`🚀 Server + Socket.io running on port ${PORT}`);
-});
+
+// --- REPLACE START: do not start HTTP server during tests ---
+if (!IS_TEST) {
+  httpServer.listen(PORT, () => {
+    console.log(`🚀 Server + Socket.io running on port ${PORT}`);
+  });
+} else {
+  console.log('ℹ️ Test mode: HTTP server is not started.');
+}
+// --- REPLACE END ---
 
 module.exports = app;

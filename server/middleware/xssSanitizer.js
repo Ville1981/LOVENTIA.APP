@@ -1,18 +1,14 @@
-// server/src/middleware/xssSanitizer.js
-
-/**
- * Middleware to sanitize all string inputs in req.body to prevent XSS attacks.
- * Uses the 'xss' package to clean any HTML or script tags.
- */
+// --- REPLACE START: Middleware to sanitize incoming request body from XSS ---
+// Prevents cross-site scripting attacks by sanitizing all string inputs in req.body.
 
 const xss = require('xss');
 
 /**
- * Recursively sanitize a value.  
- * - If string, run through xss filter.  
- * - If array, sanitize each element.  
- * - If object, sanitize each property.  
- * - Otherwise, return as-is.
+ * Recursively sanitize a value:
+ * - If string → sanitize with xss()
+ * - If array → sanitize each element
+ * - If object → sanitize each property
+ * - Otherwise return value as-is
  */
 function sanitizeObject(value) {
   if (typeof value === 'string') {
@@ -33,12 +29,11 @@ function sanitizeObject(value) {
     return sanitized;
   }
 
-  // For numbers, booleans, null, undefined, etc.
   return value;
 }
 
 /**
- * Express middleware to sanitize req.body.
+ * Express middleware to sanitize req.body
  */
 function xssSanitizer(req, res, next) {
   if (req.body && typeof req.body === 'object') {
@@ -48,3 +43,4 @@ function xssSanitizer(req, res, next) {
 }
 
 module.exports = xssSanitizer;
+// --- REPLACE END ---

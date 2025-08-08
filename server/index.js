@@ -1,4 +1,4 @@
-// server/index.js
+// File: server/index.js
 
 // --- REPLACE START: load environment variables as early as possible ---
 import 'dotenv/config';

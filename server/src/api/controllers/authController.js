@@ -1,118 +1,115 @@
-// File: server/src/controllers/authController.js
+// File: server/src/api/controllers/authController.js
 
-import jwt from 'jsonwebtoken';
-import { cookieOptions } from '../utils/cookieOptions.js';
-import User from '../models/User.js'; // Replace with your actual User model
+// --- REPLACE START: CommonJS controller with inline JWT flow and safe path resolution ---
+'use strict';
+
+const path = require('path');
+const jwt = require('jsonwebtoken');
+
+// cookieOptions sijaitsee src-puolella -> suhteessa tähän tiedostoon
+const { cookieOptions } = require(path.resolve(__dirname, '../../utils/cookieOptions.js'));
+
+// User-malli sijaitsee server/models/User.js (EI src-kansiossa)
+const User = require(path.resolve(__dirname, '../../../models/User.js'));
 
 /**
  * POST /api/auth/login
  * Authenticate user and set refreshToken cookie.
  */
-export const login = async (req, res, next) => {
+async function login(req, res, next) {
   try {
     const { email, password } = req.body;
+
+    // Validate credentials against your user model
     const user = await User.findByCredentials(email, password);
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Generate short-lived access token
+    // Access token (short-lived)
     const accessToken = jwt.sign(
-      { userId: user.id, role: user.role },
-      process.env.ACCESS_TOKEN_SECRET,
+      { userId: user.id || user._id?.toString?.(), role: user.role },
+      process.env.JWT_SECRET,
       { expiresIn: '15m' }
     );
 
-    // --- REPLACE START: include role in refresh token payload ---
-    // Generate longer-lived refresh token containing both userId and role
+    // Refresh token (httpOnly cookie)
     const refreshToken = jwt.sign(
-      { userId: user.id, role: user.role },
-      process.env.REFRESH_TOKEN_SECRET,
+      { userId: user.id || user._id?.toString?.(), role: user.role },
+      process.env.JWT_REFRESH_SECRET,
       { expiresIn: '7d' }
     );
-    // --- REPLACE END ---
 
-    // --- REPLACE START: set secure, HttpOnly, SameSite=None, path=/ cookie for refreshToken ---
-    // Ensures the cookie is stored by the browser and sent on all subsequent requests.
-    res.cookie('refreshToken', refreshToken, {
-      ...cookieOptions,
-      httpOnly: true,                                // inaccessible to JS
-      sameSite: 'None',                              // allow cross-site usage
-      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-      path: '/',                                     // send on all routes
-    });
-    // --- REPLACE END ---
+    // Set cookie with centralized options
+    res.cookie('refreshToken', refreshToken, cookieOptions);
 
     return res.json({
       accessToken,
-      user: { id: user.id, email: user.email, name: user.name }
+      user: {
+        id: user.id || user._id?.toString?.(),
+        email: user.email,
+        name: user.name,
+      },
     });
   } catch (err) {
-    next(err);
+    return next(err);
   }
-};
+}
 
 /**
  * POST /api/auth/refresh
  * Verify refreshToken cookie and issue new accessToken.
  */
-export const refreshToken = async (req, res, next) => {
+async function refreshToken(req, res, next) {
   try {
     const token = req.cookies?.refreshToken;
     if (!token) {
       return res.status(401).json({ error: 'No refresh token provided' });
     }
 
-    jwt.verify(token, process.env.REFRESH_TOKEN_SECRET, (err, payload) => {
+    return jwt.verify(token, process.env.JWT_REFRESH_SECRET, (err, payload) => {
       if (err) {
         return res.status(403).json({ error: 'Invalid refresh token' });
       }
 
-      // --- REPLACE START: payload now includes role, so we can sign new access token correctly ---
+      // New access token
       const newAccessToken = jwt.sign(
         { userId: payload.userId, role: payload.role },
-        process.env.ACCESS_TOKEN_SECRET,
+        process.env.JWT_SECRET,
         { expiresIn: '15m' }
       );
-      // --- REPLACE END ---
 
-      // --- REPLACE START: (optional) rotate refreshToken cookie ---
-      // If you want to refresh the refresh-token on each call, uncomment:
-      // const newRefreshToken = jwt.sign(
-      //   { userId: payload.userId, role: payload.role },
-      //   process.env.REFRESH_TOKEN_SECRET,
-      //   { expiresIn: '7d' }
-      // );
-      // res.cookie('refreshToken', newRefreshToken, {
-      //   ...cookieOptions,
-      //   httpOnly: true,
-      //   sameSite: 'None',
-      //   secure: process.env.NODE_ENV === 'production',
-      //   path: '/',
-      // });
-      // --- REPLACE END ---
+      // Optional rotation: extend session by re-setting refresh cookie
+      try {
+        const rotatedRefresh = jwt.sign(
+          { userId: payload.userId, role: payload.role },
+          process.env.JWT_REFRESH_SECRET,
+          { expiresIn: '7d' }
+        );
+        res.cookie('refreshToken', rotatedRefresh, cookieOptions);
+      } catch (_) {
+        // Rotation failure shouldn't block access token issuance
+      }
 
       return res.json({ accessToken: newAccessToken });
     });
   } catch (err) {
-    next(err);
+    return next(err);
   }
-};
+}
 
 /**
  * POST /api/auth/logout
  * Clear refreshToken cookie.
  */
-export const logout = (req, res) => {
-  // --- REPLACE START: clear refreshToken cookie using centralized cookieOptions ---
-  res.clearCookie('refreshToken', {
-    ...cookieOptions,
-    httpOnly: true,                                // inaccessible to JS
-    sameSite: 'None',                              // allow cross-site usage
-    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-    path: '/',                                     // send on all routes
-  });
-  // --- REPLACE END ---
-
+function logout(req, res) {
+  res.clearCookie('refreshToken', cookieOptions);
   return res.sendStatus(204);
+}
+
+module.exports = {
+  login,
+  refreshToken,
+  logout,
 };
+// --- REPLACE END ---

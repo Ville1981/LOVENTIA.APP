@@ -1,9 +1,10 @@
+// File: vite.config.js
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 
 export default defineConfig({
-  // --- REPLACE START: set project root & output dirs ---
+  // --- REPLACE START: ensure correct publicDir and outDir ---
   root: __dirname,
   publicDir: path.resolve(__dirname, 'public'),
   base: '/',

@@ -1,7 +1,9 @@
-// server/models/Message.js
+// File: server/models/Message.js
 
-// --- REPLACE START: convert Message model to ESM import ---
-import mongoose from 'mongoose';
+// --- REPLACE START: convert Message model to CommonJS require ---
+'use strict';
+
+const mongoose = require('mongoose');
 // --- REPLACE END ---
 
 // Define Message schema
@@ -16,6 +18,13 @@ const messageSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// --- REPLACE START: export Message model as ESM default ---
-export default mongoose.model('Message', messageSchema);
+// --- REPLACE START: export Message model as CommonJS ---
+let MessageModel;
+try {
+  MessageModel = mongoose.model('Message');
+} catch (_) {
+  MessageModel = mongoose.model('Message', messageSchema);
+}
+
+module.exports = MessageModel;
 // --- REPLACE END ---

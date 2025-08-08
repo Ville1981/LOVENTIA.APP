@@ -1,9 +1,7 @@
+// File: client/src/contexts/AuthContext.jsx
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import api, { setAccessToken } from '../services/api/axiosInstance';
+import api, { setAccessToken } from '../utils/axiosInstance';
 
-/**
- * AuthContext handles user authentication state, login, logout, and token persistence.
- */
 const AuthContext = createContext({
   user: null,
   loading: true,
@@ -21,7 +19,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     async function initAuth() {
       try {
-        // --- REPLACE START: call refresh endpoint and set token ---
+        // --- REPLACE START: call refresh endpoint without extra '/api' ---
         const refreshRes = await api.post('/auth/refresh');
         const { accessToken } = refreshRes.data;
         if (accessToken) {
@@ -41,12 +39,11 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async (email, password) => {
-    // --- REPLACE START: call login endpoint and set token ---
+    // --- REPLACE START: call login endpoint without extra '/api' ---
     const res = await api.post('/auth/login', { email, password });
     const { accessToken: newToken } = res.data;
     setAccessToken(newToken);
     // --- REPLACE END ---
-
     const profileRes = await api.get('/auth/me');
     setUser(profileRes.data);
     return profileRes.data;
@@ -54,7 +51,7 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     try {
-      // --- REPLACE START: call logout endpoint ---
+      // --- REPLACE START: call logout endpoint without extra '/api' ---
       await api.post('/auth/logout');
       // --- REPLACE END ---
     } catch (err) {

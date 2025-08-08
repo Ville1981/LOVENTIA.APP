@@ -1,9 +1,10 @@
+// File: client/src/utils/axiosInstance.js
 // @ts-nocheck
 import axios from "axios";
 
-
-
-import { BACKEND_BASE_URL } from "../services/api/config";
+// --- REPLACE START: correct import path to front-end config.js ---
+import { BACKEND_BASE_URL } from "../config";
+// --- REPLACE END ---
 
 /**
  * Internal storage for the access token.
@@ -12,10 +13,6 @@ import { BACKEND_BASE_URL } from "../services/api/config";
 let accessToken = localStorage.getItem("accessToken") || null;
 // --- REPLACE END ---
 
-/**
- * Updates the internal token and persists it (or removes it) in localStorage.
- * @param {string|null} token
- */
 export const setAccessToken = (token) => {
   accessToken = token;
   if (token) {
@@ -29,25 +26,17 @@ export const setAccessToken = (token) => {
   }
 };
 
-// --- REPLACE START: use raw BACKEND_BASE_URL or VITE_API_URL as-is, no trailing slash, no '/api' appended ---
-/**
- * Determine the baseURL for all API requests.
- * Prioritizes BACKEND_BASE_URL, then VITE_API_URL env var.
- * Strips any trailing slash.
- */
+// --- REPLACE START: compute baseURL without trailing slash ---
 const rawUrl = BACKEND_BASE_URL || import.meta.env.VITE_API_URL || "";
 const baseURL = rawUrl.replace(/\/$/, "");
 // --- REPLACE END ---
 
-// Create Axios instance with credentials support
 const api = axios.create({
   baseURL,
   withCredentials: true,
 });
 
-// Attach token and JSON headers to every request
 api.interceptors.request.use((config) => {
-  // Attempt to read token from memory or fallback to storage
   const token = accessToken || localStorage.getItem("accessToken");
   if (token) {
     config.headers = {
@@ -55,38 +44,54 @@ api.interceptors.request.use((config) => {
       Authorization: `Bearer ${token}`,
     };
   }
-  // If sending JSON payload (and not FormData), set content-type
   if (config.data && !(config.data instanceof FormData)) {
     config.headers["Content-Type"] = "application/json";
   }
   return config;
 });
 
-// Refresh token on 401 and retry original request
+// --- REPLACE START: make refresh path baseURL-relative and avoid infinite loop ---
+const REFRESH_PATH = "/auth/refresh";
+// --- REPLACE END ---
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config;
-    // Only attempt once and skip refresh endpoint itself
+    const original = error.config;
+    if (!original) return Promise.reject(error);
+
+    const requestedPath = (() => {
+      try {
+        const u = new URL(original.url, baseURL || window.location.origin);
+        return u.pathname;
+      } catch {
+        return original.url || "";
+      }
+    })();
+
     if (
       error.response?.status === 401 &&
-      !originalRequest._retry &&
-      !originalRequest.url.includes("/auth/refresh")
+      !original._retry &&
+      !requestedPath.endsWith(REFRESH_PATH)
     ) {
-      originalRequest._retry = true;
+      original._retry = true;
       try {
-        // --- REPLACE START: call refresh endpoint with full path ---
-        const { data } = await api.post("/auth/refresh");
+        // --- REPLACE START: call refresh endpoint WITHOUT '/api' prefix ---
+        const { data } = await api.post(REFRESH_PATH);
         // --- REPLACE END ---
         setAccessToken(data.accessToken);
-        originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
-        return api(originalRequest);
-      } catch (refreshError) {
-        console.error("🔄 Refresh failed:", refreshError);
-        // Clear token and redirect to login page
+        original.headers = {
+          ...original.headers,
+          Authorization: `Bearer ${data.accessToken}`,
+        };
+        return api(original);
+      } catch (e) {
+        console.error("🔄 Refresh failed:", e);
         setAccessToken(null);
-        window.location.href = "/login";
-        return Promise.reject(refreshError);
+        if (window.location.pathname !== "/login") {
+          window.location.href = "/login";
+        }
+        return Promise.reject(e);
       }
     }
     return Promise.reject(error);

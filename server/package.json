@@ -18,6 +18,8 @@
   "license": "ISC",
   "dependencies": {
     "@paypal/checkout-server-sdk": "^1.0.0",
+    "@sentry/node": "^7.36.0",
+    "@sentry/tracing": "^7.36.0",
     "axios": "^1.4.0",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.6",
@@ -32,11 +34,11 @@
     "nodemailer": "^7.0.5",
     "sharp": "^0.34.2",
     "socket.io": "^4.5.0",
+    "sqlstring": "^2.3.3",
     "stripe": "^8.0.0",
     "swagger-ui-express": "^4.6.3",
-    "yamljs": "^0.3.0",
-    "@sentry/node": "^7.36.0",
-    "@sentry/tracing": "^7.36.0"
+    "xss": "^1.0.15",
+    "yamljs": "^0.3.0"
   },
   "devDependencies": {
     "eslint": "^8.0.0",

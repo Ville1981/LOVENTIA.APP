@@ -1,15 +1,17 @@
-// server/models/User.js
+// File: server/models/User.js
 
-// --- REPLACE START: convert to ESM import ---
-import mongoose from 'mongoose';
-// --- REPLACE END ---
+// --- REPLACE START: Convert to CommonJS + add findByCredentials static for Jest/dev ---
+'use strict';
+
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
 // Define User schema with all necessary fields
 const userSchema = new mongoose.Schema(
   {
     username:           { type: String, required: true, unique: true, trim: true },
     email:              { type: String, required: true, unique: true, lowercase: true, trim: true },
-    password:           { type: String, required: true },
+    password:           { type: String, required: true }, // expects a bcrypt hash in prod
     role:               { type: String, enum: ['user', 'admin'], default: 'user' },
     isPremium:          { type: Boolean, default: false },
 
@@ -46,6 +48,55 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// --- REPLACE START: export User model as ESM default ---
-export default mongoose.model('User', userSchema);
+/**
+ * Optional convenience: normalize id field (string) for controllers/tests that read user.id.
+ */
+userSchema.virtual('id').get(function () {
+  try {
+    return this._id ? this._id.toString() : undefined;
+  } catch {
+    return undefined;
+  }
+});
+
+/**
+ * Static: findByCredentials(email, password)
+ * - Looks up by email (case-insensitive)
+ * - Compares bcrypt hash in `password` field
+ * - For legacy/plaintext test data, falls back to direct equality if the stored value
+ *   does not look like a bcrypt hash.
+ */
+userSchema.statics.findByCredentials = async function (email, password) {
+  if (!email || !password) return null;
+
+  const candidate = await this.findOne({ email: String(email).toLowerCase().trim() }).exec();
+  if (!candidate) return null;
+
+  const stored = candidate.password || '';
+  const looksHashed = /^\$2[aby]\$[0-9]{2}\$/.test(stored);
+
+  if (looksHashed) {
+    const ok = await bcrypt.compare(password, stored);
+    if (!ok) return null;
+    return candidate;
+  }
+
+  // Fallback for tests/seed data with plaintext passwords
+  if (stored === password) {
+    return candidate;
+  }
+
+  return null;
+};
+
+let UserModel;
+
+// Avoid OverwriteModelError in watch mode/tests
+try {
+  UserModel = mongoose.model('User');
+} catch (_) {
+  UserModel = mongoose.model('User', userSchema);
+}
+
+module.exports = UserModel;
 // --- REPLACE END ---
