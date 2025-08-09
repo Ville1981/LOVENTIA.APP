@@ -1,5 +1,3 @@
-// server/middleware/authenticate.js
-
 // --- REPLACE START: robust CJS/ESM interop shim for authenticate middleware ---
 // This shim makes sure we can import the authenticate middleware regardless of
 // whether ../src/middleware/authenticate.js exports via CommonJS or ESM.
