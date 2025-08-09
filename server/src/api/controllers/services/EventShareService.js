@@ -1,13 +1,14 @@
-// src/api/services/EventShareService.js
+// --- REPLACE START: convert ESM import/export to CommonJS; keep logic intact ---
+'use strict';
 
-import Event from '../models/Event.js';
+const Event = require('../models/Event.js');
 
 /**
- * Server-side service: vastaa paikallisten tapahtumien jakamisesta
+ * Server-side service: responsible for sharing local events.
  */
-export class EventShareService {
+class EventShareService {
   /**
-   * Luo ja palauttaa jaetun tapahtuman tiedot
+   * Creates and returns the shared event document.
    * @param {String} userId
    * @param {{ title:string, date:Date, location:string, description:string }} eventData
    */
@@ -15,8 +16,11 @@ export class EventShareService {
     const event = await Event.create({
       ...eventData,
       sharedBy: userId,
-      sharedAt: new Date()
+      sharedAt: new Date(),
     });
     return event;
   }
 }
+
+module.exports = { EventShareService };
+// --- REPLACE END ---

@@ -1,12 +1,16 @@
-// src/utils/prioritization.js
+// --- REPLACE START: convert ESM to CommonJS; keep logic intact ---
+'use strict';
 
 /**
- * Laskee prioriteettipisteen impact × effort -mallilla
- * @param {number} impact     Käyttäjäpalautteen vaikutus (1-10)
- * @param {number} effort     Arvioitu työmäärä (1-10)
- * @returns {number}          Prioriteettipistemäärä
+ * Calculates priority score with impact × effort model
+ * @param {number} impact     User feedback impact (1-10)
+ * @param {number} effort     Estimated work effort (1-10)
+ * @returns {number}          Priority score
  */
-export function calculatePriority(impact, effort) {
-  if (effort <= 0) return Infinity; // ei saa jakaa nollalla
+function calculatePriority(impact, effort) {
+  if (effort <= 0) return Infinity; // avoid division by zero
   return impact / effort;
 }
+
+module.exports = { calculatePriority };
+// --- REPLACE END ---

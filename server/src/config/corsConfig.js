@@ -1,12 +1,9 @@
-// File: server/src/config/corsConfig.js
-// Centralized CORS configuration middleware
-// The replacement region is marked between // --- REPLACE START and // --- REPLACE END so you can verify exactly what changed
-
 // --- REPLACE START: centralized CORS config ---
+'use strict';
+
 const cors = require('cors');
 
-// Define your allowed origins.
-// Extend this array with production domains as needed.
+// Allowed origins — extend this array for production domains
 const whitelist = [
   process.env.CLIENT_URL || 'http://localhost:5174',
   // 'https://your-production-domain.com',
@@ -14,16 +11,10 @@ const whitelist = [
 
 /**
  * CORS options object.
- * - origin: only allow requests from whitelist (or no origin)
- * - methods: allowed HTTP methods
- * - allowedHeaders: headers client may send
- * - exposedHeaders: headers client may read
- * - credentials: allow cookies/auth headers
- * - optionsSuccessStatus: response status for preflight
  */
 const corsOptions = {
   origin(origin, callback) {
-    // Allow requests with no origin (e.g. mobile apps, curl)
+    // Allow requests with no origin (e.g. curl, mobile apps)
     if (!origin || whitelist.includes(origin)) {
       return callback(null, true);
     }

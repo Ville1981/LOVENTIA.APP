@@ -1,14 +1,15 @@
-// src/utils/dbProfiler.js
+// --- REPLACE START: convert ESM to CommonJS; keep logic intact ---
+'use strict';
 
-import { performance } from 'perf_hooks';
-import db from '../db'; // your DB client import
+const { performance } = require('perf_hooks');
+const db = require('../db'); // your DB client import
 
 /**
- * Suorittaa kyselyn ja profiloi sen keston
- * @param {string} query SQL-kysely
- * @param {Array<any>} params Parametrit
+ * Executes a query and profiles its duration
+ * @param {string} query SQL query
+ * @param {Array<any>} params Params
  */
-export async function executeWithProfiling(query, params = []) {
+async function executeWithProfiling(query, params = []) {
   const start = performance.now();
   const result = await db.query(query, params);
   const duration = performance.now() - start;
@@ -17,3 +18,6 @@ export async function executeWithProfiling(query, params = []) {
   }
   return result;
 }
+
+module.exports = { executeWithProfiling };
+// --- REPLACE END ---

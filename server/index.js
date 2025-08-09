@@ -37,13 +37,25 @@ import stripeWebhookRouter from './routes/stripeWebhook.js';
 import paypalWebhookRouter from './routes/paypalWebhook.js';
 // --- REPLACE END ---
 
-// --- REPLACE START: import application routes using ES modules ---
-import authRoutes from './routes/auth.js';
-import userRoutes from './routes/userRoutes.js';
-import imageRoutes from './routes/imageRoutes.js';
-import paymentRoutes from './routes/payment.js';
-import discoverRoutes from './routes/discover.js';
-import messageRoutes from './routes/messageRoutes.js';
+// --- REPLACE START: CJS/ESM interop for application routes ---
+import * as AuthModule from './routes/auth.js';
+const authRoutes = AuthModule.default || AuthModule;
+
+import * as UserModule from './routes/userRoutes.js';
+const userRoutes = UserModule.default || UserModule;
+
+import * as ImageModule from './routes/imageRoutes.js';
+const imageRoutes = ImageModule.default || ImageModule;
+
+import * as PaymentModule from './routes/payment.js';
+const paymentRoutes = PaymentModule.default || PaymentModule;
+
+import * as DiscoverModule from './routes/discover.js';
+const discoverRoutes = DiscoverModule.default || DiscoverModule;
+
+import * as MessageModule from './routes/messageRoutes.js';
+const messageRoutes = MessageModule.default || MessageModule;
+
 import authenticate from './middleware/auth.js';
 // --- REPLACE END ---
 
@@ -143,13 +155,13 @@ app.get('/*', (_req, res) => {
 app.use((_req, res) => res.status(404).json({ error: 'Not Found' }));
 
 // Global error handler
-// --- REPLACE START: Sentry error handler ---
+// --- REPLACE START: Sentry error handler + proper Express signature ---
 app.use(Sentry.Handlers.errorHandler());
-// --- REPLACE END ---
-app.use((err, _req, res) => {
-  console.error(err.stack);
+app.use((err, _req, res, _next) => {
+  console.error(err && err.stack ? err.stack : err);
   res.status(500).json({ error: 'Server Error' });
 });
+// --- REPLACE END ---
 
 // Start server & connect to MongoDB
 mongoose.set('strictQuery', true);
@@ -176,9 +188,10 @@ mongoose
 
     server.on('error', (err) => {
       if (err.code === 'EADDRINUSE') {
-        console.error(`⚠️ Port ${PORT} in use, retrying on port ${PORT + 1}...`);
-        server.listen(PORT + 1, () =>
-          console.log(`✅ Server running on http://localhost:${PORT + 1}`)
+        const nextPort = Number(PORT) + 1;
+        console.error(`⚠️ Port ${PORT} in use, retrying on port ${nextPort}...`);
+        app.listen(nextPort, () =>
+          console.log(`✅ Server running on http://localhost:${nextPort}`)
         );
       } else {
         console.error('❌ Server error:', err);

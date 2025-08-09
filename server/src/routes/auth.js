@@ -1,21 +1,23 @@
 // File: server/src/routes/auth.js
 // @ts-nocheck
 
-import express from 'express';
-import jwt from 'jsonwebtoken';
-import cookieParser from 'cookie-parser';
-import crypto from 'crypto';
-import bcrypt from 'bcryptjs';
-import 'dotenv/config';
+// --- REPLACE START: convert ESM imports to CommonJS requires & load dotenv ---
+const express = require('express');
+const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
+const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
+require('dotenv').config();
 
-import User from '../models/User.js';
-import sendEmail from '../utils/sendEmail.js';
-import { registerUser, loginUser } from '../controllers/userController.js';
-import authenticate from '../middleware/authenticate.js';
-import { validateRegister, validateLogin } from '../middleware/validators/auth.js';
-import { sanitizeAndValidateProfile } from '../middleware/profileValidator.js';
-import upload from '../middleware/upload.js';
-import { cookieOptions } from '../utils/cookieOptions.js';
+const User = require('../models/User.js');
+const sendEmail = require('../utils/sendEmail.js');
+const { registerUser, loginUser } = require('../controllers/userController.js');
+const authenticate = require('../middleware/authenticate.js');
+const { validateRegister, validateLogin } = require('../middleware/validators/auth.js');
+const { sanitizeAndValidateProfile } = require('../middleware/profileValidator.js');
+const upload = require('../middleware/upload.js');
+const { cookieOptions } = require('../utils/cookieOptions.js');
+// --- REPLACE END ---
 
 const router = express.Router();
 
@@ -167,8 +169,10 @@ router.put(
       fields.forEach(field => {
         if (req.body[field] !== undefined) updateData[field] = req.body[field];
       });
-      if (req.files.image) updateData.profilePicture = `uploads/${req.files.image[0].filename}`;
-      if (req.files.extraImages) {
+      if (req.files && req.files.image) {
+        updateData.profilePicture = `uploads/${req.files.image[0].filename}`;
+      }
+      if (req.files && req.files.extraImages) {
         updateData.extraImages = req.files.extraImages.map(f => `uploads/${f.filename}`);
       }
       const updated = await User.findByIdAndUpdate(
@@ -195,4 +199,6 @@ router.delete('/delete', authenticate, async (req, res) => {
   }
 });
 
-export default router;
+// --- REPLACE START: convert ESM default export to CommonJS ---
+module.exports = router;
+// --- REPLACE END ---

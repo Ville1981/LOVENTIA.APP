@@ -1,5 +1,3 @@
-// File: server/src/utils/cookieOptions.js
-
 // --- REPLACE START: switch to CommonJS so Jest can require() this without ESM support ---
 'use strict';
 
@@ -21,8 +19,7 @@ const cookieOptions = {
   secure: isProd,
   sameSite: isProd ? 'none' : 'lax',
   path: '/',
-  // Add domain only if provided (avoids setting a wrong domain locally)
-  ...(COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {}),
+  ...(COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {}), // add domain only if provided
 };
 
 module.exports = { cookieOptions };

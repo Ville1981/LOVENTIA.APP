@@ -1,53 +1,15 @@
-// File: server/middleware/authenticate.js
+// server/middleware/authenticate.js
 
-// --- REPLACE START: convert to CommonJS requires ---
-'use strict';
+// --- REPLACE START: robust CJS/ESM interop shim for authenticate middleware ---
+// This shim makes sure we can import the authenticate middleware regardless of
+// whether ../src/middleware/authenticate.js exports via CommonJS or ESM.
+import * as Mod from '../src/middleware/authenticate.js';
 
-const path = require('path');
-const jwt = require('jsonwebtoken');
-const User = require(path.resolve(__dirname, '../models/User.js'));
-// --- REPLACE END ---
+// If the source exports a default, use it; otherwise fall back to a named export
+// called `authenticate`; and as a last resort, use the module object itself
+// (covers the case where CJS exports a function).
+const authenticate = Mod.default || Mod.authenticate || Mod;
 
-/**
- * Middleware to protect routes by validating JWT in Authorization header.
- * Adds `req.user` containing the decoded token payload if valid.
- */
-const authenticate = async (req, res, next) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'No token provided' });
-    }
-
-    const token = authHeader.split(' ')[1];
-
-    // --- REPLACE START: robust verify with nested try/catch ---
-    let decoded;
-    try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET);
-    } catch (err) {
-      return res.status(401).json({ error: 'Invalid token' });
-    }
-    // --- REPLACE END ---
-
-    if (!decoded.id) {
-      return res.status(401).json({ error: 'Invalid token payload' });
-    }
-
-    const user = await User.findById(decoded.id).select('-password');
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    // Attach user info to request
-    req.user = { id: decoded.id, role: decoded.role };
-    next();
-  } catch (err) {
-    console.error('Authentication error:', err);
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-};
-
-// --- REPLACE START: export middleware as CommonJS module ---
-module.exports = authenticate;
+export default authenticate;
+export { authenticate };
 // --- REPLACE END ---

@@ -1,11 +1,13 @@
-// src/api/utils/TrackingMiddleware.js
+// --- REPLACE START: convert ESM to CommonJS and fix service path; keep logic intact ---
+'use strict';
 
-import { RewardEngine } from '../services/RewardEngine.js';
+// RewardEngine lives under controllers/services
+const { RewardEngine } = require('../controllers/services/RewardEngine.js');
 
 /**
- * Middleware, joka rekisteröi click-tapahtuman kun referral-koodilla päästään sivulle
+ * Middleware that registers a click event when a referral code is present
  */
-export async function trackReferralClicks(req, res, next) {
+async function trackReferralClicks(req, res, next) {
   const code = req.query.ref;
   if (code) {
     try {
@@ -16,3 +18,6 @@ export async function trackReferralClicks(req, res, next) {
   }
   next();
 }
+
+module.exports = { trackReferralClicks };
+// --- REPLACE END ---

@@ -1,30 +1,48 @@
-// File: server/models/Message.js
+// server/models/Message.js
+// --- REPLACE START: ESM wrapper that default-exports the CommonJS Message model ---
+//
+// Why this file exists:
+// - Your project runs ESM ("type": "module").
+// - The actual Mongoose model implementation is CommonJS at server/models/Message.cjs
+// - Code imports this file like:  import Message from '../models/Message.js'
+//   This wrapper performs safe ESM <-> CJS interop.
+//
+// What changed:
+// - We use createRequire() to pull in the CJS model.
+// - We default-export it for ESM consumers and also provide named exports.
+// - We add clear error messages if loading fails or returns an unexpected shape.
+//
 
-// --- REPLACE START: convert Message model to CommonJS require ---
-'use strict';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
 
-const mongoose = require('mongoose');
-// --- REPLACE END ---
+let LoadedMessage;
 
-// Define Message schema
-const messageSchema = new mongoose.Schema(
-  {
-    sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    recipient: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    content: { type: String, required: true },
-    timestamp: { type: Date, default: Date.now },
-    // add other fields here as needed
-  },
-  { timestamps: true }
-);
-
-// --- REPLACE START: export Message model as CommonJS ---
-let MessageModel;
 try {
-  MessageModel = mongoose.model('Message');
-} catch (_) {
-  MessageModel = mongoose.model('Message', messageSchema);
+  // eslint-disable-next-line import/no-commonjs
+  const maybeModule = require('./Message.cjs');
+  LoadedMessage = maybeModule && maybeModule.default ? maybeModule.default : maybeModule;
+
+  if (typeof LoadedMessage !== 'function') {
+    throw new TypeError(
+      '[models/Message.js] Loaded Message model is not a constructor/function. ' +
+      'Ensure server/models/Message.cjs exports the Mongoose model via module.exports = MessageModel;'
+    );
+  }
+} catch (err) {
+  const details = (err && err.message) ? `\nOriginal error: ${err.message}` : '';
+  throw new Error(
+    '[models/Message.js] Failed to load CommonJS model from ./Message.cjs. ' +
+    'This ESM wrapper requires the CJS file to exist and export the model via module.exports.' +
+    details
+  );
 }
 
-module.exports = MessageModel;
+// ESM default export
+export default LoadedMessage;
+
+// Optional named exports
+export const Message = LoadedMessage;
+export const MessageModel = LoadedMessage;
+
 // --- REPLACE END ---

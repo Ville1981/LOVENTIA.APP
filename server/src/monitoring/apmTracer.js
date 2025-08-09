@@ -1,12 +1,14 @@
-// src/monitoring/apmTracer.js
+// --- REPLACE START: convert ESM to CommonJS; keep logic intact ---
+'use strict';
 
-import apm from 'elastic-apm-node';
+const apm = require('elastic-apm-node');
 
 // APM initialization (Elastic APM)
 apm.start({
   serviceName: process.env.APM_SERVICE_NAME || 'my-app',
   serverUrl: process.env.APM_SERVER_URL,
-  environment: process.env.NODE_ENV || 'development'
+  environment: process.env.NODE_ENV || 'development',
 });
 
-export default apm;
+module.exports = apm;
+// --- REPLACE END ---

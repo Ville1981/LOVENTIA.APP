@@ -1,16 +1,17 @@
-// server/src/integrations/instagramService.js
-import axios from 'axios';
+// --- REPLACE START: convert ESM import/exports to CommonJS ---
+const axios = require('axios');
+// --- REPLACE END ---
 
 const INSTAGRAM_API_BASE = 'https://graph.instagram.com';
 const ACCESS_TOKEN = process.env.INSTAGRAM_ACCESS_TOKEN;
 
 /**
- * Hakee julkiset Instagram-postaukset tietylle käyttäjälle.
+ * Fetches public Instagram posts for a given user.
  * @param {string} userId
  * @param {number} limit
- * @returns {Promise<Array>} Lista postauksista
+ * @returns {Promise<Array>} List of posts
  */
-export async function fetchInstagramPosts(userId, limit = 5) {
+async function fetchInstagramPosts(userId, limit = 5) {
   if (!ACCESS_TOKEN) {
     throw new Error('Missing Instagram access token');
   }
@@ -21,3 +22,7 @@ export async function fetchInstagramPosts(userId, limit = 5) {
   const response = await axios.get(url);
   return response.data.data;
 }
+
+// --- REPLACE START: export function in CommonJS ---
+module.exports = { fetchInstagramPosts };
+// --- REPLACE END ---

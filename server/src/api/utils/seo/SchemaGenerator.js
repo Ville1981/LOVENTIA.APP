@@ -1,10 +1,11 @@
-// src/utils/seo/SchemaGenerator.js  (Server-side)
+// --- REPLACE START: convert ESM to CommonJS; keep logic intact ---
+'use strict';
 
 /**
- * Generoi Schema.org Article -JSON-LD -merkintä blogikirjoitukselle
+ * Generates Schema.org Article JSON-LD for a blog post
  * @param {{ title:string, author:string, datePublished:string, url:string }} meta
  */
-export function generateArticleSchema(meta) {
+function generateArticleSchema(meta) {
   return {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -14,3 +15,6 @@ export function generateArticleSchema(meta) {
     mainEntityOfPage: { "@type": "WebPage", "@id": meta.url }
   };
 }
+
+module.exports = { generateArticleSchema };
+// --- REPLACE END ---

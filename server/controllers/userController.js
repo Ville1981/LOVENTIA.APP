@@ -1,8 +1,12 @@
 // server/controllers/userController.js
 
-// --- REPLACE START: ESM imports ---
+// --- REPLACE START: ESM imports (robust CJS/ESM interop for User model) ---
 import 'dotenv/config';
-import User from '../models/User.js';
+// NOTE: The User model is exported via CommonJS (module.exports = UserModel).
+// Use a safe interop pattern so this file works in ESM runtime.
+import * as UserModule from '../models/User.js';
+const User = UserModule.default || UserModule;
+
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import fs from 'fs';
@@ -88,12 +92,13 @@ export async function loginUser(req, res) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
     const accessToken = jwt.sign(
-      { id: user._id.toString(), role: user.role },
+      // Keep payload shape consistent with the rest of the app/tests
+      { userId: user._id.toString(), role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: '15m' }
     );
     const refreshToken = jwt.sign(
-      { id: user._id.toString(), role: user.role },
+      { userId: user._id.toString(), role: user.role },
       process.env.JWT_REFRESH_SECRET,
       { expiresIn: '30d' }
     );
@@ -126,7 +131,7 @@ export async function loginUser(req, res) {
  */
 export async function upgradeToPremium(req, res) {
   try {
-    const user = await User.findById(req.userId);
+    const user = await User.findById(req.userId || req.user?.userId);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -146,7 +151,7 @@ export async function upgradeToPremium(req, res) {
  */
 export async function getMatchesWithScore(req, res) {
   try {
-    const currentUser = await User.findById(req.userId);
+    const currentUser = await User.findById(req.userId || req.user?.userId);
     if (!currentUser) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -167,17 +172,20 @@ export async function getMatchesWithScore(req, res) {
           currentUser.preferredGender === 'any' ||
           (u.gender &&
             u.gender.toLowerCase() ===
-              currentUser.preferredGender.toLowerCase())
+              String(currentUser.preferredGender || '').toLowerCase())
         ) {
           score += 20;
         }
         if (
+          typeof u.age === 'number' &&
+          typeof currentUser.preferredMinAge === 'number' &&
+          typeof currentUser.preferredMaxAge === 'number' &&
           u.age >= currentUser.preferredMinAge &&
           u.age <= currentUser.preferredMaxAge
         ) {
           score += 20;
         }
-        const common = interests.filter((i) => u.interests.includes(i));
+        const common = (u.interests || []).filter((i) => (interests || []).includes(i));
         score += Math.min(common.length * 10, 60);
         return {
           id: u._id.toString(),
@@ -205,13 +213,13 @@ export async function getMatchesWithScore(req, res) {
  */
 export async function uploadExtraPhotos(req, res) {
   try {
-    const user = await User.findById(req.userId);
+    const user = await User.findById(req.userId || req.user?.userId);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
     const files = req.files || [];
     const maxAllowed = user.isPremium ? 20 : 6;
-    if (user.extraImages.length + files.length > maxAllowed) {
+    if ((user.extraImages?.length || 0) + files.length > maxAllowed) {
       return res
         .status(400)
         .json({ error: `Max ${maxAllowed} images allowed` });
@@ -232,7 +240,7 @@ export async function uploadExtraPhotos(req, res) {
  */
 export async function uploadPhotoStep(req, res) {
   try {
-    const user = await User.findById(req.userId);
+    const user = await User.findById(req.userId || req.user?.userId);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -257,7 +265,7 @@ export async function uploadPhotoStep(req, res) {
  */
 export async function deletePhotoSlot(req, res) {
   try {
-    const user = await User.findById(req.userId);
+    const user = await User.findById(req.userId || req.user?.userId);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }

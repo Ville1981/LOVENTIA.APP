@@ -1,16 +1,20 @@
-// src/api/services/ReferralService.js
+// --- REPLACE START: convert ESM imports/exports to CommonJS; keep logic intact ---
+'use strict';
 
-import { customAlphabet } from 'nanoid';
-import Referral from '../models/Referral.js';
+const { customAlphabet } = require('nanoid');
+const Referral = require('../models/Referral.js');
 
-const nanoid = customAlphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789', 8);
+const nanoid = customAlphabet(
+  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789',
+  8
+);
 
 /**
- * Luo uuden uniikin referral-linkin tietylle käyttäjälle.
- * @param {String} userId  Käyttäjän DB:n ID
- * @returns {Promise<Object>} Luotu referral-dokumentti
+ * Creates a new unique referral link for a specific user.
+ * @param {String} userId  The user's DB ID
+ * @returns {Promise<Object>} The created referral document
  */
-export async function createReferralLink(userId) {
+async function createReferralLink(userId) {
   const code = nanoid();
   const referral = await Referral.create({
     user: userId,
@@ -23,11 +27,11 @@ export async function createReferralLink(userId) {
 }
 
 /**
- * Hakee referral-statistiikat koodin perusteella.
- * @param {String} code  Referral-koodi
- * @returns {Promise<Object|null>} Tilastot { code, clicks, signups } tai null jos ei löydy
+ * Fetches referral statistics by referral code.
+ * @param {String} code  Referral code
+ * @returns {Promise<Object|null>} Stats { code, clicks, signups } or null if not found
  */
-export async function getReferralByCode(code) {
+async function getReferralByCode(code) {
   const referral = await Referral.findOne({ code }).lean();
   if (!referral) return null;
 
@@ -40,18 +44,25 @@ export async function getReferralByCode(code) {
 }
 
 /**
- * Listaa kaikki referral-linkit ja niiden tilastot kyseiselle käyttäjälle.
- * @param {String} userId  Käyttäjän DB:n ID
- * @returns {Promise<Array>} Referral-objektien lista
+ * Lists all referral links and their stats for the given user.
+ * @param {String} userId  The user's DB ID
+ * @returns {Promise<Array>} List of referral objects
  */
-export async function listUserReferrals(userId) {
+async function listUserReferrals(userId) {
   const referrals = await Referral.find({ user: userId })
     .sort({ createdAt: -1 })
     .lean();
-  return referrals.map(r => ({
+  return referrals.map((r) => ({
     code: r.code,
     clicks: r.clicks,
     signups: r.signups,
     createdAt: r.createdAt,
   }));
 }
+
+module.exports = {
+  createReferralLink,
+  getReferralByCode,
+  listUserReferrals,
+};
+// --- REPLACE END ---

@@ -1,14 +1,26 @@
-// src/content/blog/BlogEngine.js  (Server-side)
+// --- REPLACE START: convert ESM to CommonJS; keep logic intact and fix paths ---
+'use strict';
 
-import fs from 'fs';
-import path from 'path';
-import matter from 'gray-matter';
-import marked from 'marked';
-import Post from '../api/models/Post.js';
+const fs = require('fs');
+const path = require('path');
+const matter = require('gray-matter');
+// marked v4 exports a function; v5+ exports an object with .parse
+const markedLib = require('marked');
+const marked = (typeof markedLib === 'function')
+  ? markedLib
+  : (markedLib && typeof markedLib.parse === 'function' ? markedLib.parse : (s) => String(s));
 
-export class BlogEngine {
+// NOTE: This file is expected under server/src/content/blog/
+// The posts directory is a sibling folder: server/src/content/blog/posts
+const POSTS_DIR = path.resolve(__dirname, 'posts');
+
+// Post model lives under server/src/api/models/Post.js
+// Use a robust absolute path from this file location
+const Post = require(path.resolve(__dirname, '../../api/models/Post.js'));
+
+class BlogEngine {
   /**
-   * Luo uuden blogikirjoituksen tallentaen tietokantaan ja tiedostojärjestelmään
+   * Creates a new blog post by saving to DB and filesystem
    */
   static async createPost({ title, authorId, contentMarkdown, publishDate }) {
     // Save metadata to DB
@@ -16,12 +28,12 @@ export class BlogEngine {
       title,
       author: authorId,
       publishDate,
-      slug: BlogEngine.slugify(title)
+      slug: BlogEngine.slugify(title),
     });
 
     // Save markdown file
     const filename = `${newPost.slug}.md`;
-    const filePath = path.join(process.cwd(), 'src/content/blog/posts', filename);
+    const filePath = path.resolve(POSTS_DIR, filename);
     const frontmatter = matter.stringify(contentMarkdown, { title, date: publishDate });
     fs.writeFileSync(filePath, frontmatter);
 
@@ -29,12 +41,12 @@ export class BlogEngine {
   }
 
   /**
-   * Hakee julkaistut postaukset renderöitynä HTML:ksi
+   * Fetches published posts rendered as HTML
    */
   static async getPublishedPosts() {
     const posts = await Post.find({ publishDate: { $lte: new Date() } }).sort({ publishDate: -1 });
-    return posts.map(post => {
-      const filePath = path.join(process.cwd(), 'src/content/blog/posts', `${post.slug}.md`);
+    return posts.map((post) => {
+      const filePath = path.resolve(POSTS_DIR, `${post.slug}.md`);
       const file = fs.readFileSync(filePath, 'utf-8');
       const { content, data } = matter(file);
       const html = marked(content);
@@ -49,3 +61,6 @@ export class BlogEngine {
       .replace(/(^-|-$)+/g, '');
   }
 }
+
+module.exports = { BlogEngine };
+// --- REPLACE END ---

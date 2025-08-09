@@ -1,7 +1,9 @@
 // server/controllers/discoverController.js
 
-// --- REPLACE START: convert to ES modules, translate comments to English, preserve all logic ---
-import User from '../models/User.js';
+// --- REPLACE START: CJS/ESM interop for User model (fix default import error) ---
+import * as UserModule from '../models/User.js';
+const User = UserModule.default || UserModule;
+// --- REPLACE END ---
 
 // Allowed query parameters whitelist
 const allowedFilters = [
@@ -67,6 +69,7 @@ export async function getDiscover(req, res) {
         if (typeof img !== 'string' || img.trim() === '') return null;
         if (img.startsWith('http')) return img;
         return img.startsWith('/') ? img : `/uploads/${img}`;
+        // Note: stored values like 'profiles/xyz.jpg' or 'extra/abc.png' become '/uploads/...'
       };
 
       let photos = [];
@@ -82,7 +85,7 @@ export async function getDiscover(req, res) {
 
       return {
         ...u,
-        id: u._id.toString(),
+        id: u._id?.toString?.() || String(u._id),
         likes,
         passes,
         superLikes,
@@ -142,4 +145,3 @@ export async function handleAction(req, res) {
       .json({ error: 'Server error recording action' });
   }
 }
-// --- REPLACE END ---

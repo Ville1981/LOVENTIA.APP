@@ -1,15 +1,16 @@
-// src/api/controllers/ReferralController.js
+// --- REPLACE START: convert ESM imports/exports to CommonJS; keep logic intact ---
+'use strict';
 
-import { 
-  createReferralLink, 
-  getReferralByCode, 
-  listUserReferrals 
-} from '../services/ReferralService.js';
+const {
+  createReferralLink,
+  getReferralByCode,
+  listUserReferrals,
+} = require('../services/ReferralService.js');
 
 /**
- * Luo uuden referral-linkin nykyiselle käyttäjälle.
+ * Creates a new referral link for the current user.
  */
-export async function createReferral(req, res, next) {
+async function createReferral(req, res, next) {
   try {
     const userId = req.user.id;
     const referral = await createReferralLink(userId);
@@ -20,14 +21,16 @@ export async function createReferral(req, res, next) {
 }
 
 /**
- * Hakee referral-statuksen referral-koodilla (esim. klikit, aktivoinnit).
+ * Fetches referral status by referral code (e.g., clicks, signups).
  */
-export async function getReferralStatus(req, res, next) {
+async function getReferralStatus(req, res, next) {
   try {
     const { code } = req.params;
     const stats = await getReferralByCode(code);
     if (!stats) {
-      return res.status(404).json({ success: false, message: 'Referral code not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: 'Referral code not found' });
     }
     res.json({ success: true, stats });
   } catch (err) {
@@ -36,9 +39,9 @@ export async function getReferralStatus(req, res, next) {
 }
 
 /**
- * Listaa kaikki referral-linkit ja niiden tilastot kirjautuneelle käyttäjälle.
+ * Lists all referral links and their stats for the authenticated user.
  */
-export async function listReferrals(req, res, next) {
+async function listReferrals(req, res, next) {
   try {
     const userId = req.user.id;
     const referrals = await listUserReferrals(userId);
@@ -47,3 +50,10 @@ export async function listReferrals(req, res, next) {
     next(err);
   }
 }
+
+module.exports = {
+  createReferral,
+  getReferralStatus,
+  listReferrals,
+};
+// --- REPLACE END ---

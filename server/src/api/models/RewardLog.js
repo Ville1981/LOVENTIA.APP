@@ -1,14 +1,16 @@
-// src/api/models/RewardLog.js
+// --- REPLACE START: convert ESM import/export to CommonJS; keep logic intact ---
+'use strict';
 
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 const rewardLogSchema = new Schema({
-  user:         { type: Schema.Types.ObjectId, ref: 'User',     required: true },
-  referralCode: { type: String,                             required: true },
+  user:         { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  referralCode: { type: String,                               required: true },
   type:         { type: String, enum: ['click', 'signup'],    required: true },
-  amount:       { type: Number,                             required: true },
-  createdAt:    { type: Date, default: Date.now }
+  amount:       { type: Number,                               required: true },
+  createdAt:    { type: Date,                                 default: Date.now }
 });
 
-export default mongoose.model('RewardLog', rewardLogSchema);
+module.exports = mongoose.model('RewardLog', rewardLogSchema);
+// --- REPLACE END ---

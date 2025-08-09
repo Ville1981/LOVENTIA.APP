@@ -1,8 +1,7 @@
-// server/utils/sendEmail.js
+// File: server/src/utils/sendEmail.js
 
-// --- REPLACE START: convert to ESM imports ---
-import nodemailer from 'nodemailer';
-// --- REPLACE END ---
+// --- REPLACE START: convert to CommonJS and default export to module.exports ---
+const nodemailer = require('nodemailer');
 
 /**
  * Sends an email using SMTP transport.
@@ -12,17 +11,15 @@ import nodemailer from 'nodemailer';
  */
 async function sendEmail(to, subject, text) {
   try {
-    // --- REPLACE START: configure transporter via environment variables ---
     const transporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
-      port: parseInt(process.env.EMAIL_PORT, 10),
-      secure: process.env.EMAIL_SECURE === 'true',
+      port: parseInt(process.env.EMAIL_PORT || '587', 10),
+      secure: String(process.env.EMAIL_SECURE).toLowerCase() === 'true',
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
     });
-    // --- REPLACE END ---
 
     await transporter.sendMail({
       from: process.env.EMAIL_FROM,
@@ -36,6 +33,5 @@ async function sendEmail(to, subject, text) {
   }
 }
 
-// --- REPLACE START: export sendEmail as default ESM ---
-export default sendEmail;
+module.exports = sendEmail;
 // --- REPLACE END ---

@@ -1,19 +1,7 @@
-// --- REPLACE START: standalone backend auth service (no frontend imports) ---
-// Using loose typing to avoid TS errors if @types/express is not installed
-type Request = any;
-type Response = any;
+// --- REPLACE START: standalone backend auth service (CommonJS, no frontend imports) ---
+'use strict';
 
-import jwt from 'jsonwebtoken';
-
-/**
- * This service is backend-only and must not import anything from the client.
- * It provides helpers to:
- *  - sign/verify access & refresh tokens (JWT)
- *  - set/clear refresh token cookie
- *  - produce standard login/refresh/logout flows
- *
- * Integrate your own DB lookups inside the marked TODO sections.
- */
+const jwt = require('jsonwebtoken');
 
 /* =========================
  * Environment configuration
@@ -32,47 +20,35 @@ const isProd = NODE_ENV === 'production';
 /* =========================
  * Cookie options
  * ========================= */
-export const REFRESH_COOKIE_NAME = 'refreshToken';
+const REFRESH_COOKIE_NAME = 'refreshToken';
 
-export const refreshCookieOptions = {
-  httpOnly: true as const,
+const refreshCookieOptions = {
+  httpOnly: true,
   secure: isProd,
-  sameSite: isProd ? ('none' as const) : ('lax' as const),
-  path: '/' as const,
-  // domain: COOKIE_DOMAIN,
+  sameSite: isProd ? 'none' : 'lax',
+  path: '/',
 };
 
 /* =========================
  * Token helpers (JWT)
  * ========================= */
-type JwtPayloadCommon = {
-  sub: string; // user id
-};
-
-// --- REPLACE START: compatible payload type for all jsonwebtoken versions ---
-type JwtPayloadLoose = {
-  sub?: string;
-  [key: string]: any;
-};
-// --- REPLACE END ---
-
-export function signAccessToken(userId: string) {
-  const payload: JwtPayloadCommon = { sub: userId };
+function signAccessToken(userId) {
+  const payload = { sub: userId };
   return jwt.sign(payload, JWT_ACCESS_SECRET, {
     expiresIn: ACCESS_TOKEN_EXPIRES_IN,
   });
 }
 
-export function signRefreshToken(userId: string) {
-  const payload: JwtPayloadCommon = { sub: userId };
+function signRefreshToken(userId) {
+  const payload = { sub: userId };
   return jwt.sign(payload, JWT_REFRESH_SECRET, {
     expiresIn: REFRESH_TOKEN_EXPIRES_IN,
   });
 }
 
-export function verifyRefreshToken(token: string): JwtPayloadCommon {
-  const decoded = jwt.verify(token, JWT_REFRESH_SECRET) as JwtPayloadLoose;
-  if (!decoded?.sub) {
+function verifyRefreshToken(token) {
+  const decoded = jwt.verify(token, JWT_REFRESH_SECRET);
+  if (!decoded || !decoded.sub) {
     throw new Error('Invalid refresh token payload');
   }
   return { sub: String(decoded.sub) };
@@ -81,30 +57,30 @@ export function verifyRefreshToken(token: string): JwtPayloadCommon {
 /* =========================
  * Cookie utilities
  * ========================= */
-export function setRefreshCookie(res: Response, refreshToken: string) {
+function setRefreshCookie(res, refreshToken) {
   res.cookie(REFRESH_COOKIE_NAME, refreshToken, refreshCookieOptions);
 }
 
-export function clearRefreshCookie(res: Response) {
+function clearRefreshCookie(res) {
   res.clearCookie(REFRESH_COOKIE_NAME, {
     ...refreshCookieOptions,
     maxAge: 0,
   });
 }
 
-export function readRefreshCookie(req: Request): string | null {
-  return (req.cookies?.[REFRESH_COOKIE_NAME] as string | undefined) ?? null;
+function readRefreshCookie(req) {
+  return (req.cookies && req.cookies[REFRESH_COOKIE_NAME]) || null;
 }
 
 /* ==========================================
  * DB/User helpers (replace with your own DB)
  * ========================================== */
-async function getUserById(userId: string) {
+async function getUserById(userId) {
   // TODO: Replace with real DB lookup
   return { id: userId, email: 'placeholder@example.com', name: 'User' };
 }
 
-export async function validateUserCredentials(email: string, password: string) {
+async function validateUserCredentials(email, password) {
   // TODO: Replace with real validation logic
   return { id: 'user123', email, name: 'Test User' };
 }
@@ -112,18 +88,18 @@ export async function validateUserCredentials(email: string, password: string) {
 /* =========================
  * High-level auth operations
  * ========================= */
-export async function issueTokensForUser(res: Response, userId: string) {
+async function issueTokensForUser(res, userId) {
   const accessToken = signAccessToken(userId);
   const refreshToken = signRefreshToken(userId);
   setRefreshCookie(res, refreshToken);
   return { accessToken };
 }
 
-export async function handleLogin(res: Response, userId: string) {
+async function handleLogin(res, userId) {
   return issueTokensForUser(res, userId);
 }
 
-export async function handleRefresh(req: Request, res: Response) {
+async function handleRefresh(req, res) {
   const tokenFromCookie = readRefreshCookie(req);
   if (!tokenFromCookie) {
     throw new Error('Missing refresh token');
@@ -135,16 +111,33 @@ export async function handleRefresh(req: Request, res: Response) {
   return { accessToken };
 }
 
-export async function handleLogout(res: Response) {
+async function handleLogout(res) {
   clearRefreshCookie(res);
   return { ok: true };
 }
 
-export async function getMe(userId: string) {
+async function getMe(userId) {
   const user = await getUserById(userId);
   if (!user) {
     throw new Error('User not found');
   }
   return user;
 }
+
+module.exports = {
+  REFRESH_COOKIE_NAME,
+  refreshCookieOptions,
+  signAccessToken,
+  signRefreshToken,
+  verifyRefreshToken,
+  setRefreshCookie,
+  clearRefreshCookie,
+  readRefreshCookie,
+  validateUserCredentials,
+  issueTokensForUser,
+  handleLogin,
+  handleRefresh,
+  handleLogout,
+  getMe,
+};
 // --- REPLACE END ---

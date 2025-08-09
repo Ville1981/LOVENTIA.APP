@@ -1,20 +1,67 @@
-// routes/userRoutes.js
-
 const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
-const {
-  registerUser,
-  loginUser,
-  getMatchesWithScore,
-  upgradeToPremium,
-  uploadExtraPhotos,
-  uploadPhotoStep,
-  deletePhotoSlot,
-} = require("../controllers/userController");
-const multer = require("multer");
+// --- REPLACE START: load ESM controller via dynamic import (Jest/CJS compatible) ---
 const path = require("path");
+const { pathToFileURL } = require("url");
+
+function toURL(p) {
+  return pathToFileURL(path.resolve(__dirname, p)).href;
+}
+const userControllerURL = toURL("../controllers/userController.js");
+
+let _ucPromise = null;
+function loadUserController() {
+  if (!_ucPromise) _ucPromise = import(userControllerURL);
+  return _ucPromise;
+}
+
+async function registerUser(req, res, next) {
+  try {
+    const m = await loadUserController();
+    return m.registerUser(req, res, next);
+  } catch (err) { return next(err); }
+}
+async function loginUser(req, res, next) {
+  try {
+    const m = await loadUserController();
+    return m.loginUser(req, res, next);
+  } catch (err) { return next(err); }
+}
+async function getMatchesWithScore(req, res, next) {
+  try {
+    const m = await loadUserController();
+    return m.getMatchesWithScore(req, res, next);
+  } catch (err) { return next(err); }
+}
+async function upgradeToPremium(req, res, next) {
+  try {
+    const m = await loadUserController();
+    return m.upgradeToPremium(req, res, next);
+  } catch (err) { return next(err); }
+}
+async function uploadExtraPhotos(req, res, next) {
+  try {
+    const m = await loadUserController();
+    return m.uploadExtraPhotos(req, res, next);
+  } catch (err) { return next(err); }
+}
+async function uploadPhotoStep(req, res, next) {
+  try {
+    const m = await loadUserController();
+    return m.uploadPhotoStep(req, res, next);
+  } catch (err) { return next(err); }
+}
+async function deletePhotoSlot(req, res, next) {
+  try {
+    const m = await loadUserController();
+    return m.deletePhotoSlot(req, res, next);
+  } catch (err) { return next(err); }
+}
+// --- REPLACE END ---
+const multer = require("multer");
+const pathFs = require("path");
 const fs = require("fs");
 const { body, validationResult } = require("express-validator");
 
@@ -41,7 +88,7 @@ router.use(express.json());
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "uploads/"),
   filename: (req, file, cb) =>
-    cb(null, Date.now() + path.extname(file.originalname)),
+    cb(null, Date.now() + pathFs.extname(file.originalname)),
 });
 const upload = multer({ storage });
 
@@ -363,13 +410,3 @@ router.delete(
 );
 
 module.exports = router;
-
-
-
-
-
-
-
-
-
-
