@@ -1,4 +1,3 @@
-// File: src/mocks/handlers.jsx
 // The replacement region is marked between // --- REPLACE START and // --- REPLACE END
 
 // --- REPLACE START: import stable HTTP API from MSW core entrypoint ---
@@ -41,7 +40,7 @@ const cookieSettings = {
 // --- REPLACE END ---
 
 // --- REPLACE START: login & refresh handlers using http.post ---
-const loginHandler = http.post('/api/auth/login', (req, res, ctx) => {
+const loginHandler = http.post('/api/auth/login', (_req, res, ctx) => {
   const fakeToken = 'fakeRefreshToken';
   return res(
     ctx.cookie('refreshToken', fakeToken, cookieSettings),
@@ -50,7 +49,7 @@ const loginHandler = http.post('/api/auth/login', (req, res, ctx) => {
   );
 });
 
-const refreshHandler = http.post('/api/auth/refresh', (req, res, ctx) => {
+const refreshHandler = http.post('/api/auth/refresh', (_req, res, ctx) => {
   const newFakeToken = 'rotatedFakeRefreshToken';
   return res(
     ctx.cookie('refreshToken', newFakeToken, cookieSettings),
@@ -61,24 +60,24 @@ const refreshHandler = http.post('/api/auth/refresh', (req, res, ctx) => {
 // --- REPLACE END ---
 
 // --- REPLACE START: logout & me handlers using http API ---
-const logoutHandler = http.post('/api/auth/logout', (req, res, ctx) => {
+const logoutHandler = http.post('/api/auth/logout', (_req, res, ctx) => {
   return res(
     ctx.status(200),
     ctx.cookie('refreshToken', '', { ...cookieSettings, maxAge: 0 })
   );
 });
 
-const meHandler = http.get('/api/auth/me', (req, res, ctx) => {
+const meHandler = http.get('/api/auth/me', (_req, res, ctx) => {
   return res(
     ctx.status(200),
-    ctx.json(mockUser)
+    ctx.json({ user: mockUser }) // match backend shape { user: {...} }
   );
 });
 // --- REPLACE END ---
 
 export const handlers = [
   // messages overview
-  http.get('/api/messages/overview', (req, res, ctx) => {
+  http.get('/api/messages/overview', (_req, res, ctx) => {
     return res(
       ctx.status(200),
       ctx.json(mockConversations)

@@ -32,13 +32,11 @@ const { loginSchema, registerSchema } = require('./validators/authValidator.js')
 // --- REPLACE END ---
 
 // *** FIXED PATH ***
-// The replacement region is marked below so you can see exactly what changed.
 // --- REPLACE START: point to api/controllers/authController ---
 const authController                  = require('./api/controllers/authController.js');
 // --- REPLACE END ---
 
 // --- REPLACE START: import auth check & role-based authorization ---
-// NOTE: authenticate is ESM in this project; load it lazily via dynamic import to avoid Jest/CJS errors.
 const authorizeRoles = require('./middleware/roleAuthorization.js');
 const { pathToFileURL } = require('url');
 
@@ -57,7 +55,6 @@ async function authenticate(req, res, next) {
 }
 // --- REPLACE END ---
 
-// Ensure models are registered before middleware/routes
 // --- REPLACE START: fix model import paths to actual location in ../models ---
 require(path.resolve(__dirname, '../models/User.js'));
 require(path.resolve(__dirname, '../models/Message.js'));
@@ -66,16 +63,13 @@ require(path.resolve(__dirname, '../models/Message.js'));
 const app = express();
 
 // ── Swagger-UI Integration ─────────────────────────────────────────────────────
-// --- REPLACE START: serve Swagger UI ---
 app.use(
   '/api-docs',
   swagger.serve,
   swagger.setup
 );
-// --- REPLACE END ---
 
 // ── Connect to MongoDB ─────────────────────────────────────────────────--------
-// --- REPLACE START: skip DB connect during tests and control bufferCommands ---
 const MONGO_URI = process.env.MONGO_URI;
 const IS_TEST   = process.env.NODE_ENV === 'test';
 
@@ -104,7 +98,6 @@ if (!IS_TEST && MONGO_URI) {
     console.log('ℹ️ Test mode: skipping MongoDB connection.');
   }
 }
-// --- REPLACE END ---
 
 // ── CORS & Preflight Handler ───────────────────────────────────────────────────
 app.use(corsConfig);
@@ -123,9 +116,7 @@ const { cookieOptions } = require('./utils/cookieOptions.js');
 app.set('trust proxy', 1);
 app.use(cookieParser());
 app.use((req, res, next) => { next(); });
-// --- REPLACE START: fix httpsRedirect path ---
 app.use(require('./middleware/httpsRedirect.js'));
-// --- REPLACE END ---
 
 // ── Parse bodies ────────────────────────────────────────────────────────────────
 app.use(express.json());
@@ -147,10 +138,8 @@ app.get('/test-alerts', async (req, res) => {
 
 // ── Webhook routes (before body parsers) ────────────────────────────────────────
 if (!IS_TEST) {
-  // --- REPLACE START: fix webhook route paths to ./ and add .js ---
   const stripeWebhookRouter = require('./routes/stripeWebhook.js');
   const paypalWebhookRouter = require('./routes/paypalWebhook.js');
-  // --- REPLACE END ---
 
   app.use('/api/payment/stripe-webhook', stripeWebhookRouter);
   app.use('/api/payment/paypal-webhook', paypalWebhookRouter);
@@ -174,9 +163,7 @@ function tryRequireRoute(srcPath, fallbackAbsPath) {
     }
   }
 }
-
 // ── Routes ──────────────────────────────────────────────────────────────────────
-// --- REPLACE START: during tests, mount a lightweight in-memory auth router ---
 if (IS_TEST) {
   const jwt = require('jsonwebtoken');
   const testAuth = express.Router();
@@ -186,7 +173,7 @@ if (IS_TEST) {
 
   const noValidate = (req, _res, next) => next();
 
-  // Login: return accessToken and set refresh cookie (include both id and userId for test expectations)
+  // Login: return accessToken and set refresh cookie
   testAuth.post('/login', noValidate, (req, res) => {
     const { email } = req.body || {};
     const userId = '000000000000000000000001';
@@ -197,7 +184,11 @@ if (IS_TEST) {
       TEST_JWT_SECRET,
       { expiresIn: '15m' }
     );
-    const refreshToken = jwt.sign({ id: userId, userId, role }, TEST_REFRESH_SECRET, { expiresIn: '30d' });
+    const refreshToken = jwt.sign(
+      { id: userId, userId, role },
+      TEST_REFRESH_SECRET,
+      { expiresIn: '30d' }
+    );
 
     res.cookie('refreshToken', refreshToken, {
       ...cookieOptions,
@@ -208,7 +199,7 @@ if (IS_TEST) {
     return res.status(200).json({ accessToken });
   });
 
-  // Refresh: verify cookie and issue new access token (also include id)
+  // Refresh: verify cookie and issue new access token
   testAuth.post('/refresh', (req, res) => {
     const token = req.cookies && req.cookies.refreshToken;
     if (!token) return res.status(401).json({ error: 'No refresh token provided' });
@@ -256,9 +247,8 @@ if (IS_TEST) {
   );
   app.use('/api/auth', authRoutes);
 }
-// --- REPLACE END ---
 
-// --- REPLACE START: mount other feature routes only outside test ---
+// ── Mount other feature routes only outside test ───────────────────────────────
 if (!IS_TEST) {
   const userRoutes = tryRequireRoute(
     './routes/user.js',
@@ -315,11 +305,10 @@ if (!IS_TEST) {
     discoverRoutes
   );
 }
-// --- REPLACE END ---
 
 // ── Temporary mock users endpoint ───────────────────────────────────────────────
 app.get('/api/users', (req, res) => {
-  res.json([/* mock data */]);
+  res.json([]);
 });
 
 // ── Multer error handler ────────────────────────────────────────────────────────
@@ -342,7 +331,6 @@ app.use((err, req, res, next) => {
 });
 
 // ── SOCKET.IO INTEGRATION ──────────────────────────────────────────────────────
-// --- REPLACE START: require and start socket.io only outside test mode ---
 let httpServer = null;
 const PORT = process.env.PORT || 5000;
 
@@ -355,8 +343,22 @@ if (!IS_TEST) {
 } else {
   console.log('ℹ️ Test mode: HTTP server is not started.');
 }
-// --- REPLACE END ---
 
 module.exports = app;
 
-    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

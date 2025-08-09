@@ -1,4 +1,3 @@
-// File: client/src/utils/axiosInstance.js
 // @ts-nocheck
 import axios from "axios";
 
@@ -26,9 +25,12 @@ export const setAccessToken = (token) => {
   }
 };
 
-// --- REPLACE START: compute baseURL without trailing slash ---
-const rawUrl = BACKEND_BASE_URL || import.meta.env.VITE_API_URL || "";
-const baseURL = rawUrl.replace(/\/$/, "");
+// --- REPLACE START: compute baseURL with safe default '/api' and without trailing slash ---
+const rawUrl =
+  BACKEND_BASE_URL ||
+  import.meta.env.VITE_API_URL ||
+  "/api"; // ensure Vite proxy is used in dev if nothing is set
+const baseURL = String(rawUrl).replace(/\/$/, "");
 // --- REPLACE END ---
 
 const api = axios.create({
@@ -76,7 +78,7 @@ api.interceptors.response.use(
     ) {
       original._retry = true;
       try {
-        // --- REPLACE START: call refresh endpoint WITHOUT '/api' prefix ---
+        // --- REPLACE START: call refresh endpoint WITHOUT extra '/api' (baseURL already includes it) ---
         const { data } = await api.post(REFRESH_PATH);
         // --- REPLACE END ---
         setAccessToken(data.accessToken);
