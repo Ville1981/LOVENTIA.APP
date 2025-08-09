@@ -1,57 +1,72 @@
-// server/src/validators/authValidator.js
-
-const Joi = require('joi');
-
+// --- REPLACE START: lightweight login/register schemas (CommonJS, no external deps) ---
 /**
- * Schema for user login payload
- * @type {Joi.ObjectSchema}
+ * Minimal schema objects with a .validate(data) function that returns:
+ * - { value } when valid
+ * - { error: { details: [{ message }, ...] } } when invalid
+ *
+ * This mirrors a tiny subset of Joi's API that our validateBody middleware expects,
+ * but avoids adding dependencies.
  */
-const loginSchema = Joi.object({
-  email: Joi.string()
-    .email()
-    .required()
-    .messages({
-      'string.email': 'Email must be a valid email address',
-      'string.empty': 'Email is required'
-    }),
-  password: Joi.string()
-    .min(8)
-    .required()
-    .messages({
-      'string.min': 'Password must be at least 8 characters',
-      'string.empty': 'Password is required'
-    })
-});
 
-/**
- * Schema for user registration payload
- * @type {Joi.ObjectSchema}
- */
-const registerSchema = Joi.object({
-  name: Joi.string()
-    .min(3)
-    .required()
-    .messages({
-      'string.min': 'Name must be at least 3 characters',
-      'string.empty': 'Name is required'
-    }),
-  email: Joi.string()
-    .email()
-    .required()
-    .messages({
-      'string.email': 'Email must be a valid email address',
-      'string.empty': 'Email is required'
-    }),
-  password: Joi.string()
-    .min(8)
-    .required()
-    .messages({
-      'string.min': 'Password must be at least 8 characters',
-      'string.empty': 'Password is required'
-    })
-});
+function normalize(obj) {
+  return (obj && typeof obj === 'object') ? obj : {};
+}
 
-module.exports = {
-  loginSchema,
-  registerSchema
+function isValidEmail(email) {
+  if (typeof email !== 'string') return false;
+  // Simple RFC5322-ish check (good enough for server-side basic validation)
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function makeError(messages) {
+  return { error: { details: messages.map((m) => ({ message: String(m) })) } };
+}
+
+const loginSchema = {
+  validate(data) {
+    const body = normalize(data);
+    const errors = [];
+
+    if (!body.email || !isValidEmail(body.email)) {
+      errors.push('Email is required and must be a valid email address.');
+    }
+    if (!body.password || String(body.password).length < 6) {
+      errors.push('Password is required and must be at least 6 characters long.');
+    }
+
+    if (errors.length) return makeError(errors);
+    return { value: { email: String(body.email), password: String(body.password) } };
+  },
 };
+
+const registerSchema = {
+  validate(data) {
+    const body = normalize(data);
+    const errors = [];
+
+    if (!body.email || !isValidEmail(body.email)) {
+      errors.push('Email is required and must be a valid email address.');
+    }
+    if (!body.password || String(body.password).length < 6) {
+      errors.push('Password is required and must be at least 6 characters long.');
+    }
+    // "name" optional, but if present must be a non-empty string
+    if (body.name !== undefined && (typeof body.name !== 'string' || body.name.trim() === '')) {
+      errors.push('Name, if provided, must be a non-empty string.');
+    }
+
+    if (errors.length) return makeError(errors);
+
+    const value = {
+      email: String(body.email),
+      password: String(body.password),
+    };
+    if (typeof body.name === 'string' && body.name.trim() !== '') {
+      value.name = body.name.trim();
+    }
+    return { value };
+  },
+};
+
+module.exports = { loginSchema, registerSchema };
+// --- REPLACE END ---

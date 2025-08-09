@@ -1,27 +1,35 @@
-// src/api/routes/featureFlagRoutes.js
+// --- REPLACE START: convert ESM import/export to CommonJS; keep logic intact ---
+'use strict';
 
-import express from 'express';
-import { loadFeatureFlags, isFeatureEnabled } from '../../utils/featureToggle.js';
+const express = require('express');
+const { loadFeatureFlags, isFeatureEnabled } = require('../../utils/featureToggle.js');
 
 const router = express.Router();
 let currentFlags = {};
 
-// Hae kaikki flagit
+/**
+ * Get all feature flags
+ */
 router.get('/feature-flags', (req, res) => {
   res.json(currentFlags);
 });
 
-// Päivitä flagit
+/**
+ * Update feature flags
+ */
 router.post('/feature-flags', (req, res) => {
   currentFlags = req.body;
   loadFeatureFlags(currentFlags);
   res.json({ success: true, flags: currentFlags });
 });
 
-// Tarkista yksittäinen
+/**
+ * Check a single flag
+ */
 router.get('/feature-flags/:flag', (req, res) => {
   const { flag } = req.params;
   res.json({ flag, enabled: isFeatureEnabled(flag) });
 });
 
-export default router;
+module.exports = router;
+// --- REPLACE END ---

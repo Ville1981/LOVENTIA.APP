@@ -1,15 +1,16 @@
-// src/controllers/messagesOverview.js
 // Controller for GET /api/messages/overview
 // Returns a list of conversations for the authenticated user
 
-import { getConversationsForUser } from '../services/conversationService';
+// --- REPLACE START: convert ESM import/exports to CommonJS ---
+const { getConversationsForUser } = require('../services/conversationService');
+// --- REPLACE END ---
 
 /**
  * GET /api/messages/overview
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  */
-export async function getMessagesOverview(req, res) {
+async function getMessagesOverview(req, res) {
   try {
     const userId = req.user.id;
     // Fetch conversations with last message & timestamp
@@ -23,5 +24,6 @@ export async function getMessagesOverview(req, res) {
   }
 }
 
-// Remember to register this controller in your Express router:
-//   router.get('/api/messages/overview', authenticate, getMessagesOverview);
+// --- REPLACE START: export function in CommonJS ---
+module.exports = { getMessagesOverview };
+// --- REPLACE END ---

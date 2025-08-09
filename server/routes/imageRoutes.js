@@ -1,14 +1,23 @@
 // server/routes/imageRoutes.js
 
-// --- REPLACE START: switch to ESM import of our multer “upload” middleware ---
+// --- REPLACE START: ESM imports & CJS interop (User/Image), keep existing behavior ---
 import express from 'express';
 import path from 'path';
 import fs from 'fs/promises';
 import sharp from 'sharp';
+
+// Auth + upload middlewares (ESM)
 import authenticate from '../middleware/authenticate.js';
-import { upload } from '../config/multer.js';  // <-- correct named import
-import Image from '../models/Image.js';
-import User from '../models/User.js';
+import { upload } from '../config/multer.js';
+
+// Models
+// Interop for CommonJS-exported User (works whether it exports default or module.exports)
+import * as UserModule from '../models/User.js';
+const User = UserModule.default || UserModule;
+
+// Interop for Image model as well (avoids the same default import crash if it's CommonJS)
+import * as ImageModule from '../models/Image.js';
+const Image = ImageModule.default || ImageModule;
 // --- REPLACE END ---
 
 const router = express.Router();
@@ -156,6 +165,7 @@ router.post(
         cropHeight,
         caption
       } = req.body;
+
       const user = await User.findById(userId);
       if (!user) {
         return res.status(404).json({ error: 'User not found' });

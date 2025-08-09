@@ -1,5 +1,6 @@
-// server/src/integrations/spotifyService.js
-import SpotifyWebApi from 'spotify-web-api-node';
+// --- REPLACE START: convert ESM import/exports to CommonJS ---
+const SpotifyWebApi = require('spotify-web-api-node');
+// --- REPLACE END ---
 
 const spotifyApi = new SpotifyWebApi({
   clientId: process.env.SPOTIFY_CLIENT_ID,
@@ -7,15 +8,15 @@ const spotifyApi = new SpotifyWebApi({
   redirectUri: process.env.SPOTIFY_REDIRECT_URI,
 });
 
-// Sessionissa tai cronissa: hae access token ennen kutsuja
+// Session or cron: obtain access token before calls
 // spotifyApi.setAccessToken('<token>');
 
 /**
- * Hakee soittolistan tiedot ja kappaleet
+ * Fetches playlist details and tracks.
  * @param {string} playlistId
- * @returns {Promise<Object>} Soittolistan objekti
+ * @returns {Promise<Object>} Playlist object
  */
-export async function fetchSpotifyPlaylist(playlistId) {
+async function fetchSpotifyPlaylist(playlistId) {
   if (!spotifyApi.getAccessToken()) {
     const data = await spotifyApi.clientCredentialsGrant();
     spotifyApi.setAccessToken(data.body['access_token']);
@@ -26,10 +27,14 @@ export async function fetchSpotifyPlaylist(playlistId) {
 }
 
 /**
- * Palauttaa upotus-URL:n soittolistalle
+ * Returns the embed URL for a playlist.
  * @param {string} playlistId
  * @returns {string} Embed URL
  */
-export function getSpotifyEmbedUrl(playlistId) {
+function getSpotifyEmbedUrl(playlistId) {
   return `https://open.spotify.com/embed/playlist/${playlistId}`;
 }
+
+// --- REPLACE START: export functions in CommonJS ---
+module.exports = { fetchSpotifyPlaylist, getSpotifyEmbedUrl };
+// --- REPLACE END ---

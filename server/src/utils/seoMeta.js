@@ -1,14 +1,15 @@
-// File: client/src/utils/seoMeta.js
+// File: server/src/utils/seoMeta.js
 
-import React from 'react';
-import { Helmet } from 'react-helmet';
+// --- REPLACE START: convert ESM to CommonJS while preserving React usage ---
+const React = require('react');
+const { Helmet } = require('react-helmet');
 
 /**
  * SeoMeta
  * React component to inject meta tags for SEO and social sharing.
  * @param {{ title: string, description: string, url: string, image?: string }} props
  */
-export function SeoMeta({ title, description, url, image }) {
+function SeoMeta({ title, description, url, image }) {
   return (
     <Helmet>
       <title>{title}</title>
@@ -30,3 +31,6 @@ export function SeoMeta({ title, description, url, image }) {
     </Helmet>
   );
 }
+
+module.exports = { SeoMeta };
+// --- REPLACE END ---

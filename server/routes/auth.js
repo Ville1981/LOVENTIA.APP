@@ -1,27 +1,169 @@
-// File: server/src/routes/auth.js
-// @ts-nocheck
+// server/routes/auth.js
 
+// --- REPLACE START: Make ESM modules work cleanly (no require in ESM), keep dynamic imports ---
+import 'dotenv/config';
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import cookieParser from 'cookie-parser';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
-import 'dotenv/config';
+import path from 'path';
+import { fileURLToPath, pathToFileURL } from 'url';
+import { createRequire } from 'module';
 
-import User from '../models/User.js';
-// --- REPLACE START: correct import path for sendEmail ---
-import sendEmail from '../src/utils/sendEmail.js';
-// --- REPLACE END ---
-import { registerUser, loginUser } from '../controllers/userController.js';
-import upload from '../middleware/upload.js';
-import authenticate from '../middleware/authenticate.js';
-import { sanitizeAndValidateProfile } from '../middleware/profileValidator.js';
-import { validateRegister, validateLogin } from '../middleware/validators/auth.js';
-// --- REPLACE START: correct import path for cookieOptions ---
-import { cookieOptions } from '../src/utils/cookieOptions.js';
-// --- REPLACE END ---
+const require = createRequire(import.meta.url);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = path.dirname(__filename);
 
 const router = express.Router();
+
+// --- Models (prefer .cjs under "type": "module"; fall back to .js if needed) ---
+let User;
+try {
+  // Primary: CommonJS model renamed to .cjs
+  // eslint-disable-next-line import/no-commonjs
+  User = require('../models/User.cjs');
+} catch (_) {
+  try {
+    // Fallback: if still .js but CommonJS exports
+    // eslint-disable-next-line import/no-commonjs
+    const maybe = require('../models/User.js');
+    User = maybe?.default || maybe;
+  } catch (e) {
+    throw new Error(
+      '[routes/auth.js] Could not load User model. Ensure server/models/User.cjs exists ' +
+      'or keep a CommonJS server/models/User.js (module.exports = UserModel). Original error: ' + e.message
+    );
+  }
+}
+
+// --- Utils (dynamic import because these are ESM in /src) ---
+function toURL(p) {
+  return pathToFileURL(path.resolve(__dirname, p)).href;
+}
+
+const sendEmailURL     = toURL('../src/utils/sendEmail.js');
+const cookieOptionsURL = toURL('../src/utils/cookieOptions.js');
+
+let _sendEmailPromise = null;
+let _cookieOptsPromise = null;
+
+async function loadSendEmail() {
+  if (!_sendEmailPromise) _sendEmailPromise = import(sendEmailURL);
+  const mod = await _sendEmailPromise;
+  // default export or named function
+  return mod.default || mod.sendEmail || mod;
+}
+
+async function loadCookieOptions() {
+  if (!_cookieOptsPromise) _cookieOptsPromise = import(cookieOptionsURL);
+  const mod = await _cookieOptsPromise;
+  // named export { cookieOptions } or default with cookieOptions
+  return mod.cookieOptions || mod.default?.cookieOptions || {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'Strict',
+    path: '/',
+  };
+}
+
+// --- Dynamic imports for ESM controllers/middlewares ---
+const userControllerURL   = toURL('../controllers/userController.js');
+const uploadURL           = toURL('../middleware/upload.js');
+const authenticateURL     = toURL('../middleware/authenticate.js');
+const profileValidatorURL = toURL('../middleware/profileValidator.js');
+const validatorsURL       = toURL('../middleware/validators/auth.js');
+
+let _userControllerPromise = null;
+function loadUserController() {
+  if (!_userControllerPromise) _userControllerPromise = import(userControllerURL);
+  return _userControllerPromise;
+}
+
+async function registerUser(req, res, next) {
+  try {
+    const m = await loadUserController();
+    const fn = m.registerUser || m.default?.registerUser || m.default || m;
+    return fn(req, res, next);
+  } catch (err) {
+    return next(err);
+  }
+}
+
+async function loginUser(req, res, next) {
+  try {
+    const m = await loadUserController();
+    const fn = m.loginUser || m.default?.loginUser || m.default || m;
+    return fn(req, res, next);
+  } catch (err) {
+    return next(err);
+  }
+}
+
+// upload wrapper: preserve .fields([...]) API for our multer-based middleware
+const upload = {
+  fields: (spec) => {
+    return async (req, res, next) => {
+      try {
+        const m = await import(uploadURL);
+        const u = m.default || m.upload || m;
+        if (!u?.fields) {
+          throw new TypeError('Upload middleware missing .fields() method');
+        }
+        const handler = u.fields(spec);
+        return handler(req, res, next);
+      } catch (err) {
+        return next(err);
+      }
+    };
+  },
+};
+
+// authenticate wrapper
+async function authenticate(req, res, next) {
+  try {
+    const m = await import(authenticateURL);
+    const fn = m.default || m.authenticate || m;
+    return fn(req, res, next);
+  } catch (err) {
+    return next(err);
+  }
+}
+
+// sanitize + validate profile wrapper
+async function sanitizeAndValidateProfile(req, res, next) {
+  try {
+    const m = await import(profileValidatorURL);
+    const fn =
+      m.sanitizeAndValidateProfile ||
+      m.default?.sanitizeAndValidateProfile ||
+      m.default || m;
+    return fn(req, res, next);
+  } catch (err) {
+    return next(err);
+  }
+}
+
+// validators: validateRegister / validateLogin
+async function validateRegister(req, res, next) {
+  try {
+    const m = await import(validatorsURL);
+    const fn = m.validateRegister || m.default?.validateRegister || m.default || m;
+    return fn(req, res, next);
+  } catch (err) {
+    return next(err);
+  }
+}
+async function validateLogin(req, res, next) {
+  try {
+    const m = await import(validatorsURL);
+    const fn = m.validateLogin || m.default?.validateLogin || m.default || m;
+    return fn(req, res, next);
+  } catch (err) {
+    return next(err);
+  }
+}
+// --- REPLACE END ---
 
 // parse JSON, urlencoded bodies, and cookies
 router.use(express.json());
@@ -32,18 +174,20 @@ router.use(cookieParser());
 // 1) Refresh Access Token
 //    POST /api/auth/refresh
 // -----------------------------
-router.post('/refresh', (req, res) => {
+router.post('/refresh', async (req, res) => {
   const token = req.cookies && req.cookies.refreshToken;
   if (!token) {
     return res.status(401).json({ error: 'No refresh token provided' });
   }
   try {
     const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
-    if (!decoded || !decoded.userId) {
+    // Be tolerant: some code uses { id }, others use { userId }
+    const userId = decoded?.userId || decoded?.id;
+    if (!userId) {
       return res.status(401).json({ error: 'Invalid token payload' });
     }
     const accessToken = jwt.sign(
-      { userId: decoded.userId, role: decoded.role },
+      { userId, role: decoded.role },
       process.env.JWT_SECRET,
       { expiresIn: '15m' }
     );
@@ -58,8 +202,9 @@ router.post('/refresh', (req, res) => {
 // 2) Logout User
 //    POST /api/auth/logout
 // -----------------------------
-router.post('/logout', (req, res) => {
+router.post('/logout', async (req, res) => {
   try {
+    const cookieOptions = await loadCookieOptions();
     res.clearCookie('refreshToken', cookieOptions);
     return res.json({ message: 'Logout successful' });
   } catch (err) {
@@ -92,12 +237,15 @@ router.post('/forgot-password', async (req, res) => {
   try {
     const user = await User.findOne({ email });
     if (!user) {
+      // Do not reveal whether an email exists
       return res.json({ message: 'If that email is registered, a reset link has been sent' });
     }
+
     const token = crypto.randomBytes(32).toString('hex');
-    user.passwordResetToken = crypto.createHash('sha256').update(token).digest('hex');
-    user.passwordResetExpires = Date.now() + 3600000; // 1h
+    user.passwordResetToken   = crypto.createHash('sha256').update(token).digest('hex');
+    user.passwordResetExpires = Date.now() + 3600000; // 1 hour
     await user.save();
+
     const resetURL = `${process.env.CLIENT_URL}/reset-password?token=${token}&id=${user._id}`;
     const message = [
       'You requested a password reset. Click the link below to set a new password:',
@@ -105,6 +253,8 @@ router.post('/forgot-password', async (req, res) => {
       '',
       'If you did not request this, ignore this email.'
     ].join('\n\n');
+
+    const sendEmail = await loadSendEmail();
     await sendEmail(user.email, 'Password Reset Request', message);
     return res.json({ message: 'If that email is registered, a reset link has been sent' });
   } catch (err) {
@@ -132,10 +282,12 @@ router.post('/reset-password', async (req, res) => {
     if (!user) {
       return res.status(400).json({ error: 'Invalid or expired reset token' });
     }
+
     user.password = await bcrypt.hash(newPassword, 10);
     user.passwordResetToken = undefined;
     user.passwordResetExpires = undefined;
     await user.save();
+
     return res.json({ message: 'Password has been reset successfully' });
   } catch (err) {
     console.error('Reset password error:', err);
@@ -149,7 +301,8 @@ router.post('/reset-password', async (req, res) => {
 // -----------------------------
 router.get('/me', authenticate, async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId).select('-password');
+    const userId = req.user?.userId || req.user?.id || req.user?._id;
+    const user = await User.findById(userId).select('-password');
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -175,33 +328,52 @@ router.put(
   async (req, res) => {
     try {
       const updateData = {};
+
+      // Geo fields
       if (req.body.latitude !== undefined) {
         const lat = parseFloat(req.body.latitude);
-        if (!isNaN(lat)) updateData.latitude = lat;
+        if (!Number.isNaN(lat)) updateData.latitude = lat;
       }
       if (req.body.longitude !== undefined) {
         const lng = parseFloat(req.body.longitude);
-        if (!isNaN(lng)) updateData.longitude = lng;
+        if (!Number.isNaN(lng)) updateData.longitude = lng;
       }
+
+      // Optional location object
       if (req.body.location) {
         const loc = req.body.location;
         if (loc.country) updateData.country = loc.country;
-        if (loc.region) updateData.region = loc.region;
-        if (loc.city) updateData.city = loc.city;
+        if (loc.region)  updateData.region  = loc.region;
+        if (loc.city)    updateData.city    = loc.city;
         if (loc.manualCountry) updateData.customCountry = loc.manualCountry;
-        if (loc.manualRegion) updateData.customRegion = loc.manualRegion;
-        if (loc.manualCity) updateData.customCity = loc.manualCity;
+        if (loc.manualRegion)  updateData.customRegion  = loc.manualRegion;
+        if (loc.manualCity)    updateData.customCity    = loc.manualCity;
       }
+
+      // Whitelisted profile fields
       [
         'name','email','age','height','weight','status','religion',
         'children','pets','summary','goal','lookingFor','bodyType',
         'weightUnit','profession','professionCategory'
-      ].forEach(field => {
+      ].forEach((field) => {
         if (req.body[field] !== undefined) updateData[field] = req.body[field];
       });
-      if (req.files.image) updateData.profilePicture = `uploads/${req.files.image[0].filename}`;
-      if (req.files.extraImages) updateData.extraImages = req.files.extraImages.map(f => `uploads/${f.filename}`);
-      const updated = await User.findByIdAndUpdate(req.user.userId, updateData, { new: true }).select('-password');
+
+      // Files
+      if (req.files && req.files.image) {
+        updateData.profilePicture = `uploads/${req.files.image[0].filename}`;
+      }
+      if (req.files && req.files.extraImages) {
+        updateData.extraImages = req.files.extraImages.map((f) => `uploads/${f.filename}`);
+      }
+
+      const userId = req.user?.userId || req.user?.id || req.user?._id;
+      const updated = await User.findByIdAndUpdate(
+        userId,
+        updateData,
+        { new: true }
+      ).select('-password');
+
       return res.json(updated);
     } catch (err) {
       console.error('Profile update error:', err);
@@ -216,7 +388,8 @@ router.put(
 // -----------------------------
 router.delete('/delete', authenticate, async (req, res) => {
   try {
-    await User.findByIdAndDelete(req.user.userId);
+    const userId = req.user?.userId || req.user?.id || req.user?._id;
+    await User.findByIdAndDelete(userId);
     return res.json({ message: 'Account deleted successfully' });
   } catch (err) {
     console.error('Account deletion error:', err);
@@ -224,5 +397,4 @@ router.delete('/delete', authenticate, async (req, res) => {
   }
 });
 
-// ESM export
 export default router;

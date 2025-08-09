@@ -1,19 +1,28 @@
-// src/utils/tokenService.js
-// Utility for JWT generation and verification (access & refresh tokens)
+// File: server/src/utils/tokenService.js
 
-import jwt from 'jsonwebtoken';
+// --- REPLACE START: convert to CommonJS and support both env var name styles ---
+const jwt = require('jsonwebtoken');
 
-const ACCESS_SECRET = process.env.ACCESS_TOKEN_SECRET;
-const REFRESH_SECRET = process.env.REFRESH_TOKEN_SECRET;
-const ACCESS_EXPIRES = '15m'; // access tokens valid for 15 minutes
-const REFRESH_EXPIRES = '7d'; // refresh tokens valid for 7 days
+// Support both naming schemes to avoid env drift across files
+const ACCESS_SECRET =
+  process.env.ACCESS_TOKEN_SECRET ||
+  process.env.JWT_SECRET ||
+  'dev_access_secret_change_me';
+
+const REFRESH_SECRET =
+  process.env.REFRESH_TOKEN_SECRET ||
+  process.env.JWT_REFRESH_SECRET ||
+  'dev_refresh_secret_change_me';
+
+const ACCESS_EXPIRES = process.env.ACCESS_TOKEN_TTL || '15m';
+const REFRESH_EXPIRES = process.env.REFRESH_TOKEN_TTL || '7d';
 
 /**
  * Generate a signed access token for a given payload
- * @param {Object} payload - Data to embed in token (e.g., { id: userId })
+ * @param {Object} payload - Data to embed in token (e.g., { userId, role })
  * @returns {string}
  */
-export function generateAccessToken(payload) {
+function generateAccessToken(payload) {
   return jwt.sign(payload, ACCESS_SECRET, { expiresIn: ACCESS_EXPIRES });
 }
 
@@ -22,10 +31,8 @@ export function generateAccessToken(payload) {
  * @param {Object} payload
  * @returns {string}
  */
-export function generateRefreshToken(payload) {
-  return jwt.sign(payload, REFRESH_SECRET, {
-    expiresIn: REFRESH_EXPIRES,
-  });
+function generateRefreshToken(payload) {
+  return jwt.sign(payload, REFRESH_SECRET, { expiresIn: REFRESH_EXPIRES });
 }
 
 /**
@@ -33,7 +40,7 @@ export function generateRefreshToken(payload) {
  * @param {string} token
  * @returns {Object} Decoded payload
  */
-export function verifyAccessToken(token) {
+function verifyAccessToken(token) {
   return jwt.verify(token, ACCESS_SECRET);
 }
 
@@ -42,6 +49,14 @@ export function verifyAccessToken(token) {
  * @param {string} token
  * @returns {Object} Decoded payload
  */
-export function verifyRefreshToken(token) {
+function verifyRefreshToken(token) {
   return jwt.verify(token, REFRESH_SECRET);
 }
+
+module.exports = {
+  generateAccessToken,
+  generateRefreshToken,
+  verifyAccessToken,
+  verifyRefreshToken,
+};
+// --- REPLACE END ---

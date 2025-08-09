@@ -1,28 +1,31 @@
-// src/api/routes/referralRoutes.js
+// --- REPLACE START: convert ESM to CommonJS and fix auth path; keep logic intact ---
+'use strict';
 
-import express from 'express';
-import {
+const express = require('express');
+const {
   createReferral,
   getReferralStatus,
-  listReferrals
-} from '../controllers/ReferralController.js';
-import auth from '../middleware/auth.js';
+  listReferrals,
+} = require('../controllers/ReferralController.js');
+// Use the centralized authenticate middleware under server/src/middleware
+const authenticate = require('../../middleware/authenticate.js');
 
 const router = express.Router();
 
 /**
- * Luo uuden referral-linkin nykyiselle käyttäjälle
+ * Create a new referral link for the current user
  */
-router.post('/referral', auth, createReferral);
+router.post('/referral', authenticate, createReferral);
 
 /**
- * Hakee referral-statuksen referral-koodilla
+ * Get referral status by referral code
  */
 router.get('/referral/:code', getReferralStatus);
 
 /**
- * Listaa kaikki referral-linkit kirjautuneelle käyttäjälle
+ * List all referral links for the authenticated user
  */
-router.get('/referrals', auth, listReferrals);
+router.get('/referrals', authenticate, listReferrals);
 
-export default router;
+module.exports = router;
+// --- REPLACE END ---

@@ -1,16 +1,20 @@
-// src/content/blog/AutoPublishScheduler.js  (Server-side)
+// --- REPLACE START: convert ESM to CommonJS; keep logic intact and paths robust ---
+'use strict';
 
-import cron from 'node-cron';
-import { BlogEngine } from './BlogEngine.js';
+const cron = require('node-cron');
+const { BlogEngine } = require('./BlogEngine.js');
 
 /**
- * Ajoittaa automaattisen julkaisun cron-ajastimella joka tunti
+ * Schedules automatic publishing with a cron timer every hour
  */
-export function initAutoPublish() {
+function initAutoPublish() {
   cron.schedule('0 * * * *', async () => {
     const now = new Date();
-    // Hae postit joiden publishDate <= nyt ja merkitse ne julkisiksi
+    // Fetch posts whose publishDate <= now and mark them as public
     const posts = await BlogEngine.getPublishedPosts();
     console.log(`Auto-publish check at ${now.toISOString()}, found ${posts.length} posts.`);
   });
 }
+
+module.exports = { initAutoPublish };
+// --- REPLACE END ---

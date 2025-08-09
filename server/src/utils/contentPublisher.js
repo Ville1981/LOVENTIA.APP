@@ -1,7 +1,9 @@
-// server/src/utils/contentPublisher.js
-import fs from 'fs';
-import path from 'path';
-import yaml from 'js-yaml';
+// File: server/src/utils/contentPublisher.js
+
+// --- REPLACE START: convert ESM to CommonJS (keep behavior and structure) ---
+const fs = require('fs');
+const path = require('path');
+const yaml = require('js-yaml');
 
 const CONTENT_DIR = path.resolve(process.cwd(), 'content');
 const SCHEDULE_FILE = path.join(CONTENT_DIR, 'schedule.yaml');
@@ -10,7 +12,7 @@ const SCHEDULE_FILE = path.join(CONTENT_DIR, 'schedule.yaml');
  * Publish all scheduled articles whose publishDate <= now.
  * Moves file from drafts/ to posts/ and updates schedule.
  */
-export async function publishScheduledArticles() {
+async function publishScheduledArticles() {
   const now = new Date();
   let schedule = yaml.load(fs.readFileSync(SCHEDULE_FILE, 'utf8')) || [];
 
@@ -28,3 +30,8 @@ export async function publishScheduledArticles() {
   schedule = schedule.filter(item => new Date(item.publishDate) > now);
   fs.writeFileSync(SCHEDULE_FILE, yaml.dump(schedule));
 }
+
+module.exports = {
+  publishScheduledArticles,
+};
+// --- REPLACE END ---

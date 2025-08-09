@@ -1,102 +1,56 @@
-// File: server/models/User.js
+// server/models/User.js
+// --- REPLACE START: ESM wrapper that default-exports the CommonJS User model ---
+//
+// Why this file exists:
+// - Your project runs ESM ("type": "module" in package.json).
+// - The *actual* Mongoose model implementation is in CommonJS at server/models/User.cjs
+// - Many parts of the code import with:  import User from '../models/User.js'
+//   This wrapper bridges ESM <-> CJS so both worlds keep working.
+//
+// What changed:
+// - We now load the CJS model via createRequire() and export it as the ESM default.
+// - We also provide a named export for convenience/consistency.
+// - Added defensive checks and explicit error messages to simplify debugging.
+//
 
-// --- REPLACE START: Convert to CommonJS + add findByCredentials static for Jest/dev ---
-'use strict';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
 
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+let LoadedUser;
 
-// Define User schema with all necessary fields
-const userSchema = new mongoose.Schema(
-  {
-    username:           { type: String, required: true, unique: true, trim: true },
-    email:              { type: String, required: true, unique: true, lowercase: true, trim: true },
-    password:           { type: String, required: true }, // expects a bcrypt hash in prod
-    role:               { type: String, enum: ['user', 'admin'], default: 'user' },
-    isPremium:          { type: Boolean, default: false },
-
-    // Profile details
-    name:               String,
-    age:                Number,
-    gender:             String,
-    status:             String,
-    religion:           String,
-    children:           String,
-    pets:               String,
-    summary:            String,
-    goal:               String,
-    lookingFor:         String,
-    profession:         String,
-    professionCategory: String,
-    bodyType:           String,
-    height:             Number,
-    heightUnit:         String,
-    weight:             Number,
-    weightUnit:         String,
-    location:           { country: String, region: String, city: String },
-    latitude:           Number,
-    longitude:          Number,
-
-    // Images
-    profilePicture:     String,
-    extraImages:        [String],
-
-    // Password reset
-    passwordResetToken:   String,
-    passwordResetExpires: Date,
-  },
-  { timestamps: true }
-);
-
-/**
- * Optional convenience: normalize id field (string) for controllers/tests that read user.id.
- */
-userSchema.virtual('id').get(function () {
-  try {
-    return this._id ? this._id.toString() : undefined;
-  } catch {
-    return undefined;
-  }
-});
-
-/**
- * Static: findByCredentials(email, password)
- * - Looks up by email (case-insensitive)
- * - Compares bcrypt hash in `password` field
- * - For legacy/plaintext test data, falls back to direct equality if the stored value
- *   does not look like a bcrypt hash.
- */
-userSchema.statics.findByCredentials = async function (email, password) {
-  if (!email || !password) return null;
-
-  const candidate = await this.findOne({ email: String(email).toLowerCase().trim() }).exec();
-  if (!candidate) return null;
-
-  const stored = candidate.password || '';
-  const looksHashed = /^\$2[aby]\$[0-9]{2}\$/.test(stored);
-
-  if (looksHashed) {
-    const ok = await bcrypt.compare(password, stored);
-    if (!ok) return null;
-    return candidate;
-  }
-
-  // Fallback for tests/seed data with plaintext passwords
-  if (stored === password) {
-    return candidate;
-  }
-
-  return null;
-};
-
-let UserModel;
-
-// Avoid OverwriteModelError in watch mode/tests
+// Try to load the CommonJS implementation
 try {
-  UserModel = mongoose.model('User');
-} catch (_) {
-  UserModel = mongoose.model('User', userSchema);
+  // Load the compiled/primary model implementation
+  // NOTE: Do not change this path unless you actually move User.cjs
+  // Keep the model logic in .cjs to avoid ESM/CJS mixing issues with Mongoose.
+  // eslint-disable-next-line import/no-commonjs
+  const maybeModule = require('./User.cjs');
+
+  // Interop: in case someone wrapped it and exported as default
+  LoadedUser = maybeModule && maybeModule.default ? maybeModule.default : maybeModule;
+
+  if (typeof LoadedUser !== 'function') {
+    throw new TypeError(
+      '[models/User.js] Loaded User model is not a constructor/function. ' +
+      'Ensure server/models/User.cjs exports the Mongoose model via module.exports = UserModel;'
+    );
+  }
+} catch (err) {
+  // Surface a very explicit error so the root cause is obvious in logs
+  // (paths, CJS vs ESM, etc.)
+  const details = (err && err.message) ? `\nOriginal error: ${err.message}` : '';
+  throw new Error(
+    '[models/User.js] Failed to load CommonJS model from ./User.cjs. ' +
+    'This ESM wrapper requires the CJS file to exist and export the model via module.exports.' +
+    details
+  );
 }
 
-module.exports = UserModel;
+// ESM default export (what most of the app uses)
+export default LoadedUser;
+
+// Optional named exports for convenience in ESM land
+export const User = LoadedUser;
+export const UserModel = LoadedUser;
+
 // --- REPLACE END ---

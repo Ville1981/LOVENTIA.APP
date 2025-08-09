@@ -1,23 +1,49 @@
 // File: server/src/routes/authRoutes.js
 
-import { Router } from 'express';
-import {
-  login,
-  refreshToken,
-  logout,
-} from '../controllers/authController.js';
+// --- REPLACE START: CommonJS auth routes wired to controller (no ESM) ---
+'use strict';
 
-const router = Router();
+const path = require('path');
+const express = require('express');
+const router = express.Router();
 
-// --- REPLACE START: define auth routes clearly with proper HTTP verbs ---
-// Login route - authenticates user and issues tokens
-router.post('/login', login);
+// Import controller via safe absolute path from src/
+const authController = require(path.resolve(__dirname, '../api/controllers/authController.js'));
 
-// Refresh route - validates refresh token and returns new access token
-router.post('/refresh', refreshToken);
+// Optional validators (only if app-level middleware isn't already validating)
+let validateBody, loginSchema, registerSchema;
+try {
+  ({ validateBody } = require(path.resolve(__dirname, '../../middleware/validateRequest.js')));
+  ({ loginSchema, registerSchema } = require(path.resolve(__dirname, '../validators/authValidator.js')));
+} catch (_) {
+  // Validators are optional; if not present, routes still work.
+}
 
-// Logout route - clears refresh token cookie
-router.post('/logout', logout);
+// Login
+if (validateBody && loginSchema) {
+  router.post('/login', validateBody(loginSchema), authController.login);
+} else {
+  router.post('/login', authController.login);
+}
+
+// Register (only if controller exposes it)
+if (typeof authController.register === 'function') {
+  if (validateBody && registerSchema) {
+    router.post('/register', validateBody(registerSchema), authController.register);
+  } else {
+    router.post('/register', authController.register);
+  }
+}
+
+// Refresh token
+if (typeof authController.refreshToken === 'function') {
+  router.post('/refresh', authController.refreshToken);
+}
+
+// Logout
+if (typeof authController.logout === 'function') {
+  router.post('/logout', authController.logout);
+}
+
+module.exports = router;
 // --- REPLACE END ---
-
-export default router;

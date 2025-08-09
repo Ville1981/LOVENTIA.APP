@@ -1,17 +1,15 @@
-// src/controllers/messages.js
 // Controller for GET/POST /api/messages/:userId
 // Handles fetching and saving messages between two users
 
-import {
-  fetchMessagesBetween,
-  saveMessage,
-} from '../services/messageService';
+// --- REPLACE START: convert ESM import/exports to CommonJS ---
+const { fetchMessagesBetween, saveMessage } = require('../services/messageService');
+// --- REPLACE END ---
 
 /**
  * GET /api/messages/:userId
  * Fetches message history between req.user.id and param userId
  */
-export async function getMessages(req, res) {
+async function getMessages(req, res) {
   try {
     const me = req.user.id;
     const peer = req.params.userId;
@@ -30,7 +28,7 @@ export async function getMessages(req, res) {
  * Saves a new message from req.user.id to param userId
  * Body: { text: string }
  */
-export async function postMessage(req, res) {
+async function postMessage(req, res) {
   try {
     const sender = req.user.id;
     const recipient = req.params.userId;
@@ -50,6 +48,6 @@ export async function postMessage(req, res) {
   }
 }
 
-// Remember to register these in your Express router:
-//   router.get('/api/messages/:userId', authenticate, getMessages);
-//   router.post('/api/messages/:userId', authenticate, postMessage);
+// --- REPLACE START: export functions in CommonJS ---
+module.exports = { getMessages, postMessage };
+// --- REPLACE END ---

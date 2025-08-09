@@ -7,8 +7,14 @@ import mongoose from 'mongoose';
 import multer from 'multer';
 import { body, validationResult } from 'express-validator';
 
-import User from '../models/User.js';
-import {
+// --- REPLACE START: interop for CommonJS User model ---
+import * as UserModule from '../models/User.js';
+const User = UserModule.default || UserModule;
+// --- REPLACE END ---
+
+// --- REPLACE START: interop for controllers (works with ESM or CommonJS) ---
+import * as UC from '../controllers/userController.js';
+const {
   registerUser,
   loginUser,
   getMatchesWithScore,
@@ -16,7 +22,9 @@ import {
   uploadExtraPhotos,
   uploadPhotoStep,
   deletePhotoSlot,
-} from '../controllers/userController.js';
+} = (UC.default || UC);
+// --- REPLACE END ---
+
 // --- REPLACE START: import authenticate middleware correctly ---
 import authenticate from '../middleware/authenticate.js';
 // --- REPLACE END ---
@@ -107,7 +115,9 @@ router.put(
       }
 
       if (req.files?.extraImages) {
-        user.extraImages.forEach(removeFile);
+        if (Array.isArray(user.extraImages)) {
+          user.extraImages.forEach(removeFile);
+        }
         user.extraImages = req.files.extraImages.map((f) => f.path);
       }
 
@@ -222,19 +232,4 @@ router.get('/:id', async (req, res) => {
 });
 
 export default router;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
