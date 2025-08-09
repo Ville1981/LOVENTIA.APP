@@ -16,6 +16,10 @@ import { handlers } from './handlers';
 // Create the service worker with provided request handlers
 export const worker = setupWorker(...handlers);
 
-// --- REPLACE START: do NOT auto-start here; main.tsx controls .start() ---
-/* worker.start() is intentionally invoked from main.tsx */
+// --- REPLACE START: do NOT auto-start here; main entry controls .start() ---
+/*
+  Important:
+  - Call worker.start() manually from your main.jsx/main.tsx if you want MSW active in dev.
+  - This avoids running MSW unintentionally in production builds.
+*/
 // --- REPLACE END ---

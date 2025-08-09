@@ -1,58 +1,124 @@
-// File: server/src/api/controllers/authController.js
-
-// --- REPLACE START: CommonJS controller with inline JWT flow and safe path resolution ---
+// --- REPLACE START: CommonJS controller with robust CJS/ESM interop and safer auth flow ---
 'use strict';
 
-const path = require('path');
-const jwt = require('jsonwebtoken');
+import path from 'path';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import mongoose from 'mongoose';
+import { fileURLToPath } from 'url';
 
-// cookieOptions sijaitsee src-puolella -> suhteessa tähän tiedostoon
-const { cookieOptions } = require(path.resolve(__dirname, '../../utils/cookieOptions.js'));
+// Resolve __dirname in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// User-malli sijaitsee server/models/User.js (EI src-kansiossa)
-const User = require(path.resolve(__dirname, '../../../models/User.js'));
+// Import centralized cookie options from src/utils, with safe fallback
+let cookieOptions;
+try {
+  const opts = await import(path.resolve(__dirname, '../../utils/cookieOptions.js'));
+  cookieOptions = opts.cookieOptions || opts.default || {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: false,
+    path: '/',
+  };
+} catch (_) {
+  // Sensible dev defaults; adjust for production as needed
+  cookieOptions = {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: false,
+    path: '/',
+  };
+}
+
+// --- Robust User model interop (handles CJS `module.exports` and ESM `export default`) ---
+let User;
+try {
+  const maybe = await import(path.resolve(__dirname, '../../../models/User.js'));
+  User = maybe.default || maybe;
+} catch (e) {
+  // Fallback: if already registered in mongoose.models (because models are imported elsewhere)
+  User = mongoose.models && mongoose.models.User;
+  if (!User) {
+    console.error('[authController] Failed to load User model:', e && e.message);
+  }
+}
+
+// Extra guard: ensure we have a functioning model with `.findOne`
+if (!User || typeof User.findOne !== 'function') {
+  console.error('[authController] User model not usable. Got:', typeof User);
+}
 
 /**
  * POST /api/auth/login
  * Authenticate user and set refreshToken cookie.
  */
-async function login(req, res, next) {
+export async function login(req, res, next) {
   try {
     const { email, password } = req.body;
 
-    // Validate credentials against your user model
-    const user = await User.findByCredentials(email, password);
-    if (!user) {
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
+    if (!User || typeof User.findOne !== 'function') {
+      return res.status(500).json({ error: 'Server user model not available' });
+    }
+
+    // 1) Find user by email
+    const user = await User.findOne({ email });
+    if (!user || !user.password) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Access token (short-lived)
+    // 2) Compare password hash
+    let passwordsMatch = false;
+    try {
+      passwordsMatch = await bcrypt.compare(password, user.password);
+    } catch (cmpErr) {
+      console.error('[authController] bcrypt.compare failed:', cmpErr && cmpErr.message);
+    }
+    if (!passwordsMatch) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // 3) Ensure JWT secrets exist
+    if (!process.env.JWT_SECRET || !process.env.JWT_REFRESH_SECRET) {
+      console.error('[authController] Missing JWT secrets in environment');
+      return res.status(500).json({ error: 'Server misconfiguration' });
+    }
+
+    // 4) Build tokens
+    const uid = user.id || (user._id && user._id.toString && user._id.toString());
+    const role = user.role || 'user';
+
     const accessToken = jwt.sign(
-      { userId: user.id || user._id?.toString?.(), role: user.role },
+      { userId: uid, role },
       process.env.JWT_SECRET,
       { expiresIn: '15m' }
     );
 
-    // Refresh token (httpOnly cookie)
     const refreshToken = jwt.sign(
-      { userId: user.id || user._id?.toString?.(), role: user.role },
+      { userId: uid, role },
       process.env.JWT_REFRESH_SECRET,
       { expiresIn: '7d' }
     );
 
-    // Set cookie with centralized options
+    // 5) Set refresh cookie
     res.cookie('refreshToken', refreshToken, cookieOptions);
 
+    // 6) Respond
     return res.json({
       accessToken,
       user: {
-        id: user.id || user._id?.toString?.(),
+        id: uid,
         email: user.email,
         name: user.name,
+        role,
       },
     });
   } catch (err) {
-    return next(err);
+    console.error('Login error:', err && (err.stack || err.message || err));
+    return res.status(500).json({ error: 'Server error during login' });
   }
 }
 
@@ -60,11 +126,16 @@ async function login(req, res, next) {
  * POST /api/auth/refresh
  * Verify refreshToken cookie and issue new accessToken.
  */
-async function refreshToken(req, res, next) {
+export async function refreshToken(req, res, next) {
   try {
-    const token = req.cookies?.refreshToken;
+    const token = req.cookies && req.cookies.refreshToken;
     if (!token) {
       return res.status(401).json({ error: 'No refresh token provided' });
+    }
+
+    if (!process.env.JWT_SECRET || !process.env.JWT_REFRESH_SECRET) {
+      console.error('[authController] Missing JWT secrets in environment');
+      return res.status(500).json({ error: 'Server misconfiguration' });
     }
 
     return jwt.verify(token, process.env.JWT_REFRESH_SECRET, (err, payload) => {
@@ -72,14 +143,13 @@ async function refreshToken(req, res, next) {
         return res.status(403).json({ error: 'Invalid refresh token' });
       }
 
-      // New access token
       const newAccessToken = jwt.sign(
         { userId: payload.userId, role: payload.role },
         process.env.JWT_SECRET,
         { expiresIn: '15m' }
       );
 
-      // Optional rotation: extend session by re-setting refresh cookie
+      // Optional rotation
       try {
         const rotatedRefresh = jwt.sign(
           { userId: payload.userId, role: payload.role },
@@ -87,14 +157,15 @@ async function refreshToken(req, res, next) {
           { expiresIn: '7d' }
         );
         res.cookie('refreshToken', rotatedRefresh, cookieOptions);
-      } catch (_) {
-        // Rotation failure shouldn't block access token issuance
+      } catch (rotErr) {
+        console.warn('[authController] Refresh rotation failed:', rotErr && rotErr.message);
       }
 
       return res.json({ accessToken: newAccessToken });
     });
   } catch (err) {
-    return next(err);
+    console.error('Refresh error:', err && (err.stack || err.message || err));
+    return res.status(500).json({ error: 'Server error during refresh' });
   }
 }
 
@@ -102,14 +173,14 @@ async function refreshToken(req, res, next) {
  * POST /api/auth/logout
  * Clear refreshToken cookie.
  */
-function logout(req, res) {
-  res.clearCookie('refreshToken', cookieOptions);
-  return res.sendStatus(204);
+export function logout(req, res) {
+  try {
+    res.clearCookie('refreshToken', cookieOptions);
+    return res.sendStatus(204);
+  } catch (err) {
+    console.error('Logout error:', err && (err.stack || err.message || err));
+    return res.status(500).json({ error: 'Logout failed' });
+  }
 }
 
-module.exports = {
-  login,
-  refreshToken,
-  logout,
-};
 // --- REPLACE END ---

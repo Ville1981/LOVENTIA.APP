@@ -1,4 +1,3 @@
-// File: client/src/main.jsx
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 
@@ -35,12 +34,14 @@ if (import.meta.env.DEV) {
   import('./mocks/browser')
     .then(({ worker }) =>
       worker.start({
+        // Bypass requests without explicit handlers (lets real backend handle them)
         onUnhandledRequest: 'bypass',
       })
     )
     .then(bootstrapReactApp)
     .catch((err) => {
       console.error('MSW failed to start', err)
+      // Even if MSW fails, we still want the app to render
       bootstrapReactApp()
     })
 } else {
