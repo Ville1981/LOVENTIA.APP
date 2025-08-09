@@ -1,4 +1,3 @@
-// File: client/src/contexts/AuthContext.jsx
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import api, { setAccessToken } from '../utils/axiosInstance';
 
@@ -19,13 +18,14 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     async function initAuth() {
       try {
-        // --- REPLACE START: call refresh endpoint without extra '/api' ---
+        // --- REPLACE START: call refresh endpoint without extra '/api' and load profile correctly ---
         const refreshRes = await api.post('/auth/refresh');
-        const { accessToken } = refreshRes.data;
+        const { accessToken } = refreshRes.data || {};
         if (accessToken) {
           setAccessToken(accessToken);
           const profileRes = await api.get('/auth/me');
-          setUser(profileRes.data);
+          // server returns { user: {...} }, use the nested object
+          setUser(profileRes.data?.user || null);
         }
         // --- REPLACE END ---
       } catch (err) {
@@ -39,14 +39,14 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async (email, password) => {
-    // --- REPLACE START: call login endpoint without extra '/api' ---
+    // --- REPLACE START: call login endpoint without extra '/api' and set user from /auth/me ---
     const res = await api.post('/auth/login', { email, password });
-    const { accessToken: newToken } = res.data;
-    setAccessToken(newToken);
-    // --- REPLACE END ---
+    const { accessToken: newToken } = res.data || {};
+    if (newToken) setAccessToken(newToken);
     const profileRes = await api.get('/auth/me');
-    setUser(profileRes.data);
-    return profileRes.data;
+    setUser(profileRes.data?.user || null);
+    return profileRes.data?.user || null;
+    // --- REPLACE END ---
   };
 
   const logout = async () => {

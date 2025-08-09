@@ -1,5 +1,3 @@
-// File: server/src/routes/authRoutes.js
-
 // --- REPLACE START: CommonJS auth routes wired to controller (no ESM) ---
 'use strict';
 

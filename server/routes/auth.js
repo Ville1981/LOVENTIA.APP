@@ -1,5 +1,3 @@
-// server/routes/auth.js
-
 // --- REPLACE START: Make ESM modules work cleanly (no require in ESM), keep dynamic imports ---
 import 'dotenv/config';
 import express from 'express';
@@ -9,41 +7,26 @@ import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
-import { createRequire } from 'module';
 
-const require = createRequire(import.meta.url);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
 const router = express.Router();
 
-// --- Models (prefer .cjs under "type": "module"; fall back to .js if needed) ---
-let User;
-try {
-  // Primary: CommonJS model renamed to .cjs
-  // eslint-disable-next-line import/no-commonjs
-  User = require('../models/User.cjs');
-} catch (_) {
-  try {
-    // Fallback: if still .js but CommonJS exports
-    // eslint-disable-next-line import/no-commonjs
-    const maybe = require('../models/User.js');
-    User = maybe?.default || maybe;
-  } catch (e) {
-    throw new Error(
-      '[routes/auth.js] Could not load User model. Ensure server/models/User.cjs exists ' +
-      'or keep a CommonJS server/models/User.js (module.exports = UserModel). Original error: ' + e.message
-    );
-  }
-}
+// --- REPLACE START: Load User model with robust ESM/CJS interop (no require()) ---
+import * as UserModule from '../models/User.js';
+const User = UserModule.default || UserModule;
+// --- REPLACE END ---
 
-// --- Utils (dynamic import because these are ESM in /src) ---
+// Utility to convert relative paths to file URL for dynamic ESM imports
 function toURL(p) {
   return pathToFileURL(path.resolve(__dirname, p)).href;
 }
 
-const sendEmailURL     = toURL('../src/utils/sendEmail.js');
-const cookieOptionsURL = toURL('../src/utils/cookieOptions.js');
+// --- REPLACE START: point utils to server/utils (not src/) ---
+const sendEmailURL     = toURL('../utils/sendEmail.js');
+const cookieOptionsURL = toURL('../utils/cookieOptions.js');
+// --- REPLACE END ---
 
 let _sendEmailPromise = null;
 let _cookieOptsPromise = null;
@@ -57,14 +40,24 @@ async function loadSendEmail() {
 
 async function loadCookieOptions() {
   if (!_cookieOptsPromise) _cookieOptsPromise = import(cookieOptionsURL);
-  const mod = await _cookieOptsPromise;
-  // named export { cookieOptions } or default with cookieOptions
-  return mod.cookieOptions || mod.default?.cookieOptions || {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'Strict',
-    path: '/',
-  };
+  try {
+    const mod = await _cookieOptsPromise;
+    // named export { cookieOptions } or default with cookieOptions
+    return mod.cookieOptions || mod.default?.cookieOptions || {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      path: '/',
+    };
+  } catch (_e) {
+    // Safe fallback if the utils file is missing
+    return {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      path: '/',
+    };
+  }
 }
 
 // --- Dynamic imports for ESM controllers/middlewares ---
@@ -230,7 +223,7 @@ router.post('/login', validateLogin, loginUser);
 //    POST /api/auth/forgot-password
 // -----------------------------
 router.post('/forgot-password', async (req, res) => {
-  const { email } = req.body;
+  const { email } = req.body || {};
   if (!email) {
     return res.status(400).json({ error: 'Email is required' });
   }
@@ -246,7 +239,9 @@ router.post('/forgot-password', async (req, res) => {
     user.passwordResetExpires = Date.now() + 3600000; // 1 hour
     await user.save();
 
-    const resetURL = `${process.env.CLIENT_URL}/reset-password?token=${token}&id=${user._id}`;
+    const base = process.env.CLIENT_URL || 'http://localhost:5174';
+    const resetURL = `${base}/reset-password?token=${token}&id=${user._id}`;
+
     const message = [
       'You requested a password reset. Click the link below to set a new password:',
       resetURL,
@@ -268,7 +263,7 @@ router.post('/forgot-password', async (req, res) => {
 //    POST /api/auth/reset-password
 // -----------------------------
 router.post('/reset-password', async (req, res) => {
-  const { id, token, newPassword } = req.body;
+  const { id, token, newPassword } = req.body || {};
   if (!id || !token || !newPassword) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
@@ -284,7 +279,7 @@ router.post('/reset-password', async (req, res) => {
     }
 
     user.password = await bcrypt.hash(newPassword, 10);
-    user.passwordResetToken = undefined;
+    user.passwordResetToken   = undefined;
     user.passwordResetExpires = undefined;
     await user.save();
 
@@ -330,17 +325,17 @@ router.put(
       const updateData = {};
 
       // Geo fields
-      if (req.body.latitude !== undefined) {
+      if (req.body?.latitude !== undefined) {
         const lat = parseFloat(req.body.latitude);
         if (!Number.isNaN(lat)) updateData.latitude = lat;
       }
-      if (req.body.longitude !== undefined) {
+      if (req.body?.longitude !== undefined) {
         const lng = parseFloat(req.body.longitude);
         if (!Number.isNaN(lng)) updateData.longitude = lng;
       }
 
       // Optional location object
-      if (req.body.location) {
+      if (req.body?.location) {
         const loc = req.body.location;
         if (loc.country) updateData.country = loc.country;
         if (loc.region)  updateData.region  = loc.region;
@@ -356,7 +351,7 @@ router.put(
         'children','pets','summary','goal','lookingFor','bodyType',
         'weightUnit','profession','professionCategory'
       ].forEach((field) => {
-        if (req.body[field] !== undefined) updateData[field] = req.body[field];
+        if (req.body?.[field] !== undefined) updateData[field] = req.body[field];
       });
 
       // Files
@@ -398,3 +393,4 @@ router.delete('/delete', authenticate, async (req, res) => {
 });
 
 export default router;
+// --- REPLACE END ---

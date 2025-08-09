@@ -19,7 +19,8 @@ const cookieOptions = {
   secure: isProd,
   sameSite: isProd ? 'none' : 'lax',
   path: '/',
-  ...(COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {}), // add domain only if provided
+  // Add domain only if provided (avoids setting a wrong domain locally)
+  ...(COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {}),
 };
 
 module.exports = { cookieOptions };
