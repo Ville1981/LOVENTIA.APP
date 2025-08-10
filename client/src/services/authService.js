@@ -26,9 +26,10 @@ const authService = {
   },
 
   /**
-   * Optional registration helper (kept minimal on purpose).
-   * Returns whatever the backend responds with.
-   * @param {object} payload
+   * Registration helper.
+   * Accepts { username, email, password } and returns server response.
+   * Throws axios error with response.message/error if server provides them.
+   * @param {{ username:string, email:string, password:string }} payload
    * @returns {Promise<any>}
    */
   register: async function (payload) {

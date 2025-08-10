@@ -1,11 +1,13 @@
+// File: server/src/api/controllers/authController.js
+
 // --- REPLACE START: ESM auth controller with username validation & robust cookieOptions ---
 /**
  * Auth Controller (ESM)
  * - Pure ESM (no require)
- * - Uses mongoose.models.User loaded by index.js (fallback dynamic import)
+ * - Uses mongoose.models.User loaded by app bootstrap (fallback dynamic import)
  * - Clear 400 on missing username (instead of Mongoose ValidationError)
  * - Helpers: generateAccessToken / generateRefreshToken
- * - Exports: register, login, refreshToken, logout
+ * - Exports: register, login, refreshToken, logout, me (+ default export)
  */
 
 import jwt from 'jsonwebtoken';
@@ -14,11 +16,11 @@ import mongoose from 'mongoose';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 
-// Resolve __dirname for ESM
+// Resolve __filename/__dirname for ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
-// Robust cookieOptions import: named export or default, with sane fallback
+// --- cookieOptions (import with safe fallback) ---
 let cookieOptions = {
   httpOnly: true,
   sameSite: 'lax',
@@ -28,15 +30,21 @@ let cookieOptions = {
 try {
   const modURL = pathToFileURL(path.resolve(__dirname, '../../utils/cookieOptions.js'));
   const mod    = await import(modURL.href);
+  // allow named or default export; keep fallback if missing
   cookieOptions = mod.cookieOptions || mod.default || cookieOptions;
 } catch (_) {
   // keep fallback
 }
 
-// Resolve User model primarily from mongoose registry
+// In prod, prefer secure cookies automatically if not explicitly overridden
+if (process.env.NODE_ENV === 'production') {
+  cookieOptions.secure = cookieOptions.secure ?? true;
+  cookieOptions.sameSite = cookieOptions.sameSite ?? 'none';
+}
+
+// --- Resolve User model from mongoose registry, fallback to common locations ---
 let User = mongoose.models?.User;
 if (!User) {
-  // Try common duplicates in repo layout
   const candidatePaths = [
     // ../../../models/User.js relative to this file (server/models/User.js)
     path.resolve(__dirname, '../../../models/User.js'),
@@ -52,12 +60,12 @@ if (!User) {
         break;
       }
     } catch {
-      // continue
+      // continue trying next candidate
     }
   }
 }
 if (!User || typeof User.findOne !== 'function') {
-  console.error('[authController] User model not usable. Did you import models in index.js?');
+  console.error('[authController] User model not usable. Ensure models are imported at startup.');
 }
 
 /* ----------------------- Helpers ----------------------- */
@@ -66,22 +74,21 @@ function ensureJwtSecrets() {
   if (!ok) console.error('[authController] Missing JWT secrets in environment');
   return ok;
 }
-
-function normalizeId(user) {
-  if (!user) return undefined;
-  if (user.id) return user.id;
-  if (user._id && typeof user._id.toString === 'function') return user._id.toString();
+function normalizeId(doc) {
+  if (!doc) return undefined;
+  if (doc.id) return doc.id;
+  if (doc._id && typeof doc._id.toString === 'function') return doc._id.toString();
   return undefined;
 }
-
-function generateAccessToken(payload, expiresIn = '15m') {
-  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn });
+function tokenIssuer() {
+  return process.env.TOKEN_ISSUER || 'loventia-api';
 }
-
-function generateRefreshToken(payload, expiresIn = '7d') {
-  return jwt.sign(payload, process.env.JWT_REFRESH_SECRET, { expiresIn });
+function generateAccessToken(payload, expiresIn = (process.env.JWT_ACCESS_TTL || '15m')) {
+  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn, issuer: tokenIssuer() });
 }
-
+function generateRefreshToken(payload, expiresIn = (process.env.JWT_REFRESH_TTL || '7d')) {
+  return jwt.sign(payload, process.env.JWT_REFRESH_SECRET, { expiresIn, issuer: tokenIssuer() });
+}
 function safeUsername({ username, name, email }) {
   if (username && typeof username === 'string' && username.trim()) return username.trim();
   if (name && typeof name === 'string' && name.trim()) return name.trim();
@@ -109,21 +116,24 @@ export async function register(req, res) {
       return res.status(500).json({ error: 'Server user model not available' });
     }
 
-    // username requirement (schema requires it) -> explicit 400 instead of Mongoose ValidationError
+    // Explicit username handling (avoid Mongoose ValidationError bubbling)
     username = safeUsername({ username, name, email });
     if (!username) {
       return res.status(400).json({ message: 'Username is required' });
     }
 
-    // Duplicate check
-    const exists = await User.findOne({ email });
-    if (exists) {
-      return res.status(409).json({ message: 'Email already in use' });
-    }
+    // Duplicate checks
+    const [emailExists, usernameExists] = await Promise.all([
+      User.findOne({ email }),
+      User.findOne({ username }),
+    ]);
+    if (emailExists)   return res.status(409).json({ message: 'Email already in use' });
+    if (usernameExists) return res.status(409).json({ message: 'Username already in use' });
 
     // Hash password
-    const salt    = await bcrypt.genSalt(10);
-    const hashed  = await bcrypt.hash(password, salt);
+    const saltRounds = Number.parseInt(process.env.BCRYPT_SALT_ROUNDS || '10', 10);
+    const salt   = await bcrypt.genSalt(Number.isFinite(saltRounds) ? saltRounds : 10);
+    const hashed = await bcrypt.hash(password, salt);
 
     // Create user
     const doc = new User({
@@ -135,21 +145,21 @@ export async function register(req, res) {
     });
     const user = await doc.save();
 
-    // Tokens
     if (!ensureJwtSecrets()) {
       return res.status(500).json({ error: 'Server misconfiguration' });
     }
-    const uid   = normalizeId(user);
-    const role  = user?.role || 'user';
-    const at    = generateAccessToken({ userId: uid, role });
-    const rt    = generateRefreshToken({ userId: uid, role });
+
+    const uid  = normalizeId(user);
+    const role = user?.role || 'user';
+    const at   = generateAccessToken({ userId: uid, role });
+    const rt   = generateRefreshToken({ userId: uid, role });
 
     // Set refresh cookie
     res.cookie('refreshToken', rt, cookieOptions);
 
     return res.status(201).json({
       accessToken: at,
-      user: { id: uid, email: user.email, name: user.name, username, role },
+      user: { id: uid, email: user.email, name: user.name, username, role }
     });
   } catch (err) {
     console.error('Register error:', err?.stack || err?.message || err);
@@ -194,7 +204,7 @@ export async function login(req, res) {
 
     return res.json({
       accessToken: at,
-      user: { id: uid, email: user.email, name: user.name, username: user.username, role },
+      user: { id: uid, email: user.email, name: user.name, username: user.username, role }
     });
   } catch (err) {
     console.error('Login error:', err?.stack || err?.message || err);
@@ -205,6 +215,7 @@ export async function login(req, res) {
 /**
  * POST /api/auth/refresh
  * Cookie: refreshToken
+ * Note: preflight OPTIONS is handled in the route file.
  */
 export async function refreshToken(req, res) {
   try {
@@ -217,11 +228,13 @@ export async function refreshToken(req, res) {
     }
 
     jwt.verify(token, process.env.JWT_REFRESH_SECRET, (err, payload) => {
-      if (err) return res.status(403).json({ error: 'Invalid refresh token' });
+      if (err) {
+        return res.status(403).json({ error: 'Invalid or expired refresh token' });
+      }
 
       const at = generateAccessToken({ userId: payload.userId, role: payload.role });
 
-      // refresh rotation (best practice)
+      // Refresh rotation (best practice): set a new refresh token
       try {
         const rotated = generateRefreshToken({ userId: payload.userId, role: payload.role });
         res.cookie('refreshToken', rotated, cookieOptions);
@@ -241,7 +254,7 @@ export async function refreshToken(req, res) {
  * POST /api/auth/logout
  * Clears refreshToken cookie
  */
-export function logout(req, res) {
+export function logout(_req, res) {
   try {
     res.clearCookie('refreshToken', cookieOptions);
     return res.sendStatus(204);
@@ -250,4 +263,34 @@ export function logout(req, res) {
     return res.status(500).json({ error: 'Logout failed' });
   }
 }
+
+/**
+ * GET /api/auth/me
+ * Requires authenticate middleware to set req.user
+ */
+export async function me(req, res) {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+    if (!User?.findById) {
+      return res.status(500).json({ error: 'Server user model not available' });
+    }
+
+    const user = await User.findById(userId).select('-password');
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    return res.json({ user });
+  } catch (err) {
+    console.error('Me route error:', err?.stack || err?.message || err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+}
+
+/* default export for router compatibility (uses default || named) */
+const controller = { register, login, refreshToken, logout, me };
+export default controller;
 // --- REPLACE END ---
