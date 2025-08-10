@@ -1,186 +1,296 @@
-// --- REPLACE START: CommonJS controller with robust CJS/ESM interop and safer auth flow ---
-'use strict';
+// File: server/src/api/controllers/authController.js
 
-import path from 'path';
+// --- REPLACE START: ESM auth controller with username validation & robust cookieOptions ---
+/**
+ * Auth Controller (ESM)
+ * - Pure ESM (no require)
+ * - Uses mongoose.models.User loaded by app bootstrap (fallback dynamic import)
+ * - Clear 400 on missing username (instead of Mongoose ValidationError)
+ * - Helpers: generateAccessToken / generateRefreshToken
+ * - Exports: register, login, refreshToken, logout, me (+ default export)
+ */
+
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
-import { fileURLToPath } from 'url';
+import path from 'path';
+import { fileURLToPath, pathToFileURL } from 'url';
 
-// Resolve __dirname in ESM
+// Resolve __filename/__dirname for ESM
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname  = path.dirname(__filename);
 
-// Import centralized cookie options from src/utils, with safe fallback
-let cookieOptions;
+// --- cookieOptions (import with safe fallback) ---
+let cookieOptions = {
+  httpOnly: true,
+  sameSite: 'lax',
+  secure: false,
+  path: '/',
+};
 try {
-  const opts = await import(path.resolve(__dirname, '../../utils/cookieOptions.js'));
-  cookieOptions = opts.cookieOptions || opts.default || {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: false,
-    path: '/',
-  };
+  const modURL = pathToFileURL(path.resolve(__dirname, '../../utils/cookieOptions.js'));
+  const mod    = await import(modURL.href);
+  // allow named or default export; keep fallback if missing
+  cookieOptions = mod.cookieOptions || mod.default || cookieOptions;
 } catch (_) {
-  // Sensible dev defaults; adjust for production as needed
-  cookieOptions = {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: false,
-    path: '/',
-  };
+  // keep fallback
 }
 
-// --- Robust User model interop (handles CJS `module.exports` and ESM `export default`) ---
-let User;
-try {
-  const maybe = await import(path.resolve(__dirname, '../../../models/User.js'));
-  User = maybe.default || maybe;
-} catch (e) {
-  // Fallback: if already registered in mongoose.models (because models are imported elsewhere)
-  User = mongoose.models && mongoose.models.User;
-  if (!User) {
-    console.error('[authController] Failed to load User model:', e && e.message);
+// In prod, prefer secure cookies automatically if not explicitly overridden
+if (process.env.NODE_ENV === 'production') {
+  cookieOptions.secure = cookieOptions.secure ?? true;
+  cookieOptions.sameSite = cookieOptions.sameSite ?? 'none';
+}
+
+// --- Resolve User model from mongoose registry, fallback to common locations ---
+let User = mongoose.models?.User;
+if (!User) {
+  const candidatePaths = [
+    // ../../../models/User.js relative to this file (server/models/User.js)
+    path.resolve(__dirname, '../../../models/User.js'),
+    // ../../models/User.js (server/src/models/User.js)
+    path.resolve(__dirname, '../../models/User.js'),
+  ];
+  for (const p of candidatePaths) {
+    try {
+      const m = await import(pathToFileURL(p).href);
+      const candidate = m.default || m.User || m;
+      if (candidate?.findOne) {
+        User = candidate;
+        break;
+      }
+    } catch {
+      // continue trying next candidate
+    }
   }
 }
-
-// Extra guard: ensure we have a functioning model with `.findOne`
 if (!User || typeof User.findOne !== 'function') {
-  console.error('[authController] User model not usable. Got:', typeof User);
+  console.error('[authController] User model not usable. Ensure models are imported at startup.');
 }
 
+/* ----------------------- Helpers ----------------------- */
+function ensureJwtSecrets() {
+  const ok = !!(process.env.JWT_SECRET && process.env.JWT_REFRESH_SECRET);
+  if (!ok) console.error('[authController] Missing JWT secrets in environment');
+  return ok;
+}
+function normalizeId(doc) {
+  if (!doc) return undefined;
+  if (doc.id) return doc.id;
+  if (doc._id && typeof doc._id.toString === 'function') return doc._id.toString();
+  return undefined;
+}
+function tokenIssuer() {
+  return process.env.TOKEN_ISSUER || 'loventia-api';
+}
+function generateAccessToken(payload, expiresIn = (process.env.JWT_ACCESS_TTL || '15m')) {
+  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn, issuer: tokenIssuer() });
+}
+function generateRefreshToken(payload, expiresIn = (process.env.JWT_REFRESH_TTL || '7d')) {
+  return jwt.sign(payload, process.env.JWT_REFRESH_SECRET, { expiresIn, issuer: tokenIssuer() });
+}
+function safeUsername({ username, name, email }) {
+  if (username && typeof username === 'string' && username.trim()) return username.trim();
+  if (name && typeof name === 'string' && name.trim()) return name.trim();
+  if (email && typeof email === 'string') {
+    const base = email.split('@')[0] || 'user';
+    return `${base}`.slice(0, 30);
+  }
+  return '';
+}
+
+/* ----------------------- Controllers ----------------------- */
 /**
- * POST /api/auth/login
- * Authenticate user and set refreshToken cookie.
+ * POST /api/auth/register
+ * Body: { email, password, name?, username? }
  */
-export async function login(req, res, next) {
+export async function register(req, res) {
   try {
-    const { email, password } = req.body;
+    const { email, password } = req.body || {};
+    let { name, username } = req.body || {};
 
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password are required' });
     }
-    if (!User || typeof User.findOne !== 'function') {
+    if (!User?.findOne) {
       return res.status(500).json({ error: 'Server user model not available' });
     }
 
-    // 1) Find user by email
-    const user = await User.findOne({ email });
-    if (!user || !user.password) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+    // Explicit username handling (avoid Mongoose ValidationError bubbling)
+    username = safeUsername({ username, name, email });
+    if (!username) {
+      return res.status(400).json({ message: 'Username is required' });
     }
 
-    // 2) Compare password hash
-    let passwordsMatch = false;
-    try {
-      passwordsMatch = await bcrypt.compare(password, user.password);
-    } catch (cmpErr) {
-      console.error('[authController] bcrypt.compare failed:', cmpErr && cmpErr.message);
-    }
-    if (!passwordsMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
+    // Duplicate checks
+    const [emailExists, usernameExists] = await Promise.all([
+      User.findOne({ email }),
+      User.findOne({ username }),
+    ]);
+    if (emailExists)   return res.status(409).json({ message: 'Email already in use' });
+    if (usernameExists) return res.status(409).json({ message: 'Username already in use' });
 
-    // 3) Ensure JWT secrets exist
-    if (!process.env.JWT_SECRET || !process.env.JWT_REFRESH_SECRET) {
-      console.error('[authController] Missing JWT secrets in environment');
+    // Hash password
+    const saltRounds = Number.parseInt(process.env.BCRYPT_SALT_ROUNDS || '10', 10);
+    const salt   = await bcrypt.genSalt(Number.isFinite(saltRounds) ? saltRounds : 10);
+    const hashed = await bcrypt.hash(password, salt);
+
+    // Create user
+    const doc = new User({
+      email,
+      password: hashed,
+      name: name || username,
+      username,
+      role: 'user',
+    });
+    const user = await doc.save();
+
+    if (!ensureJwtSecrets()) {
       return res.status(500).json({ error: 'Server misconfiguration' });
     }
 
-    // 4) Build tokens
-    const uid = user.id || (user._id && user._id.toString && user._id.toString());
-    const role = user.role || 'user';
+    const uid  = normalizeId(user);
+    const role = user?.role || 'user';
+    const at   = generateAccessToken({ userId: uid, role });
+    const rt   = generateRefreshToken({ userId: uid, role });
 
-    const accessToken = jwt.sign(
-      { userId: uid, role },
-      process.env.JWT_SECRET,
-      { expiresIn: '15m' }
-    );
+    // Set refresh cookie
+    res.cookie('refreshToken', rt, cookieOptions);
 
-    const refreshToken = jwt.sign(
-      { userId: uid, role },
-      process.env.JWT_REFRESH_SECRET,
-      { expiresIn: '7d' }
-    );
-
-    // 5) Set refresh cookie
-    res.cookie('refreshToken', refreshToken, cookieOptions);
-
-    // 6) Respond
-    return res.json({
-      accessToken,
-      user: {
-        id: uid,
-        email: user.email,
-        name: user.name,
-        role,
-      },
+    return res.status(201).json({
+      accessToken: at,
+      user: { id: uid, email: user.email, name: user.name, username, role }
     });
   } catch (err) {
-    console.error('Login error:', err && (err.stack || err.message || err));
+    console.error('Register error:', err?.stack || err?.message || err);
+    return res.status(500).json({ error: 'Server error during registration' });
+  }
+}
+
+/**
+ * POST /api/auth/login
+ * Body: { email, password }
+ */
+export async function login(req, res) {
+  try {
+    const { email, password } = req.body || {};
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
+    if (!User?.findOne) {
+      return res.status(500).json({ error: 'Server user model not available' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user?.password) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const ok = await bcrypt.compare(password, user.password);
+    if (!ok) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    if (!ensureJwtSecrets()) {
+      return res.status(500).json({ error: 'Server misconfiguration' });
+    }
+
+    const uid  = normalizeId(user);
+    const role = user?.role || 'user';
+    const at   = generateAccessToken({ userId: uid, role });
+    const rt   = generateRefreshToken({ userId: uid, role });
+
+    res.cookie('refreshToken', rt, cookieOptions);
+
+    return res.json({
+      accessToken: at,
+      user: { id: uid, email: user.email, name: user.name, username: user.username, role }
+    });
+  } catch (err) {
+    console.error('Login error:', err?.stack || err?.message || err);
     return res.status(500).json({ error: 'Server error during login' });
   }
 }
 
 /**
  * POST /api/auth/refresh
- * Verify refreshToken cookie and issue new accessToken.
+ * Cookie: refreshToken
+ * Note: preflight OPTIONS is handled in the route file.
  */
-export async function refreshToken(req, res, next) {
+export async function refreshToken(req, res) {
   try {
-    const token = req.cookies && req.cookies.refreshToken;
+    const token = req.cookies?.refreshToken;
     if (!token) {
       return res.status(401).json({ error: 'No refresh token provided' });
     }
-
-    if (!process.env.JWT_SECRET || !process.env.JWT_REFRESH_SECRET) {
-      console.error('[authController] Missing JWT secrets in environment');
+    if (!ensureJwtSecrets()) {
       return res.status(500).json({ error: 'Server misconfiguration' });
     }
 
-    return jwt.verify(token, process.env.JWT_REFRESH_SECRET, (err, payload) => {
+    jwt.verify(token, process.env.JWT_REFRESH_SECRET, (err, payload) => {
       if (err) {
-        return res.status(403).json({ error: 'Invalid refresh token' });
+        return res.status(403).json({ error: 'Invalid or expired refresh token' });
       }
 
-      const newAccessToken = jwt.sign(
-        { userId: payload.userId, role: payload.role },
-        process.env.JWT_SECRET,
-        { expiresIn: '15m' }
-      );
+      const at = generateAccessToken({ userId: payload.userId, role: payload.role });
 
-      // Optional rotation
+      // Refresh rotation (best practice): set a new refresh token
       try {
-        const rotatedRefresh = jwt.sign(
-          { userId: payload.userId, role: payload.role },
-          process.env.JWT_REFRESH_SECRET,
-          { expiresIn: '7d' }
-        );
-        res.cookie('refreshToken', rotatedRefresh, cookieOptions);
+        const rotated = generateRefreshToken({ userId: payload.userId, role: payload.role });
+        res.cookie('refreshToken', rotated, cookieOptions);
       } catch (rotErr) {
-        console.warn('[authController] Refresh rotation failed:', rotErr && rotErr.message);
+        console.warn('[authController] Refresh rotation failed:', rotErr?.message || rotErr);
       }
 
-      return res.json({ accessToken: newAccessToken });
+      return res.json({ accessToken: at });
     });
   } catch (err) {
-    console.error('Refresh error:', err && (err.stack || err.message || err));
+    console.error('Refresh error:', err?.stack || err?.message || err);
     return res.status(500).json({ error: 'Server error during refresh' });
   }
 }
 
 /**
  * POST /api/auth/logout
- * Clear refreshToken cookie.
+ * Clears refreshToken cookie
  */
-export function logout(req, res) {
+export function logout(_req, res) {
   try {
     res.clearCookie('refreshToken', cookieOptions);
     return res.sendStatus(204);
   } catch (err) {
-    console.error('Logout error:', err && (err.stack || err.message || err));
+    console.error('Logout error:', err?.stack || err?.message || err);
     return res.status(500).json({ error: 'Logout failed' });
   }
 }
 
+/**
+ * GET /api/auth/me
+ * Requires authenticate middleware to set req.user
+ */
+export async function me(req, res) {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+    if (!User?.findById) {
+      return res.status(500).json({ error: 'Server user model not available' });
+    }
+
+    const user = await User.findById(userId).select('-password');
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    return res.json({ user });
+  } catch (err) {
+    console.error('Me route error:', err?.stack || err?.message || err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+}
+
+/* default export for router compatibility (uses default || named) */
+const controller = { register, login, refreshToken, logout, me };
+export default controller;
 // --- REPLACE END ---

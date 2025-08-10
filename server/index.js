@@ -22,7 +22,6 @@ import swaggerUi from 'swagger-ui-express';
 import YAML from 'yamljs';
 // --- REPLACE END ---
 
-// Resolve __dirname for ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -37,9 +36,11 @@ import paypalWebhookRouter from './routes/paypalWebhook.js';
 // --- REPLACE END ---
 
 // --- REPLACE START: App routes ---
-// NOTE: We use the routes that actually exist in your repo listing.
-import * as AuthModule from './src/routes/authRoutes.js';
-const authRoutes = AuthModule.default || AuthModule;
+import * as AuthPublicModule from './src/routes/authRoutes.js';
+const authRoutes = AuthPublicModule.default || AuthPublicModule;
+
+import * as AuthPrivateModule from './src/routes/authPrivateRoutes.js';
+const authPrivateRoutes = AuthPrivateModule.default || AuthPrivateModule;
 
 import * as UserModule from './routes/userRoutes.js';
 const userRoutes = UserModule.default || UserModule;
@@ -49,12 +50,6 @@ const imageRoutes = ImageModule.default || ImageModule;
 
 import * as MessageModule from './routes/messageRoutes.js';
 const messageRoutes = MessageModule.default || MessageModule;
-
-// Discover / Payment can be wired when files exist
-// import * as DiscoverModule from './routes/discover.js';
-// const discoverRoutes = DiscoverModule.default || DiscoverModule;
-// import * as PaymentModule from './routes/payment.js';
-// const paymentRoutes = PaymentModule.default || PaymentModule;
 // --- REPLACE END ---
 
 // --- REPLACE START: Middleware ---
@@ -76,42 +71,74 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 /**
  * IMPORTANT: Webhooks must read the raw body for signature verification.
- * These routers are expected to configure their own raw body parsers.
+ * (Routers are expected to handle raw/body-parser details internally.)
  */
 app.use('/api/payment/stripe-webhook', stripeWebhookRouter);
 app.use('/api/payment/paypal-webhook', paypalWebhookRouter);
 
-// --- REPLACE START: Common middleware ---
+// --- REPLACE START: Common middleware (robust CORS + credentials) ---
 app.use(cookieParser());
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5174',
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    exposedHeaders: ['Authorization'],
-  })
-);
+
+/**
+ * Robust CORS config:
+ * - Allows localhost (common dev ports) and loventia.app in production.
+ * - Sends credentials (cookies) both ways.
+ * - Accepts requests with no Origin header (curl/Postman/same-origin).
+ */
+const envWhitelist = [
+  process.env.CLIENT_URL,     // e.g. http://localhost:5174
+  process.env.CLIENT_URL_2,   // optional extra client
+  process.env.PROD_URL,       // e.g. https://loventia.app
+].filter(Boolean);
+
+const staticWhitelist = [
+  'http://localhost:5174',
+  'http://127.0.0.1:5174',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'https://loventia.app',
+  'https://www.loventia.app',
+];
+
+const allowedOrigins = Array.from(new Set([...envWhitelist, ...staticWhitelist]));
+
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin) return callback(null, true); // same-origin or tools
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    if (/^http:\/\/(localhost|127\.0\.0\.1):\d+$/i.test(origin)) return callback(null, true);
+    return callback(new Error(`Not allowed by CORS: ${origin}`));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  exposedHeaders: [],
+  optionsSuccessStatus: 204,
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // preflight
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 // --- REPLACE END ---
 
-// Serve uploads directory
+// Serve uploads and client build
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// Serve static files in production
 app.use(express.static(path.join(__dirname, 'client-dist')));
 
-// --- REPLACE START: mount auth routes before protected routes ---
+// --- REPLACE START: Mount routes ---
+// Public auth routes
 app.use('/api/auth', authRoutes);
-// --- REPLACE END ---
+
+// Private auth routes
+app.use('/api/auth', authPrivateRoutes);
 
 // Protected routes
 app.use('/api/messages', authenticate, messageRoutes);
 app.use('/api/users', authenticate, userRoutes);
 app.use('/api/images', authenticate, imageRoutes);
-// if (typeof paymentRoutes !== 'undefined') app.use('/api/payment', authenticate, paymentRoutes);
-// if (typeof discoverRoutes !== 'undefined') app.use('/api/discover', authenticate, discoverRoutes);
+// --- REPLACE END ---
 
 // Temporary mock-users endpoint
 app.get('/api/mock-users', (_req, res) => {
@@ -137,16 +164,23 @@ app.get('/api/mock-users', (_req, res) => {
 
 // Multer-specific error handler
 app.use((err, _req, res, next) => {
-  if (err && err.name === 'MulterError') {
+  if (err?.name === 'MulterError') {
     return res.status(413).json({ error: err.message });
   }
   return next(err);
 });
 
-// Healthcheck
-app.get('/health', (_req, res) => {
-  res.status(200).json({ status: 'ok', uptime: process.uptime() });
+// --- REPLACE START: Healthcheck under /api (works via Vite proxy) ---
+app.get('/api/health', (_req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    service: 'loventia-api',
+    uptime: process.uptime(),
+    time: new Date().toISOString(),
+  });
 });
+app.head('/api/health', (_req, res) => res.sendStatus(200));
+// --- REPLACE END ---
 
 // SPA fallback
 app.get('/*', (_req, res) => {
@@ -156,77 +190,96 @@ app.get('/*', (_req, res) => {
 // 404 handler
 app.use((_req, res) => res.status(404).json({ error: 'Not Found' }));
 
-// --- REPLACE START: Sentry error handler + proper Express signature ---
+// --- REPLACE START: Sentry error handler ---
 app.use(Sentry.Handlers.errorHandler());
 app.use((err, _req, res, _next) => {
-  console.error(err && err.stack ? err.stack : err);
+  console.error(err?.stack || err);
   res.status(500).json({ error: 'Server Error' });
 });
 // --- REPLACE END ---
 
-// --- REPLACE START: Recursive route logger (prints nested Router paths) ---
+// --- REPLACE START: Route logger ---
 function printRoutes(appInstance) {
-  const seen = new Set();
-  function walk(stack, prefix = '') {
-    stack.forEach((layer) => {
-      if (layer.route && layer.route.path) {
+  try {
+    const stack = appInstance?._router?.stack || [];
+    const lines = [];
+    for (const layer of stack) {
+      if (layer?.route?.path) {
         const methods = Object.keys(layer.route.methods)
           .map((m) => m.toUpperCase())
           .join(', ');
-        const line = `${methods.padEnd(6)} ${prefix}${layer.route.path}`;
-        if (!seen.has(line)) {
-          seen.add(line);
-          console.log('  ' + line);
+        lines.push(`${methods.padEnd(6)} ${layer.route.path}`);
+      } else if (layer?.name === 'router' && layer?.handle?.stack) {
+        for (const r of layer.handle.stack) {
+          if (r?.route?.path) {
+            const methods = Object.keys(r.route.methods)
+              .map((m) => m.toUpperCase())
+              .join(', ');
+            const p = (layer.regexp?.fast_slash ? '' : '') + r.route.path;
+            lines.push(`${methods.padEnd(6)} ${p}`);
+          }
         }
-      } else if (layer.name === 'router' && layer.handle && layer.handle.stack) {
-        const nestedPrefix = layer.regexp && layer.regexp.fast_slash
-          ? prefix
-          : (layer.regexp?.source || '')
-              .replace('^\\', '')
-              .replace('\\/?(?=\\/|$)', '')
-              .replace('^', '')
-              .replace('$', '')
-              .replace('\\/', '/');
-        const cleanPrefix = nestedPrefix === '(?:\\/)?' ? '/' : nestedPrefix;
-        walk(layer.handle.stack, prefix + cleanPrefix);
       }
-    });
+    }
+    console.log('🛣️ Registered routes:');
+    lines.forEach((l) => console.log('  ' + l));
+  } catch (e) {
+    console.log('🛣️ Route listing skipped:', e?.message || e);
   }
-  console.log('🛣️ Registered routes:');
-  walk(appInstance._router.stack, '');
 }
 // --- REPLACE END ---
 
-// --- REPLACE START: MongoDB connection and server start ---
+// --- REPLACE START: DB connection ---
 mongoose.set('strictQuery', true);
 const PORT = process.env.PORT || 5000;
 
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log('✅ MongoDB connected');
-    printRoutes(app);
-
-    const server = app.listen(PORT, () => {
-      console.log(`✅ Server running on http://localhost:${PORT}`);
-    });
-
-    server.on('error', (err) => {
-      if (err && err.code === 'EADDRINUSE') {
-        const nextPort = Number(PORT) + 1;
-        console.error(`⚠️ Port ${PORT} in use, retrying on port ${nextPort}...`);
-        app.listen(nextPort, () =>
-          console.log(`✅ Server running on http://localhost:${nextPort}`)
-        );
-      } else {
-        console.error('❌ Server error:', err);
-        process.exit(1);
-      }
-    });
-  })
-  .catch((err) => console.error('❌ MongoDB connection error:', err));
+// --- REPLACE START: boot logs ---
+console.log('[DB] MONGO_URI =', process.env.MONGO_URI);
+console.log('[ENV] NODE_ENV =', process.env.NODE_ENV);
 // --- REPLACE END ---
 
-// --- REPLACE START: export app for use in tests/other modules ---
+const mongoUri = process.env.MONGO_URI;
+if (!mongoUri) {
+  console.warn('⚠️ MONGO_URI is not set. The server will start without DB connection.');
+}
+
+const startServer = () => {
+  printRoutes(app);
+  const server = app.listen(PORT, () => {
+    console.log(`✅ Server running on http://localhost:${PORT}`);
+  });
+
+  server.on('error', (err) => {
+    if (err?.code === 'EADDRINUSE') {
+      const nextPort = Number(PORT) + 1;
+      console.error(`⚠️ Port ${PORT} in use, retrying on port ${nextPort}...`);
+      app.listen(nextPort, () =>
+        console.log(`✅ Server running on http://localhost:${nextPort}`)
+      );
+    } else {
+      console.error('❌ Server error:', err);
+      process.exit(1);
+    }
+  });
+};
+
+if (mongoUri) {
+  mongoose
+    .connect(mongoUri)
+    .then(() => {
+      console.log('✅ MongoDB connected');
+      startServer();
+    })
+    .catch((err) => {
+      console.error('❌ MongoDB connection error:', err);
+      // Start server even if DB failed, if that helps local dev
+      startServer();
+    });
+} else {
+  startServer();
+}
+// --- REPLACE END ---
+
+// --- REPLACE START: export app ---
 export default app;
 // --- REPLACE END ---

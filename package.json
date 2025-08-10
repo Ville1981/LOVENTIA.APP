@@ -20,7 +20,13 @@
     "build:client": "npm --prefix ../client run build",
     "postinstall": "npm run build:client && rm -rf ./client-dist && cp -r ../client/dist ./client-dist",
     "release": "standard-version",
-    "seed:test-user": "node server/scripts/seedTestUser.js"
+    "seed:test-user": "node server/scripts/seedTestUser.js",
+
+    
+    "db:inspect": "mongosh \"$MONGO_URI\" --eval \"db.getName(); db.getCollectionNames(); db.users.countDocuments();\"",
+    "db:list-users": "mongosh \"$MONGO_URI\" --eval \"db.users.find({}, {email:1, username:1}).limit(5).toArray()\"",
+    "db:migrate-usernames": "mongosh \"$MONGO_URI\" --eval \"db.users.updateMany({ $or: [ { username: { $exists: false } }, { username: '' } ] }, [ { $set: { username: { $cond: [ { $gt: [ { $type: '$username' }, 'missing' ] }, '$username', { $let: { vars: { base: { $arrayElemAt: [ { $split: ['$email', '@'] }, 0 ] } }, in: { $substrCP: ['$$base', 0, 30] } } } ] } } } ])\""
+   
   },
   "author": "",
   "license": "ISC",
