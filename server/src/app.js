@@ -72,6 +72,7 @@ app.use(
 // ── Connect to MongoDB ─────────────────────────────────────────────────--------
 const MONGO_URI = process.env.MONGO_URI;
 const IS_TEST   = process.env.NODE_ENV === 'test';
+const IS_PROD   = process.env.NODE_ENV === 'production';
 
 try {
   mongoose.set('strictQuery', false);
@@ -115,8 +116,13 @@ app.use(securityHeaders);
 const { cookieOptions } = require('./utils/cookieOptions.js');
 app.set('trust proxy', 1);
 app.use(cookieParser());
-app.use((req, res, next) => { next(); });
-app.use(require('./middleware/httpsRedirect.js'));
+
+// --- REPLACE START: enable HTTPS redirect only in production ---
+app.use((req, res, next) => next()); // no-op placeholder
+if (IS_PROD) {
+  app.use(require('./middleware/httpsRedirect.js'));
+}
+// --- REPLACE END ---
 
 // ── Parse bodies ────────────────────────────────────────────────────────────────
 app.use(express.json());
@@ -163,6 +169,12 @@ function tryRequireRoute(srcPath, fallbackAbsPath) {
     }
   }
 }
+
+// --- REPLACE START: mount /api/health route for quick proxy/CORS checks ---
+const healthRoute = require('./routes/health.js');
+app.use('/api/health', healthRoute);
+// --- REPLACE END ---
+
 // ── Routes ──────────────────────────────────────────────────────────────────────
 if (IS_TEST) {
   const jwt = require('jsonwebtoken');
@@ -198,8 +210,7 @@ if (IS_TEST) {
 
     return res.status(200).json({ accessToken });
   });
-
-  // Refresh: verify cookie and issue new access token
+    // Refresh: verify cookie and issue new access token
   testAuth.post('/refresh', (req, res) => {
     const token = req.cookies && req.cookies.refreshToken;
     if (!token) return res.status(401).json({ error: 'No refresh token provided' });
@@ -345,20 +356,3 @@ if (!IS_TEST) {
 }
 
 module.exports = app;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

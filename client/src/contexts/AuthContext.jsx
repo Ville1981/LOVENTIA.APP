@@ -1,6 +1,9 @@
+// File: client/src/context/AuthContext.jsx
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import api, { setAccessToken } from '../utils/axiosInstance';
 
+// Default context values
 const AuthContext = createContext({
   user: null,
   loading: true,
@@ -78,6 +81,7 @@ export function AuthProvider({ children }) {
   );
 }
 
+// Hook for consuming AuthContext
 export function useAuth() {
   return useContext(AuthContext);
 }

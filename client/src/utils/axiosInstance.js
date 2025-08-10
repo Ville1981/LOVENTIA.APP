@@ -1,17 +1,56 @@
+// client/src/utils/axiosInstance.js
 // @ts-nocheck
+
+// This file defines the single, canonical axios instance used by the app.
+// It always points to the "/api" prefix (Vite proxy → http://localhost:5000 in dev).
+// The replacement region is marked between // --- REPLACE START and // --- REPLACE END
+// so you can verify exactly what changed.
+
+// Dependencies
 import axios from "axios";
 
-// --- REPLACE START: correct import path to front-end config.js ---
+// --- REPLACE START: consistent config import + base URL strategy ---
+/**
+ * Read BACKEND_BASE_URL from front-end config if present.
+ * In local dev (localhost), always use relative "/api" so Vite proxy is used.
+ * If VITE_API_BASE_URL is provided, it wins in production; otherwise default "/api".
+ */
 import { BACKEND_BASE_URL } from "../config";
+
+const isLocalhost =
+  typeof window !== "undefined" &&
+  /^localhost$|^127\.0\.0\.1$|^::1$/.test(window.location.hostname);
+
+const envApiBase =
+  (typeof import.meta !== "undefined" &&
+    import.meta.env &&
+    import.meta.env.VITE_API_BASE_URL) ||
+  "";
+
+let resolvedBase = "/api"; // safe default for dev
+if (!isLocalhost) {
+  if (envApiBase) {
+    resolvedBase = String(envApiBase).replace(/\/$/, "");
+  } else if (BACKEND_BASE_URL) {
+    resolvedBase = String(BACKEND_BASE_URL).replace(/\/$/, "");
+  }
+}
+
+const baseURL = resolvedBase;
 // --- REPLACE END ---
 
 /**
- * Internal storage for the access token.
+ * Access token kept in-memory and persisted in localStorage under 'accessToken'.
+ * This matches all places in the app that read/write the token.
  */
 // --- REPLACE START: unify storage key to 'accessToken' ---
 let accessToken = localStorage.getItem("accessToken") || null;
 // --- REPLACE END ---
 
+/**
+ * Update in-memory token + persist/remove in localStorage.
+ * This function is imported by places that need to set the token.
+ */
 export const setAccessToken = (token) => {
   accessToken = token;
   if (token) {
@@ -25,33 +64,57 @@ export const setAccessToken = (token) => {
   }
 };
 
-// --- REPLACE START: compute baseURL with safe default '/api' and without trailing slash ---
-const rawUrl =
-  BACKEND_BASE_URL ||
-  import.meta.env.VITE_API_URL ||
-  "/api"; // ensure Vite proxy is used in dev if nothing is set
-const baseURL = String(rawUrl).replace(/\/$/, "");
-// --- REPLACE END ---
-
+/**
+ * Create the single axios instance used everywhere.
+ * NOTE: withCredentials=true so that the refresh cookie is sent.
+ */
 const api = axios.create({
-  baseURL,
+  baseURL, // => "/api" in dev
   withCredentials: true,
+  headers: {
+    "X-Requested-With": "XMLHttpRequest",
+  },
 });
 
+/**
+ * Request interceptor:
+ * - Attach Authorization header if access token exists.
+ * - Set JSON Content-Type for plain objects.
+ * - Guard against accidental double "/api/api/*" when someone passes "/api/*" to url.
+ */
 api.interceptors.request.use((config) => {
   const token = accessToken || localStorage.getItem("accessToken");
+
   if (token) {
     config.headers = {
       ...config.headers,
       Authorization: `Bearer ${token}`,
     };
   }
+
+  // Normalize Content-Type only for plain JSON bodies
   if (config.data && !(config.data instanceof FormData)) {
-    config.headers["Content-Type"] = "application/json";
+    config.headers = {
+      ...config.headers,
+      "Content-Type": "application/json",
+    };
   }
+
+  // --- REPLACE START: avoid accidental "/api/api/*" duplication ---
+  if (typeof config.url === "string" && config.url.startsWith("/api/")) {
+    // If someone already included "/api", drop the leading segment
+    config.url = config.url.replace(/^\/api\//, "/");
+  }
+  // --- REPLACE END ---
+
   return config;
 });
 
+/**
+ * Response interceptor:
+ * - On 401, try one-time silent refresh (POST /api/auth/refresh) and retry the original request.
+ * - Prevent infinite loop by skipping refresh if the failing call is already /auth/refresh.
+ */
 // --- REPLACE START: make refresh path baseURL-relative and avoid infinite loop ---
 const REFRESH_PATH = "/auth/refresh";
 // --- REPLACE END ---
@@ -59,43 +122,53 @@ const REFRESH_PATH = "/auth/refresh";
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const original = error.config;
+    const original = error?.config;
     if (!original) return Promise.reject(error);
 
+    // Extract pathname of the original request for loop guard
     const requestedPath = (() => {
       try {
         const u = new URL(original.url, baseURL || window.location.origin);
-        return u.pathname;
+        return u.pathname || "";
       } catch {
-        return original.url || "";
+        return typeof original.url === "string" ? original.url : "";
       }
     })();
 
+    const status = error?.response?.status;
+
     if (
-      error.response?.status === 401 &&
+      status === 401 &&
       !original._retry &&
       !requestedPath.endsWith(REFRESH_PATH)
     ) {
       original._retry = true;
       try {
-        // --- REPLACE START: call refresh endpoint WITHOUT extra '/api' (baseURL already includes it) ---
+        // --- REPLACE START: call refresh using the same axios instance/baseURL ---
         const { data } = await api.post(REFRESH_PATH);
+        // Expected response: { accessToken: string }
         // --- REPLACE END ---
-        setAccessToken(data.accessToken);
-        original.headers = {
-          ...original.headers,
-          Authorization: `Bearer ${data.accessToken}`,
-        };
+        if (data?.accessToken) {
+          setAccessToken(data.accessToken);
+          original.headers = {
+            ...original.headers,
+            Authorization: `Bearer ${data.accessToken}`,
+          };
+        } else {
+          // No token returned → treat as failure
+          throw new Error("No accessToken returned by refresh endpoint");
+        }
         return api(original);
-      } catch (e) {
-        console.error("🔄 Refresh failed:", e);
+      } catch (refreshErr) {
+        console.error("🔄 Refresh failed:", refreshErr);
         setAccessToken(null);
-        if (window.location.pathname !== "/login") {
+        if (typeof window !== "undefined" && window.location.pathname !== "/login") {
           window.location.href = "/login";
         }
-        return Promise.reject(e);
+        return Promise.reject(refreshErr);
       }
     }
+
     return Promise.reject(error);
   }
 );
