@@ -12,7 +12,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 const queryClient = new QueryClient()
 
-// --- REPLACE START: defer React rendering until MSW is ready in development (JS-safe, no TS non-null) ---
+// --- REPLACE START: bootstrap app with optional MSW ---
 function bootstrapReactApp() {
   const rootEl = document.getElementById('root')
   if (!rootEl) {
@@ -30,7 +30,10 @@ function bootstrapReactApp() {
   )
 }
 
-if (import.meta.env.DEV) {
+const enableMSW = import.meta.env.VITE_ENABLE_MSW === 'true'
+
+// In development, only start MSW if explicitly enabled
+if (import.meta.env.DEV && enableMSW) {
   import('./mocks/browser')
     .then(({ worker }) =>
       worker.start({
@@ -41,7 +44,6 @@ if (import.meta.env.DEV) {
     .then(bootstrapReactApp)
     .catch((err) => {
       console.error('MSW failed to start', err)
-      // Even if MSW fails, we still want the app to render
       bootstrapReactApp()
     })
 } else {

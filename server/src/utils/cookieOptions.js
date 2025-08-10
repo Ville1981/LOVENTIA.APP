@@ -1,6 +1,4 @@
-// --- REPLACE START: switch to CommonJS so Jest can require() this without ESM support ---
-'use strict';
-
+// --- REPLACE START: Switch to pure ESM export for cookie options ---
 /**
  * Centralized cookie options for refresh token cookie.
  * - In production: secure + sameSite 'none' (requires HTTPS)
@@ -14,14 +12,12 @@ const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || undefined;
  * Exported cookie options object.
  * NOTE: Keep httpOnly true so JS cannot read the cookie.
  */
-const cookieOptions = {
+export const cookieOptions = {
   httpOnly: true,
-  secure: isProd,
-  sameSite: isProd ? 'none' : 'lax',
+  secure: isProd,                   // HTTPS only in production
+  sameSite: isProd ? 'none' : 'lax',// Lax in dev so cookies work on localhost
   path: '/',
   // Add domain only if provided (avoids setting a wrong domain locally)
   ...(COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {}),
 };
-
-module.exports = { cookieOptions };
 // --- REPLACE END ---

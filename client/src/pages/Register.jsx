@@ -1,55 +1,110 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../contexts/AuthContext";
-import api from "../utils/axiosInstance";
+// --- REPLACE START: prefer service layer instead of calling axios instance directly ---
+import authService from "../services/authService";
+// --- REPLACE END ---
+
+const USERNAME_REGEX = /^[a-z0-9._-]{3,30}$/i;
+
+function makeUsernameSuggestion(email = "") {
+  // Convert "john.smith@example.com" → "john.smith"
+  const local = String(email).split("@")[0] || "";
+  // Sanitize to allowed charset
+  let suggestion = local
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^[-._]+|[-._]+$/g, "");
+
+  // Enforce min length of 3 by padding with '0' if necessary
+  if (suggestion.length > 0 && suggestion.length < 3) {
+    suggestion = suggestion.padEnd(3, "0");
+  }
+  // Fallback if empty
+  if (!suggestion) suggestion = "user-" + Math.random().toString(36).slice(2, 6);
+  // Trim to max 30 chars
+  return suggestion.slice(0, 30);
+}
 
 const Register = () => {
   const [username, setUsername] = useState("");
+  const [usernameTouched, setUsernameTouched] = useState(false); // do not overwrite if user edits
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  // --- REPLACE START: add loading + message state in English ---
+  const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  // --- REPLACE END ---
   const navigate = useNavigate();
   const { login } = useAuth();
 
+  // --- REPLACE START: auto-suggest username from email until user edits username manually ---
+  const suggestedUsername = useMemo(() => makeUsernameSuggestion(email), [email]);
+
+  useEffect(() => {
+    if (!usernameTouched) {
+      setUsername(suggestedUsername);
+    }
+  }, [suggestedUsername, usernameTouched]);
+  // --- REPLACE END ---
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setMessage("");
 
-    // Client-side validation
+    // --- REPLACE START: validation messages in English + username validation ---
+    if (!USERNAME_REGEX.test(username)) {
+      setMessage(
+        "Username must be 3–30 characters and only contain letters, numbers, dot, underscore, or hyphen."
+      );
+      return;
+    }
     if (password !== confirmPassword) {
-      setMessage("Salasanat eivät täsmää");
+      setMessage("Passwords do not match.");
       return;
     }
     if (password.length < 8) {
-      setMessage("Salasanan tulee olla vähintään 8 merkkiä pitkä");
+      setMessage("Password must be at least 8 characters long.");
       return;
     }
+    // --- REPLACE END ---
 
     try {
-      // 1. Luo käyttäjä /api/auth/register
-      await api.post("/auth/register", {
-        username,
-        email,
-        password,
-      });
+      setLoading(true);
 
-      // 2. Kirjaudu heti: /api/auth/login
-      const loginRes = await api.post("/auth/login", {
-        email,
-        password,
-      });
+      // --- REPLACE START: use service layer for register + login ---
+      await authService.register({ username, email, password });
 
-      // 3. Tallenna access token kontekstiin ja localStorageen
-      login(loginRes.data.accessToken);
+      const { accessToken } = await authService.login({ email, password });
+      if (accessToken) {
+        // keep context in sync (service already persisted localStorage)
+        login(accessToken);
+      }
+      // --- REPLACE END ---
 
-      // 4. Ilmoita ja siirry profiilisivulle
-      setMessage("Tili luotu ja kirjautuminen onnistui!");
+      setMessage("Account created and login successful!");
       navigate("/profile");
     } catch (err) {
-      // Näytä backendin antama virheilmoitus tai yleinen
-      const errMsg = err.response?.data?.error;
-      setMessage(errMsg || "Virhe rekisteröinnissä");
+      // --- REPLACE START: show specific backend errors where possible ---
+      const status = err?.response?.status;
+      const serverMsg =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message;
+
+      if (status === 400 && /username/i.test(serverMsg || "")) {
+        setMessage("Username is required.");
+      } else if (status === 409 && /username/i.test(serverMsg || "")) {
+        setMessage("This username is already taken.");
+      } else {
+        setMessage(serverMsg || "Registration failed.");
+      }
+      // --- REPLACE END ---
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -58,47 +113,82 @@ const Register = () => {
       onSubmit={handleSubmit}
       className="max-w-md mx-auto mt-10 space-y-4 bg-white p-6 rounded shadow"
     >
-      <h2 className="text-xl font-bold">Rekisteröidy</h2>
+      <h2 className="text-xl font-bold">Create Account</h2>
+
+      {/* --- REPLACE START: username field with touch tracking and English placeholder --- */}
       <input
         type="text"
         value={username}
-        onChange={(e) => setUsername(e.target.value)}
-        placeholder="Käyttäjänimi"
+        onChange={(e) => {
+          setUsername(e.target.value);
+          setUsernameTouched(true);
+        }}
+        onFocus={() => setUsernameTouched(true)}
+        placeholder="Username"
         className="w-full border p-2 rounded"
         required
+        aria-label="Username"
+        autoComplete="username"
+        pattern="[A-Za-z0-9._-]{3,30}"
+        title="3–30 characters: letters, numbers, dot, underscore, or hyphen."
       />
+      {/* --- REPLACE END --- */}
+
       <input
         type="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        placeholder="Sähköposti"
+        placeholder="Email"
         className="w-full border p-2 rounded"
         required
+        aria-label="Email"
+        autoComplete="email"
       />
+
       <input
         type="password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        placeholder="Salasana"
+        placeholder="Password"
         className="w-full border p-2 rounded"
         required
+        aria-label="Password"
+        autoComplete="new-password"
       />
+
       <input
         type="password"
         value={confirmPassword}
         onChange={(e) => setConfirmPassword(e.target.value)}
-        placeholder="Vahvista salasana"
+        placeholder="Confirm password"
         className="w-full border p-2 rounded"
         required
+        aria-label="Confirm password"
+        autoComplete="new-password"
       />
+
       <button
         type="submit"
         className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 disabled:opacity-50"
-        disabled={!username || !email || !password || !confirmPassword}
+        disabled={
+          loading ||
+          !username ||
+          !email ||
+          !password ||
+          !confirmPassword ||
+          !USERNAME_REGEX.test(username)
+        }
       >
-        Luo tili
+        {loading ? "Creating..." : "Create account"}
       </button>
+
       {message && <p className="text-sm text-red-600">{message}</p>}
+
+      {/* --- REPLACE START: small helper text for username rules (can be moved to i18n later) --- */}
+      <p className="text-xs text-gray-500">
+        Username: 3–30 chars. Allowed: letters, numbers, dot, underscore, hyphen.
+      </p>
+      {/* --- REPLACE END --- */}
     </form>
   );
 };
