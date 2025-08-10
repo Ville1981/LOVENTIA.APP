@@ -1,186 +1,253 @@
-// --- REPLACE START: CommonJS controller with robust CJS/ESM interop and safer auth flow ---
-'use strict';
+// --- REPLACE START: ESM auth controller with username validation & robust cookieOptions ---
+/**
+ * Auth Controller (ESM)
+ * - Pure ESM (no require)
+ * - Uses mongoose.models.User loaded by index.js (fallback dynamic import)
+ * - Clear 400 on missing username (instead of Mongoose ValidationError)
+ * - Helpers: generateAccessToken / generateRefreshToken
+ * - Exports: register, login, refreshToken, logout
+ */
 
-import path from 'path';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
-import { fileURLToPath } from 'url';
+import path from 'path';
+import { fileURLToPath, pathToFileURL } from 'url';
 
-// Resolve __dirname in ESM
+// Resolve __dirname for ESM
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname  = path.dirname(__filename);
 
-// Import centralized cookie options from src/utils, with safe fallback
-let cookieOptions;
+// Robust cookieOptions import: named export or default, with sane fallback
+let cookieOptions = {
+  httpOnly: true,
+  sameSite: 'lax',
+  secure: false,
+  path: '/',
+};
 try {
-  const opts = await import(path.resolve(__dirname, '../../utils/cookieOptions.js'));
-  cookieOptions = opts.cookieOptions || opts.default || {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: false,
-    path: '/',
-  };
+  const modURL = pathToFileURL(path.resolve(__dirname, '../../utils/cookieOptions.js'));
+  const mod    = await import(modURL.href);
+  cookieOptions = mod.cookieOptions || mod.default || cookieOptions;
 } catch (_) {
-  // Sensible dev defaults; adjust for production as needed
-  cookieOptions = {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: false,
-    path: '/',
-  };
+  // keep fallback
 }
 
-// --- Robust User model interop (handles CJS `module.exports` and ESM `export default`) ---
-let User;
-try {
-  const maybe = await import(path.resolve(__dirname, '../../../models/User.js'));
-  User = maybe.default || maybe;
-} catch (e) {
-  // Fallback: if already registered in mongoose.models (because models are imported elsewhere)
-  User = mongoose.models && mongoose.models.User;
-  if (!User) {
-    console.error('[authController] Failed to load User model:', e && e.message);
+// Resolve User model primarily from mongoose registry
+let User = mongoose.models?.User;
+if (!User) {
+  // Try common duplicates in repo layout
+  const candidatePaths = [
+    // ../../../models/User.js relative to this file (server/models/User.js)
+    path.resolve(__dirname, '../../../models/User.js'),
+    // ../../models/User.js (server/src/models/User.js)
+    path.resolve(__dirname, '../../models/User.js'),
+  ];
+  for (const p of candidatePaths) {
+    try {
+      const m = await import(pathToFileURL(p).href);
+      const candidate = m.default || m.User || m;
+      if (candidate?.findOne) {
+        User = candidate;
+        break;
+      }
+    } catch {
+      // continue
+    }
   }
 }
-
-// Extra guard: ensure we have a functioning model with `.findOne`
 if (!User || typeof User.findOne !== 'function') {
-  console.error('[authController] User model not usable. Got:', typeof User);
+  console.error('[authController] User model not usable. Did you import models in index.js?');
 }
 
+/* ----------------------- Helpers ----------------------- */
+function ensureJwtSecrets() {
+  const ok = !!(process.env.JWT_SECRET && process.env.JWT_REFRESH_SECRET);
+  if (!ok) console.error('[authController] Missing JWT secrets in environment');
+  return ok;
+}
+
+function normalizeId(user) {
+  if (!user) return undefined;
+  if (user.id) return user.id;
+  if (user._id && typeof user._id.toString === 'function') return user._id.toString();
+  return undefined;
+}
+
+function generateAccessToken(payload, expiresIn = '15m') {
+  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn });
+}
+
+function generateRefreshToken(payload, expiresIn = '7d') {
+  return jwt.sign(payload, process.env.JWT_REFRESH_SECRET, { expiresIn });
+}
+
+function safeUsername({ username, name, email }) {
+  if (username && typeof username === 'string' && username.trim()) return username.trim();
+  if (name && typeof name === 'string' && name.trim()) return name.trim();
+  if (email && typeof email === 'string') {
+    const base = email.split('@')[0] || 'user';
+    return `${base}`.slice(0, 30);
+  }
+  return '';
+}
+
+/* ----------------------- Controllers ----------------------- */
 /**
- * POST /api/auth/login
- * Authenticate user and set refreshToken cookie.
+ * POST /api/auth/register
+ * Body: { email, password, name?, username? }
  */
-export async function login(req, res, next) {
+export async function register(req, res) {
   try {
-    const { email, password } = req.body;
+    const { email, password } = req.body || {};
+    let { name, username } = req.body || {};
 
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password are required' });
     }
-    if (!User || typeof User.findOne !== 'function') {
+    if (!User?.findOne) {
       return res.status(500).json({ error: 'Server user model not available' });
     }
 
-    // 1) Find user by email
+    // username requirement (schema requires it) -> explicit 400 instead of Mongoose ValidationError
+    username = safeUsername({ username, name, email });
+    if (!username) {
+      return res.status(400).json({ message: 'Username is required' });
+    }
+
+    // Duplicate check
+    const exists = await User.findOne({ email });
+    if (exists) {
+      return res.status(409).json({ message: 'Email already in use' });
+    }
+
+    // Hash password
+    const salt    = await bcrypt.genSalt(10);
+    const hashed  = await bcrypt.hash(password, salt);
+
+    // Create user
+    const doc = new User({
+      email,
+      password: hashed,
+      name: name || username,
+      username,
+      role: 'user',
+    });
+    const user = await doc.save();
+
+    // Tokens
+    if (!ensureJwtSecrets()) {
+      return res.status(500).json({ error: 'Server misconfiguration' });
+    }
+    const uid   = normalizeId(user);
+    const role  = user?.role || 'user';
+    const at    = generateAccessToken({ userId: uid, role });
+    const rt    = generateRefreshToken({ userId: uid, role });
+
+    // Set refresh cookie
+    res.cookie('refreshToken', rt, cookieOptions);
+
+    return res.status(201).json({
+      accessToken: at,
+      user: { id: uid, email: user.email, name: user.name, username, role },
+    });
+  } catch (err) {
+    console.error('Register error:', err?.stack || err?.message || err);
+    return res.status(500).json({ error: 'Server error during registration' });
+  }
+}
+
+/**
+ * POST /api/auth/login
+ * Body: { email, password }
+ */
+export async function login(req, res) {
+  try {
+    const { email, password } = req.body || {};
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
+    if (!User?.findOne) {
+      return res.status(500).json({ error: 'Server user model not available' });
+    }
+
     const user = await User.findOne({ email });
-    if (!user || !user.password) {
+    if (!user?.password) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // 2) Compare password hash
-    let passwordsMatch = false;
-    try {
-      passwordsMatch = await bcrypt.compare(password, user.password);
-    } catch (cmpErr) {
-      console.error('[authController] bcrypt.compare failed:', cmpErr && cmpErr.message);
-    }
-    if (!passwordsMatch) {
+    const ok = await bcrypt.compare(password, user.password);
+    if (!ok) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // 3) Ensure JWT secrets exist
-    if (!process.env.JWT_SECRET || !process.env.JWT_REFRESH_SECRET) {
-      console.error('[authController] Missing JWT secrets in environment');
+    if (!ensureJwtSecrets()) {
       return res.status(500).json({ error: 'Server misconfiguration' });
     }
 
-    // 4) Build tokens
-    const uid = user.id || (user._id && user._id.toString && user._id.toString());
-    const role = user.role || 'user';
+    const uid  = normalizeId(user);
+    const role = user?.role || 'user';
+    const at   = generateAccessToken({ userId: uid, role });
+    const rt   = generateRefreshToken({ userId: uid, role });
 
-    const accessToken = jwt.sign(
-      { userId: uid, role },
-      process.env.JWT_SECRET,
-      { expiresIn: '15m' }
-    );
+    res.cookie('refreshToken', rt, cookieOptions);
 
-    const refreshToken = jwt.sign(
-      { userId: uid, role },
-      process.env.JWT_REFRESH_SECRET,
-      { expiresIn: '7d' }
-    );
-
-    // 5) Set refresh cookie
-    res.cookie('refreshToken', refreshToken, cookieOptions);
-
-    // 6) Respond
     return res.json({
-      accessToken,
-      user: {
-        id: uid,
-        email: user.email,
-        name: user.name,
-        role,
-      },
+      accessToken: at,
+      user: { id: uid, email: user.email, name: user.name, username: user.username, role },
     });
   } catch (err) {
-    console.error('Login error:', err && (err.stack || err.message || err));
+    console.error('Login error:', err?.stack || err?.message || err);
     return res.status(500).json({ error: 'Server error during login' });
   }
 }
 
 /**
  * POST /api/auth/refresh
- * Verify refreshToken cookie and issue new accessToken.
+ * Cookie: refreshToken
  */
-export async function refreshToken(req, res, next) {
+export async function refreshToken(req, res) {
   try {
-    const token = req.cookies && req.cookies.refreshToken;
+    const token = req.cookies?.refreshToken;
     if (!token) {
       return res.status(401).json({ error: 'No refresh token provided' });
     }
-
-    if (!process.env.JWT_SECRET || !process.env.JWT_REFRESH_SECRET) {
-      console.error('[authController] Missing JWT secrets in environment');
+    if (!ensureJwtSecrets()) {
       return res.status(500).json({ error: 'Server misconfiguration' });
     }
 
-    return jwt.verify(token, process.env.JWT_REFRESH_SECRET, (err, payload) => {
-      if (err) {
-        return res.status(403).json({ error: 'Invalid refresh token' });
-      }
+    jwt.verify(token, process.env.JWT_REFRESH_SECRET, (err, payload) => {
+      if (err) return res.status(403).json({ error: 'Invalid refresh token' });
 
-      const newAccessToken = jwt.sign(
-        { userId: payload.userId, role: payload.role },
-        process.env.JWT_SECRET,
-        { expiresIn: '15m' }
-      );
+      const at = generateAccessToken({ userId: payload.userId, role: payload.role });
 
-      // Optional rotation
+      // refresh rotation (best practice)
       try {
-        const rotatedRefresh = jwt.sign(
-          { userId: payload.userId, role: payload.role },
-          process.env.JWT_REFRESH_SECRET,
-          { expiresIn: '7d' }
-        );
-        res.cookie('refreshToken', rotatedRefresh, cookieOptions);
+        const rotated = generateRefreshToken({ userId: payload.userId, role: payload.role });
+        res.cookie('refreshToken', rotated, cookieOptions);
       } catch (rotErr) {
-        console.warn('[authController] Refresh rotation failed:', rotErr && rotErr.message);
+        console.warn('[authController] Refresh rotation failed:', rotErr?.message || rotErr);
       }
 
-      return res.json({ accessToken: newAccessToken });
+      return res.json({ accessToken: at });
     });
   } catch (err) {
-    console.error('Refresh error:', err && (err.stack || err.message || err));
+    console.error('Refresh error:', err?.stack || err?.message || err);
     return res.status(500).json({ error: 'Server error during refresh' });
   }
 }
 
 /**
  * POST /api/auth/logout
- * Clear refreshToken cookie.
+ * Clears refreshToken cookie
  */
 export function logout(req, res) {
   try {
     res.clearCookie('refreshToken', cookieOptions);
     return res.sendStatus(204);
   } catch (err) {
-    console.error('Logout error:', err && (err.stack || err.message || err));
+    console.error('Logout error:', err?.stack || err?.message || err);
     return res.status(500).json({ error: 'Logout failed' });
   }
 }
-
 // --- REPLACE END ---
