@@ -1,7 +1,5 @@
-// File: client/src/services/authService.js
-
 // --- REPLACE START: import unified axios instance ---
-import api, { setAccessToken } from "../utils/axiosInstance";
+import api, { setAccessToken } from "./api/axiosInstance";
 // --- REPLACE END ---
 
 /**

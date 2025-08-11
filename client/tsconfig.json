@@ -1,42 +1,50 @@
 {
-  // Tämä tsconfig.json tiedosto määrittää TypeScriptin asetukset projektillesi
+  // TypeScript compiler options for the client app
   "compilerOptions": {
-    // Käännösasetukset
+    // Language & module target
     "target": "ESNext",
     "module": "ESNext",
-    "moduleResolution": "node",
+
+    // --- REPLACE START: use bundler resolution for Vite (TS5+ recommendation) ---
+    "moduleResolution": "bundler",
+    // --- REPLACE END ---
+
     "jsx": "react-jsx",
 
-    // CommonJS/ESModule yhteensopivuus
+    // CJS/ESM interoperability
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
 
-    // JavaScript-tiedostojen tuki
+    // JavaScript file support
     "allowJs": true,
     "checkJs": false,
 
-    // Tyyppitarkastus
+    // Type checking strictness
     "strict": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
 
-    // Lisätyypitykset Vite-ympäristöön (import.meta.env)
-    "types": ["vite/client"],
+    // --- REPLACE START: explicitly clear inherited 'types' to stop tsserver forcing vite/client ---
+    "types": [],
+    // --- REPLACE END ---
 
-    // Lähdekartat
+    // Source maps
     "sourceMap": true,
 
-    // Polut ja ulostulo
-    // RootDir viittaa client/tsconfig.json sijaintiin: client/src
+    // Paths & output
+    // RootDir points to the tsconfig.json location context: client/src
     "rootDir": "src",
     "outDir": "dist",
 
-    // Mahdollistaa JSON-moduulien tuonnin
+    // Enable JSON module imports
     "resolveJsonModule": true
 
-    // Huom: typeRoots on poistettu, jotta Viten client-tyypit löytyvät oletushakupoluista
+    // Note: typeRoots omitted so default lookup finds node_modules/@types
   },
-  // Sisällyttää kaikki client/src alikansion tiedostot (.js/.jsx/.ts/.tsx)
-  "include": ["src/**/*"],
+
+  // Include all source files under client/src (js, jsx, ts, tsx) + vite-env.d.ts
+  "include": ["src/**/*", "src/vite-env.d.ts"],
+
+  // Typical excludes
   "exclude": ["node_modules", "dist"]
 }

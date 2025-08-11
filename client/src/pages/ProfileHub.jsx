@@ -1,13 +1,14 @@
-// File: src/pages/ProfileHub.jsx
-
+// --- REPLACE START: ensure AuthContext + axios paths and guard setAuthUser ---
 import PropTypes from "prop-types";
 import React, { useEffect, useState, useCallback } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import ProfileForm from "../components/profileFields/ProfileForm";
-import { BACKEND_BASE_URL } from "../config";
+// NOTE: Remove BACKEND_BASE_URL usage for profile calls – we centralize via userService
+// import { BACKEND_BASE_URL } from "../config";
 import { useAuth } from "../contexts/AuthContext";
-import api from "../utils/axiosInstance";
+// import api from "../services/api/axiosInstance";
+import { getUserProfile, updateOwnProfile } from "../services/userService";
 
 /**
  * ProfileHub handles user profile display and editing,
@@ -16,9 +17,16 @@ import api from "../utils/axiosInstance";
  * Tab navigation is commented out; only “Preferences” renders.
  */
 export default function ProfileHub() {
-  const token = localStorage.getItem("token");
+  // Prefer context-managed user (axios instance sets header); legacy localStorage not needed
+  // const legacyToken =
+  //   localStorage.getItem("accessToken") || localStorage.getItem("token") || "";
+
   const { userId: userIdParam } = useParams();
-  const { user: authUser, setUser: setAuthUser } = useAuth();
+
+  const {
+    user: authUser,
+    setUser: setAuthUser, // our context provides this; keep exact name
+  } = useAuth();
 
   // --- local state ---
   const [user, setUser] = useState(null);
@@ -72,20 +80,20 @@ export default function ProfileHub() {
     return translations[key] || key;
   };
 
-  // --- REPLACE START: fetch user and populate values ---
   const fetchUser = useCallback(async () => {
     try {
-      const url = userIdParam
-        ? `${BACKEND_BASE_URL}/api/users/${userIdParam}`
-        : `${BACKEND_BASE_URL}/api/users/profile`;
-      const res = await api.get(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const u = res.data.user || res.data;
+      // --- REPLACE START: use centralized userService (api instance attaches Bearer automatically) ---
+      const res = await getUserProfile(userIdParam);
+      // Server may return { user: {...} } or a raw user object
+      const u = res?.user ?? res;
+      // --- REPLACE END ---
+
       setUser(u);
-      if (!userIdParam) {
+
+      if (!userIdParam && typeof setAuthUser === "function") {
         setAuthUser(u);
       }
+
       setValues({
         username: u.username || "",
         email: u.email || "",
@@ -111,25 +119,24 @@ export default function ProfileHub() {
         smoke: u.smoke || "",
         drink: u.drink || "",
         drugs: u.drugs || "",
-        height: u.height || null,
+        height: u.height ?? null,
         heightUnit: u.heightUnit || "",
-        weight: u.weight || null,
+        weight: u.weight ?? null,
         bodyType: u.bodyType || "",
         activityLevel: u.activityLevel || "",
         nutritionPreferences: Array.isArray(u.nutritionPreferences)
           ? u.nutritionPreferences
           : [],
         healthInfo: u.healthInfo || "",
-        latitude: u.latitude || null,
-        longitude: u.longitude || null,
+        latitude: u.latitude ?? null,
+        longitude: u.longitude ?? null,
       });
     } catch (err) {
       console.error("Failed to fetch profile:", err);
       setMessage("Failed to load profile.");
       setSuccess(false);
     }
-  }, [token, userIdParam, setAuthUser]);
-  // --- REPLACE END ---
+  }, [userIdParam, setAuthUser]);
 
   useEffect(() => {
     fetchUser();
@@ -141,26 +148,19 @@ export default function ProfileHub() {
 
   const profileUserId = userIdParam || authUser?._id || user._id || user.id;
 
-  // --- REPLACE START: handle form submit ---
   const handleFormSubmit = async (formData) => {
     if (userIdParam) return; // no editing others
 
     try {
-      const res = await api.put(
-        `${BACKEND_BASE_URL}/api/users/profile`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-      const updated = res.data.user || res.data;
+      // --- REPLACE START: centralized update via userService (api sets headers) ---
+      const updated = await updateOwnProfile(formData);
+      // --- REPLACE END ---
       setSuccess(true);
       setMessage(t("profile.saved"));
       setUser(updated);
-      setAuthUser(updated);
+      if (typeof setAuthUser === "function") {
+        setAuthUser(updated);
+      }
     } catch (err) {
       console.error("Update failed:", err);
       let msg = err.message;
@@ -169,13 +169,14 @@ export default function ProfileHub() {
         if (resp.message) msg = resp.message;
         else if (Array.isArray(resp.errors)) {
           msg = resp.errors.map((e) => e.msg).join(", ");
+        } else if (resp.error) {
+          msg = resp.error;
         }
       }
       setSuccess(false);
       setMessage(msg);
     }
   };
-  // --- REPLACE END ---
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-6">
@@ -197,7 +198,9 @@ export default function ProfileHub() {
         user={user}
         onUserUpdate={(u) => {
           setUser(u);
-          setAuthUser(u);
+          if (typeof setAuthUser === "function") {
+            setAuthUser(u);
+          }
         }}
         isPremium={user.isPremium}
         t={t}
@@ -214,3 +217,5 @@ export default function ProfileHub() {
 ProfileHub.propTypes = {
   // no props expected
 };
+// --- REPLACE END ---
+
