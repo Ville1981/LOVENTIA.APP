@@ -1,0 +1,360 @@
+{
+<<<<<<< HEAD
+  "site": { "title": "DateSite" },
+=======
+  "site": {
+    "title": "DateSite"
+  },
+>>>>>>> origin/main
+  "Home": "Accueil",
+  "Discover": "Découvrir",
+  "Login": "Connexion",
+  "Register": "S'inscrire",
+  "Profile": "Profil",
+  "Matches": "Correspondances",
+  "Likes": "J'aime",
+  "Map": "Carte",
+  "Admin": "Admin",
+  "Logout": "Déconnexion",
+  "Privacy": "Confidentialité",
+<<<<<<< HEAD
+
+=======
+>>>>>>> origin/main
+  "about": "À propos",
+  "careers": "Carrières",
+  "press": "Presse",
+  "terms": "Conditions",
+  "cookies": "Cookies",
+  "community": "Communauté",
+  "health": "Politique de santé",
+  "coInfo": "Info Colorado",
+  "contact": "Contact",
+  "support": "Support",
+  "security": "Sécurité",
+  "safety": "Conseils de sécurité",
+  "impressum": "Mentions légales",
+  "follow": "Suivre",
+  "blog": "Blog",
+  "special": "Spécial",
+  "download": "Télécharger",
+  "rights": "Tous droits réservés.",
+  "tagline": "Mieux matcher. Aimer plus intelligemment. 💘",
+  "company": "Entreprise",
+  "conditions": "Conditions",
+
+  "etusivu": {
+    "heroOtsikko": "Bienvenue sur DateSite !",
+    "heroTeksti": "Trouvez des connexions significatives facilement et en toute sécurité.",
+    "heroTekstit": [
+      "Trouvez un amour durable.",
+      "Rencontrez des personnes partageant vos valeurs.",
+      "Votre prochaine rencontre est à un clic."
+    ],
+    "tervetuloa": "Bienvenue sur DateSite !",
+    "kuvaus": "Trouvez de la compagnie, des amis ou l'amour facilement et en toute sécurité.",
+    "aloita": "Commencer",
+    "lue_lisaa": "En savoir plus",
+    "katso_kayttajat": "Voir les utilisateurs"
+  },
+
+  "profile": {
+    "title": "Profil",
+    "name": "Nom",
+    "email": "Email",
+    "age": "Âge",
+<<<<<<< HEAD
+    "gender": "Genre",
+=======
+    "height": "Taille (cm)",
+    "weight": "Poids (kg)",
+    "status": "Statut relationnel",
+    "religion": "Religion ou valeurs",
+    "children": "Avez-vous des enfants ?",
+    "pets": "Avez-vous des animaux ?",
+    "lookingFor": "Que recherchez-vous ?",
+    "summary": "À propos de moi",
+    "goal": "Objectifs / aspirations",
+    "profilePicture": "Photo de profil",
+    
+    "save": "Sauvegarder les modifications",
+    "delete": "Supprimer le compte",
+    "saveSuccess": "✅ Profil mis à jour avec succès !",
+        "gender": "Genre",
+>>>>>>> origin/main
+    "male": "Homme",
+    "female": "Femme",
+    "other": "Autre",
+    "orientation": "Orientation sexuelle",
+    "hetero": "Hétérosexuel",
+    "homo": "Homosexuel",
+    "bi": "Bisexuel",
+<<<<<<< HEAD
+    "height": "Taille (cm)",
+    "heightUnit": "Unité de taille",
+    "weight": "Poids (kg)",
+    "status": "Statut relationnel",
+=======
+    "country": "Pays",
+    "region": "Région",
+    "city": "Ville",
+    "selectCountry": "Sélectionner un pays",
+    "manualCountry": "Ou entrer un pays manuellement",
+    "selectRegion": "Sélectionner une région",
+    "manualRegion": "Ou entrer une région manuellement",
+    "selectCity": "Sélectionner une ville",
+    "manualCity": "Ou entrer une ville manuellement",
+>>>>>>> origin/main
+    "education": "Niveau d'études",
+    "basicEducation": "Éducation de base",
+    "secondary": "Diplôme secondaire",
+    "lowerUni": "Licence ou équivalent",
+    "upperUni": "Master ou équivalent",
+    "phd": "Doctorat (PhD)",
+    "profession": "Profession",
+<<<<<<< HEAD
+    "professionPlaceholder": "Entrez votre profession…",
+    "professionCategory": "Catégorie de profession",
+    "categories": {
+      "Technical": "Technique",
+      "Healthcare": "Santé",
+      "Education": "Éducation",
+      "Entrepreneur": "Entrepreneur",
+      "Other": "Autre"
+    },
+    "religion": "Religion ou valeurs",
+    "religionImportance": "Importance de la religion",
+    "notImportant": "Pas important",
+    "somewhatImportant": "Assez important",
+    "veryImportant": "Très important",
+    "children": "Enfants",
+    "pets": "Animaux de compagnie",
+    "interests": "Centres d'intérêt",
+    "images": "Images supplémentaires",
+    "mainImage": "Image principale du profil",
+    "extraImages": "Images supplémentaires (max. 6)",
+    "updateProfile": "Mettre à jour le profil",
+    "save": "Enregistrer les modifications",
+    "deleteAccount": "Supprimer le compte",
+    "saveSuccess": "✅ Profil mis à jour avec succès !",
+    "fetchError": "❌ Échec du chargement du profil.",
+    "updateError": "❌ Échec de la mise à jour du profil.",
+    "confirmDelete": "Voulez-vous vraiment supprimer votre compte ?",
+    "premiumMember": "Vous êtes membre Premium 🎉",
+
+    "noFileChosen": "Aucun fichier sélectionné",
+    "browse": "Parcourir…",
+    "saveExtraPhotos": "Enregistrer les photos",
+    "removePicture": "Supprimer l’image",
+    "addCaption": "Ajouter une légende…",
+    "saveCropped": "Enregistrer la photo"
+  },
+
+  "hero": {
+    "0": "Trouvez un amour durable.",
+    "1": "Rencontrez des personnes partageant vos valeurs.",
+    "2": "Votre prochaine rencontre est à un clic."
+  },
+=======
+    "religionImportance": "Quelle importance accordez-vous à la religion ?",
+    "notImportant": "Pas important",
+    "somewhatImportant": "Assez important",
+    "veryImportant": "Très important",
+    "about": "À propos de moi",
+    "goals": "Objectifs / souhaits",
+    "searchingFor": "Que recherchez-vous ?",
+    "mainImage": "Photo principale du profil",
+    "extraImages": "Images supplémentaires (max. 6)",
+    "saveChanges": "Enregistrer les modifications",
+    "deleteAccount": "Supprimer le compte",
+    "saved": "✅ Profil mis à jour avec succès !",
+    "fetchError": "❌ Échec du chargement du profil.",
+    "updateError": "❌ Échec de la mise à jour du profil.",
+    "confirmDelete": "Voulez-vous vraiment supprimer votre compte de façon permanente ?",
+    "premiumMember": "Vous êtes membre Premium 🎉"
+
+  },
+
+  "hero": {
+  "0": "Trouvez l'amour durable.",
+  "1": "Rencontrez des personnes qui partagent vos valeurs.",
+  "2": "Votre prochaine rencontre est à un clic."
+},
+
+>>>>>>> origin/main
+
+  "buttons": {
+    "submit": "Envoyer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "back": "Retour"
+  },
+
+  "messages": {
+<<<<<<< HEAD
+    "loading": "Chargement…",
+=======
+    "loading": "Chargement...",
+>>>>>>> origin/main
+    "error": "Une erreur s'est produite",
+    "notFound": "Page non trouvée",
+    "success": "Action réussie"
+  },
+
+  "discover": {
+    "title": "Découvrir des utilisateurs",
+    "nearYou": "près de vous",
+<<<<<<< HEAD
+    "searchPlaceholder": "🔍 Rechercher par nom ou intérêt…",
+    "geolocationNotSupported": "Votre navigateur ne prend pas en charge la géolocalisation.",
+    "cityNotFound": "Impossible d'identifier votre ville.",
+    "fetchError": "Erreur lors de la récupération des utilisateurs.",
+    "liked": "Utilisateur aimé !",
+    "likeFailed": "Échec du like.",
+    "superliked": "Superlike !",
+    "superlikeFailed": "Échec du superlike.",
+    "superlikeLimit": "❌ Limite de Superlike atteinte (3/48 h).",
+    "loading": "🔄 Chargement des utilisateurs…",
+=======
+    "searchPlaceholder": "🔍 Rechercher par nom ou intérêt...",
+    "geolocationNotSupported": "Votre navigateur ne prend pas en charge la géolocalisation.",
+    "cityNotFound": "Votre ville n'a pas pu être identifiée.",
+    "fetchError": "Erreur lors de la récupération des utilisateurs.",
+    "liked": "Utilisateur aimé !",
+    "likeFailed": "Échec de l'ajout du like.",
+    "superliked": "Superlike !",
+    "superlikeFailed": "Échec du superlike.",
+    "superlikeLimit": "❌ Limite de Superlike atteinte (3/48h).",
+    "loading": "🔄 Chargement des utilisateurs...",
+>>>>>>> origin/main
+    "adAlt": "Espace pub – votre annonce ici",
+    "like": "J'aime",
+    "superlike": "Superlike",
+    "viewProfile": "Voir le profil",
+<<<<<<< HEAD
+    "premium": "Utilisateur Premium",
+    "minAge": "Âge minimum",
+    "maxAge": "Âge maximum",
+    "instructions": "Sélectionnez les filtres pour trouver des profils compatibles.",
+    "filter": "Filtrer"
+=======
+    "premium": "Utilisateur Premium"
+>>>>>>> origin/main
+  },
+
+  "chat": {
+    "title": "Chat",
+<<<<<<< HEAD
+    "placeholder": "Tapez un message…",
+=======
+    "placeholder": "Tapez un message...",
+>>>>>>> origin/main
+    "send": "Envoyer"
+  },
+
+  "admin": {
+    "title": "Panneau Admin : Gestion des utilisateurs",
+    "name": "Nom",
+    "location": "Emplacement",
+    "hidden": "Caché ?",
+    "actions": "Actions",
+    "yes": "✅ Oui",
+    "no": "❌ Non",
+    "hide": "Cacher",
+    "unhide": "Afficher",
+    "delete": "Supprimer",
+    "confirmDelete": "Êtes-vous sûr de vouloir supprimer cet utilisateur ?"
+  },
+
+  "map": {
+    "title": "Utilisateurs sur la carte",
+    "cityNotFound": "Impossible d'identifier votre ville.",
+    "locationError": "Impossible d'obtenir votre position.",
+    "fetchError": "Erreur lors de la récupération des utilisateurs.",
+    "youAreHere": "Vous êtes ici",
+<<<<<<< HEAD
+    "loadingLocation": "Recherche de la position…"
+=======
+    "loadingLocation": "Recherche de la position..."
+>>>>>>> origin/main
+  },
+
+  "matches": {
+    "title": "Vos correspondances",
+    "noMatches": "Aucune correspondance pour le moment.",
+    "openChat": "Ouvrir le chat",
+    "score": "Score de compatibilité"
+  },
+
+  "premium": {
+    "successTitle": "Abonnement Premium réussi",
+    "successMessage": "✅ Premium activé ! Merci pour votre achat.",
+    "cancelTitle": "Paiement annulé",
+    "cancelMessage": "Vous n'avez pas finalisé le paiement. Vous pouvez réessayer à tout moment.",
+<<<<<<< HEAD
+    "updating": "Mise à jour…",
+=======
+    "updating": "Mise à jour...",
+>>>>>>> origin/main
+    "errorMessage": "❌ Échec de l'activation Premium."
+  },
+
+  "country": "Pays",
+  "region": "Région / état",
+  "city": "Ville",
+  "countries": {
+    "Suomi": "Finlande",
+    "Ruotsi": "Suède",
+    "Norja": "Norvège",
+    "Saksa": "Allemagne",
+    "Ranska": "France",
+    "Yhdysvallat": "États-Unis",
+    "Kanada": "Canada",
+    "Iso-Britannia": "Royaume-Uni",
+    "Japani": "Japon",
+    "Kiina": "Chine",
+    "Intia": "Inde",
+    "Venäjä": "Russie",
+    "Espanja": "Espagne",
+    "Brasilia": "Brésil",
+    "Argentiina": "Argentine",
+    "Chile": "Chili",
+    "Ukraina": "Ukraine",
+    "Kazakstan": "Kazakhstan",
+    "Portugali": "Portugal",
+    "Italia": "Italie"
+<<<<<<< HEAD
+  },
+
+  "common": {
+    "select": "Sélectionner",
+    "filter": "Filtrer",
+    "other": "Autre"
+  },
+
+  "lifestyle": {
+    "title": "Mode de vie",
+    "smoke": "Tabac",
+    "drink": "Alcool",
+    "drugs": "Drogues",
+    "no": "Aucun",
+    "little": "Un peu",
+    "average": "Moyennement",
+    "much": "Beaucoup",
+    "sober": "Sobre",
+    "diet": "Préférences alimentaires",
+    "dietOmnivore": "Omnivore",
+    "dietVegetarian": "Végétarien",
+    "dietVegan": "Végan",
+    "dietPescatarian": "Pescatarien",
+    "dietKeto": "Keto",
+    "exercise": "Habitudes d'exercice",
+    "exerciseNever": "Jamais",
+    "exerciseOccasionally": "Occasionnellement",
+    "exerciseWeekly": "Hebdomadaire",
+    "exerciseDaily": "Quotidien"
+=======
+>>>>>>> origin/main
+  }
+}
