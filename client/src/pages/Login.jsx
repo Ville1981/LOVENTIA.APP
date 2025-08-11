@@ -1,12 +1,13 @@
-// client/src/pages/Login.jsx
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
-// --- REPLACE START: correct context folder name (singular) ---
+// --- REPLACE START: use plural 'contexts' folder ---
 import { useAuth } from "../contexts/AuthContext";
 // --- REPLACE END ---
 
-import api from "../services/api/axiosInstance";
+// NOTE: Removed direct axios call to avoid double POST /auth/login.
+// The AuthContext.login handles the API call, token attach and /auth/me fetch.
+// (Keeping import of api would be unnecessary and could cause lint errors.)
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -19,17 +20,14 @@ const Login = () => {
     e.preventDefault();
     setMessage("");
     try {
-      // --- REPLACE START: use api with /auth/login ---
-      const res = await api.post("/auth/login", { email, password });
+      // --- REPLACE START: call context login only (prevents duplicate network calls) ---
+      await login(email, password);
       // --- REPLACE END ---
-      // Backend sets refresh-token in an HttpOnly cookie.
-      // Frontend stores the access token via AuthContext.login
-      await login(email, password); // login hook handles token & profile fetch
       setMessage("Login successful!");
       navigate("/profile");
     } catch (err) {
       setMessage(
-        err.response?.data?.error ||
+        err?.response?.data?.error ||
           "Login failed. Please check your credentials."
       );
     }
@@ -38,7 +36,7 @@ const Login = () => {
   return (
     <div className="max-w-md mx-auto mt-10 bg-white p-6 rounded shadow">
       <h2 className="text-xl font-bold mb-4">Log In</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <div>
           <label htmlFor="email" className="block font-medium mb-1">
             Email
@@ -50,6 +48,7 @@ const Login = () => {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
             className="w-full border p-2 rounded"
+            autoComplete="email"
             required
           />
         </div>
@@ -64,6 +63,7 @@ const Login = () => {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
             className="w-full border p-2 rounded"
+            autoComplete="current-password"
             required
           />
         </div>
@@ -101,5 +101,4 @@ const Login = () => {
 
 export default Login;
 
-// The replacement region is marked between // --- REPLACE START and // --- REPLACE END 
-// so you can verify exactly what changed.
+// The replacement region is marked between // --- REPLACE START and // --- REPLACE END

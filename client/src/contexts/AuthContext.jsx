@@ -1,87 +1,122 @@
-// File: client/src/context/AuthContext.jsx
+// --- REPLACE START: robust AuthContext with setAuthUser function ---
+import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
+import api, {
+  // Backward-compatible names from axiosInstance:
+  setAccessToken as attachAccessToken, // keep old call sites working
+  getAccessToken,
+} from '../utils/axiosInstance'; // ← fixed path
 
-import React, { createContext, useState, useEffect, useContext } from 'react';
-import api, { setAccessToken } from '../utils/axiosInstance';
-
-// Default context values
+/**
+ * AuthContext value shape
+ * - authUser: current user object (or null)
+ * - setAuthUser: updater to avoid TypeError in existing pages
+ * - accessToken: current access token (or null)
+ * - login, register, logout, refreshMe: helpers
+ * - bootstrapped: indicates initial auth check completed
+ */
 const AuthContext = createContext({
-  user: null,
-  loading: true,
-  // --- REPLACE START: add isLoggedIn default value ---
-  isLoggedIn: false,
-  // --- REPLACE END ---
+  authUser: null,
+  setAuthUser: () => {},
+  accessToken: null,
   login: async () => {},
+  register: async () => {},
   logout: async () => {},
+  refreshMe: async () => {},
+  bootstrapped: false, // ← added for completeness
 });
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+export const useAuth = () => useContext(AuthContext);
 
+export function AuthProvider({ children }) {
+  const [authUser, setAuthUser] = useState(null);
+  const [accessToken, setAccessTokenState] = useState(getAccessToken() || null);
+  const [bootstrapped, setBootstrapped] = useState(false);
+
+  // Keep axios header in sync when token changes
   useEffect(() => {
-    async function initAuth() {
-      try {
-        // --- REPLACE START: call refresh endpoint without extra '/api' and load profile correctly ---
-        const refreshRes = await api.post('/auth/refresh');
-        const { accessToken } = refreshRes.data || {};
-        if (accessToken) {
-          setAccessToken(accessToken);
-          const profileRes = await api.get('/auth/me');
-          // server returns { user: {...} }, use the nested object
-          setUser(profileRes.data?.user || null);
-        }
-        // --- REPLACE END ---
-      } catch (err) {
-        console.warn('Auth silent refresh failed:', err);
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
+    attachAccessToken(accessToken);
+  }, [accessToken]);
+
+  const refreshMe = useCallback(async () => {
+    try {
+      // IMPORTANT: send {} (not null) so body-parser doesn't choke in strict mode
+      const r = await api.post('/auth/refresh', {}, { withCredentials: true });
+      const next = r?.data?.accessToken;
+      if (next) setAccessTokenState(next);
+
+      // then fetch /me
+      const me = await api.get('/auth/me');
+      setAuthUser(me?.data?.user || null);
+      return me?.data?.user || null;
+    } catch (err) {
+      // If refresh/me fails, clear local state but do not hard-crash UI
+      setAuthUser(null);
+      setAccessTokenState(null);
+      attachAccessToken(null);
+      return null;
     }
-    initAuth();
   }, []);
 
-  const login = async (email, password) => {
-    // --- REPLACE START: call login endpoint without extra '/api' and set user from /auth/me ---
-    const res = await api.post('/auth/login', { email, password });
-    const { accessToken: newToken } = res.data || {};
-    if (newToken) setAccessToken(newToken);
-    const profileRes = await api.get('/auth/me');
-    setUser(profileRes.data?.user || null);
-    return profileRes.data?.user || null;
-    // --- REPLACE END ---
-  };
+  // Bootstrap on mount
+  useEffect(() => {
+    (async () => {
+      await refreshMe();
+      setBootstrapped(true);
+    })();
+  }, [refreshMe]);
 
-  const logout = async () => {
-    try {
-      // --- REPLACE START: call logout endpoint without extra '/api' ---
-      await api.post('/auth/logout');
-      // --- REPLACE END ---
-    } catch (err) {
-      console.warn('Logout request failed:', err);
+  const login = useCallback(async (email, password) => {
+    // After a successful login, server returns accessToken and sets refresh cookie
+    const res = await api.post('/auth/login', { email, password }, { withCredentials: true });
+    const token = res?.data?.accessToken;
+    if (token) {
+      setAccessTokenState(token);
+      attachAccessToken(token); // attach immediately so subsequent /me has Bearer
     }
-    setAccessToken(null);
-    setUser(null);
-  };
+    const me = await api.get('/auth/me');
+    setAuthUser(me?.data?.user || null);
+    return me?.data?.user || null;
+  }, []);
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        // --- REPLACE START: derive isLoggedIn from user state ---
-        isLoggedIn: !!user,
-        // --- REPLACE END ---
-        login,
-        logout,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  const register = useCallback(async (payload) => {
+    const res = await api.post('/auth/register', payload, { withCredentials: true });
+    const token = res?.data?.accessToken;
+    if (token) {
+      setAccessTokenState(token);
+      attachAccessToken(token);
+    }
+    const me = await api.get('/auth/me');
+    setAuthUser(me?.data?.user || null);
+    return me?.data?.user || null;
+  }, []);
+
+  const logout = useCallback(async () => {
+    try {
+      // Use {} instead of null to avoid strict JSON parser throwing
+      await api.post('/auth/logout', {}, { withCredentials: true });
+    } finally {
+      setAuthUser(null);
+      setAccessTokenState(null);
+      attachAccessToken(null);
+    }
+  }, []);
+
+  const value = useMemo(
+    () => ({
+      authUser,
+      setAuthUser, // keep this exact name for existing components
+      accessToken,
+      login,
+      register,
+      logout,
+      refreshMe,
+      bootstrapped,
+    }),
+    [authUser, accessToken, login, register, logout, refreshMe, bootstrapped]
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-// Hook for consuming AuthContext
-export function useAuth() {
-  return useContext(AuthContext);
-}
+export default AuthContext;
+// --- REPLACE END ---
