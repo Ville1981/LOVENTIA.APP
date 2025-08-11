@@ -1,0 +1,253 @@
+{
+  "site": {
+    "title": "Arkadaşlık Sitesi"
+  },
+  "Home": "Ana Sayfa",
+  "Discover": "Keşfet",
+  "Login": "Giriş Yap",
+  "Register": "Kayıt Ol",
+  "Profile": "Profil",
+  "Matches": "Eşleşmeler",
+  "Likes": "Beğeniler",
+  "Map": "Harita",
+  "Admin": "Yönetim",
+  "Logout": "Çıkış Yap",
+  "Privacy": "Gizlilik",
+  "about": "Hakkında",
+  "careers": "Kariyer",
+  "press": "Basın",
+  "terms": "Şartlar",
+  "cookies": "Çerezler",
+  "community": "Topluluk",
+  "health": "Sağlık Politikası",
+  "coInfo": "Colorado Bilgisi",
+  "contact": "İletişim",
+  "support": "Destek",
+  "security": "Güvenlik",
+  "safety": "Güvenlik İpuçları",
+  "impressum": "Yasal Bildirim",
+  "follow": "Takip Et",
+  "blog": "Blog",
+  "special": "Özel",
+  "download": "İndir",
+  "rights": "Tüm hakları saklıdır.",
+  "tagline": "Daha iyi eşleş. Daha akıllıca sev 💘",
+  "company": "Şirket",
+  "conditions": "Koşullar",
+  "etusivu": {
+    "heroOtsikko": "DateSite'a Hoşgeldiniz!",
+    "heroTeksti": "Anlamlı bağlantılar kolayca ve güvenli şekilde bulun.",
+    "heroTekstit": [
+      "Kalıcı bir aşk bul.",
+      "Değerlerini paylaşan insanlarla tanış.",
+      "Bir sonraki eşin sadece bir tık uzağında."
+    ],
+    "tervetuloa": "DateSite'a Hoşgeldiniz!",
+    "kuvaus": "Arkadaşlık, dostluk ya da aşkı güvenle bul.",
+    "aloita": "Başla",
+    "lue_lisaa": "Daha fazla oku",
+    "katso_kayttajat": "Kullanıcıları Gör"
+  },
+  "profile": {
+    "username": "Kullanıcı adı",
+    "location": "Konum",
+    "interests": "İlgi alanları",
+    "images": "Ekstra resimler",
+    "updateProfile": "Profili Güncelle",
+    "saveError": "Güncelleme başarısız. Alanları kontrol et.",
+    "required": "Bu alan zorunludur",
+    "gender": "Cinsiyet",
+    "male": "Erkek",
+    "female": "Kadın",
+    "other": "Diğer",
+    "orientation": "Cinsel yönelim",
+    "hetero": "Heteroseksüel",
+    "homo": "Homoseksüel",
+    "bi": "Biseksüel",
+    "country": "Ülke",
+    "region": "Bölge",
+    "city": "Şehir",
+    "selectCountry": "Ülke Seç",
+    "manualCountry": "Ya da manuel olarak gir",
+    "selectRegion": "Bölge Seç",
+    "manualRegion": "Ya da manuel olarak gir",
+    "selectCity": "Şehir Seç",
+    "manualCity": "Ya da manuel olarak gir",
+    "education": "Eğitim",
+    "basicEducation": "İlköğretim",
+    "secondary": "Lise",
+    "lowerUni": "Ön lisans",
+    "upperUni": "Lisans / Yüksek Lisans",
+    "phd": "Doktora (PhD)",
+    "profession": "Meslek",
+    "religionImportance": "Dinin senin için ne kadar önemli?",
+    "notImportant": "Önemli değil",
+    "somewhatImportant": "Biraz önemli",
+    "veryImportant": "Çok önemli",
+    "about": "Hakkımda",
+    "goals": "Hedefler / dilekler",
+    "searchingFor": "Ne arıyorsun?",
+    "mainImage": "Ana profil resmi",
+    "saveChanges": "Değişiklikleri Kaydet",
+    "deleteAccount": "Hesabı Sil",
+    "saved": "✅ Profil güncellendi!",
+    "fetchError": "❌ Profil yüklenemedi.",
+    "updateError": "❌ Profil güncellenemedi.",
+    "confirmDelete": "Hesabını kalıcı olarak silmek istediğine emin misin?",
+    "premiumMember": "Premium üyesin 🎉",
+    "title": "Profil",
+    "name": "İsim",
+    "email": "E-posta",
+    "age": "Yaş",
+    "height": "Boy (cm)",
+    "weight": "Kilo (kg)",
+    "status": "İlişki durumu",
+    "religion": "Din veya değerler",
+    "children": "Çocuğun var mı?",
+    "pets": "Evcil hayvanın var mı?",
+    "lookingFor": "Ne arıyorsun?",
+    "summary": "Hakkımda",
+    "goal": "Hedefler / beklentiler",
+    "profilePicture": "Profil Resmi",
+    "extraImages": "Ekstra Resimler (maks 6)",
+    "save": "Kaydet",
+    "delete": "Sil",
+    "saveSuccess": "✅ Profil başarıyla güncellendi!"
+  },
+  "buttons": {
+    "submit": "Gönder",
+    "cancel": "İptal",
+    "delete": "Sil",
+    "edit": "Düzenle",
+    "back": "Geri"
+  },
+  "messages": {
+    "loading": "Yükleniyor...",
+    "error": "Bir hata oluştu",
+    "notFound": "Sayfa bulunamadı",
+    "success": "İşlem başarılı"
+  },
+  "discover": {
+    "title": "Kullanıcıları keşfet",
+    "nearYou": "yakınında",
+    "searchPlaceholder": "🔍 İsim ya da ilgi alanına göre ara...",
+    "geolocationNotSupported": "Tarayıcın konum servisini desteklemiyor.",
+    "cityNotFound": "Şehrin tespit edilemedi.",
+    "fetchError": "Kullanıcılar getirilemedi.",
+    "liked": "Beğenildi!",
+    "likeFailed": "Beğenme başarısız.",
+    "superliked": "Süper beğeni!",
+    "superlikeFailed": "Süper beğeni başarısız.",
+    "superlikeLimit": "❌ Süper beğeni limiti (3/48s) aşıldı.",
+    "loading": "🔄 Kullanıcılar yükleniyor...",
+    "adAlt": "Reklam alanı – reklamınızı buraya koyun",
+    "like": "Beğen",
+    "superlike": "Süper Beğeni",
+    "viewProfile": "Profili Görüntüle",
+<<<<<<< HEAD
+    "premium": "Premium kullanıcı",
+        "minAge": "Minimum yaş",
+    "maxAge": "Maksimum yaş",
+    "instructions": "Uygun profilleri bulmak için filtreleri seçin.",
+    "filter": "Filtrele"
+
+=======
+    "premium": "Premium kullanıcı"
+>>>>>>> origin/main
+  },
+  "chat": {
+    "title": "Sohbet",
+    "placeholder": "Mesaj yaz...",
+    "send": "Gönder"
+  },
+  "admin": {
+    "title": "Yönetici Paneli: Kullanıcı Yönetimi",
+    "name": "İsim",
+    "location": "Konum",
+    "hidden": "Gizli?",
+    "actions": "İşlemler",
+    "yes": "✅ Evet",
+    "no": "❌ Hayır",
+    "hide": "Gizle",
+    "unhide": "Göster",
+    "delete": "Sil",
+    "confirmDelete": "Bu kullanıcıyı silmek istediğinize emin misiniz?"
+  },
+  "map": {
+    "title": "Haritadaki kullanıcılar",
+    "cityNotFound": "Şehrin tespit edilemedi.",
+    "locationError": "Konum alınamadı.",
+    "fetchError": "Kullanıcılar getirilemedi.",
+    "youAreHere": "Buradasınız",
+    "loadingLocation": "Konum alınıyor..."
+  },
+  "matches": {
+    "title": "Eşleşmelerin",
+    "noMatches": "Henüz eşleşme yok.",
+    "openChat": "Sohbeti aç",
+    "score": "Eşleşme skoru"
+  },
+  "premium": {
+    "successTitle": "Premium abonelik başarılı",
+    "successMessage": "✅ Premium aktif! Teşekkürler.",
+    "cancelTitle": "Ödeme iptal edildi",
+    "cancelMessage": "Ödemeyi tamamlamadınız. Daha sonra tekrar deneyebilirsiniz.",
+    "updating": "Durum güncelleniyor...",
+    "errorMessage": "❌ Premium yükseltme başarısız."
+  },
+  "country": "Ülke",
+  "region": "Bölge / eyalet",
+  "city": "Şehir",
+  "countries": {
+    "Suomi": "Finlandiya",
+    "Ruotsi": "İsveç",
+    "Norja": "Norveç",
+    "Saksa": "Almanya",
+    "Ranska": "Fransa",
+    "Yhdysvallat": "Amerika Birleşik Devletleri",
+    "Kanada": "Kanada",
+    "Iso-Britannia": "Birleşik Krallık",
+    "Japani": "Japonya",
+    "Kiina": "Çin",
+    "Intia": "Hindistan",
+    "Venäjä": "Rusya",
+    "Espanja": "İspanya",
+    "Brasilia": "Brezilya",
+    "Argentiina": "Arjantin",
+    "Chile": "Şili",
+    "Ukraina": "Ukrayna",
+    "Kazakstan": "Kazakistan",
+    "Portugali": "Portekiz",
+    "Italia": "İtalya"
+  },
+  "hero": {
+  "0": "Kalıcı bir aşk bul.",
+  "1": "Değerlerini paylaşan insanlarla tanış.",
+  "2": "Bir sonraki eşin sadece bir tık uzağında."
+<<<<<<< HEAD
+},
+
+"common": {
+  "select": "Seç",
+  "filter": "Filtrele"
+},
+
+"lifestyle": {
+  "title": "Yaşam tarzı",
+  "smoke": "Sigara",
+  "drink": "Alkol",
+  "drugs": "Uyuşturucu",
+  "no": "Kullanmıyor",
+  "little": "Az",
+  "average": "Orta",
+  "much": "Çok",
+  "sober": "Bağımlılıktan uzak"
+}
+
+
+
+=======
+}
+
+>>>>>>> origin/main
+}

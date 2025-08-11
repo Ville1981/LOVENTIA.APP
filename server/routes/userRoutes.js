@@ -1,5 +1,3 @@
-// server/routes/userRoutes.js
-
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
@@ -29,6 +27,13 @@ const {
 import authenticate from '../middleware/authenticate.js';
 // --- REPLACE END ---
 
+// Ensure uploads directory exists (multer will fail otherwise)
+const ensureUploadsDir = () => {
+  const dir = path.resolve('uploads');
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+};
+ensureUploadsDir();
+
 // Configure Multer for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'uploads/'),
@@ -38,7 +43,15 @@ const upload = multer({ storage });
 
 // Helper to remove files from disk
 const removeFile = (filePath) => {
-  if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  try {
+    if (filePath && typeof filePath === 'string') {
+      const p = path.resolve(filePath);
+      if (fs.existsSync(p)) fs.unlinkSync(p);
+    }
+  } catch (e) {
+    // swallow file removal errors (best-effort)
+    console.warn('removeFile warning:', e?.message || e);
+  }
 };
 
 // Validation error handler
@@ -79,56 +92,122 @@ router.post(
 // =====================
 // Protected User Routes
 // =====================
+// --- REPLACE START: return shape unified as { user: ... } ---
 router.get('/me', authenticate, (req, res) => {
-  return res.json(req.user);
+  return res.json({ user: req.user || null });
 });
 
 router.get('/profile', authenticate, (req, res) => {
-  return res.json(req.user);
+  return res.json({ user: req.user || null });
 });
+// --- REPLACE END ---
 
+/**
+ * Allow-list of fields the client may update via PUT /profile
+ * Keeps server-side control over what can change.
+ */
+const UPDATABLE_FIELDS = new Set([
+  'username',
+  'email',
+  'summary',
+  'gender',
+  'orientation',
+  'goal',
+  'lookingFor',
+  'age',
+  'height',
+  'heightUnit',
+  'weight',
+  'weightUnit',
+  'city',
+  'region',
+  'country',
+  'customCity',
+  'customRegion',
+  'customCountry',
+  'profession',
+  'professionCategory',
+  'education',
+  'religion',
+  'religionImportance',
+  'children',
+  'pets',
+  'nutritionPreferences',
+  'activityLevel',
+  'healthInfo',
+  'smoke',
+  'drink',
+  'drugs',
+  'latitude',
+  'longitude',
+  'profilePhoto',      // JSON/url string
+  'extraImages',       // JSON array (when not using multipart)
+]);
+
+// --- REPLACE START: add missing PUT /profile to update the current user ---
 router.put(
   '/profile',
   authenticate,
   upload.fields([
-    { name: 'profilePhoto', maxCount: 1 },
-    { name: 'extraImages', maxCount: 20 },
+    { name: 'profilePhoto', maxCount: 1 }, // file field for avatar (optional)
+    { name: 'extraImages', maxCount: 20 }, // file field(s) for gallery (optional)
   ]),
-  handleValidation,
   async (req, res) => {
     try {
-      const user = await User.findById(req.user.id);
+      // resolve authenticated user id safely regardless of middleware shape
+      const uid = req.user?.id || req.user?._id || req.user?.userId;
+      if (!uid || !mongoose.Types.ObjectId.isValid(String(uid))) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      const user = await User.findById(uid);
       if (!user) return res.status(404).json({ error: 'User not found' });
 
-      // Update text fields
-      Object.entries(req.body).forEach(([key, value]) => {
-        if (value !== undefined && key in user) user[key] = value;
-      });
+      // 1) Update text/JSON fields from req.body (allow-list only)
+      if (req.body && typeof req.body === 'object') {
+        for (const [key, val] of Object.entries(req.body)) {
+          if (!UPDATABLE_FIELDS.has(key)) continue;
+          // handle arrays coming as JSON-encoded strings
+          if (key === 'nutritionPreferences' || key === 'extraImages') {
+            let parsed = val;
+            if (typeof val === 'string') {
+              try { parsed = JSON.parse(val); } catch { /* keep as string if not JSON */ }
+            }
+            user[key] = parsed;
+          } else {
+            user[key] = val;
+          }
+        }
+      }
 
-      // Handle JSON profilePicture
-      if (req.body.profilePhoto) user.profilePicture = req.body.profilePhoto;
-
-      // Handle multipart uploads
-      if (req.files?.profilePhoto) {
+      // 2) Handle multipart: avatar + extra images
+      // avatar in file field
+      if (req.files?.profilePhoto?.[0]) {
         if (user.profilePicture) removeFile(user.profilePicture);
         user.profilePicture = req.files.profilePhoto[0].path;
       }
-
-      if (req.files?.extraImages) {
-        if (Array.isArray(user.extraImages)) {
-          user.extraImages.forEach(removeFile);
-        }
+      // extra images in files
+      if (Array.isArray(req.files?.extraImages) && req.files.extraImages.length) {
+        // if you want to replace all existing:
+        if (Array.isArray(user.extraImages)) user.extraImages.forEach(removeFile);
         user.extraImages = req.files.extraImages.map((f) => f.path);
       }
 
+      // 3) If client sent JSON profilePhoto field (URL string), prefer it
+      if (typeof req.body?.profilePhoto === 'string' && req.body.profilePhoto.trim()) {
+        user.profilePicture = req.body.profilePhoto.trim();
+      }
+
       const updatedUser = await user.save();
-      return res.json(updatedUser);
+      // keep response shape consistent for front-end hooks/services
+      return res.json({ user: updatedUser });
     } catch (err) {
       console.error('Profile update error:', err);
       return res.status(500).json({ error: 'Profile update failed' });
     }
   }
 );
+// --- REPLACE END ---
 
 // =====================
 // Social Interaction Routes
@@ -176,8 +255,11 @@ router.post(
   upload.single('profilePhoto'),
   async (req, res) => {
     try {
-      const user = await User.findById(req.user.id);
+      const uid = req.user?.id || req.user?._id || req.user?.userId;
+      const user = await User.findById(uid);
       if (!user) return res.status(404).json({ error: 'User not found' });
+      if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
       if (user.profilePicture) removeFile(user.profilePicture);
       user.profilePicture = req.file.path;
       await user.save();
@@ -232,4 +314,3 @@ router.get('/:id', async (req, res) => {
 });
 
 export default router;
-

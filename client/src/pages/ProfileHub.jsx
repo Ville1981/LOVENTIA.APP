@@ -1,5 +1,3 @@
-// File: src/pages/ProfileHub.jsx
-
 import PropTypes from "prop-types";
 import React, { useEffect, useState, useCallback } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -16,8 +14,15 @@ import api from "../utils/axiosInstance";
  * Tab navigation is commented out; only “Preferences” renders.
  */
 export default function ProfileHub() {
-  const token = localStorage.getItem("token");
+  // --- REPLACE START: prefer 'accessToken' but keep backward compatibility with 'token' ---
+  const token =
+    localStorage.getItem("accessToken") || localStorage.getItem("token") || "";
+  // --- REPLACE END ---
+
   const { userId: userIdParam } = useParams();
+
+  // NOTE: Some installs expose { user, setUser } and others { authUser, setAuthUser }.
+  // We keep the original names used by this file but guard function calls below.
   const { user: authUser, setUser: setAuthUser } = useAuth();
 
   // --- local state ---
@@ -72,20 +77,25 @@ export default function ProfileHub() {
     return translations[key] || key;
   };
 
-  // --- REPLACE START: fetch user and populate values ---
+  // --- REPLACE START: fetch user and populate values + guard setAuthUser existence ---
   const fetchUser = useCallback(async () => {
     try {
       const url = userIdParam
         ? `${BACKEND_BASE_URL}/api/users/${userIdParam}`
         : `${BACKEND_BASE_URL}/api/users/profile`;
+
       const res = await api.get(url, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      const u = res.data.user || res.data;
+
+      // Server may return { user: {...} } or a raw user object
+      const u = res.data?.user ?? res.data;
       setUser(u);
-      if (!userIdParam) {
+
+      if (!userIdParam && typeof setAuthUser === "function") {
         setAuthUser(u);
       }
+
       setValues({
         username: u.username || "",
         email: u.email || "",
@@ -111,17 +121,17 @@ export default function ProfileHub() {
         smoke: u.smoke || "",
         drink: u.drink || "",
         drugs: u.drugs || "",
-        height: u.height || null,
+        height: u.height ?? null,
         heightUnit: u.heightUnit || "",
-        weight: u.weight || null,
+        weight: u.weight ?? null,
         bodyType: u.bodyType || "",
         activityLevel: u.activityLevel || "",
         nutritionPreferences: Array.isArray(u.nutritionPreferences)
           ? u.nutritionPreferences
           : [],
         healthInfo: u.healthInfo || "",
-        latitude: u.latitude || null,
-        longitude: u.longitude || null,
+        latitude: u.latitude ?? null,
+        longitude: u.longitude ?? null,
       });
     } catch (err) {
       console.error("Failed to fetch profile:", err);
@@ -141,7 +151,7 @@ export default function ProfileHub() {
 
   const profileUserId = userIdParam || authUser?._id || user._id || user.id;
 
-  // --- REPLACE START: handle form submit ---
+  // --- REPLACE START: handle form submit to PUT /api/users/profile and guard setAuthUser ---
   const handleFormSubmit = async (formData) => {
     if (userIdParam) return; // no editing others
 
@@ -150,17 +160,18 @@ export default function ProfileHub() {
         `${BACKEND_BASE_URL}/api/users/profile`,
         formData,
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
+          // Let axios/browser set proper Content-Type for FormData automatically
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
         }
       );
-      const updated = res.data.user || res.data;
+
+      const updated = res.data?.user ?? res.data;
       setSuccess(true);
       setMessage(t("profile.saved"));
       setUser(updated);
-      setAuthUser(updated);
+      if (typeof setAuthUser === "function") {
+        setAuthUser(updated);
+      }
     } catch (err) {
       console.error("Update failed:", err);
       let msg = err.message;
@@ -169,6 +180,8 @@ export default function ProfileHub() {
         if (resp.message) msg = resp.message;
         else if (Array.isArray(resp.errors)) {
           msg = resp.errors.map((e) => e.msg).join(", ");
+        } else if (resp.error) {
+          msg = resp.error;
         }
       }
       setSuccess(false);
@@ -197,7 +210,9 @@ export default function ProfileHub() {
         user={user}
         onUserUpdate={(u) => {
           setUser(u);
-          setAuthUser(u);
+          if (typeof setAuthUser === "function") {
+            setAuthUser(u);
+          }
         }}
         isPremium={user.isPremium}
         t={t}
