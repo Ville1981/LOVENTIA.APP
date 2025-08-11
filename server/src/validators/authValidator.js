@@ -9,7 +9,7 @@
  */
 
 function normalize(obj) {
-  return (obj && typeof obj === 'object') ? obj : {};
+  return obj && typeof obj === 'object' ? obj : {};
 }
 
 function isValidEmail(email) {

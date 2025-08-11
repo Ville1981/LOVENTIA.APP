@@ -9,18 +9,17 @@ import axios from 'axios';
 function resolveBaseURL() {
   let fromEnv = undefined;
   try {
-    // NOTE: TypeScript complained about `typeof import` checks.
-    // Access `import.meta.env` directly (valid in Vite) and guard with try/catch.
+    // Safe access in Vite env
     fromEnv =
       (typeof import.meta !== 'undefined' &&
         import.meta.env &&
         (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_BACKEND_URL)) ||
       undefined;
-  } catch (_) {
+  } catch {
     // ignore if not running under Vite
   }
 
-  // Fallback guess: swap common dev port 5173/5174 -> 5000 and append '/api'
+  // Fallback guess: swap 5173/5174 -> 5000
   const origin =
     (typeof window !== 'undefined' && window.location?.origin) ||
     'http://localhost:5174';
@@ -33,8 +32,9 @@ function resolveBaseURL() {
 
 const BASE_URL = resolveBaseURL();
 
-// Simple in-memory token store so any module can update the header.
+// In-memory token store so any module can update the header.
 let accessToken = null;
+
 export function attachAccessToken(token) {
   accessToken = token || null;
   if (token) {
@@ -43,6 +43,10 @@ export function attachAccessToken(token) {
     delete api.defaults.headers.common.Authorization;
   }
 }
+
+// Backward-compat alias used by some callers
+export const setAccessToken = attachAccessToken;
+
 export function getAccessToken() {
   return accessToken;
 }
@@ -71,6 +75,7 @@ api.interceptors.request.use(
 
 // Response interceptor: try refresh once on 401
 let refreshPromise = null;
+
 async function performRefresh() {
   if (!refreshPromise) {
     // IMPORTANT: send {} instead of null to satisfy express.json(strict:true)

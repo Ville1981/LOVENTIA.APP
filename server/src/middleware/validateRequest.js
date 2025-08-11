@@ -20,7 +20,7 @@ function validateBody(schema) {
       const result = schema.validate(req.body);
       if (result && result.error) {
         const details = Array.isArray(result.error.details)
-          ? result.error.details.map((d) => d && d.message ? String(d.message) : 'Validation error')
+          ? result.error.details.map((d) => (d && d.message ? String(d.message) : 'Validation error'))
           : ['Validation error'];
         return res.status(400).json({
           error: 'Validation failed',
@@ -32,7 +32,7 @@ function validateBody(schema) {
         req.body = result.value;
       }
       return next();
-    } catch (err) {
+    } catch (_err) {
       // Fail closed with 400 to avoid leaking internal errors in validation
       return res.status(400).json({ error: 'Validation error' });
     }
