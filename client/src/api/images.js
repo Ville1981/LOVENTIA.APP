@@ -1,5 +1,5 @@
 // --- REPLACE START: switch to unified axios instance + align endpoints with server ---
-import api, { getAccessToken } from "../utils/axiosInstance";
+import api, { getAccessToken } from "../services/api/axiosInstance";
 
 /**
  * Uploads a user's avatar image to the server.
@@ -24,7 +24,10 @@ export const uploadAvatar = async (userId, fileOrFormData) => {
   }
 
   // Keep legacy token check for clearer errors (api instance also injects Authorization)
-  const token = getAccessToken() || localStorage.getItem("accessToken") || localStorage.getItem("token");
+  const token =
+    getAccessToken() ||
+    localStorage.getItem("accessToken") ||
+    localStorage.getItem("token");
   if (!token) throw new Error("You must be logged in to upload an avatar.");
 
   try {
@@ -50,7 +53,10 @@ export const uploadAvatar = async (userId, fileOrFormData) => {
  * @throws {Error} When not authenticated or removal fails.
  */
 export const removeAvatar = async (userId) => {
-  const token = getAccessToken() || localStorage.getItem("accessToken") || localStorage.getItem("token");
+  const token =
+    getAccessToken() ||
+    localStorage.getItem("accessToken") ||
+    localStorage.getItem("token");
   if (!token) throw new Error("You must be logged in to remove your avatar.");
 
   try {
@@ -68,7 +74,7 @@ export const removeAvatar = async (userId) => {
 /**
  * Bulk uploads extra photos for a user.
  * Server endpoint:
- *   POST /api/users/:id/photos
+ *   POST /api/users/:id/upload-photos
  *
  * @param {string} userId - The ID of the user.
  * @param {File[]|FormData} filesOrFormData - Array of files or a FormData instance.
@@ -84,11 +90,15 @@ export const uploadPhotos = async (userId, filesOrFormData) => {
           return fd;
         }, new FormData());
 
-  const token = getAccessToken() || localStorage.getItem("accessToken") || localStorage.getItem("token");
+  const token =
+    getAccessToken() ||
+    localStorage.getItem("accessToken") ||
+    localStorage.getItem("token");
   if (!token) throw new Error("You must be logged in to upload photos.");
 
   try {
-    const response = await api.post(`/users/${userId}/photos`, formData, {
+    // NOTE: matches server route `/:id/upload-photos`
+    const response = await api.post(`/users/${userId}/upload-photos`, formData, {
       withCredentials: true,
     });
     return { extraImages: response.data?.extraImages || [] };
@@ -102,7 +112,7 @@ export const uploadPhotos = async (userId, filesOrFormData) => {
 /**
  * Uploads a single photo step-wise with optional cropping and caption.
  * Server endpoint:
- *   POST /api/users/:id/photos/upload-photo-step
+ *   POST /api/users/:id/upload-photo-step
  *
  * @param {string} userId - The ID of the user.
  * @param {FormData} formData - FormData containing:
@@ -114,7 +124,10 @@ export const uploadPhotos = async (userId, filesOrFormData) => {
  * @throws {Error} When not authenticated or upload fails.
  */
 export const uploadPhotoStep = async (userId, formData) => {
-  const token = getAccessToken() || localStorage.getItem("accessToken") || localStorage.getItem("token");
+  const token =
+    getAccessToken() ||
+    localStorage.getItem("accessToken") ||
+    localStorage.getItem("token");
   if (!token) throw new Error("You must be logged in to upload a photo.");
 
   // --- REPLACE START: ensure crop dimensions are valid and non-zero ---
@@ -131,8 +144,9 @@ export const uploadPhotoStep = async (userId, formData) => {
   // --- REPLACE END ---
 
   try {
+    // NOTE: matches server route `/:id/upload-photo-step`
     const response = await api.post(
-      `/users/${userId}/photos/upload-photo-step`,
+      `/users/${userId}/upload-photo-step`,
       formData,
       { withCredentials: true }
     );
@@ -155,7 +169,10 @@ export const uploadPhotoStep = async (userId, formData) => {
  * @throws {Error} When not authenticated or deletion fails.
  */
 export const deletePhotoSlot = async (userId, slot) => {
-  const token = getAccessToken() || localStorage.getItem("accessToken") || localStorage.getItem("token");
+  const token =
+    getAccessToken() ||
+    localStorage.getItem("accessToken") ||
+    localStorage.getItem("token");
   if (!token) throw new Error("You must be logged in to delete a photo.");
 
   try {

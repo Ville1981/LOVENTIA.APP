@@ -1,6 +1,4 @@
-// File: client/src/config.js
 // Export base URL for backend API and placeholder image path.
-// The replacement region is marked between // --- REPLACE START and // --- REPLACE END
 
 // --- REPLACE START: define BACKEND_BASE_URL dynamic from env and strip trailing "/api" ---
 const rawUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
