@@ -38,7 +38,8 @@ const BASE_URL = resolveBaseURL();
  * In-memory access token with localStorage fallback (compat).
  * Keep both names exported so old imports keep working.
  */
-let accessToken = localStorage.getItem("accessToken") || localStorage.getItem("token") || null;
+let accessToken =
+  localStorage.getItem("accessToken") || localStorage.getItem("token") || null;
 
 export function attachAccessToken(token) {
   accessToken = token || null;
@@ -165,4 +166,3 @@ api.interceptors.response.use(
 
 export default api;
 // --- REPLACE END ---
-

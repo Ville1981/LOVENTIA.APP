@@ -1,5 +1,3 @@
-// File: server/src/routes/authRoutes.js
-
 // --- REPLACE START: public authentication routes (no authenticate middleware) ---
 import express from 'express';
 import path from 'path';
@@ -76,4 +74,3 @@ if (typeof authController.logout === 'function') {
 
 export default router;
 // --- REPLACE END ---
-

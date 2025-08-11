@@ -1,8 +1,13 @@
 // src/App.jsx
 
-// --- REPLACE START: import grouping and PrivateRoute declaration ---
+// --- REPLACE START: import grouping and PrivateRoute using context user+bootstrapped ---
 import React, { useEffect, Suspense } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 
 // Styles
 import "slick-carousel/slick/slick.css";
@@ -10,9 +15,7 @@ import "slick-carousel/slick/slick-theme.css";
 
 // Context & Utilities
 import ErrorBoundary from "./components/ErrorBoundary";
-// --- REPLACE START: import only useAuth (AuthProvider is provided in main.jsx) ---
 import { useAuth } from "./contexts/AuthContext";
-// --- REPLACE END ---
 
 // Components/Layout
 import MainLayout from "./components/MainLayout";
@@ -39,11 +42,10 @@ import Register from "./pages/Register";
 import Settings from "./pages/Settings";
 import Upgrade from "./pages/Upgrade";
 import WhoLikedMe from "./pages/WhoLikedMe";
-// --- REPLACE END ---
 
-// --- REPLACE START: update PrivateRoute to use authUser & bootstrapped from context ---
+// PrivateRoute uses context user
 function PrivateRoute({ children }) {
-  const { authUser, bootstrapped } = useAuth();
+  const { user, bootstrapped } = useAuth();
 
   // Wait until initial auth check finishes; do not redirect yet
   if (!bootstrapped) {
@@ -51,7 +53,7 @@ function PrivateRoute({ children }) {
   }
 
   // If authenticated, render; otherwise redirect to login
-  return authUser ? children : <Navigate to="/login" replace />;
+  return user ? children : <Navigate to="/login" replace />;
 }
 // --- REPLACE END ---
 
@@ -66,7 +68,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      {/* --- REPLACE START: remove nested <AuthProvider>; it already wraps the app in main.jsx --- */}
+      {/* --- REPLACE START: assume AuthProvider wraps the app in main.jsx; no nested provider here --- */}
       <Suspense fallback={<div className="p-4">Loading translations…</div>}>
         <Router>
           <Routes>
