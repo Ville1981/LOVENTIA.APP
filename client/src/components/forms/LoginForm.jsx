@@ -1,5 +1,3 @@
-// client/src/components/forms/LoginForm.jsx
-
 import PropTypes from "prop-types";
 import React from "react";
 
@@ -28,6 +26,7 @@ export default function LoginForm({ onSubmit }) {
         <input
           id="email"
           type="email"
+          autoComplete="email"
           {...register("email")}
           aria-invalid={errors.email ? "true" : "false"}
         />
@@ -43,6 +42,7 @@ export default function LoginForm({ onSubmit }) {
         <input
           id="password"
           type="password"
+          autoComplete="current-password"
           {...register("password")}
           aria-invalid={errors.password ? "true" : "false"}
         />

@@ -57,7 +57,7 @@ const authService = {
   logout: async function () {
     try {
       // --- REPLACE START: logout endpoint must use our `api` instance ---
-      await api.post("/auth/logout");
+      await api.post("/auth/logout", {}); // send {} to avoid strict JSON null issue
       // --- REPLACE END ---
     } catch (err) {
       console.error("Error during logout:", err);
@@ -73,7 +73,7 @@ const authService = {
   revokeToken: async function () {
     try {
       // --- REPLACE START: revoke endpoint is same as logout ---
-      await api.post("/auth/logout");
+      await api.post("/auth/logout", {}); // keep same behavior
       // --- REPLACE END ---
     } catch (err) {
       console.error("Error revoking token:", err);
@@ -88,8 +88,8 @@ const authService = {
    * @returns {Promise<string|null>}
    */
   refresh: async function () {
-    // --- REPLACE START: refresh endpoint must use our `api` instance ---
-    const res = await api.post("/auth/refresh");
+    // --- REPLACE START: refresh endpoint must use {} body to avoid body-parser strict errors ---
+    const res = await api.post("/auth/refresh", {});
     // --- REPLACE END ---
     const newToken = res?.data?.accessToken || null;
     if (newToken) setAccessToken(newToken);

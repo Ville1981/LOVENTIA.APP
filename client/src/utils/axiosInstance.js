@@ -43,26 +43,24 @@ const baseURL = resolvedBase;
  * Access token kept in-memory and persisted in localStorage under 'accessToken'.
  * This matches all places in the app that read/write the token.
  */
-// --- REPLACE START: unify storage key to 'accessToken' ---
+// --- REPLACE START: unify storage key to 'accessToken' + export getters/setters ---
 let accessToken = localStorage.getItem("accessToken") || null;
-// --- REPLACE END ---
 
-/**
- * Update in-memory token + persist/remove in localStorage.
- * This function is imported by places that need to set the token.
- */
 export const setAccessToken = (token) => {
   accessToken = token;
   if (token) {
-    // --- REPLACE START: persist under 'accessToken' key ---
     localStorage.setItem("accessToken", token);
-    // --- REPLACE END ---
   } else {
-    // --- REPLACE START: remove 'accessToken' when logging out ---
     localStorage.removeItem("accessToken");
-    // --- REPLACE END ---
   }
 };
+
+// Backward-compatible alias for older imports (e.g. attachAccessToken)
+export const attachAccessToken = (token) => setAccessToken(token);
+
+// Getter used by AuthContext bootstrap
+export const getAccessToken = () => accessToken || localStorage.getItem("accessToken") || null;
+// --- REPLACE END ---
 
 /**
  * Create the single axios instance used everywhere.
@@ -112,7 +110,7 @@ api.interceptors.request.use((config) => {
 
 /**
  * Response interceptor:
- * - On 401, try one-time silent refresh (POST /api/auth/refresh) and retry the original request.
+ * - On 401, try one-time silent refresh (POST /api/auth/refresh **with {} body**) and retry the original request.
  * - Prevent infinite loop by skipping refresh if the failing call is already /auth/refresh.
  */
 // --- REPLACE START: make refresh path baseURL-relative and avoid infinite loop ---
@@ -144,10 +142,9 @@ api.interceptors.response.use(
     ) {
       original._retry = true;
       try {
-        // --- REPLACE START: call refresh using the same axios instance/baseURL ---
-        const { data } = await api.post(REFRESH_PATH);
+        // IMPORTANT: send {} (not undefined/null) to avoid "Unexpected token n" from body-parser strict mode
+        const { data } = await api.post(REFRESH_PATH, {});
         // Expected response: { accessToken: string }
-        // --- REPLACE END ---
         if (data?.accessToken) {
           setAccessToken(data.accessToken);
           original.headers = {
@@ -155,7 +152,6 @@ api.interceptors.response.use(
             Authorization: `Bearer ${data.accessToken}`,
           };
         } else {
-          // No token returned → treat as failure
           throw new Error("No accessToken returned by refresh endpoint");
         }
         return api(original);

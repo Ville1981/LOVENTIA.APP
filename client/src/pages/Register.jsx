@@ -1,8 +1,12 @@
+// File: client/src/pages/Register.jsx
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+// --- REPLACE START: fix context import path (plural 'contexts') ---
 import { useAuth } from "../contexts/AuthContext";
-// --- REPLACE START: prefer service layer instead of calling axios instance directly ---
+// --- REPLACE END ---
+
+// --- REPLACE START: prefer service layer only for register (avoid double login calls) ---
 import authService from "../services/authService";
 // --- REPLACE END ---
 
@@ -34,12 +38,17 @@ const Register = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
   // --- REPLACE START: add loading + message state in English ---
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   // --- REPLACE END ---
+
   const navigate = useNavigate();
+
+  // --- REPLACE START: get login from context; we will NOT call authService.login to avoid duplication ---
   const { login } = useAuth();
+  // --- REPLACE END ---
 
   // --- REPLACE START: auto-suggest username from email until user edits username manually ---
   const suggestedUsername = useMemo(() => makeUsernameSuggestion(email), [email]);
@@ -75,14 +84,9 @@ const Register = () => {
     try {
       setLoading(true);
 
-      // --- REPLACE START: use service layer for register + login ---
+      // --- REPLACE START: register via service, then login via context (single source of truth) ---
       await authService.register({ username, email, password });
-
-      const { accessToken } = await authService.login({ email, password });
-      if (accessToken) {
-        // keep context in sync (service already persisted localStorage)
-        login(accessToken);
-      }
+      await login(email, password); // context takes care of token + /auth/me
       // --- REPLACE END ---
 
       setMessage("Account created and login successful!");
@@ -112,6 +116,7 @@ const Register = () => {
     <form
       onSubmit={handleSubmit}
       className="max-w-md mx-auto mt-10 space-y-4 bg-white p-6 rounded shadow"
+      noValidate
     >
       <h2 className="text-xl font-bold">Create Account</h2>
 
@@ -194,3 +199,5 @@ const Register = () => {
 };
 
 export default Register;
+
+// The replacement region is marked between // --- REPLACE START and // --- REPLACE END
