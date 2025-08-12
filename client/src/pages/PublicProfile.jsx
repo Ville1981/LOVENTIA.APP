@@ -30,7 +30,7 @@ const PublicProfile = () => {
 
       {user.profilePicture && (
         <img
-          src={`http://localhost:5000/${user.profilePicture}`}
+          src={`/user.profilePicture`}
           alt="Profiilikuva"
           className="w-40 h-40 object-cover rounded-full mx-auto mb-4"
         />
@@ -41,7 +41,7 @@ const PublicProfile = () => {
           {user.extraImages.map((img, i) => (
             <img
               key={i}
-              src={`http://localhost:5000/${img}`}
+              src={`/img`}
               alt="Lisäkuva"
               className="w-24 h-24 object-cover rounded"
             />

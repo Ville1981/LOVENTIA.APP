@@ -49,7 +49,7 @@ const WhoLikedMe = () => {
             <img
               src={
                 user.profilePicture
-                  ? `http://localhost:5000/${user.profilePicture}`
+                  ? `/user.profilePicture`
                   : "/default.jpg"
               }
               alt={user.name || "Profiilikuva"}
