@@ -1,54 +1,52 @@
+// --- REPLACE START: add i18n support and keep full structure ---
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 import ProfileForm from "../components/profileFields/ProfileForm";
 import api from "../utils/axiosInstance";
 
 const UserProfile = () => {
+  const { t } = useTranslation();
   const { userId: userIdParam } = useParams();
   const [user, setUser] = useState(null);
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState(false);
 
-  // Lomakkeen lähettäjäfunktio, stubattavissa Cypressissä
   const handleSubmit = async (data) => {
     try {
-      // PUT /users/profile (axiosInstance lisää baseURL=/api)
       await api.put("/users/profile", data);
       setSuccess(true);
-      setMessage("Profiilitiedot päivitetty onnistuneesti.");
-      // Päivitä local state
+      setMessage(t("profile.updateSuccess"));
       setUser((prev) => ({ ...prev, ...data }));
     } catch (err) {
-      console.error("❌ Päivitys epäonnistui", err);
+      console.error("❌ Update failed", err);
       setSuccess(false);
-      setMessage("Profiilitietojen päivitys epäonnistui.");
+      setMessage(t("profile.updateError"));
     }
   };
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        // GET /users/me tai /users/:userId
         const apiPath = userIdParam ? `/users/${userIdParam}` : "/users/me";
         const res = await api.get(apiPath);
         const u = res.data.user || res.data;
         setUser(u);
       } catch (err) {
-        console.error("❌ Profiilin haku epäonnistui", err);
-        setMessage("Profiilin lataus epäonnistui.");
+        console.error("❌ Fetch failed", err);
+        setMessage(t("profile.loadError"));
       }
     };
     fetchUser();
-  }, [userIdParam]);
+  }, [userIdParam, t]);
 
-  // Käyttäjän ID avataria varten
   const profileUserId = userIdParam || user?._id;
 
   if (!user) {
     return (
       <div className="text-center py-8" data-cy="UserProfile__loading">
-        <span className="text-gray-600">Ladataan…</span>
+        <span className="text-gray-600">{t("loading")}</span>
       </div>
     );
   }
@@ -59,7 +57,7 @@ const UserProfile = () => {
         className="text-2xl font-bold text-center mb-6"
         data-cy="UserProfile__title"
       >
-        👤 {userIdParam ? "Käyttäjän profiili" : "Oma profiili"}
+        👤 {userIdParam ? t("profile.viewOther") : t("profile.viewOwn")}
       </h2>
 
       {userIdParam ? (
@@ -67,11 +65,13 @@ const UserProfile = () => {
           className="bg-white shadow rounded-lg p-6 space-y-4"
           data-cy="UserProfile__public"
         >
-          <h3 className="text-lg font-semibold">Tietoja käyttäjästä</h3>
+          <h3 className="text-lg font-semibold">
+            {t("profile.publicInfo")}
+          </h3>
           <p>
-            <strong>Käyttäjätunnus:</strong> {user.username}
+            <strong>{t("profile.username")}:</strong> {user.username}
           </p>
-          {/* … muut julkiset kentät … */}
+          {/* Additional public fields can be displayed here */}
         </div>
       ) : (
         <>
@@ -90,7 +90,7 @@ const UserProfile = () => {
             userId={profileUserId}
             user={user}
             isPremium={user.isPremium}
-            t={(key) => key}
+            t={t}
             message={message}
             success={success}
             onUserUpdate={setUser}
@@ -103,3 +103,4 @@ const UserProfile = () => {
 };
 
 export default UserProfile;
+// --- REPLACE END ---

@@ -1,5 +1,3 @@
-// src/App.jsx
-
 // --- REPLACE START: import grouping and PrivateRoute using context user+bootstrapped ---
 import React, { useEffect, Suspense } from "react";
 import {
