@@ -16,6 +16,12 @@ import FormLookingFor from "./FormLookingFor";
 import MultiStepPhotoUploader from "./MultiStepPhotoUploader";
 import { BACKEND_BASE_URL } from "../../config";
 
+// --- REPLACE START: path normalizer helper (keeps Windows paths safe) ---
+/** Normalize Windows backslashes and ensure one leading slash */
+const normalizePath = (p = "") =>
+  "/" + String(p).replace(/\\/g, "/").replace(/^\/+/, "");
+// --- REPLACE END ---
+
 // =============================================
 // Constants for selects
 // =============================================
@@ -237,11 +243,13 @@ export default function ProfileForm({
   const [localExtraImages, setLocalExtraImages] = useState(
     user.extraImages || []
   );
+
+  // --- REPLACE START: robust avatar URL normalization ---
   const [avatarPreview, setAvatarPreview] = useState(
     user.profilePicture
       ? user.profilePicture.startsWith("http")
         ? user.profilePicture
-        : `${BACKEND_BASE_URL}${user.profilePicture}`
+        : `${BACKEND_BASE_URL}${normalizePath(user.profilePicture)}`
       : null
   );
   useEffect(() => {
@@ -249,10 +257,13 @@ export default function ProfileForm({
       setAvatarPreview(
         user.profilePicture.startsWith("http")
           ? user.profilePicture
-          : `${BACKEND_BASE_URL}${user.profilePicture}`
+          : `${BACKEND_BASE_URL}${normalizePath(user.profilePicture)}`
       );
+    } else {
+      setAvatarPreview(null);
     }
   }, [user.profilePicture]);
+  // --- REPLACE END ---
 
   // On form submit, wrap diet into array & include chosen profilePhoto
   const onFormSubmit = async (data) => {
@@ -270,20 +281,16 @@ export default function ProfileForm({
   // Build filtered slideshow array: avatar first, then extra images
   const slideshowImages = useMemo(() => {
     const arr = [];
-    if (avatarPreview) {
-      arr.push(avatarPreview);
-    }
-    localExtraImages.forEach((src) => {
-      if (src) {
-        arr.push(
-          typeof src === "string" && !src.startsWith("http")
-            ? `${BACKEND_BASE_URL}${src}`
-            : src
-        );
-      }
+    if (avatarPreview) arr.push(avatarPreview);
+    (localExtraImages || []).forEach((src) => {
+      if (!src) return;
+      const s =
+        typeof src === "string" && !src.startsWith("http")
+          ? `${BACKEND_BASE_URL}${normalizePath(src)}`
+          : src;
+      arr.push(s);
     });
-    // Filter out any empty or invalid entries
-    return arr.filter((src) => !!src);
+    return arr.filter(Boolean);
   }, [avatarPreview, localExtraImages]);
 
   // Reset slide index to 0 whenever the number of slideshow images changes
@@ -459,10 +466,15 @@ export default function ProfileForm({
             userId={userId}
             isPremium={isPremium}
             extraImages={localExtraImages}
-            onSuccess={(res) => {
-              setLocalExtraImages(res.extraImages || []);
-              onUserUpdate({ ...user, extraImages: res.extraImages || [] });
+            // --- REPLACE START: handle both shapes (array or {extraImages}) from uploader ---
+            onSuccess={(payload) => {
+              const updated = Array.isArray(payload)
+                ? payload
+                : payload?.extraImages || payload || [];
+              setLocalExtraImages(updated);
+              onUserUpdate({ ...user, extraImages: updated });
             }}
+            // --- REPLACE END ---
             onError={(err) => console.error(err)}
           />
         )}

@@ -1,5 +1,3 @@
-// File: server/src/api/controllers/authController.js
-
 // --- REPLACE START: ESM auth controller with username validation & robust cookieOptions ---
 /**
  * Auth Controller (ESM)
