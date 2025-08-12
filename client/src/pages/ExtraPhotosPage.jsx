@@ -1,22 +1,17 @@
-// src/pages/ExtraPhotosPage.jsx
+// File: client/src/pages/ExtraPhotosPage.jsx
 
-import axios from "axios";
+// --- REPLACE START: use shared api + services; keep structure and comments ---
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
-// Removed unused imports for avatar uploads
-// --- REPLACE START: remove unused image API imports ---
-// import { uploadAvatar, removeAvatar as apiRemoveAvatar } from "../api/images";
-// --- REPLACE END ---
 import MultiStepPhotoUploader from "../components/profileFields/MultiStepPhotoUploader";
 import Button from "../components/ui/Button";
 import ControlBar from "../components/ui/ControlBar";
 import { BACKEND_BASE_URL } from "../config";
 import { useAuth } from "../contexts/AuthContext";
+import { getUserProfile } from "../services/userService"; // centralized user fetch
+import api from "../utils/axiosInstance"; // unified axios (Bearer + refresh)
 
-/**
- * Ensure leading slash and forward-slashes only.
- */
 const normalizePath = (p = "") =>
   "/" + p.replace(/\\/g, "/").replace(/^\/+/, "");
 
@@ -26,25 +21,21 @@ export default function ExtraPhotosPage() {
   const navigate = useNavigate();
 
   const [user, setUser] = useState(null);
+  const [error, setError] = useState("");
 
-  const userId = paramId || authUser?._id;
-  const isOwner = !paramId || authUser?._id === paramId;
+  const userId = paramId || authUser?._id || authUser?.id;
+  const isOwner =
+    !paramId || authUser?._id === paramId || authUser?.id === paramId;
 
-  // Fetch user data (with credentials)
   const fetchUser = useCallback(async () => {
     if (!userId) return;
     try {
-      const url = paramId
-        ? `${BACKEND_BASE_URL}/api/users/${paramId}`
-        : `${BACKEND_BASE_URL}/api/auth/me`;
-      const res = await axios.get(url, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        withCredentials: true,
-      });
-      const u = res.data.user || res.data;
+      const data = await getUserProfile(paramId); // null/undefined => /users/profile, else /users/:id
+      const u = data?.user ?? data;
       setUser(u);
     } catch (err) {
       console.error("Error fetching user:", err);
+      setError("Failed to load user.");
     }
   }, [paramId, userId]);
 
@@ -52,14 +43,17 @@ export default function ExtraPhotosPage() {
     fetchUser();
   }, [fetchUser]);
 
-  // Update local & global user
   const handleUserUpdate = (updatedUser) => {
     setUser(updatedUser);
-    if (!paramId) setAuthUser(updatedUser);
+    if (!paramId && typeof setAuthUser === "function") setAuthUser(updatedUser);
   };
 
+  if (error) {
+    return <div className="text-center mt-12 text-red-600">{error}</div>;
+  }
+
   if (!user) {
-    return <div className="text-center mt-12">Loading photos...</div>;
+    return <div className="text-center mt-12">Loading photos…</div>;
   }
 
   return (
@@ -67,7 +61,6 @@ export default function ExtraPhotosPage() {
       <h1 className="text-2xl font-semibold">Manage Photos</h1>
 
       {isOwner ? (
-        // --- REPLACE START: use unified MultiStepPhotoUploader for all steps ---
         <MultiStepPhotoUploader
           userId={userId}
           isPremium={user.isPremium}
@@ -75,9 +68,8 @@ export default function ExtraPhotosPage() {
           onSuccess={(images) =>
             handleUserUpdate({ ...user, extraImages: images })
           }
-          onError={() => {}}
+          onError={(e) => console.error(e)}
         />
-        // --- REPLACE END ---
       ) : (
         <div className="grid grid-cols-3 gap-4">
           {user.extraImages?.map((src, i) => {
@@ -99,7 +91,6 @@ export default function ExtraPhotosPage() {
         </div>
       )}
 
-      {/* Back button */}
       <ControlBar className="justify-center bg-gray-200">
         <Button variant="gray" onClick={() => navigate(-1)}>
           Back to Profile
@@ -108,3 +99,4 @@ export default function ExtraPhotosPage() {
     </div>
   );
 }
+// --- REPLACE END ---

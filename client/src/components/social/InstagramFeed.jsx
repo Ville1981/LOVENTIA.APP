@@ -1,13 +1,16 @@
-// src/components/social/InstagramFeed.jsx
-import axios from 'axios';
+// File: client/src/components/social/InstagramFeed.jsx
+
+// --- REPLACE START: use centralized axios instance ---
+import axios from "../../utils/axiosInstance";
+// --- REPLACE END ---
 import React, { useState, useEffect } from 'react';
 
-// --- REPLACE START: translate and clarify JSDoc in English
+// --- REPLACE START: JSDoc clarified in English
 /**
  * InstagramFeed
- * Client-side component that displays an Instagram feed
+ * Client-side component that displays an Instagram feed.
  * @param {Object} props
- * @param {string} props.username - Instagram username to fetch feed for
+ * @param {string} props.username - Instagram username to fetch the feed for
  * @param {number} [props.count=5] - Number of posts to display
  */
 // --- REPLACE END
@@ -25,7 +28,9 @@ export default function InstagramFeed({ username, count = 5 }) {
         console.error('Instagram feed fetch error', err);
       }
     }
-    fetchFeed();
+    if (username) {
+      fetchFeed();
+    }
   }, [username, count]);
 
   return (
@@ -46,6 +51,3 @@ export default function InstagramFeed({ username, count = 5 }) {
     </div>
   );
 }
-
-// The replacement region is marked between // --- REPLACE START and // --- REPLACE END
-// so you can verify exactly what changed.

@@ -1,105 +1,119 @@
 // File: client/src/features/auth/RegisterView.jsx
-import React, { useCallback, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import RegisterForm from "../../components/forms/RegisterForm";
-// --- REPLACE START: fix context import path to plural 'contexts' ---
-import { useAuth } from "../../contexts/AuthContext";
+
+// --- REPLACE START: switch from raw fetch to axiosInstance + setAccessToken ---
+import React, { useState } from "react";
+import axios, { attachAccessToken } from "../../utils/axiosInstance";
 // --- REPLACE END ---
 
-// Optional helper for UX: suggest username from email if your RegisterForm surfaces email live.
-// This component keeps logic minimal and delegates validation to the form + backend.
-function suggestFromEmail(email = "") {
-  const local = String(email).split("@")[0] || "";
-  let s = local
-    .toLowerCase()
-    .replace(/[^a-z0-9._-]/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^[-._]+|[-._]+$/g, "");
-  if (s.length > 0 && s.length < 3) s = s.padEnd(3, "0");
-  if (!s) s = "user-" + Math.random().toString(36).slice(2, 6);
-  return s.slice(0, 30);
-}
-
 export default function RegisterView() {
-  const navigate = useNavigate();
-  const { login } = useAuth();
-  const [message, setMessage] = useState("");
+  const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [loading, setLoading] = useState(false);
+  const [errMsg, setErrMsg] = useState("");
 
-  // If you want to prefill username based on typed email, pass defaultValues to RegisterForm.
-  // Keeping minimal here to avoid duplicating state across layers.
-  const defaults = useMemo(
-    () => ({ username: "", name: "", email: "", password: "" }),
-    []
-  );
+  const onChange = (e) =>
+    setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
 
-  const onSubmit = useCallback(
-    async (values) => {
-      setMessage("");
-      setLoading(true);
-      try {
-        // 1) Create account (your page-level handler should call a service; kept inline minimal here)
-        const res = await fetch("/api/auth/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            username: values.username?.trim() || suggestFromEmail(values.email),
-            email: values.email,
-            password: values.password,
-          }),
-        });
-        if (!res.ok) {
-          const j = await res.json().catch(() => ({}));
-          const msg = j?.message || j?.error || "Registration failed.";
-          throw new Error(msg);
-        }
-
-        // 2) Login using the **context** (sets token + fetches /auth/me)
-        await login(values.email, values.password);
-
-        setMessage("Account created and login successful!");
-        navigate("/profile");
-      } catch (err) {
-        const msg =
-          err?.response?.data?.message ||
-          err?.response?.data?.error ||
-          err?.message ||
-          "Registration failed.";
-        setMessage(msg);
-      } finally {
-        setLoading(false);
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setErrMsg("");
+    try {
+      // Backend expects /api/auth/register (server routes already provided)
+      const res = await axios.post("/api/auth/register", {
+        name: form.name,
+        email: form.email,
+        password: form.password,
+      });
+      const token = res?.data?.accessToken;
+      if (token) {
+        attachAccessToken(token); // saves to memory + localStorage and sets default header
       }
-    },
-    [login, navigate]
-  );
+      // You might redirect or update user context here:
+      // setUser(res.data.user)
+      // navigate("/dashboard")
+    } catch (err) {
+      console.error("Register failed:", err);
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        "Registration failed";
+      setErrMsg(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="max-w-md mx-auto mt-10 bg-white p-6 rounded shadow">
-      <h2 className="text-xl font-bold mb-4">Create Account</h2>
+    <form
+      onSubmit={onSubmit}
+      className="max-w-md mx-auto p-6 bg-white rounded shadow space-y-4"
+    >
+      <h1 className="text-xl font-semibold">Create account</h1>
 
-      <RegisterForm onSubmit={onSubmit} defaultValues={defaults} />
-
-      {message && (
-        <p
-          className={`mt-4 text-center ${
-            message.toLowerCase().includes("successful")
-              ? "text-green-600"
-              : "text-red-600"
-          }`}
-        >
-          {message}
-        </p>
+      {errMsg && (
+        <div className="text-red-600 text-sm" role="alert">
+          {errMsg}
+        </div>
       )}
 
+      <div>
+        <label className="block text-sm font-medium mb-1" htmlFor="name">
+          Name
+        </label>
+        <input
+          id="name"
+          name="name"
+          value={form.name}
+          onChange={onChange}
+          required
+          className="w-full border rounded px-3 py-2"
+          placeholder="Your name"
+          autoComplete="name"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1" htmlFor="email">
+          Email
+        </label>
+        <input
+          id="email"
+          name="email"
+          value={form.email}
+          onChange={onChange}
+          required
+          type="email"
+          className="w-full border rounded px-3 py-2"
+          placeholder="you@example.com"
+          autoComplete="email"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1" htmlFor="password">
+          Password
+        </label>
+        <input
+          id="password"
+          name="password"
+          value={form.password}
+          onChange={onChange}
+          required
+          type="password"
+          className="w-full border rounded px-3 py-2"
+          placeholder="••••••••"
+          autoComplete="new-password"
+          minLength={6}
+        />
+      </div>
+
       <button
-        type="button"
+        type="submit"
         disabled={loading}
-        onClick={() => navigate("/login")}
-        className="mt-4 w-full bg-gray-100 text-gray-900 py-2 rounded hover:bg-gray-200 disabled:opacity-50"
+        className="bg-blue-600 text-white px-4 py-2 rounded"
       >
-        {loading ? "Please wait…" : "Already have an account? Log in"}
+        {loading ? "Creating…" : "Create account"}
       </button>
-    </div>
+    </form>
   );
 }
