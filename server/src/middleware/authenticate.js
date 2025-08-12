@@ -42,8 +42,15 @@ export default function authenticate(req, res, next) {
     }
 
     // Try common env var names; first non-empty wins
-    const firstSecret = pickFirstDefined(process.env.JWT_SECRET, process.env.ACCESS_TOKEN_SECRET);
-    const secretsToTry = [firstSecret, process.env.JWT_SECRET, process.env.ACCESS_TOKEN_SECRET].filter(Boolean);
+    const firstSecret = pickFirstDefined(
+      process.env.JWT_SECRET,
+      process.env.ACCESS_TOKEN_SECRET
+    );
+    const secretsToTry = [
+      firstSecret,
+      process.env.JWT_SECRET,
+      process.env.ACCESS_TOKEN_SECRET
+    ].filter(Boolean);
 
     if (!secretsToTry.length) {
       // Fail closed with a clear error instead of silently allowing access
@@ -55,7 +62,7 @@ export default function authenticate(req, res, next) {
     for (const secret of secretsToTry) {
       try {
         decoded = jwt.verify(token, secret);
-        break;
+        break; // stop at the first valid secret
       } catch (e) {
         lastErr = e;
       }
@@ -63,6 +70,7 @@ export default function authenticate(req, res, next) {
 
     if (!decoded) {
       // Optionally log lastErr for server diagnostics
+      console.warn('[authenticate] JWT verification failed:', lastErr?.message || lastErr);
       return res.status(401).json({ error: 'Invalid or expired token' });
     }
 
@@ -76,7 +84,8 @@ export default function authenticate(req, res, next) {
     // Attach a normalized user object while preserving original claims
     req.user = { userId, role, ...decoded };
     return next();
-  } catch (_err) {
+  } catch (err) {
+    console.error('[authenticate] Error:', err?.message || err);
     return res.status(401).json({ error: 'Authentication failed' });
   }
 }

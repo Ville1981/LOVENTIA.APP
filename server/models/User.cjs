@@ -1,4 +1,4 @@
-// --- REPLACE START: Convert to CommonJS + add findByCredentials static for Jest/dev ---
+// --- REPLACE START: Convert to CommonJS + add missing profile fields + lat/lng virtuals (kept original structure) ---
 'use strict';
 
 const mongoose = require('mongoose');
@@ -19,6 +19,7 @@ const userSchema = new mongoose.Schema(
     gender:             String,
     status:             String,
     religion:           String,
+    religionImportance: String, // <— added to match filters
     children:           String,
     pets:               String,
     summary:            String,
@@ -31,9 +32,32 @@ const userSchema = new mongoose.Schema(
     heightUnit:         String,
     weight:             Number,
     weightUnit:         String,
+    education:          String, // <— ensure present
+    healthInfo:         String, // <— added
+    activityLevel:      String, // <— added
+    nutritionPreferences: [String], // <— added (array of strings)
+
+    // Location
     location:           { country: String, region: String, city: String },
+    customCity:         String, // <— added
+    customRegion:       String, // <— added
+    customCountry:      String, // <— added
     latitude:           Number,
     longitude:          Number,
+
+    // Discovery preferences
+    preferredGender:    { type: String, default: 'any' }, // <— added
+    preferredMinAge:    { type: Number, default: 18 },    // <— added
+    preferredMaxAge:    { type: Number, default: 120 },   // <— added
+    preferredInterests: [String],                          // <— added
+
+    // Interests
+    interests:          [String], // <— added
+
+    // Lifestyle
+    smoke:              String,
+    drink:              String,
+    drugs:              String,
 
     // Images
     profilePicture:     String,
@@ -43,7 +67,11 @@ const userSchema = new mongoose.Schema(
     passwordResetToken:   String,
     passwordResetExpires: Date,
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON:   { virtuals: true },
+    toObject: { virtuals: true },
+  }
 );
 
 /**
@@ -56,6 +84,18 @@ userSchema.virtual('id').get(function () {
     return undefined;
   }
 });
+
+/**
+ * Virtuals for lat/lng to interop with controllers that may use either
+ * latitude/longitude or lat/lng.
+ */
+userSchema.virtual('lat')
+  .get(function () { return this.latitude; })
+  .set(function (v) { this.latitude = v; });
+
+userSchema.virtual('lng')
+  .get(function () { return this.longitude; })
+  .set(function (v) { this.longitude = v; });
 
 /**
  * Static: findByCredentials(email, password)
@@ -98,3 +138,4 @@ try {
 
 module.exports = UserModel;
 // --- REPLACE END ---
+

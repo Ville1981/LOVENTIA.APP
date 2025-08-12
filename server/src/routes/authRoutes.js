@@ -38,6 +38,7 @@ const router = express.Router();
 
 /**
  * POST /login
+ * Public route
  */
 if (validateBody && loginSchema) {
   router.post('/login', validateBody(loginSchema), authController.login);
@@ -47,6 +48,7 @@ if (validateBody && loginSchema) {
 
 /**
  * POST /register
+ * Public route
  */
 if (typeof authController.register === 'function') {
   if (validateBody && registerSchema) {
@@ -58,6 +60,7 @@ if (typeof authController.register === 'function') {
 
 /**
  * POST /refresh
+ * Public route
  * Also respond to OPTIONS for CORS preflight
  */
 if (typeof authController.refreshToken === 'function') {
@@ -67,9 +70,25 @@ if (typeof authController.refreshToken === 'function') {
 
 /**
  * POST /logout
+ * Public route
  */
 if (typeof authController.logout === 'function') {
   router.post('/logout', authController.logout);
+}
+
+/**
+ * GET /me
+ * Protected route — authenticate middleware should be applied in main router
+ */
+if (typeof authController.me === 'function') {
+  try {
+    const { default: authenticate } = await import(
+      pathToFileURL(path.resolve(__dirname, '../middleware/authenticate.js')).href
+    );
+    router.get('/me', authenticate, authController.me);
+  } catch (err) {
+    console.warn('[authRoutes] Could not attach /me route — missing authenticate middleware:', err?.message);
+  }
 }
 
 export default router;

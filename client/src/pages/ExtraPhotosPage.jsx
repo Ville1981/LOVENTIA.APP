@@ -1,6 +1,4 @@
-// File: client/src/pages/ExtraPhotosPage.jsx
-
-// --- REPLACE START: use shared api + services; keep structure and comments ---
+// --- REPLACE START: ensure userId prop always set & update both local and auth state ---
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
@@ -9,8 +7,7 @@ import Button from "../components/ui/Button";
 import ControlBar from "../components/ui/ControlBar";
 import { BACKEND_BASE_URL } from "../config";
 import { useAuth } from "../contexts/AuthContext";
-import { getUserProfile } from "../services/userService"; // centralized user fetch
-import api from "../utils/axiosInstance"; // unified axios (Bearer + refresh)
+import { getUserProfile } from "../services/userService";
 
 const normalizePath = (p = "") =>
   "/" + p.replace(/\\/g, "/").replace(/^\/+/, "");
@@ -23,30 +20,40 @@ export default function ExtraPhotosPage() {
   const [user, setUser] = useState(null);
   const [error, setError] = useState("");
 
-  const userId = paramId || authUser?._id || authUser?.id;
+  // Always resolve to a valid userId if possible
+  const resolvedUserId =
+    paramId || authUser?._id || authUser?.id || user?._id || user?.id;
+
   const isOwner =
-    !paramId || authUser?._id === paramId || authUser?.id === paramId;
+    !paramId ||
+    authUser?._id === paramId ||
+    authUser?.id === paramId;
 
   const fetchUser = useCallback(async () => {
-    if (!userId) return;
+    if (!resolvedUserId) return;
     try {
-      const data = await getUserProfile(paramId); // null/undefined => /users/profile, else /users/:id
+      const data = await getUserProfile(paramId);
       const u = data?.user ?? data;
       setUser(u);
     } catch (err) {
       console.error("Error fetching user:", err);
       setError("Failed to load user.");
     }
-  }, [paramId, userId]);
+  }, [paramId, resolvedUserId]);
 
   useEffect(() => {
     fetchUser();
   }, [fetchUser]);
 
-  const handleUserUpdate = (updatedUser) => {
-    setUser(updatedUser);
-    if (!paramId && typeof setAuthUser === "function") setAuthUser(updatedUser);
-  };
+  const handleUserUpdate = useCallback(
+    (updated) => {
+      setUser(updated);
+      if (isOwner && typeof setAuthUser === "function") {
+        setAuthUser(updated);
+      }
+    },
+    [isOwner, setAuthUser]
+  );
 
   if (error) {
     return <div className="text-center mt-12 text-red-600">{error}</div>;
@@ -62,7 +69,7 @@ export default function ExtraPhotosPage() {
 
       {isOwner ? (
         <MultiStepPhotoUploader
-          userId={userId}
+          userId={resolvedUserId}
           isPremium={user.isPremium}
           extraImages={user.extraImages || []}
           onSuccess={(images) =>
@@ -100,3 +107,16 @@ export default function ExtraPhotosPage() {
   );
 }
 // --- REPLACE END ---
+
+
+
+
+
+
+
+
+
+
+
+
+

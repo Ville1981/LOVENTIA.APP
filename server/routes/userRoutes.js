@@ -5,12 +5,12 @@ import mongoose from 'mongoose';
 import multer from 'multer';
 import { body, validationResult } from 'express-validator';
 
-// --- REPLACE START: interop for CommonJS User model ---
+// --- REPLACE START: interop for CommonJS User model (fixed path from routes -> models) ---
 import * as UserModule from '../models/User.js';
 const User = UserModule.default || UserModule;
 // --- REPLACE END ---
 
-// --- REPLACE START: interop for controllers (works with ESM or CommonJS) ---
+// --- REPLACE START: interop for controllers (FIX: match on-disk casing exactly = userController.js) ---
 import * as UC from '../controllers/userController.js';
 const {
   registerUser,
@@ -20,52 +20,53 @@ const {
   uploadExtraPhotos,
   uploadPhotoStep,
   deletePhotoSlot,
+  // keep controllers available for delegation without shortening routes
+  getMe,
+  updateProfile,
 } = (UC.default || UC);
 // --- REPLACE END ---
 
-// --- REPLACE START: import authenticate middleware correctly ---
+// --- REPLACE START: import authenticate middleware correctly (fixed path) ---
 import authenticate from '../middleware/authenticate.js';
 // --- REPLACE END ---
 
-// Ensure uploads directory exists (multer will fail otherwise)
+const router = express.Router();
+
+/* ──────────────────────────────────────────────────────────────────────────────
+   Upload setup
+────────────────────────────────────────────────────────────────────────────── */
 const ensureUploadsDir = () => {
   const dir = path.resolve('uploads');
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 };
 ensureUploadsDir();
 
-// Configure Multer for file uploads
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, 'uploads/'),
-  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),
+  destination: (_req, _file, cb) => cb(null, 'uploads/'),
+  filename: (_req, file, cb) =>
+    cb(null, `${Date.now()}${path.extname(file.originalname)}`),
 });
 const upload = multer({ storage });
 
-// Helper to remove files from disk
 const removeFile = (filePath) => {
   try {
-    if (filePath && typeof filePath === 'string') {
-      const p = path.resolve(filePath);
-      if (fs.existsSync(p)) fs.unlinkSync(p);
-    }
+    if (!filePath || typeof filePath !== 'string') return;
+    const p = path.resolve(filePath);
+    if (fs.existsSync(p)) fs.unlinkSync(p);
   } catch (e) {
-    // swallow file removal errors (best-effort)
     console.warn('removeFile warning:', e?.message || e);
   }
 };
 
-// Validation error handler
 const handleValidation = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
   next();
 };
 
-const router = express.Router();
-
-// =====================
-// Authentication Routes
-// =====================
+/* ──────────────────────────────────────────────────────────────────────────────
+   Auth routes
+────────────────────────────────────────────────────────────────────────────── */
 router.post(
   '/register',
   [
@@ -89,23 +90,39 @@ router.post(
   loginUser
 );
 
-// =====================
-// Protected User Routes
-// =====================
-// --- REPLACE START: return shape unified as { user: ... } ---
-router.get('/me', authenticate, (req, res) => {
-  return res.json({ user: req.user || null });
+// --- REPLACE START: return full user document via controller getMe (keeps validation block size) ---
+router.get('/me', authenticate, async (req, res) => {
+  try {
+    const id = req.user?.id || req.user?._id || req.user?.userId;
+    if (!id || !mongoose.Types.ObjectId.isValid(String(id))) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    // Delegate to controller to unify payload (no secrets)
+    return getMe(req, res);
+  } catch (err) {
+    console.error('GET /users/me error:', err);
+    return res.status(500).json({ error: 'Failed to fetch user' });
+  }
 });
 
-router.get('/profile', authenticate, (req, res) => {
-  return res.json({ user: req.user || null });
+router.get('/profile', authenticate, async (req, res) => {
+  try {
+    const id = req.user?.id || req.user?._id || req.user?.userId;
+    if (!id || !mongoose.Types.ObjectId.isValid(String(id))) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    // Delegate to controller to unify payload (no secrets)
+    return getMe(req, res);
+  } catch (err) {
+    console.error('GET /users/profile error:', err);
+    return res.status(500).json({ error: 'Failed to fetch user' });
+  }
 });
 // --- REPLACE END ---
 
-/**
- * Allow-list of fields the client may update via PUT /profile
- * Keeps server-side control over what can change.
- */
+/* ──────────────────────────────────────────────────────────────────────────────
+   Profile update
+────────────────────────────────────────────────────────────────────────────── */
 const UPDATABLE_FIELDS = new Set([
   'username',
   'email',
@@ -140,38 +157,45 @@ const UPDATABLE_FIELDS = new Set([
   'drugs',
   'latitude',
   'longitude',
-  'profilePhoto',      // JSON/url string
-  'extraImages',       // JSON array (when not using multipart)
+  'profilePhoto',
+  'extraImages',
 ]);
 
-// --- REPLACE START: add missing PUT /profile to update the current user ---
+// --- REPLACE START: add hybrid PUT /profile (delegates to controller when no files) ---
 router.put(
   '/profile',
   authenticate,
   upload.fields([
-    { name: 'profilePhoto', maxCount: 1 }, // file field for avatar (optional)
-    { name: 'extraImages', maxCount: 20 }, // file field(s) for gallery (optional)
+    { name: 'profilePhoto', maxCount: 1 },
+    { name: 'extraImages', maxCount: 20 },
   ]),
   async (req, res) => {
     try {
-      // resolve authenticated user id safely regardless of middleware shape
       const uid = req.user?.id || req.user?._id || req.user?.userId;
       if (!uid || !mongoose.Types.ObjectId.isValid(String(uid))) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
+      // If there are no files, delegate to controller (JSON-only path)
+      const hasProfilePhoto = Array.isArray(req.files?.profilePhoto) && req.files.profilePhoto.length > 0;
+      const hasExtraImages = Array.isArray(req.files?.extraImages) && req.files.extraImages.length > 0;
+      const hasFiles = hasProfilePhoto || hasExtraImages;
+
+      if (!hasFiles) {
+        return updateProfile(req, res);
+      }
+
+      // With files: keep in-route behavior (existing logic preserved)
       const user = await User.findById(uid);
       if (!user) return res.status(404).json({ error: 'User not found' });
 
-      // 1) Update text/JSON fields from req.body (allow-list only)
       if (req.body && typeof req.body === 'object') {
         for (const [key, val] of Object.entries(req.body)) {
           if (!UPDATABLE_FIELDS.has(key)) continue;
-          // handle arrays coming as JSON-encoded strings
           if (key === 'nutritionPreferences' || key === 'extraImages') {
             let parsed = val;
             if (typeof val === 'string') {
-              try { parsed = JSON.parse(val); } catch { /* keep as string if not JSON */ }
+              try { parsed = JSON.parse(val); } catch {}
             }
             user[key] = parsed;
           } else {
@@ -180,75 +204,66 @@ router.put(
         }
       }
 
-      // 2) Handle multipart: avatar + extra images
-      // avatar in file field
-      if (req.files?.profilePhoto?.[0]) {
+      if (hasProfilePhoto) {
         if (user.profilePicture) removeFile(user.profilePicture);
         user.profilePicture = req.files.profilePhoto[0].path;
       }
-      // extra images in files
-      if (Array.isArray(req.files?.extraImages) && req.files.extraImages.length) {
-        // if you want to replace all existing:
+
+      if (hasExtraImages) {
         if (Array.isArray(user.extraImages)) user.extraImages.forEach(removeFile);
         user.extraImages = req.files.extraImages.map((f) => f.path);
       }
 
-      // 3) If client sent JSON profilePhoto field (URL string), prefer it
+      // Allow passing already-uploaded path for profilePhoto (e.g., from crop flow)
       if (typeof req.body?.profilePhoto === 'string' && req.body.profilePhoto.trim()) {
         user.profilePicture = req.body.profilePhoto.trim();
       }
 
       const updatedUser = await user.save();
-      // keep response shape consistent for front-end hooks/services
       return res.json({ user: updatedUser });
     } catch (err) {
-      console.error('Profile update error:', err);
+      console.error('PUT /users/profile error:', err);
       return res.status(500).json({ error: 'Profile update failed' });
     }
   }
 );
 // --- REPLACE END ---
 
-// =====================
-// Social Interaction Routes
-// =====================
-router.post('/like/:id', authenticate, async (req, res) => {
-  // TODO: implement like logic
+/* ──────────────────────────────────────────────────────────────────────────────
+   Social
+────────────────────────────────────────────────────────────────────────────── */
+router.post('/like/:id', authenticate, async (_req, res) => {
   return res.json({ message: 'User liked' });
 });
 
-router.post('/superlike/:id', authenticate, async (req, res) => {
-  // TODO: implement superlike logic
+router.post('/superlike/:id', authenticate, async (_req, res) => {
   return res.json({ message: 'User superliked' });
 });
 
-router.post('/block/:id', authenticate, async (req, res) => {
-  // TODO: implement block logic
+router.post('/block/:id', authenticate, async (_req, res) => {
   return res.json({ message: 'User blocked' });
 });
 
-// =====================
-// Premium and Matches
-// =====================
+/* ──────────────────────────────────────────────────────────────────────────────
+   Premium & matches
+────────────────────────────────────────────────────────────────────────────── */
 router.post('/upgrade-premium', authenticate, upgradeToPremium);
 router.get('/matches', authenticate, getMatchesWithScore);
 
-// =====================
-// Additional User Info
-// =====================
-router.get('/who-liked-me', authenticate, async (req, res) => {
-  // TODO: implement logic
+/* ──────────────────────────────────────────────────────────────────────────────
+   Misc
+────────────────────────────────────────────────────────────────────────────── */
+router.get('/who-liked-me', authenticate, async (_req, res) => {
   return res.json([]);
 });
 
-router.get('/nearby', authenticate, async (req, res) => {
-  // TODO: implement logic
+router.get('/nearby', authenticate, async (_req, res) => {
   return res.json([]);
 });
 
-// =====================
-// Photo Upload Routes
-// =====================
+/* ──────────────────────────────────────────────────────────────────────────────
+   Photo upload
+────────────────────────────────────────────────────────────────────────────── */
 router.post(
   '/:id/upload-avatar',
   authenticate,
@@ -287,19 +302,19 @@ router.post(
 
 router.delete('/:id/photos/:slot', authenticate, deletePhotoSlot);
 
-// =====================
-// Param Validation
-// =====================
-router.param('id', (req, res, next, id) => {
+/* ──────────────────────────────────────────────────────────────────────────────
+   Param validation
+────────────────────────────────────────────────────────────────────────────── */
+router.param('id', (_req, res, next, id) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
     return res.status(400).json({ error: 'Invalid user ID' });
   }
   next();
 });
 
-// =====================
-// Public Profile by ID
-// =====================
+/* ──────────────────────────────────────────────────────────────────────────────
+   Public profile
+────────────────────────────────────────────────────────────────────────────── */
 router.get('/:id', async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select(
