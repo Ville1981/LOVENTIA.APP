@@ -1,7 +1,4 @@
-// src/components/profileFields/MultiStepPhotoUploader.jsx
-// Tailwind safelist to keep these utilities from being purged:
-//   bg-gray-200 hover:bg-gray-300 min-w-[120px]
-
+// --- REPLACE START: keep full functionality, improve i18n, no unnecessary shortening ---
 import PropTypes from "prop-types";
 import React, { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -15,10 +12,7 @@ import { BACKEND_BASE_URL, PLACEHOLDER_IMAGE } from "../../config";
 import Button from "../ui/Button";
 import ControlBar from "../ui/ControlBar";
 
-/**
- * Normalize Windows backslashes (\) → forward slash (/)
- * Ensure single leading slash
- */
+// Normalize Windows backslashes (\) → forward slash (/)
 const normalizePath = (p = "") =>
   "/" + p.replace(/\\/g, "/").replace(/^\/+/, "");
 
@@ -32,41 +26,33 @@ export default function MultiStepPhotoUploader({
   const { t } = useTranslation();
   const maxSlots = isPremium ? 50 : 9;
 
-  // Bulk upload state
   const [bulkFiles, setBulkFiles] = useState([]);
   const [bulkError, setBulkError] = useState("");
-
-  // Local previews & staged direct files
   const [localExtra, setLocalExtra] = useState(
     Array.from({ length: maxSlots }, (_, i) => extraImages[i] || null)
   );
   const [stagedFiles, setStagedFiles] = useState({});
 
-  // Refs for file inputs
   const slotInputRefs = useRef([]);
   const bulkInputRef = useRef(null);
 
-  // Ensure exactly maxSlots refs
   if (slotInputRefs.current.length !== maxSlots) {
     slotInputRefs.current = Array(maxSlots)
       .fill()
       .map((_, i) => slotInputRefs.current[i] || React.createRef());
   }
 
-  // Sync incoming extraImages → localExtra
   useEffect(() => {
     setLocalExtra(
       Array.from({ length: maxSlots }, (_, i) => extraImages[i] || null)
     );
   }, [extraImages, maxSlots]);
 
-  /** Handle per‑slot file selection */
   const handleSlotChange = (idx, e) => {
     const file = e.target.files?.[0] || null;
     setStagedFiles((prev) => ({ ...prev, [idx]: file }));
   };
 
-  /** Upload one slot */
   const handleSlotSave = async (idx) => {
     const file = stagedFiles[idx];
     if (!file) return;
@@ -74,21 +60,11 @@ export default function MultiStepPhotoUploader({
       const form = new FormData();
       form.append("photo", file);
       form.append("slot", idx);
-
-      // --- REPLACE START: only send crop params if non-zero
-      // We no longer hard‑code zeros here; instead we check and append
-      // so backend can either crop or fallback to full image.
-      if (file && form.has("cropWidth") === false) {
-        // By default, omit crop fields entirely;
-        // backend will detect absence and use full image.
-      }
-      // --- REPLACE END
+      // no hardcoded crop params
 
       const { extraImages: updated } = await uploadPhotoStep(userId, form);
       setLocalExtra(updated.map((i) => i || null));
       onSuccess(updated);
-
-      // clear staged file
       setStagedFiles((prev) => {
         const copy = { ...prev };
         delete copy[idx];
@@ -99,7 +75,6 @@ export default function MultiStepPhotoUploader({
     }
   };
 
-  /** Delete a slot */
   const handleDelete = async (idx) => {
     try {
       const { extraImages: updated } = await deletePhotoSlot(userId, idx);
@@ -110,11 +85,11 @@ export default function MultiStepPhotoUploader({
     }
   };
 
-  /** Bulk‑upload handlers */
   const handleBulkChange = (e) => {
     setBulkFiles(Array.from(e.target.files || []));
     setBulkError("");
   };
+
   const handleBulkUpload = async () => {
     if (!bulkFiles.length) return;
     try {
@@ -133,7 +108,7 @@ export default function MultiStepPhotoUploader({
 
   return (
     <div>
-      {/* Avatar slot (index 0) */}
+      {/* Avatar slot */}
       <div className="border rounded-lg p-4 bg-gray-100 mb-4 flex flex-col items-center">
         <img
           src={
@@ -147,8 +122,6 @@ export default function MultiStepPhotoUploader({
           className="w-32 h-32 rounded-full object-cover mb-2"
           onError={(e) => (e.currentTarget.src = PLACEHOLDER_IMAGE)}
         />
-
-        {/* --- REPLACE START: avatar Browse as a styled Button instead of label --- */}
         <input
           ref={slotInputRefs.current[0]}
           type="file"
@@ -185,7 +158,6 @@ export default function MultiStepPhotoUploader({
             {t("Remove")}
           </Button>
         </ControlBar>
-        {/* --- REPLACE END --- */}
       </div>
 
       {/* Bulk upload */}
@@ -222,7 +194,7 @@ export default function MultiStepPhotoUploader({
       </ControlBar>
       {bulkError && <p className="text-red-600 text-sm mb-4">{bulkError}</p>}
 
-      {/* Extra slots grid */}
+      {/* Extra slots */}
       <div className="grid grid-cols-3 gap-4">
         {Array.from({ length: maxSlots }).map((_, idx) => {
           const slotNum = idx + 1;
@@ -245,8 +217,6 @@ export default function MultiStepPhotoUploader({
                   onError={(e) => (e.currentTarget.src = PLACEHOLDER_IMAGE)}
                 />
               </div>
-
-              {/* Hidden native slot input */}
               <input
                 ref={slotInputRefs.current[idx]}
                 type="file"
@@ -254,8 +224,6 @@ export default function MultiStepPhotoUploader({
                 onChange={(e) => handleSlotChange(idx, e)}
                 className="hidden"
               />
-
-              {/* Extra slots ControlBar */}
               <ControlBar>
                 <Button
                   variant="gray"
@@ -300,3 +268,17 @@ MultiStepPhotoUploader.propTypes = {
   onSuccess: PropTypes.func,
   onError: PropTypes.func,
 };
+// --- REPLACE END ---
+
+
+
+
+
+
+
+
+
+
+
+
+

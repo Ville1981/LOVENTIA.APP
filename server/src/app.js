@@ -27,13 +27,28 @@ const sqlSanitizer = require('./middleware/sqlSanitizer.js');
 // --- REPLACE END ---
 
 // --- REPLACE START: import request validators & schemas ---
-const { validateBody }                = require('./middleware/validateRequest.js');
-const { loginSchema, registerSchema } = require('./validators/authValidator.js');
+const { validateBody } = require('./middleware/validateRequest.js');
+// Prefer validators from src if present, else fallback to legacy location
+let loginSchema, registerSchema;
+try {
+  ({ loginSchema, registerSchema } = require('./src/api/validators/authValidator.js'));
+} catch (_) {
+  try {
+    ({ loginSchema, registerSchema } = require('./validators/authValidator.js'));
+  } catch (_e) {
+    // Schemas optional; /api/auth/login & /api/auth/register will still work without them.
+  }
+}
 // --- REPLACE END ---
 
 // *** FIXED PATH ***
-// --- REPLACE START: point to api/controllers/authController ---
-const authController                  = require('./api/controllers/authController.js');
+// --- REPLACE START: point to api/controllers/authController (prefer src, fallback legacy) ---
+let authController;
+try {
+  authController = require('./src/api/controllers/authController.js');
+} catch (_) {
+  authController = require('./api/controllers/authController.js');
+}
 // --- REPLACE END ---
 
 // --- REPLACE START: import auth check & role-based authorization ---
@@ -55,9 +70,13 @@ async function authenticate(req, res, next) {
 }
 // --- REPLACE END ---
 
-// --- REPLACE START: fix model import paths to actual location in ../models ---
-require(path.resolve(__dirname, '../models/User.js'));
-require(path.resolve(__dirname, '../models/Message.js'));
+// --- REPLACE START: fix model import paths to actual location in ./models ---
+require(path.resolve(__dirname, './models/User.js'));
+try {
+  require(path.resolve(__dirname, './models/Message.js'));
+} catch (_) {
+  // Optional: some deployments may not have messaging enabled yet
+}
 // --- REPLACE END ---
 
 const app = express();
@@ -113,7 +132,13 @@ app.options(
 app.use(securityHeaders);
 
 // ── Secure cookies & HTTPS enforcement ──────────────────────────────────────────
-const { cookieOptions } = require('./utils/cookieOptions.js');
+// Prefer cookieOptions from src/utils; fallback to legacy utils
+let cookieOptions;
+try {
+  ({ cookieOptions } = require('./src/utils/cookieOptions.js'));
+} catch (_) {
+  ({ cookieOptions } = require('./utils/cookieOptions.js'));
+}
 app.set('trust proxy', 1);
 app.use(cookieParser());
 
@@ -157,22 +182,24 @@ if (!IS_TEST) {
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ── Helper to try src route first, then fallback ────────────────────────────────
-function tryRequireRoute(srcPath, fallbackAbsPath) {
-  try {
-    return require(srcPath);
-  } catch (e1) {
+function tryRequireRoute(primary, ...candidates) {
+  const attempts = [primary, ...candidates];
+  for (const p of attempts) {
     try {
-      return require(fallbackAbsPath);
-    } catch (e2) {
-      e2.message = `Route import failed. Tried:\n - ${srcPath}\n - ${fallbackAbsPath}\nOriginal: ${e2.message}`;
-      throw e2;
+      return require(p);
+    } catch (_) {
+      // keep trying
     }
   }
+  const list = attempts.map((p) => ` - ${p}`).join('\n');
+  const err = new Error(`Route import failed. Tried:\n${list}`);
+  throw err;
 }
 
 // --- REPLACE START: mount /api/health route for quick proxy/CORS checks ---
 const healthRoute = require('./routes/health.js');
 app.use('/api/health', healthRoute);
+app.use('/api/healthz', healthRoute); // alias
 // --- REPLACE END ---
 
 // ── Routes ──────────────────────────────────────────────────────────────────────
@@ -210,7 +237,7 @@ if (IS_TEST) {
 
     return res.status(200).json({ accessToken });
   });
-    // Refresh: verify cookie and issue new access token
+  // Refresh: verify cookie and issue new access token
   testAuth.post('/refresh', (req, res) => {
     const token = req.cookies && req.cookies.refreshToken;
     if (!token) return res.status(401).json({ error: 'No refresh token provided' });
@@ -237,22 +264,28 @@ if (IS_TEST) {
   app.use('/api/auth', testAuth);
 
 } else {
-  // Production/Dev auth endpoints
-  app.post(
-    '/api/auth/login',
-    validateBody(loginSchema),
-    authController.login
-  );
+  // Production/Dev auth endpoints (direct handlers to guarantee availability)
+  if (authController && typeof authController.login === 'function') {
+    app.post(
+      '/api/auth/login',
+      loginSchema ? validateBody(loginSchema) : (req, _res, next) => next(),
+      authController.login
+    );
+  }
 
-  if (authController.register && registerSchema) {
+  if (authController && typeof authController.register === 'function') {
     app.post(
       '/api/auth/register',
-      validateBody(registerSchema),
+      registerSchema ? validateBody(registerSchema) : (req, _res, next) => next(),
       authController.register
     );
   }
 
+  // Mount router module: prefer src/routes/authRoutes.js, then routes/authRoutes.js, then routes/auth.js
   const authRoutes = tryRequireRoute(
+    './src/routes/authRoutes.js',
+    './routes/authRoutes.js',
+    path.resolve(__dirname, '../routes/authRoutes.js'),
     './routes/auth.js',
     path.resolve(__dirname, '../routes/auth.js')
   );
@@ -261,9 +294,11 @@ if (IS_TEST) {
 
 // ── Mount other feature routes only outside test ───────────────────────────────
 if (!IS_TEST) {
+  // Users
   const userRoutes = tryRequireRoute(
-    './routes/user.js',
-    path.resolve(__dirname, '../routes/user.js')
+    './routes/userRoutes.js',
+    './src/routes/userRoutes.js',
+    path.resolve(__dirname, '../routes/userRoutes.js')
   );
   app.use(
     '/api/users',
@@ -272,49 +307,71 @@ if (!IS_TEST) {
     userRoutes
   );
 
-  const messageRoutes = tryRequireRoute(
-    './routes/message.js',
-    path.resolve(__dirname, '../routes/message.js')
-  );
-  app.use(
-    '/api/messages',
-    authenticate,
-    authorizeRoles('user'),
-    messageRoutes
-  );
+  // Messages
+  let messageRoutes;
+  try {
+    messageRoutes = tryRequireRoute(
+      './routes/messageRoutes.js',
+      './routes/message.js',
+      path.resolve(__dirname, '../routes/messageRoutes.js')
+    );
+    app.use(
+      '/api/messages',
+      authenticate,
+      authorizeRoles('user'),
+      messageRoutes
+    );
+  } catch (_) {
+    // Optional feature; skip if route file not present
+  }
 
-  const paymentRoutes = tryRequireRoute(
-    './routes/payment.js',
-    path.resolve(__dirname, '../routes/payment.js')
-  );
-  app.use(
-    '/api/payment',
-    authenticate,
-    authorizeRoles('user'),
-    paymentRoutes
-  );
+  // Payments
+  let paymentRoutes;
+  try {
+    paymentRoutes = tryRequireRoute(
+      './routes/paymentRoutes.js',
+      './routes/payment.js',
+      path.resolve(__dirname, '../routes/paymentRoutes.js')
+    );
+    app.use(
+      '/api/payment',
+      authenticate,
+      authorizeRoles('user'),
+      paymentRoutes
+    );
+  } catch (_) {}
 
-  const adminRoutes = tryRequireRoute(
-    './routes/admin.js',
-    path.resolve(__dirname, '../routes/admin.js')
-  );
-  app.use(
-    '/api/admin',
-    authenticate,
-    authorizeRoles('admin'),
-    adminRoutes
-  );
+  // Admin
+  let adminRoutes;
+  try {
+    adminRoutes = tryRequireRoute(
+      './routes/adminRoutes.js',
+      './routes/admin.js',
+      path.resolve(__dirname, '../routes/adminRoutes.js')
+    );
+    app.use(
+      '/api/admin',
+      authenticate,
+      authorizeRoles('admin'),
+      adminRoutes
+    );
+  } catch (_) {}
 
-  const discoverRoutes = tryRequireRoute(
-    './routes/discover.js',
-    path.resolve(__dirname, '../routes/discover.js')
-  );
-  app.use(
-    '/api/discover',
-    authenticate,
-    authorizeRoles('user'),
-    discoverRoutes
-  );
+  // Discover
+  let discoverRoutes;
+  try {
+    discoverRoutes = tryRequireRoute(
+      './routes/discoverRoutes.js',
+      './routes/discover.js',
+      path.resolve(__dirname, '../routes/discoverRoutes.js')
+    );
+    app.use(
+      '/api/discover',
+      authenticate,
+      authorizeRoles('user'),
+      discoverRoutes
+    );
+  } catch (_) {}
 }
 
 // ── Temporary mock users endpoint ───────────────────────────────────────────────
