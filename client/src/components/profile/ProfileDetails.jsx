@@ -1,34 +1,36 @@
-import axios from "axios";
-import React, { useState, useEffect } from "react";
+// File: client/src/components/profile/ProfileDetails.jsx
 
-// Backendin perus-URL, päivitä tarvittaessa omaksesi
-const BACKEND_BASE_URL = "http://localhost:5000";
+// --- REPLACE START: use centralized axios instance & align endpoint with server (/api/users/profile) ---
+import axios from "../../utils/axiosInstance";
+// const BACKEND_BASE_URL = "http://localhost:5000"; // not needed when using axiosInstance
+// --- REPLACE END ---
+import React, { useState, useEffect } from "react";
 
 /**
  * ProfileDetails
  *
- * Tämä komponentti hoitaa vanhojen profiilikenttien muokkauksen.
+ * Handles editing of legacy profile fields.
  * Props:
- *  - user: käyttäjädata, sisältää user.id ja user.profile
- *  - onUpdate: callback, johon päivitetty käyttäjädata palautetaan
+ *  - user: user data, contains user.id and user.profile
+ *  - onUpdate: callback receiving updated user data
  */
 const ProfileDetails = ({ user, onUpdate }) => {
   const [formData, setFormData] = useState({
     aboutMe: "",
     currentGoal: "",
     talents: "",
-    // …lisää tähän muut kentät, esim. traits, hobbies jne.
+    // …add other fields as needed, e.g., traits, hobbies, etc.
   });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Esitäytetään lomake backendistä haetulla profiilidatalla
-    if (user.profile) {
+    // Pre-fill form using profile data fetched earlier
+    if (user?.profile) {
       setFormData({
         aboutMe: user.profile.aboutMe || "",
         currentGoal: user.profile.currentGoal || "",
         talents: user.profile.talents || "",
-        // …esitäytä muut kentät samalla tavalla
+        // …pre-fill other fields similarly
       });
     }
   }, [user]);
@@ -42,16 +44,16 @@ const ProfileDetails = ({ user, onUpdate }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await axios.put(
-        `${BACKEND_BASE_URL}/api/profile/${user.id}`,
-        formData,
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        }
-      );
-      onUpdate(response.data);
+      // Using axiosInstance baseURL (/api) + users route + PUT /profile (no userId in URL; server resolves from token)
+      // Authorization header is injected automatically by axiosInstance if accessToken is set.
+      // --- REPLACE START: switch to /api/users/profile and rely on axiosInstance auth header ---
+      const response = await axios.put("/api/users/profile", formData);
+      // --- REPLACE END ---
+      if (typeof onUpdate === "function") {
+        onUpdate(response.data);
+      }
     } catch (err) {
-      console.error("Profiilin päivittäminen epäonnistui:", err);
+      console.error("Profile update failed:", err);
     } finally {
       setLoading(false);
     }
@@ -62,7 +64,7 @@ const ProfileDetails = ({ user, onUpdate }) => {
       onSubmit={handleSubmit}
       className="bg-white rounded-lg shadow p-4 space-y-4"
     >
-      <h3 className="text-lg font-semibold">Profiilitiedot</h3>
+      <h3 className="text-lg font-semibold">Profile details</h3>
 
       <div>
         <label className="block font-medium">About Me</label>
@@ -97,14 +99,14 @@ const ProfileDetails = ({ user, onUpdate }) => {
         />
       </div>
 
-      {/* Lisää mahdolliset muut kentät tähän samaan tapaan */}
+      {/* Add additional fields here in the same manner if needed */}
 
       <button
         type="submit"
         disabled={loading}
         className="bg-blue-600 text-white py-2 px-4 rounded"
       >
-        {loading ? "Tallennetaan…" : "Tallenna profiili"}
+        {loading ? "Saving…" : "Save profile"}
       </button>
     </form>
   );

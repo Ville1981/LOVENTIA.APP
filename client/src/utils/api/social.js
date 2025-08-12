@@ -1,23 +1,40 @@
-// client/src/utils/api/social.js
-import axios from "axios";
+// File: client/src/utils/api/social.js
 
-const API_BASE = process.env.REACT_APP_API_URL || "";
+// --- REPLACE START: use centralized axios instance and unify endpoints ---
+// --- REPLACE START: use centralized axios instance ---
+import api from '../../services/api/axiosInstance';
+// --- REPLACE END ---
 
 /**
- * Fetch Instagram posts for a given user.
- * @param {string} userId
- * @param {number} limit
- * @returns {Promise} axios response with an array of posts
+ * Fetch Instagram posts for a username.
+ * @param {string} username
+ * @param {number} count
+ * @returns {Promise<Array>}
  */
-export function fetchInstagramPosts(userId, limit = 5) {
-  return axios.get(`${API_BASE}/api/social/instagram/${userId}?limit=${limit}`);
+export async function getInstagramFeed(username, count = 5) {
+  const res = await api.get(`/api/social/instagram/${username}?count=${count}`);
+  return Array.isArray(res.data) ? res.data : [];
 }
 
 /**
- * Fetch Spotify playlist details and embed URL.
+ * Fetch Spotify playlist tracks.
  * @param {string} playlistId
- * @returns {Promise} axios response with playlist data
+ * @param {number} count
+ * @returns {Promise<Array>}
  */
-export function fetchSpotifyPlaylist(playlistId) {
-  return axios.get(`${API_BASE}/api/social/spotify/${playlistId}`);
+export async function getSpotifyPlaylist(playlistId, count = 5) {
+  const res = await api.get(`/api/social/spotify/${playlistId}?count=${count}`);
+  return Array.isArray(res.data) ? res.data : [];
 }
+
+/**
+ * An example of posting a social "like" or similar analytics.
+ * @param {string} network - 'instagram' | 'spotify' etc.
+ * @param {object} payload
+ * @returns {Promise<any>}
+ */
+export async function postSocialMetric(network, payload) {
+  const res = await api.post(`/api/social/${network}/metric`, payload || {});
+  return res.data;
+}
+// --- REPLACE END ---

@@ -1,7 +1,9 @@
 // Export base URL for backend API and placeholder image path.
 
 // --- REPLACE START: define BACKEND_BASE_URL dynamic from env and strip trailing "/api" ---
-const rawUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+// --- REPLACE START: remove hardcoded localhost fallback ---
+const rawUrl = import.meta.env.VITE_BACKEND_URL || "";
+// --- REPLACE END ---
 export const BACKEND_BASE_URL = rawUrl.replace(/\/api\/?$/, "");
 // --- REPLACE END ---
 

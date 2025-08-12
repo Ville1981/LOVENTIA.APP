@@ -1,166 +1,181 @@
-// src/pages/ExtraPhotosPage.jsx
-import axios from "axios";
-import React, { useEffect, useState, useCallback } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+// File: client/src/pages/Photos.jsx
 
-import { uploadAvatar } from "../api/images";
-import MultiStepPhotoUploader from "../components/profileFields/MultiStepPhotoUploader";
-import { BACKEND_BASE_URL } from "../config";
+// --- REPLACE START: use unified axios instance and server-compatible endpoints ---
+// --- REPLACE START: use centralized axios instance ---
+import api from '../services/api/axiosInstance';
+// --- REPLACE END ---
+// --- REPLACE END ---
+import React, { useEffect, useMemo, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
 /**
- * PhotosPage: separate page for managing profile images
- * Näyttää avatarin ja extra-kuvat 0–6 (free) tai 0–20 (premium) erikseen
+ * Utility: normalize a relative image path to absolute URL if needed.
  */
-export default function ExtraPhotosPage() {
-  const { user: authUser, setUser: setAuthUser } = useAuth();
+function toAbsolute(src) {
+  if (!src || typeof src !== "string") return "";
+  if (/^https?:\/\//i.test(src)) return src;
+  const base =
+    (typeof window !== "undefined" && window.location?.origin) ||
+    // --- REPLACE START: removed leftover localhost string ---
+// --- REPLACE END ---
+  const backend = base.replace(/:5173|:5174/, ":5000");
+  const clean = src.startsWith("/") ? src : `/${src}`;
+  return `${backend}${clean}`;
+}
+
+export default function Photos() {
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const { userId: paramId } = useParams();
-  const [user, setUser] = useState(null);
+  const params = useParams();
+
+  const userId = useMemo(
+    () => params.userId || user?._id || user?.id,
+    [params.userId, user]
+  );
+  const [extraImages, setExtraImages] = useState([]);
   const [avatarFile, setAvatarFile] = useState(null);
-  const [avatarPreview, setAvatarPreview] = useState(null);
-  const [avatarError, setAvatarError] = useState(null);
+  const [photosFiles, setPhotosFiles] = useState([]);
 
-  const userId = paramId || authUser?._id;
-  const isOwner = !paramId || authUser?._id === paramId;
+  const isOwner = !params.userId || params.userId === (user?._id || user?.id);
 
-  const fetchUser = useCallback(async () => {
-    if (!userId) return;
-    try {
-      const url = `${BACKEND_BASE_URL}/api/auth/me`;
-      const res = await axios.get(url, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      });
-      const u = res.data.user || res.data;
-      setUser(u);
-      // set avatar preview
-      if (u.profilePicture) {
-        setAvatarPreview(
-          u.profilePicture.startsWith("http")
-            ? u.profilePicture
-            : `${BACKEND_BASE_URL}${u.profilePicture}`
-        );
-      }
-    } catch (err) {
-      console.error("Käyttäjän haku epäonnistui:", err);
-    }
-  }, [userId]);
-
+  // Load current user profile (mainly to get extraImages)
   useEffect(() => {
-    fetchUser();
-  }, [fetchUser]);
-
-  const handleUserUpdate = (updated) => {
-    setUser(updated);
-    if (!paramId) setAuthUser(updated);
-    // update avatar preview if changed
-    if (updated.profilePicture) {
-      setAvatarPreview(
-        updated.profilePicture.startsWith("http")
-          ? updated.profilePicture
-          : `${BACKEND_BASE_URL}${updated.profilePicture}`
-      );
+    async function load() {
+      try {
+        // When viewing own profile, prefer /api/users/profile to avoid leaking ids
+        const endpoint = isOwner ? "/api/users/profile" : `/api/users/${userId}`;
+        const res = await api.get(endpoint);
+        const u = res.data?.user || res.data || {};
+        setExtraImages(Array.isArray(u.extraImages) ? u.extraImages : []);
+      } catch (e) {
+        console.error("Failed to load user photos", e);
+      }
     }
-  };
+    if (userId) load();
+  }, [userId, isOwner]);
 
-  const handleAvatarChange = (e) => {
-    const file = e.target.files[0] || null;
-    setAvatarFile(file);
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => setAvatarPreview(ev.target.result);
-      reader.readAsDataURL(file);
-    }
-  };
+  const onSelectAvatar = (e) => setAvatarFile(e.target.files?.[0] || null);
+  const onSelectPhotos = (e) =>
+    setPhotosFiles(Array.from(e.target.files || []).slice(0, 20));
 
-  const handleAvatarSubmit = async (e) => {
-    e.preventDefault();
-    if (!avatarFile || !userId) return;
-    setAvatarError(null);
+  const uploadAvatar = async () => {
+    if (!avatarFile) return;
     try {
-      const updated = await uploadAvatar(userId, avatarFile);
-      handleUserUpdate({ ...user, profilePicture: updated.profilePicture });
-    } catch (err) {
-      setAvatarError(err.message || "Avatarin tallennus epäonnistui");
+      const fd = new FormData();
+      fd.append("profilePhoto", avatarFile);
+      await api.post(`/api/users/${userId}/upload-avatar`, fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      // refresh
+      const res = await api.get(isOwner ? "/api/users/profile" : `/api/users/${userId}`);
+      const u = res.data?.user || res.data || {};
+      setExtraImages(Array.isArray(u.extraImages) ? u.extraImages : []);
+    } catch (e) {
+      console.error("Avatar upload failed", e);
     }
   };
 
-  if (!user) return <div className="text-center mt-12">Ladataan kuvia…</div>;
+  const uploadPhotos = async () => {
+    if (!photosFiles.length) return;
+    try {
+      const fd = new FormData();
+      photosFiles.forEach((f) => fd.append("photos", f));
+      const res = await api.post(`/api/users/${userId}/upload-photos`, fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const next = res.data?.extraImages || [];
+      setExtraImages(next);
+    } catch (e) {
+      console.error("Photos upload failed", e);
+    }
+  };
+
+  const deleteSlot = async (idx) => {
+    try {
+      const res = await api.delete(`/api/users/${userId}/photos/${idx}`);
+      const next = res.data?.extraImages || [];
+      setExtraImages(next);
+    } catch (e) {
+      console.error("Delete slot failed", e);
+    }
+  };
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-6">
       <h1 className="text-2xl font-semibold">Photos</h1>
 
-      {/* Avatar section */}
       {isOwner && (
-        <form
-          onSubmit={handleAvatarSubmit}
-          className="flex items-center space-x-4"
-        >
-          <div className="w-16 h-16 rounded-full overflow-hidden border">
-            {avatarPreview ? (
-              <img
-                src={avatarPreview}
-                alt="Avatar"
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.src = "/placeholder-avatar.png";
-                }}
-              />
-            ) : (
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <span className="text-gray-500">?</span>
-              </div>
-            )}
-          </div>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleAvatarChange}
-            className="block"
-            data-cy="ExtraPhotosPage__avatarInput"
-          />
+        <div className="space-y-4 p-4 rounded border">
+          <h2 className="text-lg font-medium">Upload avatar</h2>
+          <input type="file" accept="image/*" onChange={onSelectAvatar} />
           <button
-            type="submit"
-            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
-            data-cy="ExtraPhotosPage__avatarSaveButton"
+            onClick={uploadAvatar}
+            className="bg-blue-600 text-white px-4 py-2 rounded mt-2"
           >
-            Tallenna pääkuva
+            Upload avatar
           </button>
-          {avatarError && <p className="text-red-600">{avatarError}</p>}
-        </form>
-      )}
-
-      {/* Extra photos uploader or gallery */}
-      {isOwner ? (
-        <MultiStepPhotoUploader
-          userId={userId}
-          isPremium={user.isPremium}
-          extraImages={user.extraImages || []}
-          onSuccess={(res) =>
-            handleUserUpdate({ ...user, extraImages: res.extraImages })
-          }
-          onError={(err) => console.error("Uploader error:", err)}
-        />
-      ) : (
-        <div className="grid grid-cols-3 gap-4">
-          {(user.extraImages || []).map((src, i) => (
-            <img
-              key={i}
-              src={src.startsWith("http") ? src : `${BACKEND_BASE_URL}${src}`}
-              alt={`Extra ${i + 1}`}
-              className="object-cover w-full h-32 rounded"
-            />
-          ))}
         </div>
       )}
 
+      {isOwner && (
+        <div className="space-y-4 p-4 rounded border">
+          <h2 className="text-lg font-medium">Upload extra photos</h2>
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={onSelectPhotos}
+          />
+          <button
+            onClick={uploadPhotos}
+            className="bg-blue-600 text-white px-4 py-2 rounded mt-2"
+          >
+            Upload photos
+          </button>
+        </div>
+      )}
+
+      <div className="grid grid-cols-3 gap-4">
+        {(extraImages || []).map((src, i) => (
+          <div key={i} className="relative group">
+            <img
+              src={toAbsolute(src)}
+              alt={`Extra ${i + 1}`}
+              className="object-cover w-full h-48 rounded"
+            />
+            {isOwner && (
+              <button
+                onClick={() => deleteSlot(i)}
+                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition bg-red-600 text-white text-xs px-2 py-1 rounded"
+                title="Delete"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+
       <button
         onClick={() => navigate(-1)}
-        className="mt-6 px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+        className="bg-gray-200 px-4 py-2 rounded"
       >
-        Takaisin profiiliin
+        Back
       </button>
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

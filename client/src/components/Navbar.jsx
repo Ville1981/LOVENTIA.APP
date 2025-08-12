@@ -1,3 +1,5 @@
+// File: client/src/components/Navbar.jsx
+
 // --- REPLACE START: read auth from AuthContext.user + bootstrapped ---
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -38,47 +40,23 @@ const Navbar = () => {
     { path: "/settings", label: t("Settings") },
     { path: "/admin", label: t("Admin") },
   ];
+
   const filteredUserLinks = userLinks.filter(
     (link) => link.path !== "/admin" || isAdmin
   );
-  const linksToRender = isLoggedIn
-    ? [...commonLinks, ...filteredUserLinks]
-    : [...commonLinks, ...guestLinks];
 
-  // Avoid flicker: don’t render links until auth bootstrap is done
-  if (!bootstrapped) {
-    return (
-      <nav
-        className="w-full shadow mb-0"
-        style={{
-          backgroundImage: 'url("/NavbarImage.png")',
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          padding: "12px 1rem",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          height: "160px",
-          justifyContent: "start",
-        }}
-      >
-        <div className="flex items-center justify-center w-full max-w-6xl">
-          <h1 className="text-3xl font-bold text-white drop-shadow">
-            💘 {t("site.title")}
-          </h1>
-        </div>
-        <div className="flex items-center justify-center w-full max-w-6xl mt-2">
-          <label
-            htmlFor="language-switcher"
-            className="text-white font-medium mr-2 text-sm"
-          >
-            {t("select_language_label")}
-          </label>
-          <LanguageSwitcher id="language-switcher" />
-        </div>
-      </nav>
-    );
-  }
+  /**
+   * IMPORTANT behavior change:
+   * - While bootstrapping (bootstrapped === false), we still show PUBLIC/GUEST links
+   *   so the navbar is never empty for visitors.
+   * - Once bootstrapped and logged in -> show user links (+admin if applicable).
+   */
+  const linksToRender =
+    !bootstrapped
+      ? [...commonLinks, ...guestLinks]
+      : isLoggedIn
+      ? [...commonLinks, ...filteredUserLinks]
+      : [...commonLinks, ...guestLinks];
 
   return (
     <nav
@@ -91,7 +69,7 @@ const Navbar = () => {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        height: "160px", // slightly taller to fit new row
+        height: "160px", // slightly taller to fit the rows
         justifyContent: "start", // stack rows top-down
       }}
     >
@@ -119,7 +97,7 @@ const Navbar = () => {
         style={{
           display: "grid",
           gridTemplateColumns: `repeat(${
-            linksToRender.length + (isLoggedIn ? 1 : 0)
+            linksToRender.length + (isLoggedIn && bootstrapped ? 1 : 0)
           }, minmax(80px, 1fr))`,
           gap: "8px",
         }}
@@ -130,7 +108,8 @@ const Navbar = () => {
           </Link>
         ))}
 
-        {isLoggedIn && <LogoutButton />}
+        {/* Logout button only when actually logged in AND bootstrap completed */}
+        {isLoggedIn && bootstrapped && <LogoutButton />}
       </div>
     </nav>
   );

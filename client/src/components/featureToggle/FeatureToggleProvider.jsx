@@ -1,6 +1,8 @@
-// src/components/featureToggle/FeatureToggleProvider.jsx
+// File: client/src/components/featureToggle/FeatureToggleProvider.jsx
 
-import axios from "axios";
+// --- REPLACE START: use centralized axios instance ---
+import axios from "../../utils/axiosInstance";
+// --- REPLACE END ---
 import React, { createContext, useContext, useEffect, useState } from "react";
 
 const FeatureContext = createContext({});
@@ -29,3 +31,5 @@ export function useFeatureFlag(flagName) {
   const flags = useContext(FeatureContext);
   return flags[flagName] === true;
 }
+
+export default FeatureToggleProvider;
