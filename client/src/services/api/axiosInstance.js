@@ -1,42 +1,66 @@
+// File: client/src/services/api/axiosInstance.js
+// @ts-nocheck
+
 // --- REPLACE START: resilient Axios instance with refresh + credentials ---
-import axios from 'axios';
+import axios from "axios";
 
 /**
- * Resolve API base URL
- * Priority: VITE_API_BASE_URL -> VITE_BACKEND_URL -> window.origin guess
+ * Resolve API base URL.
+ * Priority: VITE_API_BASE_URL -> VITE_BACKEND_URL -> window.origin guess.
  * Ensures trailing '/api' and no duplicate slashes.
  */
 function resolveBaseURL() {
-  let fromEnv = undefined;
+  let fromEnv;
   try {
-    // Safe access in Vite env
+    // Works under Vite; guarded for tests/build tools
     fromEnv =
-      (typeof import.meta !== 'undefined' &&
+      (typeof import.meta !== "undefined" &&
         import.meta.env &&
-        (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_BACKEND_URL)) ||
+        (import.meta.env.VITE_API_BASE_URL ||
+          import.meta.env.VITE_BACKEND_URL)) ||
       undefined;
   } catch {
     // ignore if not running under Vite
   }
 
-  // Fallback guess: swap 5173/5174 -> 5000
+  // Fallback guess: use current origin and map common dev ports 5173/5174 -> 5000
   const origin =
-    (typeof window !== 'undefined' && window.location?.origin) ||
-    'http://localhost:5174';
-  const guessOrigin = origin.replace(/:5173|:5174/, ':5000');
+    (typeof window !== "undefined" && window.location?.origin) || "";
+  const guessOrigin = origin.replace(/:5173|:5174/, ":5000");
 
-  const raw = (fromEnv && String(fromEnv)) || `${guessOrigin}`;
-  const cleaned = raw.replace(/\/+$/, '');
-  return cleaned.endsWith('/api') ? cleaned : `${cleaned}/api`;
+  const raw = (fromEnv && String(fromEnv)) || guessOrigin || "";
+  const cleaned = raw.replace(/\/+$/, ""); // trim trailing slashes
+  const ensured = cleaned.endsWith("/api") ? cleaned : `${cleaned}/api`;
+
+  // Normalize accidental double slashes but keep "http(s)://"
+  return ensured.replace(/([^:])\/\/+/g, "$1/");
 }
 
+// Calculated once at module init; if you need to override at runtime, export a setter.
 const BASE_URL = resolveBaseURL();
 
-// In-memory token store so any module can update the header.
-let accessToken = null;
+/**
+ * In-memory access token with localStorage fallback (compat).
+ * Keep both names exported so old imports keep working.
+ */
+let accessToken =
+  (typeof localStorage !== "undefined" &&
+    (localStorage.getItem("accessToken") || localStorage.getItem("token"))) ||
+  null;
 
 export function attachAccessToken(token) {
   accessToken = token || null;
+
+  if (typeof localStorage !== "undefined") {
+    if (token) {
+      localStorage.setItem("accessToken", token);
+      localStorage.setItem("token", token); // legacy key
+    } else {
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("token");
+    }
+  }
+
   if (token) {
     api.defaults.headers.common.Authorization = `Bearer ${token}`;
   } else {
@@ -44,48 +68,74 @@ export function attachAccessToken(token) {
   }
 }
 
-// Backward-compat alias used by some callers
-export const setAccessToken = attachAccessToken;
-
+// Backward/forward compatible helper names
+export const setAccessToken = (t) => attachAccessToken(t);
 export function getAccessToken() {
-  return accessToken;
+  return (
+    accessToken ||
+    (typeof localStorage !== "undefined" &&
+      (localStorage.getItem("accessToken") || localStorage.getItem("token"))) ||
+    null
+  );
 }
 
-// Single axios instance used across the app
+// Create the single axios instance used across the app
 const api = axios.create({
-  baseURL: BASE_URL,
-  withCredentials: true, // allow cookie round-trips (refreshToken)
+  // No hardcoded localhost; env or runtime guess above
+  baseURL: BASE_URL || "/api",
+  withCredentials: true, // allow cookie round-trips (refresh cookie)
   headers: {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
+    "X-Requested-With": "XMLHttpRequest",
+    Accept: "application/json",
   },
 });
 
-// Request interceptor: ensure Authorization is present if we have a token
+// Ensure Authorization header for every request if we have a token
 api.interceptors.request.use(
   (config) => {
-    if (accessToken && !config.headers?.Authorization) {
-      config.headers = config.headers || {};
-      config.headers.Authorization = `Bearer ${accessToken}`;
+    const token = getAccessToken();
+    if (token) {
+      config.headers = {
+        ...config.headers,
+        Authorization: `Bearer ${token}`,
+      };
     }
+
+    // Normalize Content-Type only for plain JSON bodies
+    if (config.data && !(config.data instanceof FormData)) {
+      config.headers = {
+        ...config.headers,
+        "Content-Type": "application/json",
+      };
+    }
+
+    // Avoid accidental '/api/api/*' duplication if someone passes urls beginning with '/api/'
+    if (
+      typeof config.url === "string" &&
+      config.url.startsWith("/api/") &&
+      String(api.defaults.baseURL || "").endsWith("/api")
+    ) {
+      config.url = config.url.replace(/^\/api\//, "/");
+    }
+
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Response interceptor: try refresh once on 401
+// Refresh logic: try once on 401 responses
 let refreshPromise = null;
 
 async function performRefresh() {
   if (!refreshPromise) {
-    // IMPORTANT: send {} instead of null to satisfy express.json(strict:true)
+    // IMPORTANT: send {} (not null/undefined) to satisfy express.json(strict: true)
     refreshPromise = api
-      .post('/auth/refresh', {}, { withCredentials: true })
+      .post("/auth/refresh", {}, { withCredentials: true })
       .then((res) => {
-        const nextToken = res?.data?.accessToken;
-        if (!nextToken) throw new Error('No accessToken in refresh response');
-        attachAccessToken(nextToken);
-        return nextToken;
+        const next = res?.data?.accessToken;
+        if (!next) throw new Error("No accessToken in refresh response");
+        attachAccessToken(next);
+        return next;
       })
       .catch((err) => {
         attachAccessToken(null);
@@ -99,19 +149,23 @@ async function performRefresh() {
 }
 
 api.interceptors.response.use(
-  (r) => r,
+  (response) => response,
   async (error) => {
-    const { response, config } = error || {};
-    if (!response || response.status !== 401 || config?._retry) {
+    const original = error?.config;
+    if (!original) return Promise.reject(error);
+
+    const status = error?.response?.status;
+    if (status !== 401 || original._retry) {
       return Promise.reject(error);
     }
-    // flag to avoid infinite loop
-    config._retry = true;
+
+    // Prevent infinite loops
+    original._retry = true;
 
     try {
       await performRefresh();
-      // Re-issue the original request with updated token
-      return api(config);
+      // Retrigger original request with the new token
+      return api(original);
     } catch (refreshErr) {
       return Promise.reject(refreshErr);
     }

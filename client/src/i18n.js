@@ -1,5 +1,3 @@
-// src/i18n.js
-
 import i18n from "i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import HttpBackend from "i18next-http-backend";
@@ -14,16 +12,11 @@ const language = storedLang.split("-")[0];
 // --- REPLACE END ---
 
 i18n
-  // load translations via HTTP
-  .use(HttpBackend)
-  // detect user language
-  .use(LanguageDetector)
-  // hook into React
-  .use(initReactI18next)
+  .use(HttpBackend) // load translations via HTTP
+  .use(LanguageDetector) // detect user language
+  .use(initReactI18next) // hook into React
   .init({
-    // set active language
     lng: language,
-    // fallback languages map
     fallbackLng: {
       "en-US": ["en"],
       "en-GB": ["en"],
@@ -34,40 +27,15 @@ i18n
       "es-ES": ["es"],
       default: ["en"],
     },
-    // supported languages list
     supportedLngs: [
-      "fi",
-      "en",
-      "en-US",
-      "en-GB",
-      "pl",
-      "pt",
-      "pt-BR",
-      "es",
-      "es-MX",
-      "es-AR",
-      "es-CO",
-      "es-ES",
-      "fr",
-      "it",
-      "de",
-      "ru",
-      "tr",
-      "sv",
-      "hi",
-      "ur",
-      "ar",
-      "zh",
-      "ja",
-      "he",
-      "el",
-      "sw",
+      "fi", "en", "en-US", "en-GB", "pl", "pt", "pt-BR",
+      "es", "es-MX", "es-AR", "es-CO", "es-ES", "fr",
+      "it", "de", "ru", "tr", "sv", "hi", "ur", "ar",
+      "zh", "ja", "he", "el", "sw",
     ],
-    // where to load translation files from
     backend: {
       loadPath: "/locales/{{lng}}/translation.json",
     },
-    // language detector options
     detection: {
       order: ["localStorage", "navigator", "htmlTag"],
       caches: ["localStorage"],
