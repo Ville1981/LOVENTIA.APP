@@ -61,6 +61,7 @@ export default function App() {
     if ("scrollRestoration" in window.history) {
       window.history.scrollRestoration = "manual";
     }
+    // Prevent Chrome scroll anchoring when DOM changes height
     document.documentElement.style.overflowAnchor = "none";
   }, []);
 

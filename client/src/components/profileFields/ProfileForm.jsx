@@ -1,5 +1,4 @@
-// src/components/profileFields/ProfileForm.jsx
-
+// --- REPLACE START: keep structure, add robust URL handling + safer uploader integration (no unnecessary shortening) ---
 import { yupResolver } from "@hookform/resolvers/yup";
 import React, { useState, useEffect, useMemo } from "react";
 import { useForm, FormProvider } from "react-hook-form";
@@ -71,6 +70,7 @@ const religionOptions = [
   "Other",
   "Atheism",
 ];
+
 const religionImportanceOptions = [
   "",
   "Not at all important",
@@ -237,7 +237,8 @@ export default function ProfileForm({
       extraImages: user.extraImages || [],
       profilePhoto: user.profilePicture || "",
     });
-  }, [user, reset, getValues]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, reset]);
 
   // Local state for extra-images & avatar preview
   const [localExtraImages, setLocalExtraImages] = useState(
@@ -252,6 +253,7 @@ export default function ProfileForm({
         : `${BACKEND_BASE_URL}${normalizePath(user.profilePicture)}`
       : null
   );
+
   useEffect(() => {
     if (user.profilePicture) {
       setAvatarPreview(
@@ -502,3 +504,4 @@ export default function ProfileForm({
     </FormProvider>
   );
 }
+// --- REPLACE END ---
