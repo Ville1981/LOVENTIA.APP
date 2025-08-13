@@ -1,14 +1,14 @@
 // --- REPLACE START: thin orchestrator controller that delegates to services ---
 import 'dotenv/config';
 
-// Models (jos tarvitsee jossain suoraan)
+// Models (if direct DB access is ever needed here)
 import * as UserModule from '../src/models/User.js';
 const User = UserModule.default || UserModule;
 
-// Centralized cookie options
+// Centralized cookie options (used in login for refresh token cookie)
 import refreshCookieOptions from '../src/utils/cookieOptions.js';
 
-// Services
+// Service layer imports
 import { registerUserService, loginUserService } from './services/auth.service.js';
 import {
   getMeService,
@@ -22,7 +22,8 @@ import {
   deletePhotoSlotService,
 } from './services/images.service.js';
 
-// Controllers delegate suoraan palveluihin
+// Controller functions (pure delegation to service layer)
+
 export async function registerUser(req, res) {
   return registerUserService(req, res);
 }
@@ -59,7 +60,7 @@ export async function deletePhotoSlot(req, res) {
   return deletePhotoSlotService(req, res);
 }
 
-// Default export
+// Default export for easier destructuring in routes
 export default {
   registerUser,
   loginUser,

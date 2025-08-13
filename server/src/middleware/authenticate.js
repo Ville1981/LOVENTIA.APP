@@ -69,7 +69,6 @@ export default function authenticate(req, res, next) {
     }
 
     if (!decoded) {
-      // Optionally log lastErr for server diagnostics
       console.warn('[authenticate] JWT verification failed:', lastErr?.message || lastErr);
       return res.status(401).json({ error: 'Invalid or expired token' });
     }

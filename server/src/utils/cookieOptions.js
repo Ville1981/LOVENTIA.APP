@@ -26,7 +26,6 @@ export const cookieOptions = {
   sameSite: isProd ? 'none' : 'lax',  // Lax in dev so cookies work on localhost
   path: '/',
   maxAge: MAX_AGE_MS,
-  // Add domain only if provided (avoids setting a wrong domain locally)
   ...(COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {}),
 };
 

@@ -3,7 +3,7 @@
 
 const cors = require('cors');
 
-// Whitelisted origins — add or adjust domains for staging/production as needed
+// Allowed origins — extend this array for staging/production
 const whitelist = [
   process.env.CLIENT_URL || 'http://localhost:5174',
   'https://loventia.app',
@@ -12,27 +12,25 @@ const whitelist = [
 
 /**
  * Centralized CORS options.
- * - Restricts access to whitelisted origins
- * - Allows server-to-server or curl/mobile requests with no origin
+ * - Allows whitelisted origins
  * - Sends proper preflight (OPTIONS) responses
- * - Enables credentials for cookie-based authentication
+ * - Enables credentials for cookie-based auth
  */
 const corsOptions = {
   origin(origin, callback) {
-    // Allow requests with no origin (e.g. server-to-server, CLI tools)
+    // Allow requests with no origin (server-to-server, curl, mobile apps)
     if (!origin || whitelist.includes(origin)) {
       return callback(null, true);
     }
-    // Block if origin not in whitelist
     callback(new Error(`CORS policy: Origin ${origin} not allowed`));
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   exposedHeaders: ['Authorization'],
-  credentials: true, // Allow cookies/credentials to be sent
-  optionsSuccessStatus: 204 // For legacy browser support
+  credentials: true,
+  optionsSuccessStatus: 204
 };
 
-// Export configured CORS middleware
+// Export configured middleware
 module.exports = cors(corsOptions);
 // --- REPLACE END ---
