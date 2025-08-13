@@ -20,7 +20,6 @@ const {
   uploadExtraPhotos,
   uploadPhotoStep,
   deletePhotoSlot,
-  // keep controllers available for delegation without shortening routes
   getMe,
   updateProfile,
 } = (UC.default || UC);
@@ -37,14 +36,17 @@ const router = express.Router();
 ────────────────────────────────────────────────────────────────────────────── */
 const ensureUploadsDir = () => {
   const dir = path.resolve('uploads');
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
 };
 ensureUploadsDir();
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, 'uploads/'),
-  filename: (_req, file, cb) =>
-    cb(null, `${Date.now()}${path.extname(file.originalname)}`),
+  filename: (_req, file, cb) => {
+    cb(null, `${Date.now()}${path.extname(file.originalname)}`);
+  },
 });
 const upload = multer({ storage });
 
@@ -52,7 +54,9 @@ const removeFile = (filePath) => {
   try {
     if (!filePath || typeof filePath !== 'string') return;
     const p = path.resolve(filePath);
-    if (fs.existsSync(p)) fs.unlinkSync(p);
+    if (fs.existsSync(p)) {
+      fs.unlinkSync(p);
+    }
   } catch (e) {
     console.warn('removeFile warning:', e?.message || e);
   }
@@ -60,7 +64,9 @@ const removeFile = (filePath) => {
 
 const handleValidation = (req, res, next) => {
   const errors = validationResult(req);
-  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
   next();
 };
 
@@ -90,14 +96,13 @@ router.post(
   loginUser
 );
 
-// --- REPLACE START: return full user document via controller getMe (keeps validation block size) ---
+// --- REPLACE START: return full user document via controller getMe ---
 router.get('/me', authenticate, async (req, res) => {
   try {
     const id = req.user?.id || req.user?._id || req.user?.userId;
     if (!id || !mongoose.Types.ObjectId.isValid(String(id))) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    // Delegate to controller to unify payload (no secrets)
     return getMe(req, res);
   } catch (err) {
     console.error('GET /users/me error:', err);
@@ -111,7 +116,6 @@ router.get('/profile', authenticate, async (req, res) => {
     if (!id || !mongoose.Types.ObjectId.isValid(String(id))) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    // Delegate to controller to unify payload (no secrets)
     return getMe(req, res);
   } catch (err) {
     console.error('GET /users/profile error:', err);
@@ -161,7 +165,7 @@ const UPDATABLE_FIELDS = new Set([
   'extraImages',
 ]);
 
-// --- REPLACE START: add hybrid PUT /profile (delegates to controller when no files) ---
+// --- REPLACE START: add hybrid PUT /profile with location mapping ---
 router.put(
   '/profile',
   authenticate,
@@ -176,26 +180,37 @@ router.put(
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
-      // If there are no files, delegate to controller (JSON-only path)
-      const hasProfilePhoto = Array.isArray(req.files?.profilePhoto) && req.files.profilePhoto.length > 0;
-      const hasExtraImages = Array.isArray(req.files?.extraImages) && req.files.extraImages.length > 0;
+      const hasProfilePhoto =
+        Array.isArray(req.files?.profilePhoto) && req.files.profilePhoto.length > 0;
+      const hasExtraImages =
+        Array.isArray(req.files?.extraImages) && req.files.extraImages.length > 0;
       const hasFiles = hasProfilePhoto || hasExtraImages;
 
+      // If no files uploaded, delegate to controller (keeps existing behavior)
       if (!hasFiles) {
+        // Controller's updateProfile will still work; we add an extra safety mapping below
+        // when handling files locally.
         return updateProfile(req, res);
       }
 
-      // With files: keep in-route behavior (existing logic preserved)
+      // With files: do local update + save
       const user = await User.findById(uid);
-      if (!user) return res.status(404).json({ error: 'User not found' });
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
 
+      // Assign scalar fields from body
       if (req.body && typeof req.body === 'object') {
         for (const [key, val] of Object.entries(req.body)) {
           if (!UPDATABLE_FIELDS.has(key)) continue;
           if (key === 'nutritionPreferences' || key === 'extraImages') {
             let parsed = val;
             if (typeof val === 'string') {
-              try { parsed = JSON.parse(val); } catch {}
+              try {
+                parsed = JSON.parse(val);
+              } catch {
+                // keep as-is; may be a single string
+              }
             }
             user[key] = parsed;
           } else {
@@ -204,17 +219,47 @@ router.put(
         }
       }
 
+      // --- REPLACE START: map top-level country/region/city -> nested location before save ---
+      /**
+       * Ensure that top-level "country/region/city" from the profile form end up in
+       * the canonical nested schema: user.location.{country,region,city}.
+       * Also accept optional dot-notation "location.country" if ever sent.
+       */
+      const hasTopCountry = Object.prototype.hasOwnProperty.call(req.body || {}, 'country');
+      const hasTopRegion  = Object.prototype.hasOwnProperty.call(req.body || {}, 'region');
+      const hasTopCity    = Object.prototype.hasOwnProperty.call(req.body || {}, 'city');
+
+      const hasDotCountry = Object.prototype.hasOwnProperty.call(req.body || {}, 'location.country');
+      const hasDotRegion  = Object.prototype.hasOwnProperty.call(req.body || {}, 'location.region');
+      const hasDotCity    = Object.prototype.hasOwnProperty.call(req.body || {}, 'location.city');
+
+      if (hasTopCountry || hasTopRegion || hasTopCity || hasDotCountry || hasDotRegion || hasDotCity) {
+        user.location = user.location || {};
+        if (hasTopCountry) user.location.country = req.body.country;
+        if (hasTopRegion)  user.location.region  = req.body.region;
+        if (hasTopCity)    user.location.city    = req.body.city;
+
+        if (hasDotCountry) user.location.country = req.body['location.country'];
+        if (hasDotRegion)  user.location.region  = req.body['location.region'];
+        if (hasDotCity)    user.location.city    = req.body['location.city'];
+      }
+      // --- REPLACE END ---
+
+      // Files: profile photo
       if (hasProfilePhoto) {
         if (user.profilePicture) removeFile(user.profilePicture);
         user.profilePicture = req.files.profilePhoto[0].path;
       }
 
+      // Files: extra images
       if (hasExtraImages) {
-        if (Array.isArray(user.extraImages)) user.extraImages.forEach(removeFile);
+        if (Array.isArray(user.extraImages)) {
+          user.extraImages.forEach(removeFile);
+        }
         user.extraImages = req.files.extraImages.map((f) => f.path);
       }
 
-      // Allow passing already-uploaded path for profilePhoto (e.g., from crop flow)
+      // Optional: front might send an existing relative path (no new upload)
       if (typeof req.body?.profilePhoto === 'string' && req.body.profilePhoto.trim()) {
         user.profilePicture = req.body.profilePhoto.trim();
       }
@@ -272,8 +317,12 @@ router.post(
     try {
       const uid = req.user?.id || req.user?._id || req.user?.userId;
       const user = await User.findById(uid);
-      if (!user) return res.status(404).json({ error: 'User not found' });
-      if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
 
       if (user.profilePicture) removeFile(user.profilePicture);
       user.profilePicture = req.file.path;
@@ -320,7 +369,9 @@ router.get('/:id', async (req, res) => {
     const user = await User.findById(req.params.id).select(
       '-password -email -blockedUsers'
     );
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
     return res.json(user);
   } catch (err) {
     console.error('Public profile fetch error:', err);

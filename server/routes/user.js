@@ -99,7 +99,7 @@ function removeFile(filePath) {
 }
 
 // =====================
-// ✅ Profile update with validation
+/* ✅ Profile update with validation */
 // =====================
 router.put(
   "/profile",
@@ -202,6 +202,24 @@ router.put(
         }
       });
 
+      // --- REPLACE START: map top-level country/region/city into nested location before save ---
+      /**
+       * Ensure that profile form's top-level "country/region/city" end up in the
+       * canonical nested schema: user.location.{country,region,city}.
+       * This works even if the Mongoose model does not define top-level virtuals.
+       */
+      if (
+        req.body.country !== undefined ||
+        req.body.region !== undefined ||
+        req.body.city !== undefined
+      ) {
+        user.location = user.location || {};
+        if (req.body.country !== undefined) user.location.country = req.body.country;
+        if (req.body.region !== undefined)  user.location.region  = req.body.region;
+        if (req.body.city !== undefined)    user.location.city    = req.body.city;
+      }
+      // --- REPLACE END ---
+
       // Profile picture
       if (req.files?.profilePhoto?.length) {
         removeFile(user.profilePicture);
@@ -224,7 +242,7 @@ router.put(
 );
 
 // =====================
-// ✅ Public profile by ID
+/* ✅ Public profile by ID */
 // =====================
 router.get("/:id", async (req, res) => {
   try {
@@ -239,7 +257,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // =====================
-// ✅ All other users (for home, discover)
+/* ✅ All other users (for home, discover) */
 // =====================
 router.get("/users/all", authenticateToken, async (req, res) => {
   try {
