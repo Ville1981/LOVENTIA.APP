@@ -3,15 +3,20 @@ require('dotenv').config();
 const { checkThreshold } = require('./utils/alertRules.js');
 // --- REPLACE END ---
 
-const express      = require('express');
-const mongoose     = require('mongoose');
+const express       = require('express');
+const mongoose      = require('mongoose');
+const cookieParser  = require('cookie-parser');
+const path          = require('path');
+
+// Optional-but-useful middlewares (safe, non-breaking)
+const morgan        = require('morgan');
+const compression   = require('compression');
+const responseTime  = require('response-time');
+const { v4: uuidv4} = require('uuid');
 
 // --- REPLACE START: use centralized CORS config instead of inline cors(...) ---
-const corsConfig   = require('./config/corsConfig.js');
+const corsConfig    = require('./config/corsConfig.js');
 // --- REPLACE END ---
-
-const cookieParser = require('cookie-parser');
-const path         = require('path');
 
 // --- REPLACE START: import security headers middleware ---
 const securityHeaders = require('./utils/securityHeaders.js');
@@ -77,38 +82,62 @@ try {
 } catch (_) {
   // Optional: some deployments may not have messaging enabled yet
 }
+try {
+  require(path.resolve(__dirname, './models/Payment.js'));
+} catch (_) {
+  // Optional payments model
+}
 // --- REPLACE END ---
 
 const app = express();
 
-// ── Swagger-UI Integration ─────────────────────────────────────────────────────
-app.use(
-  '/api-docs',
-  swagger.serve,
-  swagger.setup
-);
+/* ──────────────────────────────────────────────────────────────────────────────
+   App-level telemetry & utilities (non-breaking)
+────────────────────────────────────────────────────────────────────────────── */
+const IS_TEST = process.env.NODE_ENV === 'test';
+const IS_PROD = process.env.NODE_ENV === 'production';
+const IS_DEV  = !IS_TEST && !IS_PROD;
 
-// ── Connect to MongoDB ─────────────────────────────────────────────────--------
+// Attach a request-id for correlation
+app.use((req, _res, next) => {
+  req.id = req.headers['x-request-id'] || uuidv4();
+  next();
+});
+
+// Lightweight access log (skip in tests)
+if (!IS_TEST) {
+  app.use(morgan(IS_PROD ? 'combined' : 'dev'));
+}
+
+// Add X-Response-Time header (diagnostics)
+app.use(responseTime());
+
+// Gzip/deflate compression (safe for JSON & static)
+app.use(compression());
+
+/* ──────────────────────────────────────────────────────────────────────────────
+   Swagger-UI Integration
+────────────────────────────────────────────────────────────────────────────── */
+app.use('/api-docs', swagger.serve, swagger.setup);
+
+/* ──────────────────────────────────────────────────────────────────────────────
+   MongoDB connection
+────────────────────────────────────────────────────────────────────────────── */
 const MONGO_URI = process.env.MONGO_URI;
-const IS_TEST   = process.env.NODE_ENV === 'test';
-const IS_PROD   = process.env.NODE_ENV === 'production';
 
 try {
   mongoose.set('strictQuery', false);
-  if (IS_TEST) {
-    mongoose.set('bufferCommands', true);
-  } else {
-    mongoose.set('bufferCommands', false);
-  }
+  mongoose.set('bufferCommands', IS_TEST);
 } catch (_) {}
 
 if (!IS_TEST && MONGO_URI) {
-  mongoose.connect(MONGO_URI, {
-    useNewUrlParser:    true,
-    useUnifiedTopology: true,
-  })
+  mongoose
+    .connect(MONGO_URI, {
+      useNewUrlParser:    true,
+      useUnifiedTopology: true,
+    })
     .then(() => console.log('✅ MongoDB connected'))
-    .catch(err => {
+    .catch((err) => {
       console.error('❌ MongoDB connection error:', err);
     });
 } else {
@@ -119,7 +148,9 @@ if (!IS_TEST && MONGO_URI) {
   }
 }
 
-// ── CORS & Preflight Handler ───────────────────────────────────────────────────
+/* ──────────────────────────────────────────────────────────────────────────────
+   CORS & Preflight Handler
+────────────────────────────────────────────────────────────────────────────── */
 app.use(corsConfig);
 app.options('/api/auth/refresh', corsConfig, (req, res) => res.sendStatus(200));
 app.options(
@@ -128,11 +159,14 @@ app.options(
   (req, res) => res.sendStatus(200)
 );
 
-// ── Security Headers ───────────────────────────────────────────────────────────
+/* ──────────────────────────────────────────────────────────────────────────────
+   Security Headers
+────────────────────────────────────────────────────────────────────────────── */
 app.use(securityHeaders);
 
-// ── Secure cookies & HTTPS enforcement ──────────────────────────────────────────
-// Prefer cookieOptions from src/utils; fallback to legacy utils
+/* ──────────────────────────────────────────────────────────────────────────────
+   Cookies
+────────────────────────────────────────────────────────────────────────────── */
 let cookieOptions;
 try {
   ({ cookieOptions } = require('./src/utils/cookieOptions.js'));
@@ -142,32 +176,48 @@ try {
 app.set('trust proxy', 1);
 app.use(cookieParser());
 
-// --- REPLACE START: enable HTTPS redirect only in production ---
-app.use((req, res, next) => next()); // no-op placeholder
-if (IS_PROD) {
+/* ──────────────────────────────────────────────────────────────────────────────
+   HTTPS redirect in production (kept behind feature flag)
+────────────────────────────────────────────────────────────────────────────── */
+const FORCE_HTTPS = process.env.FORCE_HTTPS === 'true';
+if (IS_PROD && FORCE_HTTPS) {
   app.use(require('./middleware/httpsRedirect.js'));
 }
-// --- REPLACE END ---
 
-// ── Parse bodies ────────────────────────────────────────────────────────────────
-app.use(express.json());
+/* ──────────────────────────────────────────────────────────────────────────────
+   Body parsers
+────────────────────────────────────────────────────────────────────────────── */
+app.use(express.json({ limit: '1mb', strict: true, type: 'application/json' }));
 app.use(express.urlencoded({ extended: true }));
 
-// ── Input sanitization ──────────────────────────────────────────────────────────
+/* ──────────────────────────────────────────────────────────────────────────────
+   Sanitizers
+────────────────────────────────────────────────────────────────────────────── */
 app.use(xssSanitizer);
 app.use(sqlSanitizer);
 
-// ── Test alerts endpoint ───────────────────────────────────────────────────────
+/* ──────────────────────────────────────────────────────────────────────────────
+   Diagnostics & internal utilities
+────────────────────────────────────────────────────────────────────────────── */
+// Simple heartbeat that includes request-id (useful behind proxies)
+app.get('/healthcheck', (req, res) => {
+  res.json({
+    ok: true,
+    ts: Date.now(),
+    requestId: req.id,
+    env: process.env.NODE_ENV || 'development',
+  });
+});
+
+// Test alerts endpoint
 app.get('/test-alerts', async (req, res) => {
-  await checkThreshold(
-    'Error Rate',
-    100,
-    Number(process.env.ERROR_RATE_THRESHOLD)
-  );
+  await checkThreshold('Error Rate', 100, Number(process.env.ERROR_RATE_THRESHOLD));
   res.send('Alerts triggered');
 });
 
-// ── Webhook routes (before body parsers) ────────────────────────────────────────
+/* ──────────────────────────────────────────────────────────────────────────────
+   Webhook routes (before body parsers if raw is needed)
+────────────────────────────────────────────────────────────────────────────── */
 if (!IS_TEST) {
   const stripeWebhookRouter = require('./routes/stripeWebhook.js');
   const paypalWebhookRouter = require('./routes/paypalWebhook.js');
@@ -178,10 +228,41 @@ if (!IS_TEST) {
   console.log('ℹ️ Test mode: skipping webhook route mounts.');
 }
 
-// ── Serve uploads ───────────────────────────────────────────────────────────────
+/* ──────────────────────────────────────────────────────────────────────────────
+   Static content (uploads + optional client build)
+────────────────────────────────────────────────────────────────────────────── */
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ── Helper to try src route first, then fallback ────────────────────────────────
+// Optionally serve client build (controlled by env; harmless if not present)
+if (process.env.SERVE_CLIENT === 'true') {
+  const candidates = [
+    path.resolve(__dirname, '../../client/dist'),
+    path.resolve(__dirname, '../client/dist'),
+    path.resolve(__dirname, '../../public'),
+  ];
+  let staticDir = null;
+  for (const c of candidates) {
+    try {
+      if (require('fs').existsSync(c)) {
+        staticDir = c;
+        break;
+      }
+    } catch {}
+  }
+  if (staticDir) {
+    console.log('📦 Serving client from:', staticDir);
+    app.use(express.static(staticDir));
+    // SPA fallback
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api/')) return next();
+      res.sendFile(path.join(staticDir, 'index.html'));
+    });
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────────
+   Helper to try src route first, then fallback
+────────────────────────────────────────────────────────────────────────────── */
 function tryRequireRoute(primary, ...candidates) {
   const attempts = [primary, ...candidates];
   for (const p of attempts) {
@@ -196,20 +277,23 @@ function tryRequireRoute(primary, ...candidates) {
   throw err;
 }
 
-// --- REPLACE START: mount /api/health route for quick proxy/CORS checks ---
+/* ──────────────────────────────────────────────────────────────────────────────
+   Health routes (alias endpoints for LB/proxy checks)
+────────────────────────────────────────────────────────────────────────────── */
 const healthRoute = require('./routes/health.js');
 app.use('/api/health', healthRoute);
 app.use('/api/healthz', healthRoute); // alias
-// --- REPLACE END ---
+app.use('/api/_health', healthRoute); // extra alias for older infra
 
-// ── Routes ──────────────────────────────────────────────────────────────────────
+/* ──────────────────────────────────────────────────────────────────────────────
+   Auth routes
+────────────────────────────────────────────────────────────────────────────── */
 if (IS_TEST) {
   const jwt = require('jsonwebtoken');
   const testAuth = express.Router();
 
-  const TEST_JWT_SECRET = process.env.JWT_SECRET || 'test_secret';
-  const TEST_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'test_refresh_secret';
-
+  const TEST_JWT_SECRET    = process.env.JWT_SECRET || 'test_secret';
+  const TEST_REFRESH_SECRET= process.env.JWT_REFRESH_SECRET || 'test_refresh_secret';
   const noValidate = (req, _res, next) => next();
 
   // Login: return accessToken and set refresh cookie
@@ -237,6 +321,7 @@ if (IS_TEST) {
 
     return res.status(200).json({ accessToken });
   });
+
   // Refresh: verify cookie and issue new access token
   testAuth.post('/refresh', (req, res) => {
     const token = req.cookies && req.cookies.refreshToken;
@@ -292,7 +377,9 @@ if (IS_TEST) {
   app.use('/api/auth', authRoutes);
 }
 
-// ── Mount other feature routes only outside test ───────────────────────────────
+/* ──────────────────────────────────────────────────────────────────────────────
+   Feature routes (non-test)
+────────────────────────────────────────────────────────────────────────────── */
 if (!IS_TEST) {
   // Users
   const userRoutes = tryRequireRoute(
@@ -300,86 +387,61 @@ if (!IS_TEST) {
     './src/routes/userRoutes.js',
     path.resolve(__dirname, '../routes/userRoutes.js')
   );
-  app.use(
-    '/api/users',
-    authenticate,
-    authorizeRoles('admin', 'user'),
-    userRoutes
-  );
+  app.use('/api/users', authenticate, authorizeRoles('admin', 'user'), userRoutes);
 
   // Messages
-  let messageRoutes;
   try {
-    messageRoutes = tryRequireRoute(
+    const messageRoutes = tryRequireRoute(
       './routes/messageRoutes.js',
       './routes/message.js',
       path.resolve(__dirname, '../routes/messageRoutes.js')
     );
-    app.use(
-      '/api/messages',
-      authenticate,
-      authorizeRoles('user'),
-      messageRoutes
-    );
+    app.use('/api/messages', authenticate, authorizeRoles('user'), messageRoutes);
   } catch (_) {
     // Optional feature; skip if route file not present
   }
 
   // Payments
-  let paymentRoutes;
   try {
-    paymentRoutes = tryRequireRoute(
+    const paymentRoutes = tryRequireRoute(
       './routes/paymentRoutes.js',
       './routes/payment.js',
       path.resolve(__dirname, '../routes/paymentRoutes.js')
     );
-    app.use(
-      '/api/payment',
-      authenticate,
-      authorizeRoles('user'),
-      paymentRoutes
-    );
+    app.use('/api/payment', authenticate, authorizeRoles('user'), paymentRoutes);
   } catch (_) {}
 
   // Admin
-  let adminRoutes;
   try {
-    adminRoutes = tryRequireRoute(
+    const adminRoutes = tryRequireRoute(
       './routes/adminRoutes.js',
       './routes/admin.js',
       path.resolve(__dirname, '../routes/adminRoutes.js')
     );
-    app.use(
-      '/api/admin',
-      authenticate,
-      authorizeRoles('admin'),
-      adminRoutes
-    );
+    app.use('/api/admin', authenticate, authorizeRoles('admin'), adminRoutes);
   } catch (_) {}
 
   // Discover
-  let discoverRoutes;
   try {
-    discoverRoutes = tryRequireRoute(
+    const discoverRoutes = tryRequireRoute(
       './routes/discoverRoutes.js',
       './routes/discover.js',
       path.resolve(__dirname, '../routes/discoverRoutes.js')
     );
-    app.use(
-      '/api/discover',
-      authenticate,
-      authorizeRoles('user'),
-      discoverRoutes
-    );
+    app.use('/api/discover', authenticate, authorizeRoles('user'), discoverRoutes);
   } catch (_) {}
 }
 
-// ── Temporary mock users endpoint ───────────────────────────────────────────────
+/* ──────────────────────────────────────────────────────────────────────────────
+   Temporary mock users endpoint (kept for backward compatibility)
+────────────────────────────────────────────────────────────────────────────── */
 app.get('/api/users', (req, res) => {
   res.json([]);
 });
 
-// ── Multer error handler ────────────────────────────────────────────────────────
+/* ──────────────────────────────────────────────────────────────────────────────
+   Multer error handler (payload too large / field limits)
+────────────────────────────────────────────────────────────────────────────── */
 app.use((err, req, res, next) => {
   if (err && err.name === 'MulterError') {
     return res.status(413).json({ error: err.message });
@@ -387,18 +449,25 @@ app.use((err, req, res, next) => {
   return next(err);
 });
 
-// ── 404 handler ─────────────────────────────────────────────────────────────────
+/* ──────────────────────────────────────────────────────────────────────────────
+   404 handler
+────────────────────────────────────────────────────────────────────────────── */
 app.use((req, res) => {
   res.status(404).json({ error: 'Not Found' });
 });
 
-// ── Global error handler ────────────────────────────────────────────────────────
-app.use((err, req, res, next) => {
-  console.error(err && err.stack ? err.stack : err);
-  res.status(500).json({ error: 'Server Error' });
+/* ──────────────────────────────────────────────────────────────────────────────
+   Global error handler
+────────────────────────────────────────────────────────────────────────────── */
+app.use((err, req, res, _next) => {
+  const requestId = req.id || 'n/a';
+  console.error(`[${requestId}]`, err && err.stack ? err.stack : err);
+  res.status(500).json({ error: 'Server Error', requestId });
 });
 
-// ── SOCKET.IO INTEGRATION ──────────────────────────────────────────────────────
+/* ──────────────────────────────────────────────────────────────────────────────
+   SOCKET.IO INTEGRATION + server start (skipped in tests)
+────────────────────────────────────────────────────────────────────────────── */
 let httpServer = null;
 const PORT = process.env.PORT || 5000;
 
@@ -412,4 +481,29 @@ if (!IS_TEST) {
   console.log('ℹ️ Test mode: HTTP server is not started.');
 }
 
+/* ──────────────────────────────────────────────────────────────────────────────
+   Graceful shutdown (SIGINT/SIGTERM)
+────────────────────────────────────────────────────────────────────────────── */
+async function shutdown(signal) {
+  try {
+    console.log(`\n${signal} received: closing server...`);
+    if (httpServer) {
+      await new Promise((resolve) => httpServer.close(resolve));
+    }
+    if (mongoose.connection.readyState === 1) {
+      await mongoose.connection.close();
+    }
+    console.log('✅ Shutdown complete.');
+    process.exit(0);
+  } catch (e) {
+    console.error('❌ Error during shutdown:', e);
+    process.exit(1);
+  }
+}
+if (!IS_TEST) {
+  process.on('SIGINT',  () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+}
+
 module.exports = app;
+

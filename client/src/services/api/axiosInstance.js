@@ -1,4 +1,3 @@
-// File: client/src/services/api/axiosInstance.js
 // @ts-nocheck
 
 // --- REPLACE START: resilient Axios instance with refresh + credentials ---
@@ -174,3 +173,4 @@ api.interceptors.response.use(
 
 export default api;
 // --- REPLACE END ---
+

@@ -14,20 +14,26 @@ const UPDATABLE_FIELDS = [
   'age',
   'gender',
   'status',
+  'orientation',         // ADDED: allow orientation updates
+
   // top-level location convenience (mapped to nested location.*)
   'city',
   'region',
   'country',
+
   // nested location object pass-through if client sends it
   'location',
+
   // profile/media
   'profilePicture',
   'bannerImage',
+
   // discover/preferences
   'preferredGender',
   'preferredMinAge',
   'preferredMaxAge',
   'preferredInterests',
+
   // lifestyle & profile extras
   'smoke',
   'drink',
@@ -49,13 +55,16 @@ const UPDATABLE_FIELDS = [
   'professionCategory',
   'lookingFor',
   'goal',
+
   // interests & tags
   'interests',
+
   // coordinates for nearby search (accept both styles)
   'lat',
   'lng',
   'latitude',
   'longitude',
+
   // custom location labels
   'customCity',
   'customRegion',
@@ -296,3 +305,4 @@ export async function getMatchesWithScoreService(req, res) {
   }
 }
 // --- REPLACE END ---
+

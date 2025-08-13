@@ -1,10 +1,11 @@
-// --- REPLACE START: Convert to CommonJS + add missing profile fields + lat/lng virtuals (kept original structure) ---
+// --- REPLACE START: Convert to CommonJS + add missing fields + location virtuals (kept original structure) ---
 'use strict';
 
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-// Define User schema with all necessary fields
+// Define User schema with all necessary fields.
+// NOTE: We keep the overall structure similar to the original and only add what's required.
 const userSchema = new mongoose.Schema(
   {
     username:           { type: String, required: true, unique: true, trim: true },
@@ -19,7 +20,7 @@ const userSchema = new mongoose.Schema(
     gender:             String,
     status:             String,
     religion:           String,
-    religionImportance: String, // <— added to match filters
+    religionImportance: String,
     children:           String,
     pets:               String,
     summary:            String,
@@ -32,27 +33,37 @@ const userSchema = new mongoose.Schema(
     heightUnit:         String,
     weight:             Number,
     weightUnit:         String,
-    education:          String, // <— ensure present
-    healthInfo:         String, // <— added
-    activityLevel:      String, // <— added
-    nutritionPreferences: [String], // <— added (array of strings)
+    education:          String,
+    healthInfo:         String,
+    activityLevel:      String,
+    nutritionPreferences: [String],
 
-    // Location
-    location:           { country: String, region: String, city: String },
-    customCity:         String, // <— added
-    customRegion:       String, // <— added
-    customCountry:      String, // <— added
+    // >>> Added missing profile field
+    orientation:        String, // <— fixes "orientation not saved"
+
+    // Location stored as a nested object (canonical source of truth)
+    location:           {
+      country:          { type: String },
+      region:           { type: String },
+      city:             { type: String },
+    },
+
+    // Optional manual/custom location text fields (keep if already used in UI)
+    customCity:         String,
+    customRegion:       String,
+    customCountry:      String,
+
     latitude:           Number,
     longitude:          Number,
 
     // Discovery preferences
-    preferredGender:    { type: String, default: 'any' }, // <— added
-    preferredMinAge:    { type: Number, default: 18 },    // <— added
-    preferredMaxAge:    { type: Number, default: 120 },   // <— added
-    preferredInterests: [String],                          // <— added
+    preferredGender:    { type: String, default: 'any' },
+    preferredMinAge:    { type: Number, default: 18 },
+    preferredMaxAge:    { type: Number, default: 120 },
+    preferredInterests: [String],
 
     // Interests
-    interests:          [String], // <— added
+    interests:          [String],
 
     // Lifestyle
     smoke:              String,
@@ -71,8 +82,41 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
     toJSON:   { virtuals: true },
     toObject: { virtuals: true },
+    strict: true, // keep strict to ensure unknown keys are not stored silently
   }
 );
+
+/**
+ * Virtuals to keep backward compatibility with routes/controllers that
+ * read/write top-level country/region/city.
+ * They transparently map to the canonical nested "location.*" fields.
+ */
+function ensureLocation(doc) {
+  if (!doc.location) doc.location = {};
+}
+
+userSchema.virtual('country')
+  .get(function () { return this.location ? this.location.country : undefined; })
+  .set(function (v) { ensureLocation(this); this.location.country = v; });
+
+userSchema.virtual('region')
+  .get(function () { return this.location ? this.location.region : undefined; })
+  .set(function (v) { ensureLocation(this); this.location.region = v; });
+
+userSchema.virtual('city')
+  .get(function () { return this.location ? this.location.city : undefined; })
+  .set(function (v) { ensureLocation(this); this.location.city = v; });
+
+/**
+ * Convenience virtuals for lat/lng to interop with any code that may use lat/lng.
+ */
+userSchema.virtual('lat')
+  .get(function () { return this.latitude; })
+  .set(function (v) { this.latitude = v; });
+
+userSchema.virtual('lng')
+  .get(function () { return this.longitude; })
+  .set(function (v) { this.longitude = v; });
 
 /**
  * Optional convenience: normalize id field (string) for controllers/tests that read user.id.
@@ -84,18 +128,6 @@ userSchema.virtual('id').get(function () {
     return undefined;
   }
 });
-
-/**
- * Virtuals for lat/lng to interop with controllers that may use either
- * latitude/longitude or lat/lng.
- */
-userSchema.virtual('lat')
-  .get(function () { return this.latitude; })
-  .set(function (v) { this.latitude = v; });
-
-userSchema.virtual('lng')
-  .get(function () { return this.longitude; })
-  .set(function (v) { this.longitude = v; });
 
 /**
  * Static: findByCredentials(email, password)
@@ -138,4 +170,10 @@ try {
 
 module.exports = UserModel;
 // --- REPLACE END ---
+
+
+
+
+
+
 
