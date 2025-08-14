@@ -231,7 +231,15 @@ if (!IS_TEST) {
 /* ──────────────────────────────────────────────────────────────────────────────
    Static content (uploads + optional client build)
 ────────────────────────────────────────────────────────────────────────────── */
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// --- REPLACE START: serve /uploads from project root (process.cwd()) ---
+app.use(
+  '/uploads',
+  express.static(
+    require('path').join(process.cwd(), 'uploads'),
+    { fallthrough: false, index: false, maxAge: 0 }
+  )
+);
+// --- REPLACE END ---
 
 // Optionally serve client build (controlled by env; harmless if not present)
 if (process.env.SERVE_CLIENT === 'true') {
@@ -506,4 +514,3 @@ if (!IS_TEST) {
 }
 
 module.exports = app;
-

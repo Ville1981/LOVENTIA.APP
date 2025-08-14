@@ -1,5 +1,4 @@
-// src/components/discover/ProfileCard.jsx
-
+// --- REPLACE START: ProfileCard – robust image URL normalization (BACKEND_BASE_URL), safe id/location, minimal changes ---
 import PropTypes from "prop-types";
 import React, { memo, useState, useEffect } from "react";
 
@@ -9,8 +8,9 @@ import LocationText from "./LocationText";
 import PhotoCarousel from "./PhotoCarousel";
 import StatsPanel from "./StatsPanel";
 import SummaryAccordion from "./SummaryAccordion";
+import { BACKEND_BASE_URL } from "../../utils/config";
 
-// Static fallback photos from public/assets (relative polut)
+// Static fallback photos from public/assets (kept as-is; these are served by the client dev server)
 const FALLBACK_PHOTOS = [
   "/assets/bunny1.jpg",
   "/assets/bunny2.jpg",
@@ -22,34 +22,52 @@ const ProfileCard = ({ user, onPass, onLike, onSuperlike }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Helper: normalisoi mikä tahansa raw URL absoluteksi
+  /**
+   * Helper: normalize any raw image reference into a fully resolvable URL.
+   * Rules:
+   *  - Absolute http(s) → return as-is
+   *  - /uploads/... or bare filename → prefix with BACKEND_BASE_URL
+   *  - /assets/... → keep relative (served by client)
+   *  - Any other leading-slash path → prefix with window.location.origin
+   */
   const normalize = (raw) => {
-    if (!raw) return "";
-    if (/^https?:\/\//.test(raw)) return raw;
-    // Jos alkaa slashilla, lisää origin eteen, muuten lisää myös "/"
-    return raw.startsWith("/")
-      ? `${window.location.origin}${raw}`
-      : `${window.location.origin}/${raw}`;
+    if (!raw || typeof raw !== "string") return "";
+    const s = raw.trim();
+    if (s === "") return "";
+
+    // Absolute URL already
+    if (/^https?:\/\//i.test(s)) return s;
+
+    // Server-side uploaded images
+    if (s.startsWith("/uploads/")) return `${BACKEND_BASE_URL}${s}`;
+    // Bare filename that likely refers to an upload
+    if (!s.startsWith("/")) return `${BACKEND_BASE_URL}/uploads/${s}`;
+
+    // Client-side static assets (keep relative to client origin)
+    if (s.startsWith("/assets/")) return `${window.location.origin}${s}`;
+
+    // Any other rooted path (rare): assume client origin
+    return `${window.location.origin}${s}`;
   };
 
   useEffect(() => {
     setLoading(true);
     setError(null);
     try {
-      // Otetaan joko backendin kuvat tai fallback
+      // Prefer backend-provided photos, otherwise use fallback assets
       const rawList =
         Array.isArray(user.photos) && user.photos.length > 0
           ? user.photos
           : FALLBACK_PHOTOS;
 
-      // Muutetaan kaikki itemit string-URLeiksi ja normalisoidaan
+      // Convert any item to string URL first, then normalize
       const urls = rawList
         .map((item) => {
           if (typeof item === "string") return item;
-          if (item.url) return item.url;
-          if (item.src) return item.src;
-          if (item.photoUrl) return item.photoUrl;
-          if (item.imageUrl) return item.imageUrl;
+          if (item?.url) return item.url;
+          if (item?.src) return item.src;
+          if (item?.photoUrl) return item.photoUrl;
+          if (item?.imageUrl) return item.imageUrl;
           return "";
         })
         .map(normalize)
@@ -57,15 +75,18 @@ const ProfileCard = ({ user, onPass, onLike, onSuperlike }) => {
 
       setPhotos(urls);
     } catch (e) {
+      // eslint-disable-next-line no-console
       console.error(e);
       setError("Failed to load images");
     } finally {
       setLoading(false);
     }
-  }, [user.photos]);
+    // Only react to changes in user.photos reference
+  }, [user.photos]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Safe display name and id normalization (keep original behavior)
   const displayName = user.name || user.username || "Unknown";
-  const id = user.id || user._id;
+  const id = (user.id || user._id || "").toString();
 
   if (loading) {
     return (
@@ -79,10 +100,10 @@ const ProfileCard = ({ user, onPass, onLike, onSuperlike }) => {
 
   return (
     <div className="relative bg-white border border-gray-200 rounded-lg shadow-md overflow-hidden w-full">
-      {/* Karuselli: korkeus on rajoitettu PhotoCarousel-komponentissa */}
+      {/* Photo carousel: height is managed inside PhotoCarousel */}
       <PhotoCarousel photos={photos} />
 
-      {/* INTRO-painike */}
+      {/* INTRO button (kept as given) */}
       <button
         type="button"
         className="absolute bottom-2 right-2 bg-white text-blue-600 text-xs font-semibold py-1 px-2 rounded shadow-sm"
@@ -94,7 +115,7 @@ const ProfileCard = ({ user, onPass, onLike, onSuperlike }) => {
       </button>
 
       <div className="p-4 space-y-4">
-        {/* Nimi, ikä ja match-prosentti */}
+        {/* Name, age, compatibility */}
         <div className="flex items-center justify-between">
           <h3 className="text-xl font-bold">
             {displayName}, {user.age ?? "?"}
@@ -104,14 +125,14 @@ const ProfileCard = ({ user, onPass, onLike, onSuperlike }) => {
           </div>
         </div>
 
-        {/* Sijainti */}
+        {/* Location: prefer nested user.location.*, fallback to top-level */}
         <LocationText
-          city={user.city}
-          region={user.region}
-          country={user.country}
+          city={user?.location?.city ?? user.city}
+          region={user?.location?.region ?? user.region}
+          country={user?.location?.country ?? user.country}
         />
 
-        {/* Pass / Like / Superlike -napit */}
+        {/* Pass / Like / Superlike buttons */}
         <ActionButtons
           userId={id}
           onPass={() => onPass(id)}
@@ -119,13 +140,13 @@ const ProfileCard = ({ user, onPass, onLike, onSuperlike }) => {
           onSuperlike={() => onSuperlike(id)}
         />
 
-        {/* Kuvailu */}
+        {/* Summary */}
         <SummaryAccordion summary={user.summary} />
 
-        {/* Statistikot */}
+        {/* Stats */}
         <StatsPanel user={user} />
 
-        {/* Lisätiedot */}
+        {/* Details */}
         <DetailsSection details={user.details} />
       </div>
     </div>
@@ -134,8 +155,8 @@ const ProfileCard = ({ user, onPass, onLike, onSuperlike }) => {
 
 ProfileCard.propTypes = {
   user: PropTypes.shape({
-    _id: PropTypes.string,
-    id: PropTypes.string,
+    _id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     username: PropTypes.string,
     name: PropTypes.string,
     age: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
@@ -143,6 +164,11 @@ ProfileCard.propTypes = {
     city: PropTypes.string,
     region: PropTypes.string,
     country: PropTypes.string,
+    location: PropTypes.shape({
+      city: PropTypes.string,
+      region: PropTypes.string,
+      country: PropTypes.string,
+    }),
     photos: PropTypes.arrayOf(
       PropTypes.oneOfType([
         PropTypes.string,
@@ -163,3 +189,5 @@ ProfileCard.propTypes = {
 };
 
 export default memo(ProfileCard);
+// --- REPLACE END ---
+

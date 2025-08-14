@@ -2,8 +2,8 @@
 //
 // Why this file exists:
 // - Your project runs ESM ("type": "module" in package.json).
-// - The *actual* Mongoose model implementation is in CommonJS at server/src/models/User.cjs
-// - Many parts of the code import with:  import User from '../../models/User.js'
+// - The *actual* Mongoose model implementation is in CommonJS at server/models/User.cjs
+// - Many parts of the code import with:  import User from '../models/User.js'
 //   This wrapper bridges ESM <-> CJS so both worlds keep working.
 //
 // What changed:
@@ -29,7 +29,7 @@ try {
   if (typeof LoadedUser !== 'function' && !LoadedUser?.prototype?.constructor?.name) {
     throw new TypeError(
       '[models/User.js] Loaded User model is not a constructor/function. ' +
-      'Ensure server/src/models/User.cjs exports the Mongoose model via module.exports = UserModel;'
+      'Ensure server/models/User.cjs exports the Mongoose model via module.exports = UserModel;'
     );
   }
 } catch (err) {
