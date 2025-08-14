@@ -16,7 +16,7 @@ const userSchema = new mongoose.Schema(
 
     // Profile details
     name:               String,
-    age:                Number,
+    age:                Number,  // ensure numeric for discover age filters
     gender:             String,
     status:             String,
     religion:           String,
@@ -24,6 +24,8 @@ const userSchema = new mongoose.Schema(
     children:           String,
     pets:               String,
     summary:            String,
+
+    // NOTE: schema uses singular 'goal'. Controller filters should target 'goal' (not 'goals').
     goal:               String,
     lookingFor:         String,
     profession:         String,
@@ -38,8 +40,8 @@ const userSchema = new mongoose.Schema(
     activityLevel:      String,
     nutritionPreferences: [String],
 
-    // >>> Added missing profile field
-    orientation:        String, // <— fixes "orientation not saved"
+    // Added missing profile field
+    orientation:        String, // ensures "orientation" persists
 
     // Location stored as a nested object (canonical source of truth)
     location:           {
@@ -73,6 +75,12 @@ const userSchema = new mongoose.Schema(
     // Images
     profilePicture:     String,
     extraImages:        [String],
+
+    // Swipe/action state (needed so like/pass/superlike persist with strict:true)
+    likes:        [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    passes:       [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    superLikes:   [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 
     // Password reset
     passwordResetToken:   String,
@@ -170,10 +178,3 @@ try {
 
 module.exports = UserModel;
 // --- REPLACE END ---
-
-
-
-
-
-
-

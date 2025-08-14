@@ -50,6 +50,11 @@ const imageRoutes = ImageModule.default || ImageModule;
 
 import * as MessageModule from './routes/messageRoutes.js';
 const messageRoutes = MessageModule.default || MessageModule;
+
+// --- REPLACE START: import discover routes (ESM/CJS interop) ---
+import * as DiscoverModule from './routes/discover.js';
+const discoverRoutes = DiscoverModule.default || DiscoverModule;
+// --- REPLACE END ---
 // --- REPLACE END ---
 
 // --- REPLACE START: Middleware ---
@@ -79,12 +84,6 @@ app.use('/api/payment/paypal-webhook', paypalWebhookRouter);
 // --- REPLACE START: Common middleware (robust CORS + credentials) ---
 app.use(cookieParser());
 
-/**
- * Robust CORS config:
- * - Allows localhost (common dev ports) and loventia.app in production.
- * - Sends credentials (cookies) both ways.
- * - Accepts requests with no Origin header (curl/Postman/same-origin).
- */
 const envWhitelist = [
   process.env.CLIENT_URL,     // e.g. http://localhost:5174
   process.env.CLIENT_URL_2,   // optional extra client
@@ -138,9 +137,13 @@ app.use('/api/auth', authPrivateRoutes);
 app.use('/api/messages', authenticate, messageRoutes);
 app.use('/api/users', authenticate, userRoutes);
 app.use('/api/images', authenticate, imageRoutes);
+
+// --- REPLACE START: mount /api/discover (protected) ---
+app.use('/api/discover', authenticate, discoverRoutes);
+// --- REPLACE END ---
 // --- REPLACE END ---
 
-// Temporary mock-users endpoint
+// Temporary mock-users endpoint (safe to keep for dev)
 app.get('/api/mock-users', (_req, res) => {
   const user = {
     _id: '1',
@@ -182,12 +185,16 @@ app.get('/api/health', (_req, res) => {
 app.head('/api/health', (_req, res) => res.sendStatus(200));
 // --- REPLACE END ---
 
-// SPA fallback
+// --- REPLACE START: ensure unknown /api/* returns JSON 404 (not SPA HTML) ---
+app.use('/api', (_req, res) => res.status(404).json({ error: 'API route not found' }));
+// --- REPLACE END ---
+
+// SPA fallback (non-API paths only will reach here because of the guard above)
 app.get('/*', (_req, res) => {
   res.sendFile(path.join(__dirname, 'client-dist', 'index.html'));
 });
 
-// 404 handler
+// 404 handler (safety)
 app.use((_req, res) => res.status(404).json({ error: 'Not Found' }));
 
 // --- REPLACE START: Sentry error handler ---
@@ -215,7 +222,7 @@ function printRoutes(appInstance) {
             const methods = Object.keys(r.route.methods)
               .map((m) => m.toUpperCase())
               .join(', ');
-            const p = (layer.regexp?.fast_slash ? '' : '') + r.route.path;
+            const p = r.route.path;
             lines.push(`${methods.padEnd(6)} ${p}`);
           }
         }
@@ -233,10 +240,8 @@ function printRoutes(appInstance) {
 mongoose.set('strictQuery', true);
 const PORT = process.env.PORT || 5000;
 
-// --- REPLACE START: boot logs ---
-console.log('[DB] MONGO_URI =', process.env.MONGO_URI);
+console.log('[DB] MONGO_URI =', process.env.MONGO_URI ? '(set)' : '(missing)');
 console.log('[ENV] NODE_ENV =', process.env.NODE_ENV);
-// --- REPLACE END ---
 
 const mongoUri = process.env.MONGO_URI;
 if (!mongoUri) {
@@ -271,9 +276,8 @@ if (mongoUri) {
       startServer();
     })
     .catch((err) => {
-      console.error('❌ MongoDB connection error:', err);
-      // Start server even if DB failed, if that helps local dev
-      startServer();
+      console.error('❌ MongoDB connection error:', err?.message || err);
+      startServer(); // start even if DB fails (dev convenience)
     });
 } else {
   startServer();

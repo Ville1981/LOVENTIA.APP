@@ -1,11 +1,15 @@
-// server/controllers/discoverController.js
+// --- REPLACE START: Discover controller with robust filters, optional age, includeSelf, and safe image URL normalization ---
+'use strict';
 
 // --- REPLACE START: CJS/ESM interop for User model (fix default import error) ---
 import * as UserModule from '../models/User.js';
 const User = UserModule.default || UserModule;
 // --- REPLACE END ---
 
-// Allowed query parameters whitelist
+/**
+ * Allowed query parameters whitelist (kept explicit for safety)
+ * NOTE: location.* fields are mapped below from top-level country/region/city
+ */
 const allowedFilters = [
   'username',
   'gender',
@@ -20,80 +24,172 @@ const allowedFilters = [
   'children',
   'pets',
   'summary',
-  'goals',     // legacy support
-  'goal',      // legacy support
+  'goals',     // legacy support (mapped to 'goal')
+  'goal',      // canonical schema field
   'lookingFor',
-  'smoke',     // new
-  'drink',     // new
-  'drugs',     // new
+  'smoke',
+  'drink',
+  'drugs',
 ];
+
+/** Helper: parse number safely (accepts numeric strings), returns fallback if NaN/empty */
+function toNumberSafe(v, fallback = undefined) {
+  if (v === null || v === undefined || v === '') return fallback;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+/** Helper: normalize image url/paths to server-relative form (client will prefix BACKEND_BASE_URL) */
+function normalizeImagePath(img) {
+  if (!img) return null;
+
+  // Accept both string and { url } object
+  const raw = typeof img === 'string' ? img : (typeof img === 'object' && img.url) ? img.url : null;
+  if (!raw || typeof raw !== 'string') return null;
+
+  // Trim & convert Windows backslashes to forward slashes
+  let s = raw.trim().replace(/\\/g, '/');
+  if (s === '') return null;
+
+  // Already absolute http(s)
+  if (/^https?:\/\//i.test(s)) return s;
+
+  // Remove leading slashes temporarily to simplify handling
+  s = s.replace(/^\/+/, '');
+
+  // If path starts with uploads/ (or /uploads/ after the strip), ensure single '/uploads/<rest>'
+  if (/^uploads\/?/i.test(s)) {
+    // Avoid double 'uploads/uploads'
+    s = s.replace(/^uploads\/uploads\//i, 'uploads/');
+    return `/${s}`;
+  }
+
+  // If it starts with known client asset roots (assets/static), keep single leading slash
+  if (/^(assets|static)\//i.test(s)) {
+    return `/${s}`;
+  }
+
+  // Otherwise treat as bare filename → place under uploads
+  return `/uploads/${s}`;
+}
 
 /**
  * GET /api/discover
- * Retrieves a list of user profiles based on filters and excludes the current user
+ * Retrieves a list of user profiles based on filters and excludes the current user (unless includeSelf=1).
+ * Age filter is OPTIONAL: only applied if minAge and/or maxAge are provided.
+ * Images are normalized to server-relative paths; client will absolutize with BACKEND_BASE_URL.
  */
 export async function getDiscover(req, res) {
   try {
-    const currentUserId = req.userId;
+    // --- REPLACE START: robust current user id detection ---
+    const currentUserId =
+      req.userId ||
+      req?.user?.userId ||
+      req?.user?.id ||
+      (req?.user?._id && String(req.user._id)) ||
+      null;
+    // --- REPLACE END ---
+
+    // Build filters strictly from whitelist
     const filters = {};
 
     // Apply whitelist filters from query string
     Object.entries(req.query).forEach(([key, value]) => {
       if (value != null && value !== '' && allowedFilters.includes(key)) {
-        filters[key] = value;
+        // --- REPLACE START: map top-level location & goals→goal to schema fields ---
+        if (key === 'city') {
+          filters['location.city'] = value;
+        } else if (key === 'region') {
+          filters['location.region'] = value;
+        } else if (key === 'country') {
+          filters['location.country'] = value;
+        } else if (key === 'goals' || key === 'goal') {
+          // The schema uses singular 'goal'
+          filters['goal'] = value;
+        } else {
+          filters[key] = value;
+        }
+        // --- REPLACE END ---
       }
     });
 
-    // Age range: supports minAge & maxAge, defaults if missing
-    const minAge = parseInt(req.query.minAge, 10) || 18;
-    const maxAge = parseInt(req.query.maxAge, 10) || 99;
-    filters.age = { $gte: minAge, $lte: maxAge };
+    // --- REPLACE START: age filter is OPTIONAL unless explicitly provided ---
+    // Previously age might have been enforced too strictly, hiding profiles with string/empty ages.
+    // Now we only add age constraints when minAge and/or maxAge exist in the query.
+    const hasMin = Object.prototype.hasOwnProperty.call(req.query, 'minAge');
+    const hasMax = Object.prototype.hasOwnProperty.call(req.query, 'maxAge');
 
-    // Exclude current user
-    if (currentUserId) {
+    if (hasMin || hasMax) {
+      let minAge = toNumberSafe(req.query.minAge, undefined);
+      let maxAge = toNumberSafe(req.query.maxAge, undefined);
+
+      // Apply sane defaults if one side missing/NaN
+      if (!Number.isFinite(minAge)) minAge = 18;
+      if (!Number.isFinite(maxAge)) maxAge = 120;
+
+      // Clamp and ensure ordering
+      minAge = Math.max(18, Math.min(120, minAge));
+      maxAge = Math.max(18, Math.min(120, maxAge));
+      if (minAge > maxAge) {
+        const t = minAge; minAge = maxAge; maxAge = t;
+      }
+
+      filters.age = { $gte: minAge, $lte: maxAge };
+    }
+    // --- REPLACE END ---
+
+    // --- REPLACE START: allow including self for dev testing via ?includeSelf=1 ---
+    const includeSelf =
+      req.query.includeSelf === '1' ||
+      req.query.includeSelf === 'true' ||
+      req.query.includeSelf === true;
+
+    if (currentUserId && !includeSelf) {
       filters._id = { $ne: currentUserId };
     }
+    // --- REPLACE END ---
 
-    // Fetch users from MongoDB, exclude sensitive fields
+    // Fetch users (exclude sensitive fields). Keep limit reasonable for UI.
     const rawUsers = await User.find(filters)
-      .limit(20)
-      .select('-password -email -blockedUsers')
+      .select('-password -passwordResetToken -passwordResetExpires -blockedUsers')
+      .limit(100)
       .lean();
 
+    // Normalize result shape and image fields
     const users = rawUsers.map((u) => {
-      const likes = Array.isArray(u.likes) ? u.likes : [];
-      const passes = Array.isArray(u.passes) ? u.passes : [];
-      const superLikes = Array.isArray(u.superLikes) ? u.superLikes : [];
-
-      const normalizeUrl = (img) => {
-        if (typeof img !== 'string' || img.trim() === '') return null;
-        if (img.startsWith('http')) return img;
-        return img.startsWith('/') ? img : `/uploads/${img}`;
-        // Note: stored values like 'profiles/xyz.jpg' or 'extra/abc.png' become '/uploads/...'
-      };
-
+      // Build photos array preference: photos -> extraImages -> profilePicture
       let photos = [];
-      if (Array.isArray(u.extraImages) && u.extraImages.length) {
+      if (Array.isArray(u.photos) && u.photos.length) {
+        photos = u.photos
+          .map((p) => (typeof p === 'string' ? p : p?.url))
+          .map(normalizeImagePath)
+          .filter(Boolean)
+          .map((url) => ({ url }));
+      } else if (Array.isArray(u.extraImages) && u.extraImages.length) {
         photos = u.extraImages
-          .map(normalizeUrl)
+          .map((p) => (typeof p === 'string' ? p : p?.url))
+          .map(normalizeImagePath)
           .filter(Boolean)
           .map((url) => ({ url }));
       } else if (u.profilePicture) {
-        const url = normalizeUrl(u.profilePicture);
+        const url = normalizeImagePath(u.profilePicture);
         if (url) photos.push({ url });
       }
+
+      // Basic numeric age cast (tolerate string/undefined in DB)
+      const age = toNumberSafe(u.age, undefined);
 
       return {
         ...u,
         id: u._id?.toString?.() || String(u._id),
-        likes,
-        passes,
-        superLikes,
+        age,
         photos,
+        profilePicture: photos?.[0]?.url || normalizeImagePath(u.profilePicture) || null,
       };
     });
 
-    return res.json(users);
+    // Respond with object { users } (client expects response.body.users)
+    return res.status(200).json({ users });
   } catch (err) {
     console.error('getDiscover error:', err);
     return res
@@ -109,7 +205,25 @@ export async function getDiscover(req, res) {
 export async function handleAction(req, res) {
   try {
     const { userId: targetId, actionType } = req.params;
-    const currentUserId = req.userId;
+
+    // --- REPLACE START: robust current user id detection for actions ---
+    const currentUserId =
+      req.userId ||
+      req?.user?.userId ||
+      req?.user?.id ||
+      (req?.user?._id && String(req.user._id)) ||
+      null;
+    // --- REPLACE END ---
+
+    if (!currentUserId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    if (!targetId) {
+      return res.status(400).json({ error: 'Missing target user id' });
+    }
+    if (currentUserId === String(targetId)) {
+      return res.status(400).json({ error: 'Cannot act on self' });
+    }
 
     const user = await User.findById(currentUserId);
     if (!user) {
@@ -145,3 +259,4 @@ export async function handleAction(req, res) {
       .json({ error: 'Server error recording action' });
   }
 }
+// --- REPLACE END ---
