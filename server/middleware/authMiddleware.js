@@ -1,5 +1,4 @@
-// server/middleware/authMiddleware.js
-
+// --- REPLACE START: Robust JWT authentication middleware with req.userId normalization ---
 import jwt from 'jsonwebtoken';
 import 'dotenv/config';
 
@@ -7,6 +6,7 @@ import 'dotenv/config';
  * Middleware: authenticate
  * - Expects header 'Authorization: Bearer <token>'
  * - Verifies JWT and attaches decoded payload to req.user and req.userId
+ * - Accepts tokens with either 'id' or 'userId' field in payload
  */
 export function authenticate(req, res, next) {
   const authHeader = req.headers.authorization || req.headers.Authorization;
@@ -29,11 +29,19 @@ export function authenticate(req, res, next) {
 
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
-    if (!payload?.id) {
+    if (!payload?.id && !payload?.userId) {
       return res.status(401).json({ error: 'Invalid token payload' });
     }
+
+    // Support both 'id' and 'userId' payload keys
     req.user = payload;
-    req.userId = payload.id;
+    req.userId = payload.userId || payload.id;
+
+    // Normalize ObjectId to string if needed
+    if (req.userId && typeof req.userId === 'object' && typeof req.userId.toString === 'function') {
+      req.userId = req.userId.toString();
+    }
+
     next();
   } catch (err) {
     console.error('Authentication failed:', err.message);
@@ -55,5 +63,6 @@ export function authorizeAdmin(req, res, next) {
   next();
 }
 
-// Default export for compatibility
+// Default export for compatibility (some imports use default)
 export default authenticate;
+// --- REPLACE END ---

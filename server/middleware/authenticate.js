@@ -1,5 +1,5 @@
 // --- REPLACE START: robust CJS/ESM interop shim for authenticate middleware ---
-// This shim makes sure we can import the authenticate middleware regardless of
+// This shim ensures we can import the authenticate middleware regardless of
 // whether ../src/middleware/authenticate.js exports via CommonJS or ESM.
 import * as Mod from '../src/middleware/authenticate.js';
 

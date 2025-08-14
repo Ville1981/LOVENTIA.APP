@@ -24,12 +24,23 @@ export default defineConfig({
 
   server: {
     port: 5174,
+    // NOTE:
+    // - /api is proxied to backend API (prevents /api/api duplication in client code)
+    // - /uploads is proxied to backend static server (so relative image paths work during dev)
+    // - changeOrigin:true fixes CORS for cookies (refresh token) and static assets
     proxy: {
       "/api": {
         target: "http://localhost:5000",
         changeOrigin: true,
         secure: false,
       },
+      // --- REPLACE START: add /uploads proxy to backend port 5000 ---
+      "/uploads": {
+        target: "http://localhost:5000",
+        changeOrigin: true,
+        secure: false,
+      },
+      // --- REPLACE END ---
     },
   },
 });

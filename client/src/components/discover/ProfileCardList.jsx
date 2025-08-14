@@ -1,12 +1,11 @@
-// src/components/discover/ProfileCardList.jsx
-
+// --- REPLACE START: ProfileCardList – stable ids, proper empty state, forced slider reset on data change ---
 import PropTypes from "prop-types";
 import React, { memo, useMemo, useRef, useEffect } from "react";
 import Slider from "react-slick";
 
 import ProfileCard from "./ProfileCard";
 
-// Slick-carouselin tyylit (pidetään App.jsx:ssä myös, mutta varmistetaan)
+// Slick-carousel styles (kept to ensure styles are present regardless of App.jsx)
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
@@ -15,16 +14,41 @@ import "slick-carousel/slick/slick-theme.css";
  * or a fallback message if there are no users.
  */
 const ProfileCardList = ({ users = [], onAction }) => {
-  if (!Array.isArray(users) || users.length === 0) {
+  // --- REPLACE START: normalize users & stable ids; only show "no results" if truly empty ---
+  const normalizeId = (val) => {
+    if (val == null) return null;
+    try {
+      // Handle ObjectId-like objects
+      if (typeof val === "object" && typeof val.toString === "function") {
+        return val.toString();
+      }
+      return String(val);
+    } catch {
+      return null;
+    }
+  };
+
+  const safeUsers = Array.isArray(users)
+    ? users
+        .filter((u) => u && (u.id != null || u._id != null))
+        .map((u) => ({ ...u, id: normalizeId(u.id ?? u._id) }))
+    : [];
+
+  if (safeUsers.length === 0) {
     return (
       <p className="text-center text-gray-500 mt-6">🔍 No results found</p>
     );
   }
+  // --- REPLACE END ---
 
   const sliderRef = useRef(null);
-  const userKey = users.map((u) => u.id || u._id).join("|");
+
+  // --- REPLACE START: compute stable key from normalized ids and force slider remount on change ---
+  const userKey = safeUsers.map((u) => u.id).join("|");
+  // --- REPLACE END ---
 
   useEffect(() => {
+    // Jump to first slide when the dataset changes to avoid stale index
     sliderRef.current?.slickGoTo(0, /* dontAnimate */ true);
   }, [userKey]);
 
@@ -57,13 +81,15 @@ const ProfileCardList = ({ users = [], onAction }) => {
         className="mx-auto w-full max-w-[800px]"
         style={{ overflowAnchor: "none" }}
       >
+        {/* --- REPLACE START: add key to Slider so it fully resets when user set changes --- */}
         <Slider
+          key={userKey}
           ref={sliderRef}
           {...settings}
           style={{ overflowAnchor: "none", minHeight: "600px" }}
         >
-          {users.map((u) => {
-            const userId = u.id || u._id;
+          {safeUsers.map((u) => {
+            const userId = u.id;
             return (
               <div
                 key={userId}
@@ -81,6 +107,7 @@ const ProfileCardList = ({ users = [], onAction }) => {
             );
           })}
         </Slider>
+        {/* --- REPLACE END --- */}
       </div>
     </div>
   );
@@ -89,11 +116,13 @@ const ProfileCardList = ({ users = [], onAction }) => {
 ProfileCardList.propTypes = {
   users: PropTypes.arrayOf(
     PropTypes.shape({
-      id: PropTypes.string,
-      _id: PropTypes.string,
+      id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+      _id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     })
   ).isRequired,
   onAction: PropTypes.func.isRequired,
 };
 
 export default memo(ProfileCardList);
+// --- REPLACE END ---
+

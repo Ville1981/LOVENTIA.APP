@@ -185,18 +185,3 @@ PhotoCarousel.propTypes = {
 };
 
 export default memo(PhotoCarousel);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

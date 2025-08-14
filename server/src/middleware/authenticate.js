@@ -49,7 +49,7 @@ export default function authenticate(req, res, next) {
     const secretsToTry = [
       firstSecret,
       process.env.JWT_SECRET,
-      process.env.ACCESS_TOKEN_SECRET
+      process.env.ACCESS_TOKEN_SECRET,
     ].filter(Boolean);
 
     if (!secretsToTry.length) {
@@ -69,11 +69,15 @@ export default function authenticate(req, res, next) {
     }
 
     if (!decoded) {
-      console.warn('[authenticate] JWT verification failed:', lastErr?.message || lastErr);
+      // Keep the message generic for security reasons
+      if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+        console.warn('[authenticate] JWT verification failed:', lastErr?.message || lastErr);
+      }
       return res.status(401).json({ error: 'Invalid or expired token' });
     }
 
-    const userId = decoded.userId || decoded.sub || decoded.id;
+    const userId = decoded.userId || decoded.sub || decoded.id || decoded._id;
     const role = decoded.role || 'user';
 
     if (!userId) {
@@ -81,9 +85,10 @@ export default function authenticate(req, res, next) {
     }
 
     // Attach a normalized user object while preserving original claims
-    req.user = { userId, role, ...decoded };
+    req.user = { userId: String(userId), role, ...decoded };
     return next();
   } catch (err) {
+    // eslint-disable-next-line no-console
     console.error('[authenticate] Error:', err?.message || err);
     return res.status(401).json({ error: 'Authentication failed' });
   }
