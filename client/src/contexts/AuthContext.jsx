@@ -51,7 +51,7 @@ export function AuthProvider({ children }) {
   const refreshMe = useCallback(async () => {
     try {
       // IMPORTANT: send {} (not null) so body-parser doesn't choke in strict mode
-      const r = await api.post("/auth/refresh", {}, { withCredentials: true });
+      const r = await api.post("/api/auth/refresh", {}, { withCredentials: true });
       const next = r?.data?.accessToken;
 
       // --- IMPORTANT FIX: attach the token immediately before calling /me ---
@@ -62,7 +62,7 @@ export function AuthProvider({ children }) {
       // --- END FIX ---
 
       // then fetch /me (now goes out with Authorization: Bearer <token>)
-      const me = await api.get("/auth/me");
+      const me = await api.get("/api/auth/me");
       const current = me?.data?.user || null;
       setUserState(current);
       return current;
@@ -86,7 +86,7 @@ export function AuthProvider({ children }) {
   const login = useCallback(async (email, password) => {
     // After a successful login, server returns accessToken and sets refresh cookie
     const res = await api.post(
-      "/auth/login",
+      "/api/auth/login",
       { email, password },
       { withCredentials: true }
     );
@@ -95,14 +95,14 @@ export function AuthProvider({ children }) {
       setAccessTokenState(token);
       attachAccessToken(token); // attach immediately so subsequent /me has Bearer
     }
-    const me = await api.get("/auth/me");
+    const me = await api.get("/api/auth/me");
     const current = me?.data?.user || null;
     setUserState(current);
     return current;
   }, []);
 
   const register = useCallback(async (payload) => {
-    const res = await api.post("/auth/register", payload, {
+    const res = await api.post("/api/auth/register", payload, {
       withCredentials: true,
     });
     const token = res?.data?.accessToken;
@@ -110,7 +110,7 @@ export function AuthProvider({ children }) {
       setAccessTokenState(token);
       attachAccessToken(token);
     }
-    const me = await api.get("/auth/me");
+    const me = await api.get("/api/auth/me");
     const current = me?.data?.user || null;
     setUserState(current);
     return current;
@@ -119,7 +119,7 @@ export function AuthProvider({ children }) {
   const logout = useCallback(async () => {
     try {
       // Use {} instead of null to avoid strict JSON parser throwing
-      await api.post("/auth/logout", {}, { withCredentials: true });
+      await api.post("/api/auth/logout", {}, { withCredentials: true });
     } finally {
       setUserState(null);
       setAccessTokenState(null);

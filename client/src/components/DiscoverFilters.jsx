@@ -1,3 +1,4 @@
+// --- REPLACE START: DiscoverFilters wired for backend filters, age inputs, and clean props ---
 import PropTypes from "prop-types";
 import React from "react";
 import { useForm, FormProvider } from "react-hook-form";
@@ -57,7 +58,7 @@ const DiscoverFilters = ({
           </div>
 
           {/* --- REPLACE START: translate comment */}
-          {/* Age range slider: minAge and maxAge */}
+          {/* Age range: minAge and maxAge */}
           {/* --- REPLACE END */}
           <div className="flex flex-col gap-2">
             <label htmlFor="minAge" className="font-medium">
@@ -203,7 +204,7 @@ const DiscoverFilters = ({
           <FormChildrenPets t={t} includeAllOption />
 
           {/* --- REPLACE START: translate comment */}
-          {/* Lifestyle */}
+          {/* Lifestyle (smoke/drink/drugs, etc.) */}
           {/* --- REPLACE END */}
           <FormLifestyle t={t} includeAllOption />
 
@@ -245,3 +246,4 @@ DiscoverFilters.propTypes = {
 };
 
 export default React.memo(DiscoverFilters);
+// --- REPLACE END ---

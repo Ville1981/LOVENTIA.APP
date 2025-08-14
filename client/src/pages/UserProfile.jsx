@@ -4,7 +4,8 @@ import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 import ProfileForm from "../components/profileFields/ProfileForm";
-import api from "../utils/axiosInstance";
+// Use the unified axios instance (handles Authorization + refresh)
+import api from "../services/api/axiosInstance";
 
 const UserProfile = () => {
   // Load the common namespaces used on the profile page
