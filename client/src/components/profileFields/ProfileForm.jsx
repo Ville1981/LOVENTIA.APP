@@ -1,4 +1,4 @@
-// --- REPLACE START: keep structure, add robust URL handling + safer uploader integration (no unnecessary shortening) ---
+// --- REPLACE START: keep structure, add Political Ideology field ---
 import { yupResolver } from "@hookform/resolvers/yup";
 import React, { useState, useEffect, useMemo } from "react";
 import { useForm, FormProvider } from "react-hook-form";
@@ -15,11 +15,9 @@ import FormLookingFor from "./FormLookingFor";
 import MultiStepPhotoUploader from "./MultiStepPhotoUploader";
 import { BACKEND_BASE_URL } from "../../config";
 
-// --- REPLACE START: path normalizer helper (keeps Windows paths safe) ---
-/** Normalize Windows backslashes and ensure one leading slash */
+// Normalize Windows backslashes and ensure one leading slash
 const normalizePath = (p = "") =>
   "/" + String(p).replace(/\\/g, "/").replace(/^\/+/, "");
-// --- REPLACE END ---
 
 // =============================================
 // Constants for selects
@@ -79,6 +77,27 @@ const religionImportanceOptions = [
   "Essential",
 ];
 
+// New: Political ideology options
+const politicalIdeologyOptions = [
+  "",
+  "Left",
+  "Centre",
+  "Right",
+  "Conservatism",
+  "Liberalism",
+  "Socialism",
+  "Communism",
+  "Fascism",
+  "Environmentalism",
+  "Anarchism",
+  "Nationalism",
+  "Populism",
+  "Progressivism",
+  "Libertarianism",
+  "Democracy",
+  "Other",
+];
+
 // =============================================
 // Validation schema
 // =============================================
@@ -112,27 +131,24 @@ const schema = yup.object().shape({
     .string()
     .oneOf(religionImportanceOptions, "Invalid importance"),
 
+  // New: Political ideology
+  politicalIdeology: yup
+    .string()
+    .oneOf(politicalIdeologyOptions, "Invalid political ideology"),
+
   children: yup.string(),
   pets: yup.string(),
   smoke: yup.string(),
   drink: yup.string(),
   drugs: yup.string(),
 
-  height: yup
-    .number()
-    .nullable()
-    .transform((v, o) => (o === "" ? null : v)),
+  height: yup.number().nullable().transform((v, o) => (o === "" ? null : v)),
   heightUnit: yup.string().oneOf(["", "Cm", "FtIn"], "Invalid unit"),
-  weight: yup
-    .number()
-    .nullable()
-    .transform((v, o) => (o === "" ? null : v)),
+  weight: yup.number().nullable().transform((v, o) => (o === "" ? null : v)),
   bodyType: yup.string(),
   activityLevel: yup.string(),
 
-  nutritionPreferences: yup
-    .string()
-    .oneOf(["", ...dietOptions], "Invalid diet"),
+  nutritionPreferences: yup.string().oneOf(["", ...dietOptions], "Invalid diet"),
   healthInfo: yup.string(),
 
   summary: yup.string(),
@@ -141,14 +157,8 @@ const schema = yup.object().shape({
 
   profilePhoto: yup.string(),
 
-  latitude: yup
-    .number()
-    .nullable()
-    .transform((v, o) => (o === "" ? null : v)),
-  longitude: yup
-    .number()
-    .nullable()
-    .transform((v, o) => (o === "" ? null : v)),
+  latitude: yup.number().nullable().transform((v, o) => (o === "" ? null : v)),
+  longitude: yup.number().nullable().transform((v, o) => (o === "" ? null : v)),
 
   extraImages: yup.array().of(yup.string()),
 });
@@ -189,6 +199,9 @@ export default function ProfileForm({
       religion: user.religion || "",
       religionImportance: user.religionImportance || "",
 
+      // New: Political ideology
+      politicalIdeology: user.politicalIdeology || "",
+
       children: user.children || "",
       pets: user.pets || "",
       smoke: user.smoke || "",
@@ -226,7 +239,6 @@ export default function ProfileForm({
     getValues,
   } = methods;
 
-  // Keep form in sync with remote data & unwrap avatar
   useEffect(() => {
     reset({
       ...getValues(),
@@ -240,12 +252,8 @@ export default function ProfileForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, reset]);
 
-  // Local state for extra-images & avatar preview
-  const [localExtraImages, setLocalExtraImages] = useState(
-    user.extraImages || []
-  );
+  const [localExtraImages, setLocalExtraImages] = useState(user.extraImages || []);
 
-  // --- REPLACE START: robust avatar URL normalization ---
   const [avatarPreview, setAvatarPreview] = useState(
     user.profilePicture
       ? user.profilePicture.startsWith("http")
@@ -265,9 +273,8 @@ export default function ProfileForm({
       setAvatarPreview(null);
     }
   }, [user.profilePicture]);
-  // --- REPLACE END ---
-
-  // On form submit, wrap diet into array & include chosen profilePhoto
+// --- REPLACE END ---
+// --- REPLACE START: continuation with Political Ideology field ---
   const onFormSubmit = async (data) => {
     const payload = {
       ...data,
@@ -280,7 +287,6 @@ export default function ProfileForm({
     await onSubmitProp(payload);
   };
 
-  // Build filtered slideshow array: avatar first, then extra images
   const slideshowImages = useMemo(() => {
     const arr = [];
     if (avatarPreview) arr.push(avatarPreview);
@@ -295,13 +301,11 @@ export default function ProfileForm({
     return arr.filter(Boolean);
   }, [avatarPreview, localExtraImages]);
 
-  // Reset slide index to 0 whenever the number of slideshow images changes
   const [slideIndex, setSlideIndex] = useState(0);
   useEffect(() => {
     setSlideIndex(0);
   }, [slideshowImages.length]);
 
-  // Auto-advance slideshow every 3s if more than one image
   useEffect(() => {
     if (slideshowImages.length < 2) return;
     const iv = setInterval(() => {
@@ -315,12 +319,9 @@ export default function ProfileForm({
       <form
         onSubmit={handleSubmit(onFormSubmit)}
         className="bg-white shadow rounded-lg p-6 space-y-6"
-        data-cy="ProfileForm__form"
       >
-        {/* Hidden field so backend always sees profilePhoto */}
         <input type="hidden" {...methods.register("profilePhoto")} />
 
-        {/* Avatar slideshow + Manage Photos link */}
         {!hideAvatarSection && slideshowImages.length > 0 && (
           <div className="flex flex-col items-center space-y-2">
             <img
@@ -340,10 +341,8 @@ export default function ProfileForm({
           </div>
         )}
 
-        {/* Basic Info */}
         <FormBasicInfo t={t} errors={errors} />
 
-        {/* Location */}
         <FormLocation
           t={t}
           errors={errors}
@@ -355,12 +354,10 @@ export default function ProfileForm({
           customCityFieldName="customCity"
         />
 
-        {/* Education */}
         <FormEducation t={t} />
 
-        {/* Profession + Religion */}
+        {/* Profession + Religion + Political Ideology */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Profession Category */}
           <div>
             <label className="block text-sm font-medium mb-1">
               {t("profile.professionCategory")}
@@ -383,7 +380,6 @@ export default function ProfileForm({
             )}
           </div>
 
-          {/* Profession */}
           <div>
             <label className="block text-sm font-medium mb-1">
               💼 {t("profile.profession")}
@@ -399,7 +395,6 @@ export default function ProfileForm({
             )}
           </div>
 
-          {/* Religion */}
           <div>
             <label className="block text-sm font-medium mb-1">
               🕊 {t("profile.religion")}
@@ -422,7 +417,6 @@ export default function ProfileForm({
           </div>
         </div>
 
-        {/* Religion importance */}
         <div>
           <label className="block text-sm font-medium mb-1">
             {t("profile.religionImportance")}
@@ -444,13 +438,32 @@ export default function ProfileForm({
           )}
         </div>
 
-        {/* Children & Pets */}
+        {/* New: Political Ideology */}
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            🗳 {t("profile.politicalIdeology") || "Political Ideology"}
+          </label>
+          <select
+            {...methods.register("politicalIdeology")}
+            className="w-full border rounded px-3 py-2 text-sm"
+          >
+            {politicalIdeologyOptions.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt || t("common.select")}
+              </option>
+            ))}
+          </select>
+          {errors.politicalIdeology && (
+            <p className="mt-1 text-red-600">
+              {errors.politicalIdeology.message}
+            </p>
+          )}
+        </div>
+
         <FormChildrenPets t={t} errors={errors} />
 
-        {/* Lifestyle */}
         <FormLifestyle t={t} includeAllOption />
 
-        {/* Goals & Summary */}
         <FormGoalSummary
           t={t}
           errors={errors}
@@ -458,17 +471,13 @@ export default function ProfileForm({
           summaryField="summary"
         />
 
-        {/* Looking For */}
         <FormLookingFor t={t} errors={errors} fieldName="lookingFor" />
 
-        {/* Extra Photo Uploader */}
         {!hidePhotoSection && userId && (
           <MultiStepPhotoUploader
-            data-cy="ProfileForm__photoUploader"
             userId={userId}
             isPremium={isPremium}
             extraImages={localExtraImages}
-            // --- REPLACE START: handle both shapes (array or {extraImages}) from uploader ---
             onSuccess={(payload) => {
               const updated = Array.isArray(payload)
                 ? payload
@@ -476,12 +485,10 @@ export default function ProfileForm({
               setLocalExtraImages(updated);
               onUserUpdate({ ...user, extraImages: updated });
             }}
-            // --- REPLACE END ---
             onError={(err) => console.error(err)}
           />
         )}
 
-        {/* Save */}
         <div className="flex justify-end">
           <button
             type="submit"
@@ -491,7 +498,6 @@ export default function ProfileForm({
           </button>
         </div>
 
-        {/* Status */}
         {success && (
           <p className="text-center text-green-600">
             {t("profile.saveSuccess")}
@@ -505,3 +511,20 @@ export default function ProfileForm({
   );
 }
 // --- REPLACE END ---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

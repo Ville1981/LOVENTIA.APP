@@ -43,6 +43,9 @@ const userSchema = new mongoose.Schema(
     // Added missing profile field
     orientation:        String, // ensures "orientation" persists
 
+    // ✅ New field for political ideology
+    ideology:           String,
+
     // Location stored as a nested object (canonical source of truth)
     location:           {
       country:          { type: String },

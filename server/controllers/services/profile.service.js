@@ -15,6 +15,7 @@ const UPDATABLE_FIELDS = [
   'gender',
   'status',
   'orientation',         // ADDED: allow orientation updates
+  'ideology',            // ADDED: allow political ideology updates
 
   // top-level location convenience (mapped to nested location.*)
   'city',
@@ -305,4 +306,3 @@ export async function getMatchesWithScoreService(req, res) {
   }
 }
 // --- REPLACE END ---
-

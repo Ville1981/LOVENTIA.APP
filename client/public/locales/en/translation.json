@@ -1,9 +1,11 @@
 {
+
   "site": {
     "title": "DateSite"
   },
   "Home": "Home",
   "Discover": "Discover",
+
   "Login": "Login",
   "Register": "Register",
   "Profile": "Profile",
@@ -114,6 +116,7 @@
     "notImportant": "Not important",
     "somewhatImportant": "Somewhat important",
     "veryImportant": "Very important",
+    "politicalIdeology": "Political ideology",
     "children": "Do you have children?",
     "pets": "Do you have pets?",
     "lookingFor": "What are you looking for?",
@@ -182,7 +185,8 @@
     "minAge": "Minimum age",
     "maxAge": "Maximum age",
     "instructions": "Select filter criteria to find matching profiles.",
-    "filter": "Filter"
+    "filter": "Filter",
+    "politicalIdeology": "Political ideology"
   },
 
   "common": {
@@ -327,3 +331,7 @@
     "matchFound": "You have a new match with {{username}}"
   }
 }
+
+
+
+
