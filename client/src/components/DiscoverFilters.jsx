@@ -1,6 +1,6 @@
 // --- REPLACE START: DiscoverFilters wired for backend filters, age inputs, and clean props ---
 import PropTypes from "prop-types";
-import React from "react";
+import React, { useMemo } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 
 // --- REPLACE START: remove unused import FormBasicInfo
@@ -12,6 +12,71 @@ import FormGoalSummary from "./profileFields/FormGoalSummary";
 import FormLifestyle from "./profileFields/FormLifestyle";
 import FormLocation from "./profileFields/FormLocation";
 import FormLookingFor from "./profileFields/FormLookingFor";
+
+/**
+ * Stable option sources (kept in-code so dropdowns never "disappear" if a translation key is missing).
+ * Labels are shown via t(key) || fallbackLabel, so missing keys won't blank the option.
+ */
+
+// Religion options (match ProfileForm)
+const RELIGION_OPTIONS = [
+  { value: "", key: "common.all", label: "" },
+  { value: "Christianity", key: "religion.christianity", label: "Christianity" },
+  { value: "Islam", key: "religion.islam", label: "Islam" },
+  { value: "Hinduism", key: "religion.hinduism", label: "Hinduism" },
+  { value: "Buddhism", key: "religion.buddhism", label: "Buddhism" },
+  { value: "Folk", key: "religion.folk", label: "Folk" },
+  { value: "None", key: "religion.none", label: "None" },
+  { value: "Other", key: "religion.other", label: "Other" },
+  { value: "Atheism", key: "religion.atheism", label: "Atheism" },
+];
+
+// Religion importance options (match ProfileForm)
+const RELIGION_IMPORTANCE_OPTIONS = [
+  { value: "", key: "common.all", label: "" },
+  { value: "Not at all important", key: "profile.notImportant", label: "Not at all important" },
+  { value: "Somewhat important", key: "profile.somewhatImportant", label: "Somewhat important" },
+  { value: "Very important", key: "profile.veryImportant", label: "Very important" },
+  { value: "Essential", key: "profile.essential", label: "Essential" },
+];
+
+// Political ideology options (match ProfileForm with Left / Centre / Right and Democracy)
+const POLITICAL_IDEOLOGY_OPTIONS = [
+  { value: "", key: "common.all", label: "" },
+  { value: "Left", key: "politics.left", label: "Left" },
+  { value: "Centre", key: "politics.centre", label: "Centre" },
+  { value: "Right", key: "politics.right", label: "Right" },
+  { value: "Conservatism", key: "politics.conservatism", label: "Conservatism" },
+  { value: "Liberalism", key: "politics.liberalism", label: "Liberalism" },
+  { value: "Socialism", key: "politics.socialism", label: "Socialism" },
+  { value: "Communism", key: "politics.communism", label: "Communism" },
+  { value: "Fascism", key: "politics.fascism", label: "Fascism" },
+  { value: "Environmentalism", key: "politics.environmentalism", label: "Environmentalism" },
+  { value: "Anarchism", key: "politics.anarchism", label: "Anarchism" },
+  { value: "Nationalism", key: "politics.nationalism", label: "Nationalism" },
+  { value: "Populism", key: "politics.populism", label: "Populism" },
+  { value: "Progressivism", key: "politics.progressivism", label: "Progressivism" },
+  { value: "Libertarianism", key: "politics.libertarianism", label: "Libertarianism" },
+  { value: "Democracy", key: "politics.democracy", label: "Democracy" },
+  { value: "Other", key: "politics.other", label: "Other" },
+];
+
+// Gender options (kept explicit for parity)
+const GENDER_OPTIONS = [
+  { value: "", key: "common.all", label: "" },
+  { value: "Male", key: "profile.male", label: "Male" },
+  { value: "Female", key: "profile.female", label: "Female" },
+  { value: "Other", key: "profile.other", label: "Other" },
+];
+
+// Orientation options (kept explicit for parity)
+const ORIENTATION_OPTIONS = [
+  { value: "", key: "common.all", label: "" },
+  { value: "Straight", key: "profile.straight", label: "Straight" },
+  { value: "Gay", key: "profile.gay", label: "Gay" },
+  { value: "Bi", key: "profile.bi", label: "Bi" },
+  { value: "Other", key: "profile.other", label: "Other" },
+];
 
 /**
  * DiscoverFilters
@@ -31,6 +96,52 @@ const DiscoverFilters = ({
   });
   const { handleSubmit, register } = methods;
 
+  // Memoize mapped options (stable arrays → stable renders)
+  const mappedReligionOptions = useMemo(
+    () =>
+      RELIGION_OPTIONS.map((opt) => ({
+        ...opt,
+        text: t(opt.key) || opt.label || t("common.select"),
+      })),
+    [t]
+  );
+
+  const mappedReligionImportanceOptions = useMemo(
+    () =>
+      RELIGION_IMPORTANCE_OPTIONS.map((opt) => ({
+        ...opt,
+        text: t(opt.key) || opt.label || t("common.select"),
+      })),
+    [t]
+  );
+
+  const mappedPoliticalOptions = useMemo(
+    () =>
+      POLITICAL_IDEOLOGY_OPTIONS.map((opt) => ({
+        ...opt,
+        text: t(opt.key) || opt.label || t("common.select"),
+      })),
+    [t]
+  );
+
+  const mappedGenderOptions = useMemo(
+    () =>
+      GENDER_OPTIONS.map((opt) => ({
+        ...opt,
+        text: t(opt.key) || opt.label || t("common.select"),
+      })),
+    [t]
+  );
+
+  const mappedOrientationOptions = useMemo(
+    () =>
+      ORIENTATION_OPTIONS.map((opt) => ({
+        ...opt,
+        text: t(opt.key) || opt.label || t("common.select"),
+      })),
+    [t]
+  );
+
   return (
     <FormProvider {...methods}>
       <div className="w-full max-w-3xl mx-auto">
@@ -39,9 +150,7 @@ const DiscoverFilters = ({
           onSubmit={handleSubmit(handleFilter)}
           className="flex flex-col gap-6"
         >
-          {/* --- REPLACE START: translate comment */}
           {/* Title and instructions */}
-          {/* --- REPLACE END */}
           <div className="text-center">
             <h2
               data-cy="DiscoverFilters__title"
@@ -57,9 +166,7 @@ const DiscoverFilters = ({
             </p>
           </div>
 
-          {/* --- REPLACE START: translate comment */}
           {/* Age range: minAge and maxAge */}
-          {/* --- REPLACE END */}
           <div className="flex flex-col gap-2">
             <label htmlFor="minAge" className="font-medium">
               {t("discover.ageRange")}
@@ -84,9 +191,7 @@ const DiscoverFilters = ({
             </div>
           </div>
 
-          {/* --- REPLACE START: translate comment */}
           {/* Username (filter only) */}
-          {/* --- REPLACE END */}
           <div>
             <label className="block font-medium mb-1">
               {t("discover.username")}
@@ -98,9 +203,7 @@ const DiscoverFilters = ({
             />
           </div>
 
-          {/* --- REPLACE START: translate comment */}
           {/* Gender */}
-          {/* --- REPLACE END */}
           <div>
             <label className="block font-medium mb-1">
               {t("discover.gender")}
@@ -109,16 +212,15 @@ const DiscoverFilters = ({
               {...register("gender")}
               className="w-full p-2 border rounded"
             >
-              <option value="">{t("common.all")}</option>
-              <option value="Male">{t("profile.male")}</option>
-              <option value="Female">{t("profile.female")}</option>
-              <option value="Other">{t("profile.other")}</option>
+              {mappedGenderOptions.map((o) => (
+                <option key={`${o.value || "all"}`} value={o.value}>
+                  {o.text}
+                </option>
+              ))}
             </select>
           </div>
 
-          {/* --- REPLACE START: translate comment */}
           {/* Sexual orientation */}
-          {/* --- REPLACE END */}
           <div>
             <label className="block font-medium mb-1">
               ❤️ {t("discover.orientation")}
@@ -127,17 +229,15 @@ const DiscoverFilters = ({
               {...register("orientation")}
               className="w-full p-2 border rounded"
             >
-              <option value="">{t("common.all")}</option>
-              <option value="Straight">{t("profile.straight")}</option>
-              <option value="Gay">{t("profile.gay")}</option>
-              <option value="Bi">{t("profile.bi")}</option>
-              <option value="Other">{t("profile.other")}</option>
+              {mappedOrientationOptions.map((o) => (
+                <option key={`${o.value || "all"}`} value={o.value}>
+                  {o.text}
+                </option>
+              ))}
             </select>
           </div>
 
-          {/* --- REPLACE START: translate comment */}
           {/* Location (country/region/city + custom) */}
-          {/* --- REPLACE END */}
           <FormLocation
             t={t}
             countryFieldName="country"
@@ -149,14 +249,10 @@ const DiscoverFilters = ({
             includeAllOption
           />
 
-          {/* --- REPLACE START: translate comment */}
           {/* Education */}
-          {/* --- REPLACE END */}
           <FormEducation t={t} includeAllOption />
 
-          {/* --- REPLACE START: translate comment */}
-          {/* Profession */}
-          {/* --- REPLACE END */}
+          {/* Profession (kept as free select placeholder for parity; list can be wired later) */}
           <div>
             <label className="block font-medium mb-1">
               {t("discover.profession")}
@@ -166,13 +262,11 @@ const DiscoverFilters = ({
               className="w-full p-2 border rounded"
             >
               <option value="">{t("common.all")}</option>
-              {/* …profession list… */}
+              {/* When profession list is finalized, mirror ProfileForm here exactly */}
             </select>
           </div>
 
-          {/* --- REPLACE START: translate comment */}
           {/* Religion & importance */}
-          {/* --- REPLACE END */}
           <div>
             <label className="block font-medium mb-1">
               🛐 {t("discover.religion")}
@@ -181,8 +275,11 @@ const DiscoverFilters = ({
               {...register("religion")}
               className="w-full p-2 border rounded"
             >
-              <option value="">{t("common.all")}</option>
-              {/* …religion options… */}
+              {mappedReligionOptions.map((o) => (
+                <option key={`${o.value || "all"}`} value={o.value}>
+                  {o.text}
+                </option>
+              ))}
             </select>
           </div>
           <div>
@@ -193,34 +290,44 @@ const DiscoverFilters = ({
               {...register("religionImportance")}
               className="w-full p-2 border rounded"
             >
-              <option value="">{t("common.all")}</option>
-              {/* …importance levels… */}
+              {mappedReligionImportanceOptions.map((o) => (
+                <option key={`${o.value || "all"}`} value={o.value}>
+                  {o.text}
+                </option>
+              ))}
             </select>
           </div>
 
-          {/* --- REPLACE START: translate comment */}
+          {/* Political ideology */}
+          <div>
+            <label className="block font-medium mb-1">
+              🗳️ {t("discover.politicalIdeology")}
+            </label>
+            <select
+              {...register("politicalIdeology")}
+              className="w-full p-2 border rounded"
+            >
+              {mappedPoliticalOptions.map((o) => (
+                <option key={`${o.value || "all"}`} value={o.value}>
+                  {o.text}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Children & pets */}
-          {/* --- REPLACE END */}
           <FormChildrenPets t={t} includeAllOption />
 
-          {/* --- REPLACE START: translate comment */}
           {/* Lifestyle (smoke/drink/drugs, etc.) */}
-          {/* --- REPLACE END */}
           <FormLifestyle t={t} includeAllOption />
 
-          {/* --- REPLACE START: translate comment */}
           {/* Goals & summary */}
-          {/* --- REPLACE END */}
           <FormGoalSummary t={t} includeAllOption />
 
-          {/* --- REPLACE START: translate comment */}
           {/* What are you looking for? */}
-          {/* --- REPLACE END */}
           <FormLookingFor t={t} includeAllOption />
 
-          {/* --- REPLACE START: translate comment */}
           {/* Submit button */}
-          {/* --- REPLACE END */}
           <div className="text-center pt-3">
             <button
               data-cy="DiscoverFilters__submitButton"

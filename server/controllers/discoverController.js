@@ -30,6 +30,7 @@ const allowedFilters = [
   'smoke',
   'drink',
   'drugs',
+  'politicalIdeology', // ADDED: filter by political ideology
 ];
 
 /** Helper: parse number safely (accepts numeric strings), returns fallback if NaN/empty */

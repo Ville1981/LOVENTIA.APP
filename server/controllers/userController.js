@@ -22,8 +22,14 @@ import {
   deletePhotoSlotService,
 } from './services/images.service.js';
 
-// Controller functions (pure delegation to service layer)
-
+/**
+ * Controller functions
+ * These simply delegate to the service layer so that
+ * any logic changes happen in one place (services).
+ * 
+ * NOTE: When adding new profile fields (e.g., "politicalIdeology"),
+ * ensure that `updateProfileService` is updated accordingly.
+ */
 export async function registerUser(req, res) {
   return registerUserService(req, res);
 }

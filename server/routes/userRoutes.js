@@ -163,6 +163,9 @@ const UPDATABLE_FIELDS = new Set([
   'longitude',
   'profilePhoto',
   'extraImages',
+  // --- REPLACE START: allow Political ideology updates from client ---
+  'politicalIdeology',
+  // --- REPLACE END ---
 ]);
 
 // --- REPLACE START: add hybrid PUT /profile with location mapping ---

@@ -1,5 +1,4 @@
-// src/components/discover/DetailsSection.jsx
-
+// --- REPLACE START: Added political ideology display in details section ---
 import PropTypes from "prop-types";
 import React from "react";
 
@@ -12,8 +11,8 @@ const DetailsSection = ({ details = {} }) => {
       className="mt-6 focus:outline-none"
       tabIndex={-1}
       style={{
-        overflowAnchor: "none", // estää scroll-ankkuroinnin
-        minHeight: "5rem", // takaa vakauden eri profiileilla
+        overflowAnchor: "none", // prevent scroll anchoring
+        minHeight: "5rem", // ensure stability across profiles
       }}
     >
       <div
@@ -28,7 +27,7 @@ const DetailsSection = ({ details = {} }) => {
         tabIndex={-1}
         style={{
           overflowAnchor: "none",
-          minHeight: "4rem", // vakioidaan sisällön minikorkeus
+          minHeight: "4rem", // normalize min height of content
         }}
       >
         {details.gender && (
@@ -53,6 +52,12 @@ const DetailsSection = ({ details = {} }) => {
               {details.ethnicity} | {details.languages?.join(", ")} |{" "}
               {details.education} | {details.employment} | {details.religion}
             </span>
+          </div>
+        )}
+        {details.politicalIdeology && (
+          <div className="flex items-center space-x-2">
+            <span>🗳️</span>
+            <span>{details.politicalIdeology}</span>
           </div>
         )}
         {(details.smoking ||
@@ -101,6 +106,7 @@ DetailsSection.propTypes = {
     education: PropTypes.string,
     employment: PropTypes.string,
     religion: PropTypes.string,
+    politicalIdeology: PropTypes.string,
     smoking: PropTypes.string,
     drinking: PropTypes.string,
     marijuana: PropTypes.string,
@@ -112,3 +118,4 @@ DetailsSection.propTypes = {
 };
 
 export default React.memo(DetailsSection);
+// --- REPLACE END ---

@@ -1,4 +1,4 @@
-// middleware/profileValidator.js
+// File: server/middleware/profileValidator.js
 
 // --- REPLACE START: ESM imports for validation and sanitization ---
 import { body, validationResult } from 'express-validator';
@@ -79,6 +79,13 @@ export const sanitizeAndValidateProfile = [
 
   // --- REPLACE START: trim and escape lookingFor ---
   body('lookingFor')
+    .trim()
+    .escape(),
+  // --- REPLACE END ---
+
+  // --- REPLACE START: trim and escape political ideology ---
+  body('politicalIdeology')
+    .optional()
     .trim()
     .escape(),
   // --- REPLACE END ---
