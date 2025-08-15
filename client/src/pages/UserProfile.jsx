@@ -21,6 +21,9 @@ const UserProfile = () => {
     setMessage("");
     setSuccess(false);
 
+    // Debug: verify the submit path is reached from ProfileForm
+    console.log("[UserProfile] PUT /users/profile payload:", data);
+
     try {
       const res = await api.put("/users/profile", data);
       // Prefer server response (may contain normalized values)
@@ -43,7 +46,8 @@ const UserProfile = () => {
       setSuccess(false);
       // Show specific message for 401, otherwise generic error
       setMessage(
-        (status === 401 && (t("profile.authRequired") || "Authentication required.")) ||
+        (status === 401 &&
+          (t("profile.authRequired") || "Authentication required.")) ||
           t("profile.updateError") ||
           "Failed to update profile."
       );
@@ -62,7 +66,8 @@ const UserProfile = () => {
         const status = err?.response?.status;
         console.error("❌ Fetch failed:", status, err?.message, err);
         setMessage(
-          (status === 401 && (t("profile.authRequired") || "Authentication required.")) ||
+          (status === 401 &&
+            (t("profile.authRequired") || "Authentication required.")) ||
             t("profile.loadError") ||
             "Failed to load profile."
         );
@@ -93,7 +98,10 @@ const UserProfile = () => {
         data-cy="UserProfile__title"
       >
         {/* Keep the original conditional title behavior */}
-        👤 {userIdParam ? (t("profile.viewOther") || "Profile") : (t("profile.viewOwn") || "My Profile")}
+        👤{" "}
+        {userIdParam
+          ? t("profile.viewOther") || "Profile"
+          : t("profile.viewOwn") || "My Profile"}
       </h2>
 
       {userIdParam ? (
