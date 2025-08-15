@@ -19,3 +19,4 @@ server/uploads/
 .idea/
 *.log
 .DS_Store
+client-dist/
