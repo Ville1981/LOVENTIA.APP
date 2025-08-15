@@ -1,4 +1,4 @@
-// --- REPLACE START: keep structure, add Political Ideology field (fix reset order + submit debug) ---
+// --- REPLACE START: keep structure, add Political Ideology field (validate lowercase units + normalize on submit + preserve edits on reset + debug) ---
 import { yupResolver } from "@hookform/resolvers/yup";
 import React, { useState, useEffect, useMemo } from "react";
 import { useForm, FormProvider } from "react-hook-form";
@@ -77,7 +77,7 @@ const religionImportanceOptions = [
   "Essential",
 ];
 
-// New: Political ideology options (kept identical with Discover)
+// New: Political ideology options
 const politicalIdeologyOptions = [
   "",
   "Left",
@@ -99,7 +99,7 @@ const politicalIdeologyOptions = [
 ];
 
 // =============================================
-/** Validation schema */
+// Validation schema
 // =============================================
 const schema = yup.object().shape({
   username: yup.string().required("Required"),
@@ -143,8 +143,18 @@ const schema = yup.object().shape({
   drugs: yup.string(),
 
   height: yup.number().nullable().transform((v, o) => (o === "" ? null : v)),
-  heightUnit: yup.string().oneOf(["", "Cm", "FtIn"], "Invalid unit"),
+
+  // Accept both title- and lowercase; we normalize on submit
+  heightUnit: yup
+    .string()
+    .oneOf(["", "Cm", "FtIn", "cm", "ftin"], "Invalid unit"),
+
   weight: yup.number().nullable().transform((v, o) => (o === "" ? null : v)),
+  // Include weightUnit because UI has it; accept both cases too
+  weightUnit: yup
+    .string()
+    .oneOf(["", "kg", "lb", "KG", "LB"], "Invalid unit"),
+
   bodyType: yup.string(),
   activityLevel: yup.string(),
 
@@ -211,6 +221,7 @@ export default function ProfileForm({
       height: user.height ?? null,
       heightUnit: user.heightUnit || "",
       weight: user.weight ?? null,
+      weightUnit: user.weightUnit || "",
       bodyType: user.bodyType || "",
       activityLevel: user.activityLevel || "",
 
@@ -239,21 +250,15 @@ export default function ProfileForm({
     getValues,
   } = methods;
 
-  /**
-   * IMPORTANT: Keep user's current form edits when user-object refreshes.
-   * Put server data first and then override with current form values,
-   * so freshly selected fields (e.g. politicalIdeology) won't be wiped out.
-   */
+  // Preserve user's current edits when `user` object refreshes
   useEffect(() => {
     const current = getValues();
     reset({
-      // 1) Server user as base
+      // Server as base…
       ...user,
-
-      // 2) Current form values override server to avoid wiping fresh edits
+      // …then current form values override (so fresh edits don't get wiped)
       ...current,
 
-      // Normalizations (prefer current if present, else server)
       nutritionPreferences: Array.isArray(user.nutritionPreferences)
         ? user.nutritionPreferences[0]
         : (current.nutritionPreferences ?? user.nutritionPreferences ?? ""),
@@ -261,9 +266,11 @@ export default function ProfileForm({
       extraImages: current.extraImages ?? user.extraImages ?? [],
       profilePhoto: current.profilePhoto ?? user.profilePicture ?? "",
 
-      // Ensure politicalIdeology persists
       politicalIdeology:
         current.politicalIdeology ?? user.politicalIdeology ?? "",
+
+      heightUnit: current.heightUnit ?? user.heightUnit ?? "",
+      weightUnit: current.weightUnit ?? user.weightUnit ?? "",
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, reset]);
@@ -290,19 +297,29 @@ export default function ProfileForm({
     }
   }, [user.profilePicture]);
 // --- REPLACE END ---
-// --- REPLACE START: continuation with Political Ideology field (add submit debug + optional generic error note) ---
+// --- REPLACE START: continuation with Political Ideology field (normalize units on submit + log validation errors) ---
   const onFormSubmit = async (data) => {
-    // Debug: if this doesn't print, the submit likely failed validation
-    console.log("[ProfileForm] Submitting payload:", data);
+    // Debug: if this doesn't print, submit failed validation
+    console.log("[ProfileForm] Submitting payload (raw):", data);
+
+    // Normalize units so backend always receives canonical values
+    const normalizeHeightUnit = (u) =>
+      u === "cm" ? "Cm" : u === "ftin" ? "FtIn" : u;
+    const normalizeWeightUnit = (u) =>
+      u === "KG" ? "kg" : u === "LB" ? "lb" : u;
 
     const payload = {
       ...data,
+      heightUnit: normalizeHeightUnit(data.heightUnit),
+      weightUnit: normalizeWeightUnit(data.weightUnit),
       nutritionPreferences: data.nutritionPreferences
         ? [data.nutritionPreferences]
         : [],
       extraImages: localExtraImages,
       profilePhoto: data.profilePhoto,
     };
+
+    console.log("[ProfileForm] Submitting payload (normalized):", payload);
     await onSubmitProp?.(payload);
   };
 
@@ -336,7 +353,13 @@ export default function ProfileForm({
   return (
     <FormProvider {...methods}>
       <form
-        onSubmit={handleSubmit(onFormSubmit)}
+        onSubmit={handleSubmit(
+          onFormSubmit,
+          (errs) => {
+            // Visible debug to quickly spot which fields block submit
+            console.warn("[ProfileForm] Validation errors:", errs);
+          }
+        )}
         className="bg-white shadow rounded-lg p-6 space-y-6"
       >
         <input type="hidden" {...methods.register("profilePhoto")} />
@@ -375,7 +398,7 @@ export default function ProfileForm({
 
         <FormEducation t={t} />
 
-        {/* Profession + Religion */}
+        {/* Profession + Religion + Political Ideology */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">
@@ -508,7 +531,7 @@ export default function ProfileForm({
           />
         )}
 
-        {/* Optional generic error hint if validation blocks submit */}
+        {/* Quick generic hint if validation blocks submit */}
         {Object.keys(errors || {}).length > 0 && (
           <p className="text-sm mt-2 text-red-600">
             {t("common.fixErrors") || "Please fix the highlighted fields before saving."}
