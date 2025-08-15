@@ -1,5 +1,5 @@
-{
 
+{
   "site": {
     "title": "DateSite"
   },
@@ -142,6 +142,36 @@
     "confirmDelete": "Are you sure you want to permanently delete your account?"
   },
 
+  "religion": {
+    "christianity": "Christianity",
+    "islam": "Islam",
+    "hinduism": "Hinduism",
+    "buddhism": "Buddhism",
+    "folk": "Folk",
+    "none": "None",
+    "other": "Other",
+    "atheism": "Atheism"
+  },
+
+  "politics": {
+    "left": "Left",
+    "centre": "Centre",
+    "right": "Right",
+    "democracy": "Democracy",
+    "conservatism": "Conservatism",
+    "liberalism": "Liberalism",
+    "socialism": "Socialism",
+    "communism": "Communism",
+    "fascism": "Fascism",
+    "environmentalism": "Environmentalism",
+    "anarchism": "Anarchism",
+    "nationalism": "Nationalism",
+    "populism": "Populism",
+    "progressivism": "Progressivism",
+    "libertarianism": "Libertarianism",
+    "other": "Other"
+  },
+
   "hero": {
     "0": "Find love that lasts.",
     "1": "Meet people who share your values.",
@@ -154,6 +184,12 @@
     "delete": "Delete",
     "edit": "Edit",
     "back": "Back"
+  },
+
+  "common": {
+    "select": "Select",
+    "filter": "Filter",
+    "all": "All"
   },
 
   "messages": {
@@ -184,14 +220,17 @@
     "noResults": "No results",
     "minAge": "Minimum age",
     "maxAge": "Maximum age",
+    "ageRange": "Age range",
     "instructions": "Select filter criteria to find matching profiles.",
     "filter": "Filter",
+    "username": "Username",
+    "gender": "Gender",
+    "orientation": "Sexual orientation",
+    "professionCategory": "Profession category",
+    "profession": "Profession",
+    "religion": "Religion or values",
+    "religionImportance": "How important is religion?",
     "politicalIdeology": "Political ideology"
-  },
-
-  "common": {
-    "select": "Select",
-    "filter": "Filter"
   },
 
   "chat": {
@@ -331,7 +370,6 @@
     "matchFound": "You have a new match with {{username}}"
   }
 }
-
 
 
 

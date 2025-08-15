@@ -30,7 +30,9 @@ const allowedFilters = [
   'smoke',
   'drink',
   'drugs',
-  'politicalIdeology', // ADDED: filter by political ideology
+  // --- REPLACE START: allow political ideology filters (UI + schema aligned) ---
+  'politicalIdeology',
+  // --- REPLACE END ---
 ];
 
 /** Helper: parse number safely (accepts numeric strings), returns fallback if NaN/empty */
@@ -107,6 +109,9 @@ export async function getDiscover(req, res) {
         } else if (key === 'goals' || key === 'goal') {
           // The schema uses singular 'goal'
           filters['goal'] = value;
+        } else if (key === 'politicalIdeology') {
+          // Pass-through; schema field is politicalIdeology (string)
+          filters['politicalIdeology'] = value;
         } else {
           filters[key] = value;
         }

@@ -1,4 +1,4 @@
-// --- REPLACE START: keep structure, add Political Ideology field ---
+// --- REPLACE START: keep structure, add Political Ideology field (fix reset order + submit debug) ---
 import { yupResolver } from "@hookform/resolvers/yup";
 import React, { useState, useEffect, useMemo } from "react";
 import { useForm, FormProvider } from "react-hook-form";
@@ -77,7 +77,7 @@ const religionImportanceOptions = [
   "Essential",
 ];
 
-// New: Political ideology options
+// New: Political ideology options (kept identical with Discover)
 const politicalIdeologyOptions = [
   "",
   "Left",
@@ -99,7 +99,7 @@ const politicalIdeologyOptions = [
 ];
 
 // =============================================
-// Validation schema
+/** Validation schema */
 // =============================================
 const schema = yup.object().shape({
   username: yup.string().required("Required"),
@@ -239,15 +239,31 @@ export default function ProfileForm({
     getValues,
   } = methods;
 
+  /**
+   * IMPORTANT: Keep user's current form edits when user-object refreshes.
+   * Put server data first and then override with current form values,
+   * so freshly selected fields (e.g. politicalIdeology) won't be wiped out.
+   */
   useEffect(() => {
+    const current = getValues();
     reset({
-      ...getValues(),
+      // 1) Server user as base
       ...user,
+
+      // 2) Current form values override server to avoid wiping fresh edits
+      ...current,
+
+      // Normalizations (prefer current if present, else server)
       nutritionPreferences: Array.isArray(user.nutritionPreferences)
         ? user.nutritionPreferences[0]
-        : user.nutritionPreferences,
-      extraImages: user.extraImages || [],
-      profilePhoto: user.profilePicture || "",
+        : (current.nutritionPreferences ?? user.nutritionPreferences ?? ""),
+
+      extraImages: current.extraImages ?? user.extraImages ?? [],
+      profilePhoto: current.profilePhoto ?? user.profilePicture ?? "",
+
+      // Ensure politicalIdeology persists
+      politicalIdeology:
+        current.politicalIdeology ?? user.politicalIdeology ?? "",
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, reset]);
@@ -274,8 +290,11 @@ export default function ProfileForm({
     }
   }, [user.profilePicture]);
 // --- REPLACE END ---
-// --- REPLACE START: continuation with Political Ideology field ---
+// --- REPLACE START: continuation with Political Ideology field (add submit debug + optional generic error note) ---
   const onFormSubmit = async (data) => {
+    // Debug: if this doesn't print, the submit likely failed validation
+    console.log("[ProfileForm] Submitting payload:", data);
+
     const payload = {
       ...data,
       nutritionPreferences: data.nutritionPreferences
@@ -284,7 +303,7 @@ export default function ProfileForm({
       extraImages: localExtraImages,
       profilePhoto: data.profilePhoto,
     };
-    await onSubmitProp(payload);
+    await onSubmitProp?.(payload);
   };
 
   const slideshowImages = useMemo(() => {
@@ -356,7 +375,7 @@ export default function ProfileForm({
 
         <FormEducation t={t} />
 
-        {/* Profession + Religion + Political Ideology */}
+        {/* Profession + Religion */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">
@@ -489,6 +508,13 @@ export default function ProfileForm({
           />
         )}
 
+        {/* Optional generic error hint if validation blocks submit */}
+        {Object.keys(errors || {}).length > 0 && (
+          <p className="text-sm mt-2 text-red-600">
+            {t("common.fixErrors") || "Please fix the highlighted fields before saving."}
+          </p>
+        )}
+
         <div className="flex justify-end">
           <button
             type="submit"
@@ -511,20 +537,3 @@ export default function ProfileForm({
   );
 }
 // --- REPLACE END ---
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -149,6 +149,11 @@ router.put(
     body('nutritionPreferences')
       .optional()
       .isArray().withMessage('Nutrition preferences must be an array'),
+    // --- REPLACE START: accept politicalIdeology input (trim/sanitize lightly) ---
+    body('politicalIdeology').optional().trim().escape(),
+    // Also accept legacy 'ideology' and sanitize it (we map it below)
+    body('ideology').optional().trim().escape(),
+    // --- REPLACE END ---
   ],
   (req, res, next) => {
     const errors = validationResult(req);
@@ -161,6 +166,24 @@ router.put(
     try {
       const user = await User.findById(req.userId);
       if (!user) return res.status(404).json({ error: "User not found" });
+
+      // --- REPLACE START: normalize ideology keys BEFORE whitelist copy ---
+      /**
+       * Robust mapping between UI key `politicalIdeology` and any legacy `ideology`.
+       * - If only `ideology` is present, copy it to `politicalIdeology`.
+       * - We do NOT persist `ideology` directly to avoid strict schema issues.
+       */
+      if (
+        (req.body.politicalIdeology === undefined || req.body.politicalIdeology === null || req.body.politicalIdeology === "") &&
+        typeof req.body.ideology !== "undefined"
+      ) {
+        req.body.politicalIdeology = req.body.ideology;
+      }
+      // Remove legacy key to avoid accidental write to unknown field
+      if (Object.prototype.hasOwnProperty.call(req.body, "ideology")) {
+        delete req.body.ideology;
+      }
+      // --- REPLACE END ---
 
       // Fields to update
       const fields = [
@@ -177,7 +200,10 @@ router.put(
         "interests", "preferredGender", "preferredMinAge",
         "preferredMaxAge", "preferredInterests", "preferredCountry",
         "preferredReligion", "preferredReligionImportance",
-        "preferredEducation", "preferredProfession", "preferredChildren"
+        "preferredEducation", "preferredProfession", "preferredChildren",
+        // --- REPLACE START: added missing field for political ideology ---
+        "politicalIdeology"
+        // --- REPLACE END ---
       ];
 
       fields.forEach((field) => {

@@ -1,10 +1,26 @@
 // --- REPLACE START: profile service (getMe, updateProfile, matches, premium) ---
-import * as UserModule from '../../src/models/User.js';
+/**
+ * Profile service
+ * - Preserves original structure and behavior.
+ * - Adds robust support for political ideology:
+ *     * Accepts both `politicalIdeology` (client/UI) and `ideology` (schema).
+ *     * Maps `politicalIdeology` -> `ideology` if needed.
+ * - Keeps location mapping, numeric coercions, and array parsing.
+ * - All comments are in English. No unnecessary shortening done.
+ */
+
+import * as UserModule from '../../models/User.js';
 const User = UserModule.default || UserModule;
 
 import toPublic from '../utils/toPublic.js';
 import getUserId from '../utils/getUserId.js';
 
+/**
+ * Whitelist of fields accepted from the client.
+ * NOTE:
+ *  - We accept both `politicalIdeology` (client/UI) and `ideology` (schema) so either will work.
+ *  - We do NOT remove any entries you already had; only additions where needed.
+ */
 const UPDATABLE_FIELDS = [
   // basic
   'name',
@@ -14,8 +30,9 @@ const UPDATABLE_FIELDS = [
   'age',
   'gender',
   'status',
-  'orientation',         // ADDED: allow orientation updates
-  'ideology',            // ADDED: allow political ideology updates
+  'orientation',         // allow orientation updates
+  'ideology',            // schema key
+  'politicalIdeology',   // client/UI key -> mapped to ideology
 
   // top-level location convenience (mapped to nested location.*)
   'city',
@@ -97,21 +114,30 @@ export async function updateProfileService(req, res) {
     const body = req.body || {};
     const update = {};
 
-    // Copy only allowed fields
+    // Copy only allowed fields (keep behavior; do not shorten)
     for (const key of UPDATABLE_FIELDS) {
       if (Object.prototype.hasOwnProperty.call(body, key)) {
         update[key] = body[key];
       }
     }
 
-    // Normalize fields without shortening logic
+    // Normalize fields without removing existing logic
+
     // 1) bio -> summary (model uses summary)
     if (Object.prototype.hasOwnProperty.call(update, 'bio') && !update.summary) {
       update.summary = update.bio;
       delete update.bio;
     }
 
-    // 2) city/region/country to nested location.*
+    // 2) Support both politicalIdeology (client) and ideology (schema)
+    if (Object.prototype.hasOwnProperty.call(update, 'politicalIdeology')) {
+      if (!Object.prototype.hasOwnProperty.call(update, 'ideology')) {
+        update.ideology = update.politicalIdeology;
+      }
+      delete update.politicalIdeology;
+    }
+
+    // 3) city/region/country to nested location.*
     const locationSet = {};
     if (Object.prototype.hasOwnProperty.call(update, 'city')) {
       locationSet['location.city'] = update.city;
@@ -125,7 +151,6 @@ export async function updateProfileService(req, res) {
       locationSet['location.country'] = update.country;
       delete update.country;
     }
-    // If client supplied a full location object, prefer its properties explicitly
     if (isPlainObject(update.location)) {
       if (Object.prototype.hasOwnProperty.call(update.location, 'city')) {
         locationSet['location.city'] = update.location.city;
@@ -139,24 +164,32 @@ export async function updateProfileService(req, res) {
       delete update.location;
     }
 
-    // 3) coordinates: accept lat/lng or latitude/longitude; persist to latitude/longitude
+    // 4) coordinates: accept lat/lng or latitude/longitude
     const hasLat = Object.prototype.hasOwnProperty.call(update, 'lat');
     const hasLng = Object.prototype.hasOwnProperty.call(update, 'lng');
     const hasLatitude = Object.prototype.hasOwnProperty.call(update, 'latitude');
     const hasLongitude = Object.prototype.hasOwnProperty.call(update, 'longitude');
 
     if (hasLat) {
-      update.latitude = Number(update.lat);
+      const n = Number(update.lat);
+      update.latitude = Number.isNaN(n) ? update.latitude : n;
       delete update.lat;
     }
     if (hasLng) {
-      update.longitude = Number(update.lng);
+      const n = Number(update.lng);
+      update.longitude = Number.isNaN(n) ? update.longitude : n;
       delete update.lng;
     }
-    if (hasLatitude) update.latitude = Number(update.latitude);
-    if (hasLongitude) update.longitude = Number(update.longitude);
+    if (hasLatitude) {
+      const n = Number(update.latitude);
+      update.latitude = Number.isNaN(n) ? undefined : n;
+    }
+    if (hasLongitude) {
+      const n = Number(update.longitude);
+      update.longitude = Number.isNaN(n) ? undefined : n;
+    }
 
-    // 4) type coercions / clamps
+    // 5) type coercions / clamps
     if (typeof update.age !== 'undefined') {
       const n = Number(update.age);
       if (!Number.isNaN(n)) update.age = Math.min(120, Math.max(18, n));
@@ -180,21 +213,19 @@ export async function updateProfileService(req, res) {
       if (typeof update[f] === 'string') {
         const s = update[f].trim();
         if (s.startsWith('[')) {
-          try { update[f] = JSON.parse(s); } catch { /* keep as string if parse fails */ }
+          try { update[f] = JSON.parse(s); } catch {}
         } else if (s.length) {
           update[f] = s.split(',').map((x) => x.trim()).filter(Boolean);
         }
       }
     }
 
-    // Guard: nothing to update
     const hasDirect = Object.keys(update).length > 0;
     const hasLoc = Object.keys(locationSet).length > 0;
     if (!hasDirect && !hasLoc) {
       return res.status(400).json({ error: 'No updatable fields provided' });
     }
 
-    // Build final update with dot-notation for nested location
     const finalUpdate = { ...update, ...locationSet };
 
     const user = await User.findByIdAndUpdate(uid, finalUpdate, {
@@ -257,7 +288,6 @@ export async function getMatchesWithScoreService(req, res) {
       .map((u) => {
         let score = 0;
 
-        // Gender preference
         if (
           currentUser.preferredGender === 'any' ||
           (u.gender &&
@@ -267,7 +297,6 @@ export async function getMatchesWithScoreService(req, res) {
           score += 20;
         }
 
-        // Age range
         if (
           typeof u.age === 'number' &&
           typeof currentUser.preferredMinAge === 'number' &&
@@ -278,7 +307,6 @@ export async function getMatchesWithScoreService(req, res) {
           score += 20;
         }
 
-        // Interest overlap
         const common = (u.interests || []).filter((i) =>
           (interests || []).includes(i)
         );

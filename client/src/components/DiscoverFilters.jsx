@@ -1,4 +1,4 @@
-// --- REPLACE START: DiscoverFilters wired for backend filters, age inputs, and clean props ---
+// --- REPLACE START: DiscoverFilters wired for backend filters, stable options, and identical lists with ProfileForm ---
 import PropTypes from "prop-types";
 import React, { useMemo } from "react";
 import { useForm, FormProvider } from "react-hook-form";
@@ -16,6 +16,7 @@ import FormLookingFor from "./profileFields/FormLookingFor";
 /**
  * Stable option sources (kept in-code so dropdowns never "disappear" if a translation key is missing).
  * Labels are shown via t(key) || fallbackLabel, so missing keys won't blank the option.
+ * These match ProfileForm exactly, including Democracy and Left/Centre/Right.
  */
 
 // Religion options (match ProfileForm)
@@ -61,7 +62,7 @@ const POLITICAL_IDEOLOGY_OPTIONS = [
   { value: "Other", key: "politics.other", label: "Other" },
 ];
 
-// Gender options (kept explicit for parity)
+// Gender options (parity with ProfileForm)
 const GENDER_OPTIONS = [
   { value: "", key: "common.all", label: "" },
   { value: "Male", key: "profile.male", label: "Male" },
@@ -69,7 +70,7 @@ const GENDER_OPTIONS = [
   { value: "Other", key: "profile.other", label: "Other" },
 ];
 
-// Orientation options (kept explicit for parity)
+// Orientation options (parity with ProfileForm)
 const ORIENTATION_OPTIONS = [
   { value: "", key: "common.all", label: "" },
   { value: "Straight", key: "profile.straight", label: "Straight" },
@@ -96,7 +97,7 @@ const DiscoverFilters = ({
   });
   const { handleSubmit, register } = methods;
 
-  // Memoize mapped options (stable arrays → stable renders)
+  // Memoized mapped options
   const mappedReligionOptions = useMemo(
     () =>
       RELIGION_OPTIONS.map((opt) => ({
@@ -252,7 +253,7 @@ const DiscoverFilters = ({
           {/* Education */}
           <FormEducation t={t} includeAllOption />
 
-          {/* Profession (kept as free select placeholder for parity; list can be wired later) */}
+          {/* Profession (placeholder select; mirror ProfileForm list when finalized) */}
           <div>
             <label className="block font-medium mb-1">
               {t("discover.profession")}
@@ -262,7 +263,7 @@ const DiscoverFilters = ({
               className="w-full p-2 border rounded"
             >
               <option value="">{t("common.all")}</option>
-              {/* When profession list is finalized, mirror ProfileForm here exactly */}
+              {/* Keep in sync with ProfileForm categories if you expose them here */}
             </select>
           </div>
 

@@ -1,8 +1,29 @@
-// --- REPLACE START: Convert to CommonJS + add missing fields + location virtuals (kept original structure) ---
+// --- REPLACE START: Convert to CommonJS + add missing fields + location virtuals + politicalIdeology enum (kept original structure) ---
 'use strict';
 
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+
+/** Keep client/server options in sync (includes Left/Centre/Right/Democracy + others) */
+const POLITICAL_IDEOLOGY_ENUM = [
+  '', // allow empty (not set)
+  'Left',
+  'Centre',
+  'Right',
+  'Democracy',
+  'Conservatism',
+  'Liberalism',
+  'Socialism',
+  'Communism',
+  'Fascism',
+  'Environmentalism',
+  'Anarchism',
+  'Nationalism',
+  'Populism',
+  'Progressivism',
+  'Libertarianism',
+  'Other',
+];
 
 // Define User schema with all necessary fields.
 // NOTE: We keep the overall structure similar to the original and only add what's required.
@@ -43,8 +64,8 @@ const userSchema = new mongoose.Schema(
     // Added missing profile field
     orientation:        String, // ensures "orientation" persists
 
-    // ✅ New field for political ideology
-    ideology:           String,
+    // ✅ New field for political ideology (matches client name)
+    politicalIdeology:  { type: String, enum: POLITICAL_IDEOLOGY_ENUM, default: '' },
 
     // Location stored as a nested object (canonical source of truth)
     location:           {
@@ -139,6 +160,14 @@ userSchema.virtual('id').get(function () {
     return undefined;
   }
 });
+
+/**
+ * Backward-compat alias for legacy code that might read/write `ideology`.
+ * It mirrors the canonical `politicalIdeology` field.
+ */
+userSchema.virtual('ideology')
+  .get(function () { return this.politicalIdeology; })
+  .set(function (v) { this.politicalIdeology = v; });
 
 /**
  * Static: findByCredentials(email, password)
