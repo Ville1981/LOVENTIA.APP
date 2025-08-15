@@ -1,26 +1,10 @@
-// --- REPLACE START: profile service (getMe, updateProfile, matches, premium) ---
-/**
- * Profile service
- * - Preserves original structure and behavior.
- * - Adds robust support for political ideology:
- *     * Accepts both `politicalIdeology` (client/UI) and `ideology` (schema).
- *     * Maps `politicalIdeology` -> `ideology` if needed.
- * - Keeps location mapping, numeric coercions, and array parsing.
- * - All comments are in English. No unnecessary shortening done.
- */
-
-import * as UserModule from '../../models/User.js';
+// --- REPLACE START: profile service (ensure politicalIdeology persists + is returned by GET) ---
+import * as UserModule from '../../src/models/User.js';
 const User = UserModule.default || UserModule;
 
 import toPublic from '../utils/toPublic.js';
 import getUserId from '../utils/getUserId.js';
 
-/**
- * Whitelist of fields accepted from the client.
- * NOTE:
- *  - We accept both `politicalIdeology` (client/UI) and `ideology` (schema) so either will work.
- *  - We do NOT remove any entries you already had; only additions where needed.
- */
 const UPDATABLE_FIELDS = [
   // basic
   'name',
@@ -30,9 +14,10 @@ const UPDATABLE_FIELDS = [
   'age',
   'gender',
   'status',
-  'orientation',         // allow orientation updates
-  'ideology',            // schema key
-  'politicalIdeology',   // client/UI key -> mapped to ideology
+  'orientation',
+
+  // IMPORTANT: persist using the actual model field name
+  'politicalIdeology',
 
   // top-level location convenience (mapped to nested location.*)
   'city',
@@ -89,14 +74,18 @@ const UPDATABLE_FIELDS = [
   'customCountry',
 ];
 
+// Accept legacy payloads that might still send `ideology`;
+const LEGACY_ACCEPTED_FIELDS = ['ideology'];
+
 const isPlainObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 
+// ---------- READ (GET) ----------
 export async function getMeService(req, res) {
   try {
     const uid = getUserId(req);
     if (!uid) return res.status(401).json({ error: 'Unauthorized' });
 
-    const user = await User.findById(uid);
+    const user = await User.findById(uid).select('+politicalIdeology');
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     return res.json(toPublic(user));
@@ -106,6 +95,22 @@ export async function getMeService(req, res) {
   }
 }
 
+export async function getUserByIdService(req, res) {
+  try {
+    const { id } = req.params || {};
+    if (!id) return res.status(400).json({ error: 'User id required' });
+
+    const user = await User.findById(id).select('+politicalIdeology');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    return res.json(toPublic(user));
+  } catch (err) {
+    console.error('getUserById error:', err);
+    return res.status(500).json({ error: 'Server error fetching user' });
+  }
+}
+
+// ---------- WRITE (PUT) ----------
 export async function updateProfileService(req, res) {
   try {
     const uid = getUserId(req);
@@ -114,30 +119,37 @@ export async function updateProfileService(req, res) {
     const body = req.body || {};
     const update = {};
 
-    // Copy only allowed fields (keep behavior; do not shorten)
+    // Copy only allowed fields (modern set)
     for (const key of UPDATABLE_FIELDS) {
       if (Object.prototype.hasOwnProperty.call(body, key)) {
         update[key] = body[key];
       }
     }
+    // Copy legacy fields that we normalize later
+    for (const key of LEGACY_ACCEPTED_FIELDS) {
+      if (Object.prototype.hasOwnProperty.call(body, key)) {
+        update[key] = body[key];
+      }
+    }
 
-    // Normalize fields without removing existing logic
+    // ---- Normalization (WRITE) ----
 
-    // 1) bio -> summary (model uses summary)
+    // 0) ideology (legacy) -> politicalIdeology
+    if (
+      Object.prototype.hasOwnProperty.call(update, 'ideology') &&
+      !Object.prototype.hasOwnProperty.call(update, 'politicalIdeology')
+    ) {
+      update.politicalIdeology = update.ideology;
+    }
+    delete update.ideology;
+
+    // 1) bio -> summary
     if (Object.prototype.hasOwnProperty.call(update, 'bio') && !update.summary) {
       update.summary = update.bio;
       delete update.bio;
     }
 
-    // 2) Support both politicalIdeology (client) and ideology (schema)
-    if (Object.prototype.hasOwnProperty.call(update, 'politicalIdeology')) {
-      if (!Object.prototype.hasOwnProperty.call(update, 'ideology')) {
-        update.ideology = update.politicalIdeology;
-      }
-      delete update.politicalIdeology;
-    }
-
-    // 3) city/region/country to nested location.*
+    // 2) city/region/country to nested location.*
     const locationSet = {};
     if (Object.prototype.hasOwnProperty.call(update, 'city')) {
       locationSet['location.city'] = update.city;
@@ -164,32 +176,24 @@ export async function updateProfileService(req, res) {
       delete update.location;
     }
 
-    // 4) coordinates: accept lat/lng or latitude/longitude
+    // 3) coordinates
     const hasLat = Object.prototype.hasOwnProperty.call(update, 'lat');
     const hasLng = Object.prototype.hasOwnProperty.call(update, 'lng');
     const hasLatitude = Object.prototype.hasOwnProperty.call(update, 'latitude');
     const hasLongitude = Object.prototype.hasOwnProperty.call(update, 'longitude');
 
     if (hasLat) {
-      const n = Number(update.lat);
-      update.latitude = Number.isNaN(n) ? update.latitude : n;
+      update.latitude = Number(update.lat);
       delete update.lat;
     }
     if (hasLng) {
-      const n = Number(update.lng);
-      update.longitude = Number.isNaN(n) ? update.longitude : n;
+      update.longitude = Number(update.lng);
       delete update.lng;
     }
-    if (hasLatitude) {
-      const n = Number(update.latitude);
-      update.latitude = Number.isNaN(n) ? undefined : n;
-    }
-    if (hasLongitude) {
-      const n = Number(update.longitude);
-      update.longitude = Number.isNaN(n) ? undefined : n;
-    }
+    if (hasLatitude) update.latitude = Number(update.latitude);
+    if (hasLongitude) update.longitude = Number(update.longitude);
 
-    // 5) type coercions / clamps
+    // 4) type coercions / clamps
     if (typeof update.age !== 'undefined') {
       const n = Number(update.age);
       if (!Number.isNaN(n)) update.age = Math.min(120, Math.max(18, n));
@@ -213,19 +217,21 @@ export async function updateProfileService(req, res) {
       if (typeof update[f] === 'string') {
         const s = update[f].trim();
         if (s.startsWith('[')) {
-          try { update[f] = JSON.parse(s); } catch {}
+          try { update[f] = JSON.parse(s); } catch { /* keep as string if parse fails */ }
         } else if (s.length) {
           update[f] = s.split(',').map((x) => x.trim()).filter(Boolean);
         }
       }
     }
 
+    // Guard: nothing to update
     const hasDirect = Object.keys(update).length > 0;
     const hasLoc = Object.keys(locationSet).length > 0;
     if (!hasDirect && !hasLoc) {
       return res.status(400).json({ error: 'No updatable fields provided' });
     }
 
+    // Build final update with dot-notation for nested location
     const finalUpdate = { ...update, ...locationSet };
 
     const user = await User.findByIdAndUpdate(uid, finalUpdate, {
@@ -242,6 +248,7 @@ export async function updateProfileService(req, res) {
   }
 }
 
+// ---------- PREMIUM ----------
 export async function upgradeToPremiumService(req, res) {
   try {
     const uid = getUserId(req);
@@ -262,6 +269,7 @@ export async function upgradeToPremiumService(req, res) {
   }
 }
 
+// ---------- MATCHES (unchanged logic) ----------
 export async function getMatchesWithScoreService(req, res) {
   try {
     const uid = getUserId(req);
@@ -288,6 +296,7 @@ export async function getMatchesWithScoreService(req, res) {
       .map((u) => {
         let score = 0;
 
+        // Gender preference
         if (
           currentUser.preferredGender === 'any' ||
           (u.gender &&
@@ -297,6 +306,7 @@ export async function getMatchesWithScoreService(req, res) {
           score += 20;
         }
 
+        // Age range
         if (
           typeof u.age === 'number' &&
           typeof currentUser.preferredMinAge === 'number' &&
@@ -307,6 +317,7 @@ export async function getMatchesWithScoreService(req, res) {
           score += 20;
         }
 
+        // Interest overlap
         const common = (u.interests || []).filter((i) =>
           (interests || []).includes(i)
         );

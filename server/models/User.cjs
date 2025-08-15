@@ -1,32 +1,11 @@
-// --- REPLACE START: Convert to CommonJS + add missing fields + location virtuals + politicalIdeology enum (kept original structure) ---
+// --- REPLACE START: Convert to CommonJS + add missing fields + location virtuals (kept original structure) ---
 'use strict';
 
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-/** Keep client/server options in sync (includes Left/Centre/Right/Democracy + others) */
-const POLITICAL_IDEOLOGY_ENUM = [
-  '', // allow empty (not set)
-  'Left',
-  'Centre',
-  'Right',
-  'Democracy',
-  'Conservatism',
-  'Liberalism',
-  'Socialism',
-  'Communism',
-  'Fascism',
-  'Environmentalism',
-  'Anarchism',
-  'Nationalism',
-  'Populism',
-  'Progressivism',
-  'Libertarianism',
-  'Other',
-];
-
 // Define User schema with all necessary fields.
-// NOTE: We keep the overall structure similar to the original and only add what's required.
+// IMPORTANT: `politicalIdeology` replaces legacy `ideology`. A virtual alias is provided for backward compatibility.
 const userSchema = new mongoose.Schema(
   {
     username:           { type: String, required: true, unique: true, trim: true },
@@ -37,7 +16,7 @@ const userSchema = new mongoose.Schema(
 
     // Profile details
     name:               String,
-    age:                Number,  // ensure numeric for discover age filters
+    age:                Number,
     gender:             String,
     status:             String,
     religion:           String,
@@ -46,7 +25,6 @@ const userSchema = new mongoose.Schema(
     pets:               String,
     summary:            String,
 
-    // NOTE: schema uses singular 'goal'. Controller filters should target 'goal' (not 'goals').
     goal:               String,
     lookingFor:         String,
     profession:         String,
@@ -60,21 +38,27 @@ const userSchema = new mongoose.Schema(
     healthInfo:         String,
     activityLevel:      String,
     nutritionPreferences: [String],
+    orientation:        String,
 
-    // Added missing profile field
-    orientation:        String, // ensures "orientation" persists
+    // ✅ New field persisted
+    politicalIdeology: {
+      type: String,
+      enum: [
+        '',
+        'Left','Centre','Right',
+        'Conservatism','Liberalism','Socialism','Communism','Fascism',
+        'Environmentalism','Anarchism','Nationalism','Populism',
+        'Progressivism','Libertarianism','Democracy','Other',
+      ],
+      default: '',
+    },
 
-    // ✅ New field for political ideology (matches client name)
-    politicalIdeology:  { type: String, enum: POLITICAL_IDEOLOGY_ENUM, default: '' },
-
-    // Location stored as a nested object (canonical source of truth)
     location:           {
       country:          { type: String },
       region:           { type: String },
       city:             { type: String },
     },
 
-    // Optional manual/custom location text fields (keep if already used in UI)
     customCity:         String,
     customRegion:       String,
     customCountry:      String,
@@ -82,31 +66,25 @@ const userSchema = new mongoose.Schema(
     latitude:           Number,
     longitude:          Number,
 
-    // Discovery preferences
     preferredGender:    { type: String, default: 'any' },
     preferredMinAge:    { type: Number, default: 18 },
     preferredMaxAge:    { type: Number, default: 120 },
     preferredInterests: [String],
 
-    // Interests
     interests:          [String],
 
-    // Lifestyle
     smoke:              String,
     drink:              String,
     drugs:              String,
 
-    // Images
     profilePicture:     String,
     extraImages:        [String],
 
-    // Swipe/action state (needed so like/pass/superlike persist with strict:true)
     likes:        [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     passes:       [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     superLikes:   [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 
-    // Password reset
     passwordResetToken:   String,
     passwordResetExpires: Date,
   },
@@ -114,71 +92,45 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
     toJSON:   { virtuals: true },
     toObject: { virtuals: true },
-    strict: true, // keep strict to ensure unknown keys are not stored silently
+    strict: true,
   }
 );
 
-/**
- * Virtuals to keep backward compatibility with routes/controllers that
- * read/write top-level country/region/city.
- * They transparently map to the canonical nested "location.*" fields.
- */
+// Virtuals to map top-level country/region/city to nested location.*
 function ensureLocation(doc) {
   if (!doc.location) doc.location = {};
 }
-
 userSchema.virtual('country')
   .get(function () { return this.location ? this.location.country : undefined; })
   .set(function (v) { ensureLocation(this); this.location.country = v; });
-
 userSchema.virtual('region')
   .get(function () { return this.location ? this.location.region : undefined; })
   .set(function (v) { ensureLocation(this); this.location.region = v; });
-
 userSchema.virtual('city')
   .get(function () { return this.location ? this.location.city : undefined; })
   .set(function (v) { ensureLocation(this); this.location.city = v; });
 
-/**
- * Convenience virtuals for lat/lng to interop with any code that may use lat/lng.
- */
+// lat/lng conveniences
 userSchema.virtual('lat')
   .get(function () { return this.latitude; })
   .set(function (v) { this.latitude = v; });
-
 userSchema.virtual('lng')
   .get(function () { return this.longitude; })
   .set(function (v) { this.longitude = v; });
 
-/**
- * Optional convenience: normalize id field (string) for controllers/tests that read user.id.
- */
-userSchema.virtual('id').get(function () {
-  try {
-    return this._id ? this._id.toString() : undefined;
-  } catch {
-    return undefined;
-  }
-});
-
-/**
- * Backward-compat alias for legacy code that might read/write `ideology`.
- * It mirrors the canonical `politicalIdeology` field.
- */
+// Legacy alias: `ideology` → proxies to `politicalIdeology`
 userSchema.virtual('ideology')
   .get(function () { return this.politicalIdeology; })
   .set(function (v) { this.politicalIdeology = v; });
 
-/**
- * Static: findByCredentials(email, password)
- * - Looks up by email (case-insensitive)
- * - Compares bcrypt hash in `password` field
- * - For legacy/plaintext test data, falls back to direct equality if the stored value
- *   does not look like a bcrypt hash.
- */
+// id as string
+userSchema.virtual('id').get(function () {
+  try { return this._id ? this._id.toString() : undefined; } catch { return undefined; }
+});
+
+// Auth helper
 userSchema.statics.findByCredentials = async function (email, password) {
   if (!email || !password) return null;
-
   const candidate = await this.findOne({ email: String(email).toLowerCase().trim() }).exec();
   if (!candidate) return null;
 
@@ -187,26 +139,22 @@ userSchema.statics.findByCredentials = async function (email, password) {
 
   if (looksHashed) {
     const ok = await bcrypt.compare(password, stored);
-    if (!ok) return null;
-    return candidate;
+    return ok ? candidate : null;
   }
-
-  // Fallback for tests/seed data with plaintext passwords
-  if (stored === password) {
-    return candidate;
-  }
-
-  return null;
+  return stored === password ? candidate : null;
 };
 
-let UserModel;
-
-// Avoid OverwriteModelError in watch mode/tests
+// Indexes
 try {
-  UserModel = mongoose.model('User');
-} catch (_) {
-  UserModel = mongoose.model('User', userSchema);
-}
+  userSchema.index({ username: 1 }, { name: 'idx_user_username' });
+  userSchema.index({ email: 1 }, { name: 'idx_user_email' });
+  userSchema.index({ 'location.country': 1, 'location.region': 1, 'location.city': 1 }, { name: 'idx_user_location' });
+  userSchema.index({ gender: 1, age: 1 }, { name: 'idx_user_gender_age' });
+} catch {}
+
+let UserModel;
+try { UserModel = mongoose.model('User'); }
+catch { UserModel = mongoose.model('User', userSchema); }
 
 module.exports = UserModel;
 // --- REPLACE END ---
