@@ -1,4 +1,4 @@
-// --- REPLACE START: keep structure, add Political Ideology field ---
+// --- REPLACE START: keep structure, add Political Ideology field (validate lowercase units + normalize on submit + preserve edits on reset + debug) ---
 import { yupResolver } from "@hookform/resolvers/yup";
 import React, { useState, useEffect, useMemo } from "react";
 import { useForm, FormProvider } from "react-hook-form";
@@ -143,8 +143,18 @@ const schema = yup.object().shape({
   drugs: yup.string(),
 
   height: yup.number().nullable().transform((v, o) => (o === "" ? null : v)),
-  heightUnit: yup.string().oneOf(["", "Cm", "FtIn"], "Invalid unit"),
+
+  // Accept both title- and lowercase; we normalize on submit
+  heightUnit: yup
+    .string()
+    .oneOf(["", "Cm", "FtIn", "cm", "ftin"], "Invalid unit"),
+
   weight: yup.number().nullable().transform((v, o) => (o === "" ? null : v)),
+  // Include weightUnit because UI has it; accept both cases too
+  weightUnit: yup
+    .string()
+    .oneOf(["", "kg", "lb", "KG", "LB"], "Invalid unit"),
+
   bodyType: yup.string(),
   activityLevel: yup.string(),
 
@@ -211,6 +221,7 @@ export default function ProfileForm({
       height: user.height ?? null,
       heightUnit: user.heightUnit || "",
       weight: user.weight ?? null,
+      weightUnit: user.weightUnit || "",
       bodyType: user.bodyType || "",
       activityLevel: user.activityLevel || "",
 
@@ -239,15 +250,27 @@ export default function ProfileForm({
     getValues,
   } = methods;
 
+  // Preserve user's current edits when `user` object refreshes
   useEffect(() => {
+    const current = getValues();
     reset({
-      ...getValues(),
+      // Server as base…
       ...user,
+      // …then current form values override (so fresh edits don't get wiped)
+      ...current,
+
       nutritionPreferences: Array.isArray(user.nutritionPreferences)
         ? user.nutritionPreferences[0]
-        : user.nutritionPreferences,
-      extraImages: user.extraImages || [],
-      profilePhoto: user.profilePicture || "",
+        : (current.nutritionPreferences ?? user.nutritionPreferences ?? ""),
+
+      extraImages: current.extraImages ?? user.extraImages ?? [],
+      profilePhoto: current.profilePhoto ?? user.profilePicture ?? "",
+
+      politicalIdeology:
+        current.politicalIdeology ?? user.politicalIdeology ?? "",
+
+      heightUnit: current.heightUnit ?? user.heightUnit ?? "",
+      weightUnit: current.weightUnit ?? user.weightUnit ?? "",
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, reset]);
@@ -274,17 +297,30 @@ export default function ProfileForm({
     }
   }, [user.profilePicture]);
 // --- REPLACE END ---
-// --- REPLACE START: continuation with Political Ideology field ---
+// --- REPLACE START: continuation with Political Ideology field (normalize units on submit + log validation errors) ---
   const onFormSubmit = async (data) => {
+    // Debug: if this doesn't print, submit failed validation
+    console.log("[ProfileForm] Submitting payload (raw):", data);
+
+    // Normalize units so backend always receives canonical values
+    const normalizeHeightUnit = (u) =>
+      u === "cm" ? "Cm" : u === "ftin" ? "FtIn" : u;
+    const normalizeWeightUnit = (u) =>
+      u === "KG" ? "kg" : u === "LB" ? "lb" : u;
+
     const payload = {
       ...data,
+      heightUnit: normalizeHeightUnit(data.heightUnit),
+      weightUnit: normalizeWeightUnit(data.weightUnit),
       nutritionPreferences: data.nutritionPreferences
         ? [data.nutritionPreferences]
         : [],
       extraImages: localExtraImages,
       profilePhoto: data.profilePhoto,
     };
-    await onSubmitProp(payload);
+
+    console.log("[ProfileForm] Submitting payload (normalized):", payload);
+    await onSubmitProp?.(payload);
   };
 
   const slideshowImages = useMemo(() => {
@@ -317,7 +353,13 @@ export default function ProfileForm({
   return (
     <FormProvider {...methods}>
       <form
-        onSubmit={handleSubmit(onFormSubmit)}
+        onSubmit={handleSubmit(
+          onFormSubmit,
+          (errs) => {
+            // Visible debug to quickly spot which fields block submit
+            console.warn("[ProfileForm] Validation errors:", errs);
+          }
+        )}
         className="bg-white shadow rounded-lg p-6 space-y-6"
       >
         <input type="hidden" {...methods.register("profilePhoto")} />
@@ -489,6 +531,13 @@ export default function ProfileForm({
           />
         )}
 
+        {/* Quick generic hint if validation blocks submit */}
+        {Object.keys(errors || {}).length > 0 && (
+          <p className="text-sm mt-2 text-red-600">
+            {t("common.fixErrors") || "Please fix the highlighted fields before saving."}
+          </p>
+        )}
+
         <div className="flex justify-end">
           <button
             type="submit"
@@ -511,20 +560,3 @@ export default function ProfileForm({
   );
 }
 // --- REPLACE END ---
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

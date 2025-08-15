@@ -6,6 +6,7 @@ const bcrypt = require('bcryptjs');
 
 // Define User schema with all necessary fields.
 // NOTE: We keep the overall structure similar to the original and only add what's required.
+// IMPORTANT: `politicalIdeology` replaces legacy `ideology`. A virtual alias is provided for backward compatibility.
 const userSchema = new mongoose.Schema(
   {
     username:           { type: String, required: true, unique: true, trim: true },
@@ -43,8 +44,31 @@ const userSchema = new mongoose.Schema(
     // Added missing profile field
     orientation:        String, // ensures "orientation" persists
 
-    // ✅ New field for political ideology
-    ideology:           String,
+    // ✅ New field for political ideology (persisted)
+    //    We keep a virtual alias "ideology" below for legacy compatibility.
+    politicalIdeology: {
+      type: String,
+      enum: [
+        '',
+        'Left',
+        'Centre',
+        'Right',
+        'Conservatism',
+        'Liberalism',
+        'Socialism',
+        'Communism',
+        'Fascism',
+        'Environmentalism',
+        'Anarchism',
+        'Nationalism',
+        'Populism',
+        'Progressivism',
+        'Libertarianism',
+        'Democracy',
+        'Other',
+      ],
+      default: '',
+    },
 
     // Location stored as a nested object (canonical source of truth)
     location:           {
@@ -130,6 +154,15 @@ userSchema.virtual('lng')
   .set(function (v) { this.longitude = v; });
 
 /**
+ * Legacy compatibility virtual: `ideology`
+ * - Reading/writing `ideology` will proxy to `politicalIdeology`.
+ * - Avoids breaking older client payloads or admin tools.
+ */
+userSchema.virtual('ideology')
+  .get(function () { return this.politicalIdeology; })
+  .set(function (v) { this.politicalIdeology = v; });
+
+/**
  * Optional convenience: normalize id field (string) for controllers/tests that read user.id.
  */
 userSchema.virtual('id').get(function () {
@@ -169,6 +202,14 @@ userSchema.statics.findByCredentials = async function (email, password) {
 
   return null;
 };
+
+// Helpful indexes (keep harmless if already exist)
+try {
+  userSchema.index({ username: 1 }, { name: 'idx_user_username' });
+  userSchema.index({ email: 1 }, { name: 'idx_user_email' });
+  userSchema.index({ 'location.country': 1, 'location.region': 1, 'location.city': 1 }, { name: 'idx_user_location' });
+  userSchema.index({ gender: 1, age: 1 }, { name: 'idx_user_gender_age' });
+} catch { /* index creation is idempotent, ignore errors in hot-reload */ }
 
 let UserModel;
 

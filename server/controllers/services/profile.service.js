@@ -1,4 +1,4 @@
-// --- REPLACE START: profile service (getMe, updateProfile, matches, premium) ---
+// --- REPLACE START: profile service (ensure politicalIdeology persists + is returned by GET) ---
 import * as UserModule from '../../src/models/User.js';
 const User = UserModule.default || UserModule;
 
@@ -14,8 +14,10 @@ const UPDATABLE_FIELDS = [
   'age',
   'gender',
   'status',
-  'orientation',         // ADDED: allow orientation updates
-  'ideology',            // ADDED: allow political ideology updates
+  'orientation',
+
+  // IMPORTANT: persist using the actual model field name
+  'politicalIdeology',
 
   // top-level location convenience (mapped to nested location.*)
   'city',
@@ -72,14 +74,20 @@ const UPDATABLE_FIELDS = [
   'customCountry',
 ];
 
+// Accept legacy payloads that might still send `ideology`;
+// we'll normalize it to `politicalIdeology` below without storing unknown fields.
+const LEGACY_ACCEPTED_FIELDS = ['ideology'];
+
 const isPlainObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 
+// ---------- READ (GET) ----------
 export async function getMeService(req, res) {
   try {
     const uid = getUserId(req);
     if (!uid) return res.status(401).json({ error: 'Unauthorized' });
 
-    const user = await User.findById(uid);
+    // Be explicit in case the schema ever had select:false (safety)
+    const user = await User.findById(uid).select('+politicalIdeology');
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     return res.json(toPublic(user));
@@ -89,6 +97,22 @@ export async function getMeService(req, res) {
   }
 }
 
+export async function getUserByIdService(req, res) {
+  try {
+    const { id } = req.params || {};
+    if (!id) return res.status(400).json({ error: 'User id required' });
+
+    const user = await User.findById(id).select('+politicalIdeology');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    return res.json(toPublic(user));
+  } catch (err) {
+    console.error('getUserById error:', err);
+    return res.status(500).json({ error: 'Server error fetching user' });
+  }
+}
+
+// ---------- WRITE (PUT) ----------
 export async function updateProfileService(req, res) {
   try {
     const uid = getUserId(req);
@@ -97,14 +121,30 @@ export async function updateProfileService(req, res) {
     const body = req.body || {};
     const update = {};
 
-    // Copy only allowed fields
+    // Copy only allowed fields (modern set)
     for (const key of UPDATABLE_FIELDS) {
       if (Object.prototype.hasOwnProperty.call(body, key)) {
         update[key] = body[key];
       }
     }
+    // Copy legacy fields that we normalize later (do not persist unknowns)
+    for (const key of LEGACY_ACCEPTED_FIELDS) {
+      if (Object.prototype.hasOwnProperty.call(body, key)) {
+        update[key] = body[key];
+      }
+    }
 
-    // Normalize fields without shortening logic
+    // ---- Normalization (WRITE) ----
+
+    // 0) ideology (legacy) -> politicalIdeology (model field)
+    if (
+      Object.prototype.hasOwnProperty.call(update, 'ideology') &&
+      !Object.prototype.hasOwnProperty.call(update, 'politicalIdeology')
+    ) {
+      update.politicalIdeology = update.ideology;
+    }
+    delete update.ideology; // never persist unknown field
+
     // 1) bio -> summary (model uses summary)
     if (Object.prototype.hasOwnProperty.call(update, 'bio') && !update.summary) {
       update.summary = update.bio;
@@ -211,6 +251,7 @@ export async function updateProfileService(req, res) {
   }
 }
 
+// ---------- PREMIUM ----------
 export async function upgradeToPremiumService(req, res) {
   try {
     const uid = getUserId(req);
@@ -231,6 +272,7 @@ export async function upgradeToPremiumService(req, res) {
   }
 }
 
+// ---------- MATCHES (unchanged logic) ----------
 export async function getMatchesWithScoreService(req, res) {
   try {
     const uid = getUserId(req);
