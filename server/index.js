@@ -76,7 +76,6 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 /**
  * IMPORTANT: Webhooks must read the raw body for signature verification.
- * (Routers are expected to handle raw/body-parser details internally.)
  */
 app.use('/api/payment/stripe-webhook', stripeWebhookRouter);
 app.use('/api/payment/paypal-webhook', paypalWebhookRouter);
@@ -85,9 +84,9 @@ app.use('/api/payment/paypal-webhook', paypalWebhookRouter);
 app.use(cookieParser());
 
 const envWhitelist = [
-  process.env.CLIENT_URL,     // e.g. http://localhost:5174
-  process.env.CLIENT_URL_2,   // optional extra client
-  process.env.PROD_URL,       // e.g. https://loventia.app
+  process.env.CLIENT_URL,
+  process.env.CLIENT_URL_2,
+  process.env.PROD_URL,
 ].filter(Boolean);
 
 const staticWhitelist = [
@@ -103,7 +102,7 @@ const allowedOrigins = Array.from(new Set([...envWhitelist, ...staticWhitelist])
 
 const corsOptions = {
   origin(origin, callback) {
-    if (!origin) return callback(null, true); // same-origin or tools
+    if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
     if (/^http:\/\/(localhost|127\.0\.0\.1):\d+$/i.test(origin)) return callback(null, true);
     return callback(new Error(`Not allowed by CORS: ${origin}`));
@@ -116,7 +115,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // preflight
+app.options('*', cors(corsOptions));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -127,23 +126,15 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(express.static(path.join(__dirname, 'client-dist')));
 
 // --- REPLACE START: Mount routes ---
-// Public auth routes
 app.use('/api/auth', authRoutes);
-
-// Private auth routes
 app.use('/api/auth', authPrivateRoutes);
-
-// Protected routes
 app.use('/api/messages', authenticate, messageRoutes);
 app.use('/api/users', authenticate, userRoutes);
 app.use('/api/images', authenticate, imageRoutes);
-
-// --- REPLACE START: mount /api/discover (protected) ---
 app.use('/api/discover', authenticate, discoverRoutes);
 // --- REPLACE END ---
-// --- REPLACE END ---
 
-// Temporary mock-users endpoint (safe to keep for dev)
+// Mock users (dev only)
 app.get('/api/mock-users', (_req, res) => {
   const user = {
     _id: '1',
@@ -173,7 +164,7 @@ app.use((err, _req, res, next) => {
   return next(err);
 });
 
-// --- REPLACE START: Healthcheck under /api (works via Vite proxy) ---
+// --- REPLACE START: Healthcheck under /api ---
 app.get('/api/health', (_req, res) => {
   res.status(200).json({
     status: 'ok',
@@ -185,16 +176,16 @@ app.get('/api/health', (_req, res) => {
 app.head('/api/health', (_req, res) => res.sendStatus(200));
 // --- REPLACE END ---
 
-// --- REPLACE START: ensure unknown /api/* returns JSON 404 (not SPA HTML) ---
+// --- REPLACE START: ensure unknown /api/* returns JSON 404 ---
 app.use('/api', (_req, res) => res.status(404).json({ error: 'API route not found' }));
 // --- REPLACE END ---
 
-// SPA fallback (non-API paths only will reach here because of the guard above)
+// SPA fallback
 app.get('/*', (_req, res) => {
   res.sendFile(path.join(__dirname, 'client-dist', 'index.html'));
 });
 
-// 404 handler (safety)
+// 404 handler
 app.use((_req, res) => res.status(404).json({ error: 'Not Found' }));
 
 // --- REPLACE START: Sentry error handler ---
@@ -277,7 +268,7 @@ if (mongoUri) {
     })
     .catch((err) => {
       console.error('❌ MongoDB connection error:', err?.message || err);
-      startServer(); // start even if DB fails (dev convenience)
+      startServer();
     });
 } else {
   startServer();
@@ -287,3 +278,17 @@ if (mongoUri) {
 // --- REPLACE START: export app ---
 export default app;
 // --- REPLACE END ---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
