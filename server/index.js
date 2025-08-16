@@ -16,6 +16,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import swaggerUi from 'swagger-ui-express';
@@ -70,12 +71,19 @@ app.use(Sentry.Handlers.tracingHandler());
 // --- REPLACE END ---
 
 // --- REPLACE START: Swagger setup ---
-const swaggerDocument = YAML.load(path.join(__dirname, 'openapi.yaml'));
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+const swaggerPath = path.join(__dirname, 'openapi.yaml');
+if (fs.existsSync(swaggerPath)) {
+  const swaggerDocument = YAML.load(swaggerPath);
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+} else {
+  console.warn('ℹ️ openapi.yaml not found -> Swagger UI disabled.');
+}
 // --- REPLACE END ---
 
 /**
  * IMPORTANT: Webhooks must read the raw body for signature verification.
+ * NOTE: The routers themselves should use express.raw() where necessary.
+ * Keep webhooks BEFORE json/urlencoded body parsers.
  */
 app.use('/api/payment/stripe-webhook', stripeWebhookRouter);
 app.use('/api/payment/paypal-webhook', paypalWebhookRouter);
@@ -94,6 +102,8 @@ const staticWhitelist = [
   'http://127.0.0.1:5174',
   'http://localhost:3000',
   'http://127.0.0.1:3000',
+  'http://localhost',
+  'http://127.0.0.1',
   'https://loventia.app',
   'https://www.loventia.app',
 ];
@@ -104,7 +114,7 @@ const corsOptions = {
   origin(origin, callback) {
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
-    if (/^http:\/\/(localhost|127\.0\.0\.1):\d+$/i.test(origin)) return callback(null, true);
+    if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) return callback(null, true);
     return callback(new Error(`Not allowed by CORS: ${origin}`));
   },
   credentials: true,
@@ -117,13 +127,36 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 // --- REPLACE END ---
 
-// Serve uploads and client build
+// --- REPLACE START: Healthcheck under /api ---
+app.get('/api/health', (_req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    service: 'loventia-api',
+    uptime: process.uptime(),
+    time: new Date().toISOString(),
+  });
+});
+app.head('/api/health', (_req, res) => res.sendStatus(200));
+// --- REPLACE END ---
+
+// Serve uploads directory (always)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-app.use(express.static(path.join(__dirname, 'client-dist')));
+
+// --- REPLACE START: conditionally serve client build (avoid ENOENT spam) ---
+const clientDistDir = path.join(__dirname, 'client-dist');
+const hasClientDist = fs.existsSync(clientDistDir);
+
+if (hasClientDist) {
+  console.log('🧩 client-dist detected -> enabling static client from /client-dist');
+  app.use(express.static(clientDistDir));
+} else {
+  console.warn('⚠️  /client-dist not found -> skipping static client serving (expected when client runs in its own container).');
+}
+// --- REPLACE END ---
 
 // --- REPLACE START: Mount routes ---
 app.use('/api/auth', authRoutes);
@@ -164,28 +197,30 @@ app.use((err, _req, res, next) => {
   return next(err);
 });
 
-// --- REPLACE START: Healthcheck under /api ---
-app.get('/api/health', (_req, res) => {
-  res.status(200).json({
-    status: 'ok',
-    service: 'loventia-api',
-    uptime: process.uptime(),
-    time: new Date().toISOString(),
-  });
-});
-app.head('/api/health', (_req, res) => res.sendStatus(200));
-// --- REPLACE END ---
-
 // --- REPLACE START: ensure unknown /api/* returns JSON 404 ---
 app.use('/api', (_req, res) => res.status(404).json({ error: 'API route not found' }));
 // --- REPLACE END ---
 
-// SPA fallback
-app.get('/*', (_req, res) => {
-  res.sendFile(path.join(__dirname, 'client-dist', 'index.html'));
-});
+// --- REPLACE START: SPA fallback only if client-dist exists ---
+if (hasClientDist) {
+  app.get('*', (req, res, next) => {
+    // Do not intercept API or webhook routes
+    if (
+      req.path.startsWith('/api') ||
+      req.path.startsWith('/stripe-webhook') ||
+      req.path.startsWith('/paypal')
+    ) {
+      return next();
+    }
+    return res.sendFile(path.join(clientDistDir, 'index.html'));
+  });
+} else {
+  // When client is served by a separate container, avoid a catch-all here.
+  app.get('/', (_req, res) => res.status(200).json({ ok: true, message: 'Loventia API (client served by separate container).' }));
+}
+// --- REPLACE END ---
 
-// 404 handler
+// 404 handler (non-API leftovers)
 app.use((_req, res) => res.status(404).json({ error: 'Not Found' }));
 
 // --- REPLACE START: Sentry error handler ---
@@ -278,17 +313,3 @@ if (mongoUri) {
 // --- REPLACE START: export app ---
 export default app;
 // --- REPLACE END ---
-
-
-
-
-
-
-
-
-
-
-
-
-
-

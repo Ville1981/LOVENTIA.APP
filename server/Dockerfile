@@ -1,37 +1,38 @@
-# server/Dockerfile
+# --- REPLACE START: Debian-based runtime, force-correct sharp build (no nodemon) ---
 
-# --- REPLACE START: Multi-stage build for server with Sentry and healthcheck ---
-
-# 1) Builder stage: install all dependencies (including Sentry) and build
-FROM node:18-alpine AS builder
+FROM node:18-slim
 WORKDIR /usr/src/app
 
-# Copy only package definitions and configs
-COPY package*.json tsconfig.json ./
-RUN npm ci
+# System tools for native addons (sharp, bcrypt, etc.)
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends python3 make g++ curl \
+ && rm -rf /var/lib/apt/lists/*
 
-# Copy source and build server
+# Copy only package definitions first (ensures better Docker cache usage)
+COPY package*.json ./
+
+# 1) Install JS deps but SKIP all lifecycle scripts (avoids server postinstall running client build)
+# 2) Then explicitly build/install sharp for Linux x64 (glibc) so the correct binary is used
+#    - We re-enable scripts ONLY for the sharp install step.
+#    - --build-from-source ensures native build if prebuilt cannot be fetched for this env.
+RUN npm config set ignore-scripts true \
+ && (npm ci || npm install --legacy-peer-deps) \
+ && npm cache clean --force \
+ && npm config set ignore-scripts false \
+ && npm install --include=optional --force --platform=linux --arch=x64 --build-from-source sharp@0.34.2
+
+# Copy the rest of the source (node_modules is excluded via .dockerignore)
 COPY . .
-RUN npm run build
 
-# 2) Production stage: minimal runtime with node_modules preserved
-FROM node:18-alpine AS runner
-WORKDIR /usr/src/app
-
-# Copy built artifacts and package files (to preserve dependency tree)
-COPY --from=builder /usr/src/app/dist ./dist
-COPY --from=builder /usr/src/app/node_modules ./node_modules
-COPY --from=builder /usr/src/app/package*.json ./
-
-# Set environment
+# Runtime env
 ENV NODE_ENV=production
-# SENTRY_DSN should be injected at runtime (docker run -e SENTRY_DSN=...)
 EXPOSE 5000
 
-# Define healthcheck for orchestration
+# Healthcheck endpoint must exist in the app at /health
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD curl -f http://localhost:5000/health || exit 1
+  CMD curl -fsS http://localhost:5000/health || exit 1
 
-# Start the server
-CMD ["node", "dist/index.js"]
+# Start app (NO nodemon here)
+CMD ["node", "index.js"]
+
 # --- REPLACE END ---
