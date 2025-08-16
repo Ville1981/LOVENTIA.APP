@@ -1,8 +1,10 @@
-// Controller for GET/POST /api/messages/:userId
-// Handles fetching and saving messages between two users
+/**
+ * Controller for GET/POST /api/messages/:userId
+ * Handles fetching and saving messages between two users
+ */
 
 // --- REPLACE START: convert ESM import/exports to CommonJS ---
-const { fetchMessagesBetween, saveMessage } = require('../services/messageService');
+const { fetchMessagesBetween, saveMessage } = require("../services/messageService");
 // --- REPLACE END ---
 
 /**
@@ -11,15 +13,15 @@ const { fetchMessagesBetween, saveMessage } = require('../services/messageServic
  */
 async function getMessages(req, res) {
   try {
-    const me = req.user.id;
+    const me = req.user && (req.user.id || req.user.userId); // support both id/userId
     const peer = req.params.userId;
     const messages = await fetchMessagesBetween(me, peer);
     return res.json({ success: true, data: messages });
   } catch (error) {
-    console.error('Error fetching messages:', error);
+    console.error("Error fetching messages:", error);
     return res
       .status(500)
-      .json({ success: false, message: 'Unable to load messages.' });
+      .json({ success: false, message: "Unable to load messages." });
   }
 }
 
@@ -30,21 +32,21 @@ async function getMessages(req, res) {
  */
 async function postMessage(req, res) {
   try {
-    const sender = req.user.id;
+    const sender = req.user && (req.user.id || req.user.userId); // support both id/userId
     const recipient = req.params.userId;
     const { text } = req.body;
-    if (!text || typeof text !== 'string') {
+    if (!text || typeof text !== "string") {
       return res
         .status(400)
-        .json({ success: false, message: 'Invalid message payload.' });
+        .json({ success: false, message: "Invalid message payload." });
     }
-    const saved = await saveMessage({ sender, recipient, text });
+    const saved = await saveMessage({ sender, recipient, text: text.trim() });
     return res.status(201).json({ success: true, data: saved });
   } catch (error) {
-    console.error('Error saving message:', error);
+    console.error("Error saving message:", error);
     return res
       .status(500)
-      .json({ success: false, message: 'Unable to send message.' });
+      .json({ success: false, message: "Unable to send message." });
   }
 }
 
