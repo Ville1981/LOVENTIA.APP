@@ -1,82 +1,162 @@
-import React, { useEffect } from "react";
+// File: client/src/components/LanguageSwitcher.jsx
+
+// --- REPLACE START: persist + normalize + robust options ---
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-const LanguageSwitcher = () => {
-  const { i18n } = useTranslation();
+/**
+ * Small helper to normalize e.g. "es-ES" -> "es"
+ * Keeps our folder structure consistent with i18n init (load:"languageOnly").
+ */
+const toBase = (code = "") => String(code).split("-")[0];
 
+/**
+ * LanguageSwitcher component
+ *
+ * Provides a <select> dropdown with grouped language options.
+ * - Persists choice in localStorage
+ * - Normalizes codes so "en-GB" resolves to "en"
+ * - Updates <html dir="ltr|rtl"> on language change
+ * - Keeps dropdown in sync with i18n.language
+ */
+const LanguageSwitcher = () => {
+  const { i18n, t } = useTranslation();
+
+  /**
+   * Initial value:
+   * Use normalized base so dropdown always matches loaded translation file.
+   * Default fallback: "fi" (Finnish).
+   */
+  const [value, setValue] = useState(toBase(i18n.language) || "fi");
+
+  /**
+   * Effect: update <html dir="…"> whenever language changes
+   * Important for RTL languages (ar, he, ur, fa).
+   */
   useEffect(() => {
-    const rtlLanguages = ["ar", "he", "fa", "ur"];
+    const rtl = ["ar", "he", "fa", "ur"];
     const updateDir = (lng) => {
+      const base = toBase(lng);
       document.documentElement.setAttribute(
         "dir",
-        rtlLanguages.includes(lng) ? "rtl" : "ltr"
+        rtl.includes(base) ? "rtl" : "ltr"
       );
+      // keep the dropdown roughly in sync with the *current* i18n language
+      setValue(base);
     };
-
     updateDir(i18n.language);
     i18n.on("languageChanged", updateDir);
     return () => i18n.off("languageChanged", updateDir);
   }, [i18n]);
 
+  /**
+   * changeLanguage:
+   * - Normalize and persist base code in localStorage
+   * - Update component state
+   * - Trigger i18next to switch language using the BASE tag (crucial with load: 'languageOnly')
+   */
   const changeLanguage = (lng) => {
-    i18n.changeLanguage(lng);
-    localStorage.setItem("language", lng);
+    const base = toBase(lng);
+    localStorage.setItem("language", base);
+    setValue(lng); // keep the exact option the user chose visible in the <select>
+    // IMPORTANT: switch i18n using the BASE language to match /locales/<lng>/translation.json
+    if (i18n.language !== base) {
+      i18n.changeLanguage(base);
+    }
   };
 
+  /**
+   * groups:
+   * Language dropdown options grouped by region.
+   * Each group has label + array of {code,label}.
+   */
+  const groups = useMemo(
+    () => [
+      {
+        label: "🇪🇺 EUROPE",
+        items: [
+          { code: "en-GB", label: "🇬🇧 English (UK)" },
+          { code: "es-ES", label: "🇪🇸 Español (Spain)" },
+          { code: "pt", label: "🇵🇹 Português (Portugal)" },
+          { code: "fr", label: "🇫🇷 Français (France)" },
+          { code: "de", label: "🇩🇪 Deutsch (Germany)" },
+          { code: "el", label: "🇬🇷 Ελληνικά (Greece)" },
+          { code: "it", label: "🇮🇹 Italiano (Italia)" },
+          { code: "ru", label: "🇷🇺 Русский (Russia)" },
+          { code: "pl", label: "🇵🇱 Polski (Polska)" },
+          { code: "tr", label: "🇹🇷 Türkçe (Turkey)" },
+          { code: "fi", label: "🇫🇮 Suomi (Finland)" },
+          { code: "sv", label: "🇸🇪 Svenska (Sweden)" },
+        ],
+      },
+      {
+        label: "🇺🇸 NORTH AMERICA",
+        items: [{ code: "en-US", label: "🇺🇸 English (US)" }],
+      },
+      {
+        label: "🌎 SOUTH AMERICA",
+        items: [
+          { code: "pt-BR", label: "🇧🇷 Português (Brasil)" },
+          { code: "es-AR", label: "🇦🇷 Español (Argentina)" },
+          { code: "es-CO", label: "🇨🇴 Español (Colombia)" },
+          { code: "es-MX", label: "🇲🇽 Español (México)" },
+        ],
+      },
+      {
+        label: "🌏 SOUTH ASIA",
+        items: [
+          { code: "hi", label: "🇮🇳 हिन्दी (India)" },
+          { code: "ur", label: "🇵🇰 اردو (Pakistan)" },
+        ],
+      },
+      {
+        label: "🌍 MIDDLE EAST",
+        items: [
+          { code: "ar", label: "🇸🇦 العربية (Saudi Arabia)" },
+          { code: "he", label: "🇮🇱 עברית (Israel)" },
+        ],
+      },
+      {
+        label: "🌏 ASIA / OTHER",
+        items: [
+          { code: "zh", label: "🇨🇳 中文 (China)" },
+          { code: "ja", label: "🇯🇵 日本語 (Japan)" },
+        ],
+      },
+      {
+        label: "🌍 AFRICA",
+        items: [{ code: "sw", label: "🇰🇪 Kiswahili (Swahili)" }],
+      },
+    ],
+    []
+  );
+
+  /**
+   * Render dropdown:
+   * - <select> element with grouped <optgroup>/<option>
+   * - aria-label for accessibility, localized with t()
+   */
   return (
     <select
-      value={i18n.language}
+      value={value}
       onChange={(e) => changeLanguage(e.target.value)}
       className="bg-white text-blue-800 px-2 py-1 rounded text-sm shadow-sm"
+      aria-label={t("select_language_label") || "Select language"}
     >
-      <option disabled>🌐 Languages</option>
-
-      <optgroup label="🇪🇺 EUROPE">
-        <option value="en-GB">🇬🇧 English (UK)</option>
-        <option value="es-ES">🇪🇸 Español (Spain)</option>
-        <option value="pt">🇵🇹 Português (Portugal)</option>
-        <option value="fr">🇫🇷 Français (France)</option>
-        <option value="de">🇩🇪 Deutsch (Germany)</option>
-        <option value="el">🇬🇷 Ελληνικά (Greece)</option>
-        <option value="it">🇮🇹 Italiano (Italia)</option>
-        <option value="ru">🇷🇺 Русский (Russia)</option>
-        <option value="pl">🇵🇱 Polski (Polska)</option>
-        <option value="tr">🇹🇷 Türkçe (Turkey)</option>
-        <option value="fi">🇫🇮 Suomi (Finland)</option>
-        <option value="sv">🇸🇪 Svenska (Sweden)</option>
-      </optgroup>
-
-      <optgroup label="🇺🇸 NORTH AMERICA">
-        <option value="en-US">🇺🇸 English (US)</option>
-      </optgroup>
-
-      <optgroup label="🌎 SOUTH AMERICA">
-        <option value="pt-BR">🇧🇷 Português (Brasil)</option>
-        <option value="es-AR">🇦🇷 Español (Argentina)</option>
-        <option value="es-CO">🇨🇴 Español (Colombia)</option>
-        <option value="es-MX">🇲🇽 Español (México)</option>
-      </optgroup>
-
-      <optgroup label="🌏 SOUTH ASIA">
-        <option value="hi">🇮🇳 हिन्दी (India)</option>
-        <option value="ur">🇵🇰 اردو (Pakistan)</option>
-      </optgroup>
-
-      <optgroup label="🌍 MIDDLE EAST">
-        <option value="ar">🇸🇦 العربية (Saudi Arabia)</option>
-        <option value="he">🇮🇱 עברית (Israel)</option>
-      </optgroup>
-
-      <optgroup label="🌏 ASIA / OTHER">
-        <option value="zh">🇨🇳 中文 (China)</option>
-        <option value="ja">🇯🇵 日本語 (Japan)</option>
-      </optgroup>
-
-      <optgroup label="🌍 AFRICA">
-        <option value="sw">🇰🇪 Kiswahili (Swahili)</option>
-      </optgroup>
+      <option disabled>{t("select_language_label") || "🌐 Languages"}</option>
+      {groups.map((g) => (
+        <optgroup key={g.label} label={g.label}>
+          {g.items.map((o) => (
+            <option key={o.code} value={o.code}>
+              {o.label}
+            </option>
+          ))}
+        </optgroup>
+      ))}
     </select>
   );
 };
 
 export default LanguageSwitcher;
+// --- REPLACE END ---
+

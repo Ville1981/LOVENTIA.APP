@@ -1,6 +1,4 @@
-// File: client/src/components/Navbar.jsx
-
-// --- REPLACE START: read auth from AuthContext.user + bootstrapped ---
+// --- REPLACE START: read auth from AuthContext.user + bootstrapped + use t('nav.*') keys ---
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -9,47 +7,86 @@ import LanguageSwitcher from "./LanguageSwitcher";
 import LogoutButton from "./LogoutButton";
 import { useAuth } from "../contexts/AuthContext";
 
+/**
+ * Navbar
+ * - Reads auth state from AuthContext (user + bootstrapped)
+ * - Uses i18n t('nav.*') keys for all labels
+ * - IMPORTANT FIX: do NOT compute translated labels inside static arrays.
+ *   Keep only {path,key} and call t(key) at render time so language changes re-render correctly.
+ * - Removes visible "nav.*" prefixes via defaultValue fallbacks
+ * - Shows guest links until bootstrapping finishes, then user/admin links
+ */
 const Navbar = () => {
   const { t } = useTranslation();
-  // Use the actual fields provided by AuthContext
+
+  // Auth context state
   const { user, bootstrapped } = useAuth();
 
-  // Derive flags from user
+  // Role flags
   const isLoggedIn = !!user;
   const isAdmin = user?.role === "admin";
 
+  // Shared classes for consistency
   const linkClass =
     "bg-white/10 text-white font-semibold px-4 py-2 rounded hover:bg-blue-500 transition text-sm text-center shadow backdrop-blur";
 
+  /**
+   * Default English labels for safety.
+   * These are used only as defaultValue fallbacks so we never display raw keys.
+   */
+  const defaults = {
+    "nav.home": "Home",
+    "nav.privacy": "Privacy",
+    "nav.login": "Login",
+    "nav.register": "Register",
+    "nav.discover": "Discover",
+    "nav.profile": "Profile",
+    "nav.matches": "Matches",
+    "nav.messages": "Messages",
+    "nav.likes": "Likes",
+    "nav.map": "Map",
+    "nav.premium": "Premium",
+    "nav.settings": "Settings",
+    "nav.admin": "Admin",
+  };
+
+  // NOTE: keep only keys here, no t(...) calls inside arrays.
+  // Always visible
   const commonLinks = [
-    { path: "/", label: t("Home") },
-    { path: "/privacy", label: t("Privacy Policy") },
-  ];
-  const guestLinks = [
-    { path: "/login", label: t("Login") },
-    { path: "/register", label: t("Register") },
-  ];
-  const userLinks = [
-    { path: "/discover", label: t("Discover") },
-    { path: "/profile", label: t("Profile") },
-    { path: "/matches", label: t("Matches") },
-    { path: "/messages", label: t("Messages") },
-    { path: "/who-liked-me", label: t("Likes") },
-    { path: "/map", label: t("Map") },
-    { path: "/upgrade", label: t("Premium") },
-    { path: "/settings", label: t("Settings") },
-    { path: "/admin", label: t("Admin") },
+    { path: "/", key: "nav.home" },
+    { path: "/privacy", key: "nav.privacy" },
   ];
 
+  // Guest-only
+  const guestLinks = [
+    { path: "/login", key: "nav.login" },
+    { path: "/register", key: "nav.register" },
+  ];
+
+  // Authenticated user
+  const userLinks = [
+    { path: "/discover", key: "nav.discover" },
+    { path: "/profile", key: "nav.profile" },
+    { path: "/matches", key: "nav.matches" },
+    { path: "/messages", key: "nav.messages" },
+    { path: "/who-liked-me", key: "nav.likes" },
+    { path: "/map", key: "nav.map" },
+    { path: "/upgrade", key: "nav.premium" },
+    { path: "/settings", key: "nav.settings" },
+    { path: "/admin", key: "nav.admin" },
+  ];
+
+  // Only allow admin if role matches
   const filteredUserLinks = userLinks.filter(
     (link) => link.path !== "/admin" || isAdmin
   );
 
   /**
-   * IMPORTANT behavior change:
-   * - While bootstrapping (bootstrapped === false), we still show PUBLIC/GUEST links
-   *   so the navbar is never empty for visitors.
-   * - Once bootstrapped and logged in -> show user links (+admin if applicable).
+   * Behavior:
+   * - While bootstrapping, show public+guest so navbar is never empty
+   * - After bootstrap:
+   *   - logged in → user links
+   *   - logged out → guest links
    */
   const linksToRender =
     !bootstrapped
@@ -69,14 +106,14 @@ const Navbar = () => {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        height: "160px", // slightly taller to fit the rows
-        justifyContent: "start", // stack rows top-down
+        height: "160px",
+        justifyContent: "start",
       }}
     >
       {/* Title row */}
       <div className="flex items-center justify-center w-full max-w-6xl">
         <h1 className="text-3xl font-bold text-white drop-shadow">
-          💘 {t("site.title")}
+          💘 {t("site.title", { defaultValue: "Loventia" })}
         </h1>
       </div>
 
@@ -86,12 +123,12 @@ const Navbar = () => {
           htmlFor="language-switcher"
           className="text-white font-medium mr-2 text-sm"
         >
-          {t("select_language_label")}
+          {t("select_language_label", { defaultValue: "Language" })}
         </label>
         <LanguageSwitcher id="language-switcher" />
       </div>
 
-      {/* Navigation links grid */}
+      {/* Links row */}
       <div
         className="w-full max-w-6xl mt-4"
         style={{
@@ -104,11 +141,11 @@ const Navbar = () => {
       >
         {linksToRender.map((link) => (
           <Link key={link.path} to={link.path} className={linkClass}>
-            {link.label}
+            {t(link.key, { defaultValue: defaults[link.key] || link.key })}
           </Link>
         ))}
 
-        {/* Logout button only when actually logged in AND bootstrap completed */}
+        {/* Logout visible only if logged in and bootstrapped */}
         {isLoggedIn && bootstrapped && <LogoutButton />}
       </div>
     </nav>
@@ -117,3 +154,4 @@ const Navbar = () => {
 
 export default Navbar;
 // --- REPLACE END ---
+

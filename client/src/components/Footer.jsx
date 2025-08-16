@@ -1,15 +1,15 @@
-// src/components/Footer.jsx
-
-// Core
+// --- REPLACE START: footer with nav.* labels for navigation items ---
 import PropTypes from "prop-types";
 import React from "react";
-
-// i18n
 import { useTranslation } from "react-i18next";
-
-// Routing
 import { Link } from "react-router-dom";
 
+/**
+ * Footer
+ * - All navigation text is translated via i18n keys (nav.*)
+ * - No hard-coded labels; every label uses t('nav.*') with defaultValue fallbacks
+ * - Structure preserved; only internationalization adjustments
+ */
 const Footer = () => {
   const { t } = useTranslation();
 
@@ -29,21 +29,23 @@ const Footer = () => {
         >
           {/* Company */}
           <div>
-            <h4 className="font-bold uppercase text-xs mb-2">{t("company")}</h4>
+            <h4 className="font-bold uppercase text-xs mb-2">
+              {t("nav.company", { defaultValue: "Company" })}
+            </h4>
             <ul className="space-y-1">
               <li>
                 <Link to="/about" className="hover:underline">
-                  {t("about")}
+                  {t("nav.about", { defaultValue: "About" })}
                 </Link>
               </li>
               <li>
                 <Link to="/careers" className="hover:underline">
-                  {t("careers")}
+                  {t("nav.careers", { defaultValue: "Careers" })}
                 </Link>
               </li>
               <li>
                 <Link to="/press" className="hover:underline">
-                  {t("press")}
+                  {t("nav.press", { defaultValue: "Press" })}
                 </Link>
               </li>
             </ul>
@@ -52,37 +54,37 @@ const Footer = () => {
           {/* Conditions */}
           <div>
             <h4 className="font-bold uppercase text-xs mb-2">
-              {t("conditions")}
+              {t("nav.conditions", { defaultValue: "Conditions" })}
             </h4>
             <ul className="space-y-1">
               <li>
                 <Link to="/privacy" className="hover:underline">
-                  {t("privacy")}
+                  {t("nav.privacy", { defaultValue: "Privacy" })}
                 </Link>
               </li>
               <li>
                 <Link to="/terms" className="hover:underline">
-                  {t("terms")}
+                  {t("nav.terms", { defaultValue: "Terms" })}
                 </Link>
               </li>
               <li>
                 <Link to="/cookies" className="hover:underline">
-                  {t("cookies")}
+                  {t("nav.cookies", { defaultValue: "Cookies" })}
                 </Link>
               </li>
               <li>
                 <Link to="/community" className="hover:underline">
-                  {t("community")}
+                  {t("nav.community", { defaultValue: "Community" })}
                 </Link>
               </li>
               <li>
                 <Link to="/health-policy" className="hover:underline">
-                  {t("health")}
+                  {t("nav.health", { defaultValue: "Health Policy" })}
                 </Link>
               </li>
               <li>
                 <Link to="/colorado-policy" className="hover:underline">
-                  {t("coInfo")}
+                  {t("nav.coInfo", { defaultValue: "Colorado Info" })}
                 </Link>
               </li>
             </ul>
@@ -90,26 +92,28 @@ const Footer = () => {
 
           {/* Contact */}
           <div>
-            <h4 className="font-bold uppercase text-xs mb-2">{t("contact")}</h4>
+            <h4 className="font-bold uppercase text-xs mb-2">
+              {t("nav.contact", { defaultValue: "Contact" })}
+            </h4>
             <ul className="space-y-1">
               <li>
                 <Link to="/support" className="hover:underline">
-                  {t("support")}
+                  {t("nav.support", { defaultValue: "Support" })}
                 </Link>
               </li>
               <li>
                 <Link to="/security" className="hover:underline">
-                  {t("security")}
+                  {t("nav.security", { defaultValue: "Security" })}
                 </Link>
               </li>
               <li>
                 <Link to="/safety-tips" className="hover:underline">
-                  {t("safety")}
+                  {t("nav.safety", { defaultValue: "Safety Tips" })}
                 </Link>
               </li>
               <li>
                 <Link to="/impressum" className="hover:underline">
-                  {t("impressum")}
+                  {t("nav.impressum", { defaultValue: "Impressum" })}
                 </Link>
               </li>
             </ul>
@@ -117,25 +121,42 @@ const Footer = () => {
 
           {/* Follow */}
           <div>
-            <h4 className="font-bold uppercase text-xs mb-2">{t("follow")}</h4>
+            <h4 className="font-bold uppercase text-xs mb-2">
+              {t("nav.follow", { defaultValue: "Follow" })}
+            </h4>
             <ul className="space-y-1">
               <li>
                 <Link to="/blog" className="hover:underline">
-                  {t("blog")}
+                  {t("nav.blog", { defaultValue: "Blog" })}
                 </Link>
               </li>
               <li>
-                <a href="https://twitter.com" className="hover:underline">
+                <a
+                  href="https://twitter.com"
+                  className="hover:underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   Twitter
                 </a>
               </li>
               <li>
-                <a href="https://facebook.com" className="hover:underline">
+                <a
+                  href="https://facebook.com"
+                  className="hover:underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   Facebook
                 </a>
               </li>
               <li>
-                <a href="https://instagram.com" className="hover:underline">
+                <a
+                  href="https://instagram.com"
+                  className="hover:underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   Instagram
                 </a>
               </li>
@@ -144,26 +165,28 @@ const Footer = () => {
 
           {/* Special */}
           <div>
-            <h4 className="font-bold uppercase text-xs mb-2">{t("special")}</h4>
+            <h4 className="font-bold uppercase text-xs mb-2">
+              {t("nav.special", { defaultValue: "Special" })}
+            </h4>
             <ul className="space-y-1">
               <li>
                 <Link to="/map" className="hover:underline">
-                  {t("map")}
+                  {t("nav.map", { defaultValue: "Map" })}
                 </Link>
               </li>
               <li>
                 <Link to="/admin" className="hover:underline">
-                  {t("admin")}
+                  {t("nav.admin", { defaultValue: "Admin" })}
                 </Link>
               </li>
               <li>
                 <Link to="/download" className="hover:underline">
-                  {t("download")}
+                  {t("nav.download", { defaultValue: "Download" })}
                 </Link>
               </li>
               <li>
                 <Link to="/settings" className="hover:underline">
-                  {t("settings")}
+                  {t("nav.settings", { defaultValue: "Settings" })}
                 </Link>
               </li>
             </ul>
@@ -173,9 +196,12 @@ const Footer = () => {
         {/* Bottom text */}
         <div className="text-center text-gray-200 text-xs mt-10 leading-tight">
           <p>
-            © {new Date().getFullYear()} DateSite – {t("rights")}
+            © {new Date().getFullYear()} {t("site.brand", { defaultValue: "Loventia" })} —{" "}
+            {t("nav.rights", { defaultValue: "All rights reserved." })}
           </p>
-          <p className="mt-1">{t("tagline")}</p>
+          <p className="mt-1">
+            {t("nav.tagline", { defaultValue: "Match better. Love smarter. 💘" })}
+          </p>
         </div>
       </div>
     </footer>
@@ -187,7 +213,5 @@ Footer.propTypes = {
 };
 
 export default Footer;
+// --- REPLACE END ---
 
-// The replacement region is marked between 
-// // --- REPLACE START and // --- REPLACE END
-// so you can verify exactly what changed.
