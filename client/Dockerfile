@@ -1,35 +1,27 @@
-# client/Dockerfile
+# File: client/Dockerfile
 
-# --- REPLACE START: multi-stage build for React app with nginx fallback ---
-
-# 1) Build stage
-FROM node:18-alpine AS builder
+# --- REPLACE START: Stable client build with Vite ---
+FROM node:18-slim AS builder
 WORKDIR /app
 
-# Install dependencies
-COPY package*.json vite.config.js ./
-RUN npm ci
+# Install deps for native addons (esbuild, vite, etc.)
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends python3 make g++ libc6 \
+ && rm -rf /var/lib/apt/lists/*
 
-# Copy source and build
+# Install dependencies
+COPY package*.json ./
+RUN npm ci --legacy-peer-deps
+
+# Copy rest of the app
 COPY . .
+
+# Build client with Vite
 RUN npm run build
 
-# 2) Runtime stage
-FROM nginx:alpine
-
-# Set working directory to nginx html folder
-WORKDIR /usr/share/nginx/html
-
-# Remove default static contents
-RUN rm -rf ./*
-
-# Copy build artifacts from builder
-COPY --from=builder /app/dist .
-
-# Replace default nginx config with SPA-friendly config
-COPY nginx/nginx.conf /etc/nginx/conf.d/default.conf
-
-# Expose port 80 and start nginx
+# --- Runtime stage (nginx to serve static files) ---
+FROM nginx:stable-alpine
+COPY --from=builder /app/dist /usr/share/nginx/html
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
 # --- REPLACE END ---
