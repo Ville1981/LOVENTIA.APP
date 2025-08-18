@@ -1,5 +1,3 @@
-// @ts-nocheck
-
 // --- REPLACE START: resilient Axios instance with refresh + credentials ---
 import axios from "axios";
 
@@ -128,14 +126,23 @@ let refreshPromise = null;
 async function performRefresh() {
   if (!refreshPromise) {
     // IMPORTANT: send {} (not null/undefined) to satisfy express.json(strict: true)
-    refreshPromise = api
-      .post("/auth/refresh", {}, { withCredentials: true })
-      .then((res) => {
-        const next = res?.data?.accessToken;
-        if (!next) throw new Error("No accessToken in refresh response");
-        attachAccessToken(next);
-        return next;
-      })
+    // Try /auth/refresh first, then fall back to /refresh (root) for legacy servers.
+    const tryEndpoints = ["/auth/refresh", "/refresh"];
+
+    refreshPromise = (async () => {
+      for (const ep of tryEndpoints) {
+        try {
+          const res = await api.post(ep, {}, { withCredentials: true });
+          const next = res?.data?.accessToken || res?.data?.token;
+          if (!next) throw new Error("No accessToken in refresh response");
+          attachAccessToken(next);
+          return next;
+        } catch (e) {
+          // try next endpoint
+        }
+      }
+      throw new Error("All refresh endpoints failed");
+    })()
       .catch((err) => {
         attachAccessToken(null);
         throw err;

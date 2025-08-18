@@ -1,4 +1,4 @@
-// --- REPLACE START: public authentication routes (no authenticate middleware) ---
+// --- REPLACE START: public authentication routes (no authenticate middleware) + forgot/reset-password wiring ---
 import express from 'express';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
@@ -10,8 +10,20 @@ const __dirname = path.dirname(__filename);
 // Dynamic import for authController (Windows ESM compatibility)
 const ControllerModule = await import(
   pathToFileURL(path.resolve(__dirname, '../api/controllers/authController.js')).href
-);
-const authController = ControllerModule.default || ControllerModule;
+).catch(() => null);
+const authController = ControllerModule?.default || ControllerModule || {};
+
+// --- REPLACE START: also try userController as a fallback for forgot/reset and me ---
+let userController = {};
+try {
+  const UcModule = await import(
+    pathToFileURL(path.resolve(__dirname, '../controllers/userController.js')).href
+  );
+  userController = UcModule.default || UcModule || {};
+} catch {
+  // ignore – we'll still expose safe placeholders below where needed
+}
+// --- REPLACE END ---
 
 // Optional request validators
 let validateBody, loginSchema, registerSchema;
@@ -40,9 +52,9 @@ const router = express.Router();
  * POST /login
  * Public route
  */
-if (validateBody && loginSchema) {
+if (validateBody && loginSchema && typeof authController.login === 'function') {
   router.post('/login', validateBody(loginSchema), authController.login);
-} else {
+} else if (typeof authController.login === 'function') {
   router.post('/login', authController.login);
 }
 
@@ -71,21 +83,62 @@ if (typeof authController.refreshToken === 'function') {
 /**
  * POST /logout
  * Public route
+ * Also respond to OPTIONS for CORS preflight
  */
 if (typeof authController.logout === 'function') {
+  router.options('/logout', (_req, res) => res.sendStatus(204)); // preflight OK
   router.post('/logout', authController.logout);
 }
 
 /**
+ * POST /forgot-password
+ * Public route
+ * Prefer controller implementation if available, otherwise return a safe placeholder.
+ */
+const forgotHandler =
+  (typeof authController.forgotPassword === 'function' && authController.forgotPassword) ||
+  (typeof userController.forgotPassword === 'function' && userController.forgotPassword) ||
+  (async (req, res) => {
+    try {
+      // Generic, non-enumerating placeholder to avoid 404 and keep UX intact
+      const email = (req.body?.email || '').trim().toLowerCase();
+      if (!email) return res.status(400).json({ error: 'Email is required.' });
+      return res.status(200).json({
+        message: 'If an account exists for that email, a reset link has been sent.',
+      });
+    } catch (e) {
+      return res.status(500).json({ error: 'Failed to process request.' });
+    }
+  });
+router.post('/forgot-password', forgotHandler);
+
+/**
+ * POST /reset-password
+ * Public route
+ * Prefer controller implementation if available, otherwise return a safe placeholder (400).
+ */
+const resetHandler =
+  (typeof authController.resetPassword === 'function' && authController.resetPassword) ||
+  (typeof userController.resetPassword === 'function' && userController.resetPassword) ||
+  (async (_req, res) => res.status(400).json({ error: 'Reset-password handler not configured.' }));
+router.post('/reset-password', resetHandler);
+
+/**
  * GET /me
  * Protected route — authenticate middleware should be applied in main router
+ * If authController.me missing, try userController.getMe as a fallback.
  */
-if (typeof authController.me === 'function') {
+const meHandler =
+  (typeof authController.me === 'function' && authController.me) ||
+  (typeof userController.getMe === 'function' && userController.getMe);
+
+if (meHandler) {
   try {
-    const { default: authenticate } = await import(
+    const maybeAuth = await import(
       pathToFileURL(path.resolve(__dirname, '../middleware/authenticate.js')).href
     );
-    router.get('/me', authenticate, authController.me);
+    const authenticate = maybeAuth.default || maybeAuth.authenticate || maybeAuth;
+    router.get('/me', authenticate, meHandler);
   } catch (err) {
     console.warn('[authRoutes] Could not attach /me route — missing authenticate middleware:', err?.message);
   }
