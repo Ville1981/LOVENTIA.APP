@@ -159,6 +159,12 @@ app.options(
   (req, res) => res.sendStatus(200)
 );
 
+// --- REPLACE START: broaden preflight for auth + legacy root endpoints ---
+app.options(['/api/auth/*', '/register', '/login', '/logout', '/refresh', '/me', '/profile'], corsConfig, (req, res) =>
+  res.sendStatus(200)
+);
+// --- REPLACE END ---
+
 /* ──────────────────────────────────────────────────────────────────────────────
    Security Headers
 ────────────────────────────────────────────────────────────────────────────── */
@@ -385,6 +391,23 @@ if (IS_TEST) {
   app.use('/api/auth', authRoutes);
 }
 
+// --- REPLACE START: add legacy root aliases that forward to /api/auth/* + /api/users/* ---
+const alias = express.Router();
+
+// Auth root → /api/auth
+alias.post('/register', (req, _res, next) => { req.url = '/api/auth/register'; return next(); });
+alias.post('/login',    (req, _res, next) => { req.url = '/api/auth/login';    return next(); });
+alias.post('/logout',   (req, _res, next) => { req.url = '/api/auth/logout';   return next(); });
+alias.post('/refresh',  (req, _res, next) => { req.url = '/api/auth/refresh';  return next(); });
+
+// Users/profile root → /api/users
+alias.get('/me',        (req, _res, next) => { req.url = '/api/users/me';      return next(); });
+alias.get('/profile',   (req, _res, next) => { req.url = '/api/users/profile'; return next(); });
+alias.put('/profile',   (req, _res, next) => { req.url = '/api/users/profile'; return next(); });
+
+app.use(alias);
+// --- REPLACE END ---
+
 /* ──────────────────────────────────────────────────────────────────────────────
    Feature routes (non-test)
 ────────────────────────────────────────────────────────────────────────────── */
@@ -514,3 +537,4 @@ if (!IS_TEST) {
 }
 
 module.exports = app;
+

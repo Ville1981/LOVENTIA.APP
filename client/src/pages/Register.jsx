@@ -104,6 +104,8 @@ const Register = () => {
         setMessage("Username is required.");
       } else if (status === 409 && /username/i.test(serverMsg || "")) {
         setMessage("This username is already taken.");
+      } else if (status === 409 && /email/i.test(serverMsg || "")) {
+        setMessage("This email is already registered.");
       } else {
         setMessage(serverMsg || "Registration failed.");
       }

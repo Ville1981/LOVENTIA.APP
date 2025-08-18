@@ -52,10 +52,8 @@ const imageRoutes = ImageModule.default || ImageModule;
 import * as MessageModule from './routes/messageRoutes.js';
 const messageRoutes = MessageModule.default || MessageModule;
 
-// --- REPLACE START: import discover routes (ESM/CJS interop) ---
 import * as DiscoverModule from './routes/discover.js';
 const discoverRoutes = DiscoverModule.default || DiscoverModule;
-// --- REPLACE END ---
 // --- REPLACE END ---
 
 // --- REPLACE START: Middleware ---
@@ -81,9 +79,8 @@ if (fs.existsSync(swaggerPath)) {
 // --- REPLACE END ---
 
 /**
- * IMPORTANT: Webhooks must read the raw body for signature verification.
- * NOTE: The routers themselves should use express.raw() where necessary.
- * Keep webhooks BEFORE json/urlencoded body parsers.
+ * Webhooks must read the raw body for signature verification.
+ * Keep BEFORE json/urlencoded parsers.
  */
 app.use('/api/payment/stripe-webhook', stripeWebhookRouter);
 app.use('/api/payment/paypal-webhook', paypalWebhookRouter);
@@ -100,6 +97,8 @@ const envWhitelist = [
 const staticWhitelist = [
   'http://localhost:5174',
   'http://127.0.0.1:5174',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
   'http://localhost:3000',
   'http://127.0.0.1:3000',
   'http://localhost',
@@ -143,19 +142,39 @@ app.get('/api/health', (_req, res) => {
 app.head('/api/health', (_req, res) => res.sendStatus(200));
 // --- REPLACE END ---
 
-// Serve uploads directory (always)
+// Serve uploads directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// --- REPLACE START: conditionally serve client build (avoid ENOENT spam) ---
+// --- REPLACE START: serve client-dist if exists ---
 const clientDistDir = path.join(__dirname, 'client-dist');
 const hasClientDist = fs.existsSync(clientDistDir);
 
 if (hasClientDist) {
-  console.log('🧩 client-dist detected -> enabling static client from /client-dist');
+  console.log('🧩 client-dist detected -> enabling static client');
   app.use(express.static(clientDistDir));
 } else {
-  console.warn('⚠️  /client-dist not found -> skipping static client serving (expected when client runs in its own container).');
+  console.warn('⚠️  /client-dist not found -> skipping static client serving.');
 }
+// --- REPLACE END ---
+
+// --- REPLACE START: Legacy/root aliases for /api ---
+// ❌ Disabled alias rewrites because they broke /api/auth/*
+// If you need root-level legacy paths later, re-enable here AFTER ensuring root routers exist.
+// import expressPkg from 'express';
+// const alias = expressPkg.Router();
+//
+// alias.post('/api/auth/register', (req, _res, next) => { req.url = '/register'; next(); });
+// alias.post('/api/auth/login',    (req, _res, next) => { req.url = '/login';    next(); });
+// alias.post('/api/auth/logout',   (req, _res, next) => { req.url = '/logout';   next(); });
+// alias.post('/api/auth/refresh',  (req, _res, next) => { req.url = '/refresh';  next(); });
+//
+// alias.get('/api/users/me',       (req, _res, next) => { req.url = '/me';       next(); });
+// alias.get('/api/users/profile',  (req, _res, next) => { req.url = '/profile';  next(); });
+// alias.put('/api/users/profile',  (req, _res, next) => { req.url = '/profile';  next(); });
+//
+// alias.get('/api/health',         (req, _res, next) => { req.url = '/api/health'; next(); });
+//
+// app.use(alias);
 // --- REPLACE END ---
 
 // --- REPLACE START: Mount routes ---
@@ -167,7 +186,18 @@ app.use('/api/images', authenticate, imageRoutes);
 app.use('/api/discover', authenticate, discoverRoutes);
 // --- REPLACE END ---
 
-// Mock users (dev only)
+// --- REPLACE START: Cookie helpers ---
+const isProd = process.env.NODE_ENV === 'production';
+export const cookieOptions = {
+  httpOnly: true,
+  sameSite: isProd ? 'None' : 'Lax',
+  secure: isProd,
+  path: '/',
+  maxAge: 1000 * 60 * 60 * 24 * 7,
+};
+// --- REPLACE END ---
+
+// Mock users
 app.get('/api/mock-users', (_req, res) => {
   const user = {
     _id: '1',
@@ -189,7 +219,7 @@ app.get('/api/mock-users', (_req, res) => {
   return res.json([user]);
 });
 
-// Multer-specific error handler
+// Multer error handler
 app.use((err, _req, res, next) => {
   if (err?.name === 'MulterError') {
     return res.status(413).json({ error: err.message });
@@ -197,30 +227,26 @@ app.use((err, _req, res, next) => {
   return next(err);
 });
 
-// --- REPLACE START: ensure unknown /api/* returns JSON 404 ---
+// --- REPLACE START: unknown /api/* 404 ---
 app.use('/api', (_req, res) => res.status(404).json({ error: 'API route not found' }));
 // --- REPLACE END ---
 
-// --- REPLACE START: SPA fallback only if client-dist exists ---
+// --- REPLACE START: SPA fallback ---
 if (hasClientDist) {
   app.get('*', (req, res, next) => {
-    // Do not intercept API or webhook routes
-    if (
-      req.path.startsWith('/api') ||
-      req.path.startsWith('/stripe-webhook') ||
-      req.path.startsWith('/paypal')
-    ) {
+    if (req.path.startsWith('/api') ||
+        req.path.startsWith('/stripe-webhook') ||
+        req.path.startsWith('/paypal')) {
       return next();
     }
     return res.sendFile(path.join(clientDistDir, 'index.html'));
   });
 } else {
-  // When client is served by a separate container, avoid a catch-all here.
-  app.get('/', (_req, res) => res.status(200).json({ ok: true, message: 'Loventia API (client served by separate container).' }));
+  app.get('/', (_req, res) => res.status(200).json({ ok: true, message: 'Loventia API (client served separately).' }));
 }
 // --- REPLACE END ---
 
-// 404 handler (non-API leftovers)
+// 404 handler
 app.use((_req, res) => res.status(404).json({ error: 'Not Found' }));
 
 // --- REPLACE START: Sentry error handler ---
@@ -238,18 +264,13 @@ function printRoutes(appInstance) {
     const lines = [];
     for (const layer of stack) {
       if (layer?.route?.path) {
-        const methods = Object.keys(layer.route.methods)
-          .map((m) => m.toUpperCase())
-          .join(', ');
+        const methods = Object.keys(layer.route.methods).map((m) => m.toUpperCase()).join(', ');
         lines.push(`${methods.padEnd(6)} ${layer.route.path}`);
       } else if (layer?.name === 'router' && layer?.handle?.stack) {
         for (const r of layer.handle.stack) {
           if (r?.route?.path) {
-            const methods = Object.keys(r.route.methods)
-              .map((m) => m.toUpperCase())
-              .join(', ');
-            const p = r.route.path;
-            lines.push(`${methods.padEnd(6)} ${p}`);
+            const methods = Object.keys(r.route.methods).map((m) => m.toUpperCase()).join(', ');
+            lines.push(`${methods.padEnd(6)} ${r.route.path}`);
           }
         }
       }
@@ -283,10 +304,8 @@ const startServer = () => {
   server.on('error', (err) => {
     if (err?.code === 'EADDRINUSE') {
       const nextPort = Number(PORT) + 1;
-      console.error(`⚠️ Port ${PORT} in use, retrying on port ${nextPort}...`);
-      app.listen(nextPort, () =>
-        console.log(`✅ Server running on http://localhost:${nextPort}`)
-      );
+      console.error(`⚠️ Port ${PORT} in use, retrying on ${nextPort}...`);
+      app.listen(nextPort, () => console.log(`✅ Server running on http://localhost:${nextPort}`));
     } else {
       console.error('❌ Server error:', err);
       process.exit(1);
@@ -295,8 +314,7 @@ const startServer = () => {
 };
 
 if (mongoUri) {
-  mongoose
-    .connect(mongoUri)
+  mongoose.connect(mongoUri)
     .then(() => {
       console.log('✅ MongoDB connected');
       startServer();

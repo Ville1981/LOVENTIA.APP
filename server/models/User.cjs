@@ -37,7 +37,7 @@ const userSchema = new mongoose.Schema(
     education:          String,
     healthInfo:         String,
     activityLevel:      String,
-    nutritionPreferences: [String],
+    nutritionPreferences: { type: [String], default: [] },
     orientation:        String,
 
     // ✅ New field persisted
@@ -69,22 +69,25 @@ const userSchema = new mongoose.Schema(
     preferredGender:    { type: String, default: 'any' },
     preferredMinAge:    { type: Number, default: 18 },
     preferredMaxAge:    { type: Number, default: 120 },
-    preferredInterests: [String],
+    preferredInterests: { type: [String], default: [] },
 
-    interests:          [String],
+    interests:          { type: [String], default: [] },
 
     smoke:              String,
     drink:              String,
     drugs:              String,
 
-    profilePicture:     String,
-    extraImages:        [String],
+    // Media
+    profilePicture:     String,              // canonical single avatar path
+    extraImages:        { type: [String], default: [] }, // gallery
 
+    // Social graph
     likes:        [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     passes:       [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     superLikes:   [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 
+    // ✅ Password reset fields
     passwordResetToken:   String,
     passwordResetExpires: Date,
   },
@@ -95,6 +98,8 @@ const userSchema = new mongoose.Schema(
     strict: true,
   }
 );
+
+/* ----------------------- Virtuals ----------------------- */
 
 // Virtuals to map top-level country/region/city to nested location.*
 function ensureLocation(doc) {
@@ -128,7 +133,24 @@ userSchema.virtual('id').get(function () {
   try { return this._id ? this._id.toString() : undefined; } catch { return undefined; }
 });
 
-// Auth helper
+// 🧩 Compatibility virtuals with older routes / client fields:
+// - `avatar` / `profilePhoto` ↔ profilePicture
+userSchema.virtual('avatar')
+  .get(function () { return this.profilePicture; })
+  .set(function (v) { this.profilePicture = v; });
+userSchema.virtual('profilePhoto')
+  .get(function () { return this.profilePicture; })
+  .set(function (v) { this.profilePicture = v; });
+
+// - `photos` (array) ↔ extraImages
+userSchema.virtual('photos')
+  .get(function () { return Array.isArray(this.extraImages) ? this.extraImages : []; })
+  .set(function (arr) {
+    this.extraImages = Array.isArray(arr) ? arr.filter(Boolean) : [];
+  });
+
+/* ----------------------- Auth helper ----------------------- */
+
 userSchema.statics.findByCredentials = async function (email, password) {
   if (!email || !password) return null;
   const candidate = await this.findOne({ email: String(email).toLowerCase().trim() }).exec();
@@ -144,17 +166,25 @@ userSchema.statics.findByCredentials = async function (email, password) {
   return stored === password ? candidate : null;
 };
 
-// Indexes
+/* ----------------------- Indexes ----------------------- */
+
 try {
-  userSchema.index({ username: 1 }, { name: 'idx_user_username' });
-  userSchema.index({ email: 1 }, { name: 'idx_user_email' });
-  userSchema.index({ 'location.country': 1, 'location.region': 1, 'location.city': 1 }, { name: 'idx_user_location' });
+  userSchema.index({ username: 1 }, { name: 'idx_user_username', unique: true });
+  userSchema.index({ email: 1 }, { name: 'idx_user_email', unique: true });
+  userSchema.index(
+    { 'location.country': 1, 'location.region': 1, 'location.city': 1 },
+    { name: 'idx_user_location' }
+  );
   userSchema.index({ gender: 1, age: 1 }, { name: 'idx_user_gender_age' });
-} catch {}
+} catch { /* noop */ }
+
+/* ----------------------- Model export ----------------------- */
 
 let UserModel;
 try { UserModel = mongoose.model('User'); }
 catch { UserModel = mongoose.model('User', userSchema); }
 
 module.exports = UserModel;
+module.exports.User = UserModel;        // named export (interop)
+module.exports.default = UserModel;     // default-like export (interop)
 // --- REPLACE END ---

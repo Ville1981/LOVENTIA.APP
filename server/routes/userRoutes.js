@@ -278,6 +278,91 @@ router.put(
 // --- REPLACE END ---
 
 /* ──────────────────────────────────────────────────────────────────────────────
+   Account deletion (DELETE /users/me)
+────────────────────────────────────────────────────────────────────────────── */
+// --- REPLACE START: add safe cascade delete for the authenticated user ---
+/**
+ * Safely deletes a user and attempts to cascade-delete related assets:
+ *  - Removes profile picture and extra images from disk.
+ *  - Deletes related messages if a Message model exists (best-effort).
+ *  - Finally deletes the user document itself.
+ *
+ * This function is defensive: if a related collection/model is missing,
+ * it will not throw; it logs and continues with user deletion.
+ */
+const cascadeDeleteUser = async (userId) => {
+  const user = await User.findById(userId);
+  if (!user) return { deletedUser: false, removedFiles: 0, deletedMessages: 0 };
+
+  // Remove files from disk
+  let removedFiles = 0;
+  try {
+    if (user.profilePicture) {
+      removeFile(user.profilePicture);
+      removedFiles += 1;
+    }
+    if (Array.isArray(user.extraImages) && user.extraImages.length > 0) {
+      for (const img of user.extraImages) {
+        removeFile(img);
+        removedFiles += 1;
+      }
+    }
+  } catch (e) {
+    console.warn('File cleanup warning:', e?.message || e);
+  }
+
+  // Best-effort: delete messages if model exists
+  let deletedMessages = 0;
+  try {
+    // Try dynamic import to avoid hard dependency if model/file is absent
+    const MsgModule = await import('../models/Message.js').catch(() => null);
+    const Message = MsgModule?.default || MsgModule;
+    if (Message && typeof Message.deleteMany === 'function') {
+      const res1 = await Message.deleteMany({ sender: userId });
+      const res2 = await Message.deleteMany({ receiver: userId });
+      // Some schemas might use participants array; try that too (won't fail if no index)
+      const res3 = await Message.deleteMany({ participants: userId }).catch(() => ({ deletedCount: 0 }));
+      deletedMessages =
+        (res1?.deletedCount || 0) + (res2?.deletedCount || 0) + (res3?.deletedCount || 0);
+    }
+  } catch (e) {
+    console.warn('Message cleanup skipped:', e?.message || e);
+  }
+
+  // Finally delete the user document
+  await User.findByIdAndDelete(userId);
+
+  return { deletedUser: true, removedFiles, deletedMessages };
+};
+
+router.delete('/me', authenticate, async (req, res) => {
+  try {
+    const uid = req.user?.id || req.user?._id || req.user?.userId;
+    if (!uid || !mongoose.Types.ObjectId.isValid(String(uid))) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const result = await cascadeDeleteUser(String(uid));
+
+    // No content is standard, but include minimal headers for clients if needed
+    // You can switch to 200 with JSON if you want to inspect result details.
+    if (!result.deletedUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Optional debug header info (safe, not required)
+    res.setHeader('X-Removed-Files', String(result.removedFiles || 0));
+    res.setHeader('X-Deleted-Messages', String(result.deletedMessages || 0));
+
+    return res.status(204).send(); // No Content
+  } catch (err) {
+    console.error('DELETE /users/me error:', err);
+    return res.status(500).json({ error: 'Failed to delete account' });
+  }
+});
+// --- REPLACE END ---
+
+/* ──────────────────────────────────────────────────────────────────────────────
    Social
 ────────────────────────────────────────────────────────────────────────────── */
 router.post('/like/:id', authenticate, async (_req, res) => {

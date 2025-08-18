@@ -20,10 +20,23 @@ export default function Settings() {
   // --- REPLACE END ---
 
   const handleDelete = async () => {
-    // --- REPLACE START: i18n confirm + errors ---
+    // --- REPLACE START: use correct endpoint + safe cleanup + i18n errors ---
     if (!window.confirm(t("settings.deleteConfirm"))) return;
     try {
-      await api.delete("/auth/delete");
+      // Hit the correct backend endpoint for self-deletion
+      await api.delete("/users/me");
+
+      // Best-effort: clear any locally stored tokens/flags (does not hurt if absent)
+      try {
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        sessionStorage.removeItem("accessToken");
+        sessionStorage.removeItem("refreshToken");
+      } catch {
+        /* noop */
+      }
+
+      // Logout will clear auth state and redirect according to your app logic
       logout();
     } catch (err) {
       console.error(t("settings.deleteErrorConsole"), err);
