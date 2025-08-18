@@ -1,13 +1,22 @@
+# Node modules
 node_modules/
+client/node_modules/
+server/node_modules/
+
+# Build artifacts
 client/dist/
-server/client-dist/
-server/uploads/
-client/.vite/
-client/coverage/
-server/coverage/
+dist/
+
+# Env files
 .env
-server/.env
-client/.env
-.DS_Store
+client/.env.local
+
+# Uploads (user content)
+server/uploads/
+
+# Editor & OS temp files
 .vscode/
 .idea/
+*.log
+.DS_Store
+client-dist/
