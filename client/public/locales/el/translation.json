@@ -144,7 +144,7 @@
   },
   "etusivu": {
     "aloita": "Ξεκινήστε",
-    "heroOtsikko": "Καλώς ήρθατε στο DateSite!",
+    "heroOtsikko": "Καλώς ήρθατε στο Loventia.site!",
     "heroTeksti": "Βρείτε ουσιαστικές συνδέσεις εύκολα και με ασφάλεια.",
     "heroTekstit": [
       "Βρείτε αγάπη που διαρκεί.",
@@ -154,7 +154,7 @@
     "katso_kayttajat": "Δείτε χρήστες",
     "kuvaus": "Βρείτε συντροφιά, φίλους ή αγάπη εύκολα και με ασφάλεια.",
     "lue_lisaa": "Διαβάστε περισσότερα",
-    "tervetuloa": "Καλώς ορίσατε στο DateSite!"
+    "tervetuloa": "Καλώς ορίσατε στο Loventia.site!"
   },
   "etusivu.heroTekstit.0": "Βρείτε αγάπη που διαρκεί.",
   "etusivu.heroTekstit.1": "Γνωρίστε άτομα που μοιράζονται τις αξίες σας.",
@@ -423,7 +423,7 @@
   "safety": "Συμβουλές ασφαλείας",
   "security": "Ασφάλεια",
   "site": {
-    "title": "Ημερομηνία"
+    "title": "Loventia.site"
   },
   "special": "Special",
   "subnav": {

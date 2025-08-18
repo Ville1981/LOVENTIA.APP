@@ -1,3 +1,5 @@
+// client/src/pages/UserProfile.jsx
+
 // --- REPLACE START: add i18n support, robust submit/fetch, and keep full structure ---
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
