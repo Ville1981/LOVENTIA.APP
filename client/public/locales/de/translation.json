@@ -144,7 +144,7 @@
   },
   "etusivu": {
     "aloita": "Loslegen",
-    "heroOtsikko": "Willkommen bei DateSite!",
+    "heroOtsikko": "Willkommen bei Loventia.site!",
     "heroTeksti": "Finde sinnvolle Verbindungen einfach und sicher.",
     "heroTekstit": [
       "Finde die Liebe fürs Leben.",
@@ -154,7 +154,7 @@
     "katso_kayttajat": "Benutzer ansehen",
     "kuvaus": "Finde Freundschaft, Begleitung oder Liebe einfach und sicher.",
     "lue_lisaa": "Mehr erfahren",
-    "tervetuloa": "Willkommen bei DateSite!"
+    "tervetuloa": "Willkommen bei Loventia.site!"
   },
   "etusivu.heroTekstit.0": "Finde die Liebe fürs Leben.",
   "etusivu.heroTekstit.1": "Treffe Menschen mit ähnlichen Werten.",
@@ -423,7 +423,7 @@
   "safety": "Sicherheitstipps",
   "security": "Sicherheit",
   "site": {
-    "title": "DateSite"
+    "title": "Loventia.site"
   },
   "special": "Spezial",
   "subnav": {

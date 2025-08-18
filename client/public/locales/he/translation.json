@@ -144,7 +144,7 @@
   },
   "etusivu": {
     "aloita": "התחילו",
-    "heroOtsikko": "ברוכים הבאים ל-DateSite!",
+    "heroOtsikko": "ברוכים הבאים ל-Loventia.site!",
     "heroTeksti": "מצאו קשרים משמעותיים בקלות ובבטחה.",
     "heroTekstit": [
       "מצאו אהבה שנמשכת.",
@@ -154,7 +154,7 @@
     "katso_kayttajat": "ראו משתמשים",
     "kuvaus": "מצאו חברות, חברים או אהבה בקלות ובבטחה.",
     "lue_lisaa": "קראו עוד",
-    "tervetuloa": "ברוכים הבאים ל-DateSite!"
+    "tervetuloa": "ברוכים הבאים ל-Loventia.site!"
   },
   "etusivu.heroTekstit.0": "מצאו אהבה שנמשכת.",
   "etusivu.heroTekstit.1": "הכירו אנשים שחולקים את הערכים שלכם.",
@@ -423,7 +423,7 @@
   "safety": "טיפים לבטיחות",
   "security": "אבטחה",
   "site": {
-    "title": "אתר הכרויות"
+    "title": "Loventia.site"
   },
   "special": "מיוחד",
   "subnav": {

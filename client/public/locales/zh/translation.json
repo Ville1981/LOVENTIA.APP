@@ -144,7 +144,7 @@
   },
   "etusivu": {
     "aloita": "开始",
-    "heroOtsikko": "欢迎来到 DateSite！",
+    "heroOtsikko": "欢迎来到 Loventia.site！",
     "heroTeksti": "轻松、安全地找到有意义的联系。",
     "heroTekstit": [
       "寻找持久的爱情。",
@@ -154,7 +154,7 @@
     "katso_kayttajat": "查看用户",
     "kuvaus": "轻松安全地寻找伴侣、朋友或爱情。",
     "lue_lisaa": "了解更多",
-    "tervetuloa": "欢迎来到 DateSite！"
+    "tervetuloa": "欢迎来到 Loventia.site！"
   },
   "etusivu.heroTekstit.0": "寻找持久的爱情。",
   "etusivu.heroTekstit.1": "结识志同道合的人。",
@@ -414,7 +414,7 @@
   "safety": "安全提示",
   "security": "安全",
   "site": {
-    "title": "DateSite"
+    "title": "Loventia.site"
   },
   "special": "特别推荐",
   "subnav": {
