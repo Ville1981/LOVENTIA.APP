@@ -1,3 +1,5 @@
+// server/controllers/userController.js
+
 // --- REPLACE START: controller with real forgot/reset password flow + email sending ---
 import 'dotenv/config';
 import path from 'path';
@@ -10,7 +12,7 @@ import nodemailer from 'nodemailer';
 
 // Models (direct access only where needed; services handle most logic)
 import * as UserModule from '../models/User.js';
-const User = UserModule.default || UserModule;
+const User = UserModule?.default || UserModule;
 
 // Inline refresh cookie options (no external utils dependency)
 const refreshCookieOptions = {
@@ -20,6 +22,15 @@ const refreshCookieOptions = {
   path: '/',
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
+
+/**
+ * Returns the first defined value from the provided arguments.
+ * Used to keep backward-compat with multiple env var names.
+ */
+function pickFirstDefined(...vals) {
+  for (const v of vals) if (v !== undefined && v !== null && v !== '') return v;
+  return undefined;
+}
 
 /**
  * Lazy service loader – tolerates different folder layouts.
@@ -60,7 +71,9 @@ async function loadServices() {
           result.deletePhotoSlotService   = imgMod.deletePhotoSlotService   || imgMod.default?.deletePhotoSlotService;
         }
       }
-    } catch { /* continue */ }
+    } catch {
+      /* continue trying other bases */
+    }
   }
 
   _servicesCache = result;
@@ -74,6 +87,7 @@ function removeFileSafe(filePath) {
     const absolute = path.resolve(filePath);
     if (fs.existsSync(absolute)) fs.unlinkSync(absolute);
   } catch (e) {
+    // eslint-disable-next-line no-console
     console.warn('removeFileSafe warning:', e?.message || e);
   }
 }
@@ -93,6 +107,7 @@ function buildTransporter() {
   const pass   = process.env.SMTP_PASS;
 
   if (!user || !pass) {
+    // eslint-disable-next-line no-console
     console.warn('[mail] SMTP_USER/SMTP_PASS missing. Emails will fail.');
   }
 
@@ -125,16 +140,30 @@ export async function registerUser(req, res) {
     if (!email || !password || !username) {
       return res.status(400).json({ error: 'Username, email and password are required.' });
     }
-    const existing = await User.findOne({ email });
-    if (existing) return res.status(409).json({ error: 'Email already in use.' });
+
+    const normEmail = String(email).toLowerCase().trim();
+    const normUsername = String(username).trim();
+
+    const existing = await User.findOne({ $or: [{ email: normEmail }, { username: normUsername }] });
+    if (existing) {
+      // Handle duplicates gracefully
+      const field = existing.email === normEmail ? 'Email' : 'Username';
+      return res.status(409).json({ error: `${field} already in use.` });
+    }
 
     const saltRounds = parseInt(process.env.SALT_ROUNDS || '10', 10);
     const hashed = await bcrypt.hash(password, saltRounds);
-    const user = await User.create({ email, password: hashed, username });
+    const user = await User.create({ email: normEmail, password: hashed, username: normUsername });
 
     return res.status(201).json({ user: { id: user._id, email: user.email, username: user.username } });
   } catch (err) {
+    // eslint-disable-next-line no-console
     console.error('registerUser fallback error:', err);
+    // E11000 duplicate key fallback
+    if (err?.code === 11000) {
+      const key = Object.keys(err.keyPattern || {})[0] || 'field';
+      return res.status(409).json({ error: `${key} already in use.` });
+    }
     return res.status(500).json({ error: 'Registration failed.' });
   }
 }
@@ -148,14 +177,21 @@ export async function loginUser(req, res) {
   try {
     const { email, password } = req.body || {};
     if (!email || !password) return res.status(400).json({ error: 'Email and password are required.' });
-    const user = await User.findOne({ email });
+
+    const user = await User.findOne({ email: String(email).toLowerCase().trim() });
     if (!user) return res.status(401).json({ error: 'Invalid credentials.' });
+
     const ok = await bcrypt.compare(password, user.password || '');
     if (!ok) return res.status(401).json({ error: 'Invalid credentials.' });
 
     const payload = buildJwtPayload(user);
-    const accessToken = jwt.sign(payload, process.env.JWT_SECRET || 'dev_jwt_secret', { expiresIn: '15m' });
-    const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET || 'dev_refresh_secret', { expiresIn: '7d' });
+
+    // Support both JWT_SECRET and ACCESS_TOKEN_SECRET (whichever is set)
+    const accessSecret = pickFirstDefined(process.env.JWT_SECRET, process.env.ACCESS_TOKEN_SECRET) || 'dev_jwt_secret';
+    const refreshSecret = pickFirstDefined(process.env.JWT_REFRESH_SECRET, process.env.REFRESH_TOKEN_SECRET) || 'dev_refresh_secret';
+
+    const accessToken = jwt.sign(payload, accessSecret, { expiresIn: process.env.ACCESS_TOKEN_TTL || '15m' });
+    const refreshToken = jwt.sign(payload, refreshSecret, { expiresIn: process.env.REFRESH_TOKEN_TTL || '7d' });
 
     if (typeof res.cookie === 'function') {
       res.cookie('refreshToken', refreshToken, refreshCookieOptions);
@@ -165,6 +201,7 @@ export async function loginUser(req, res) {
       user: { id: user._id, email: user.email, username: user.username, role: user.role || 'user' },
     });
   } catch (err) {
+    // eslint-disable-next-line no-console
     console.error('loginUser fallback error:', err);
     return res.status(500).json({ error: 'Login failed.' });
   }
@@ -216,12 +253,14 @@ export async function forgotPassword(req, res) {
     try {
       await sendMail({ to: email, subject, text, html });
     } catch (mailErr) {
+      // eslint-disable-next-line no-console
       console.error('[mail] Failed to send reset email:', mailErr?.message || mailErr);
       // Fail gracefully but keep generic response (token is stored; user can try again)
     }
 
     return res.status(200).json(genericResponse);
   } catch (err) {
+    // eslint-disable-next-line no-console
     console.error('forgotPassword error:', err);
     return res.status(500).json({ error: 'Failed to process request.' });
   }
@@ -264,10 +303,13 @@ export async function resetPassword(req, res) {
           secure: process.env.NODE_ENV === 'production',
         });
       }
-    } catch { /* noop */ }
+    } catch {
+      /* noop */
+    }
 
     return res.status(200).json({ message: 'Password has been reset successfully.' });
   } catch (err) {
+    // eslint-disable-next-line no-console
     console.error('resetPassword error:', err);
     return res.status(500).json({ error: 'Failed to reset password.' });
   }
@@ -293,6 +335,7 @@ export async function getMe(req, res) {
     if (!user) return res.status(404).json({ error: 'User not found' });
     return res.json(user);
   } catch (err) {
+    // eslint-disable-next-line no-console
     console.error('getMe fallback error:', err);
     return res.status(500).json({ error: 'Failed to fetch user' });
   }
@@ -314,7 +357,8 @@ export async function updateProfile(req, res) {
       'weight','weightUnit','city','region','country','customCity','customRegion','customCountry',
       'profession','professionCategory','education','religion','religionImportance','children','pets',
       'nutritionPreferences','activityLevel','healthInfo','smoke','drink','drugs','latitude','longitude',
-      'profilePhoto','extraImages','politicalIdeology','location'
+      'profilePhoto','extraImages','politicalIdeology','location','name','bodyType','preferredGender',
+      'preferredMinAge','preferredMaxAge','preferredInterests','interests','status'
     ];
     const patch = {};
     for (const k of allowed) if (k in (req.body || {})) patch[k] = req.body[k];
@@ -333,6 +377,7 @@ export async function updateProfile(req, res) {
     const saved = await user.save();
     return res.json({ user: saved });
   } catch (err) {
+    // eslint-disable-next-line no-console
     console.error('updateProfile fallback error:', err);
     return res.status(500).json({ error: 'Profile update failed' });
   }
@@ -435,7 +480,9 @@ export async function deleteMeUser(req, res) {
           secure: process.env.NODE_ENV === 'production',
         });
       }
-    } catch { /* noop */ }
+    } catch {
+      /* noop */
+    }
 
     res.setHeader('X-Removed-Files', String(removedFiles));
     res.setHeader('X-Deleted-Messages', String(deletedMessages));
@@ -462,3 +509,4 @@ export default {
   deleteMeUser,
 };
 // --- REPLACE END ---
+

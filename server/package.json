@@ -1,7 +1,9 @@
+
 {
   "name": "loventia-app-server",
   "version": "1.0.0",
-  "description": "",
+  "description": "Loventia backend (Express + MongoDB, ESM)",
+  "private": true,
   "main": "index.js",
   "type": "module",
   "scripts": {

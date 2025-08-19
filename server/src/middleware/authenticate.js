@@ -1,3 +1,5 @@
+// server/middleware/authenticate.js
+
 // --- REPLACE START: JWT authenticate middleware (ESM) ---
 /**
  * Authenticate requests using a Bearer access token.
@@ -151,4 +153,3 @@ export default function authenticate(req, res, next) {
 
 export { resolveToken, getAccessTokenFromAuthHeader, getAccessTokenFromCookies, getAccessTokenFromQuery };
 // --- REPLACE END ---
-
