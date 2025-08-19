@@ -150,7 +150,6 @@ const schema = yup.object().shape({
     .oneOf(["", "Cm", "FtIn", "cm", "ftin"], "Invalid unit"),
 
   weight: yup.number().nullable().transform((v, o) => (o === "" ? null : v)),
-  // Include weightUnit because UI has it; accept both cases too
   weightUnit: yup
     .string()
     .oneOf(["", "kg", "lb", "KG", "LB"], "Invalid unit"),
@@ -250,25 +249,19 @@ export default function ProfileForm({
     getValues,
   } = methods;
 
-  // Preserve user's current edits when `user` object refreshes
+  // Preserve edits when user object refreshes
   useEffect(() => {
     const current = getValues();
     reset({
-      // Server as base…
       ...user,
-      // …then current form values override (so fresh edits don't get wiped)
       ...current,
-
       nutritionPreferences: Array.isArray(user.nutritionPreferences)
         ? user.nutritionPreferences[0]
         : (current.nutritionPreferences ?? user.nutritionPreferences ?? ""),
-
       extraImages: current.extraImages ?? user.extraImages ?? [],
       profilePhoto: current.profilePhoto ?? user.profilePicture ?? "",
-
       politicalIdeology:
         current.politicalIdeology ?? user.politicalIdeology ?? "",
-
       heightUnit: current.heightUnit ?? user.heightUnit ?? "",
       weightUnit: current.weightUnit ?? user.weightUnit ?? "",
     });
@@ -276,7 +269,6 @@ export default function ProfileForm({
   }, [user, reset]);
 
   const [localExtraImages, setLocalExtraImages] = useState(user.extraImages || []);
-
   const [avatarPreview, setAvatarPreview] = useState(
     user.profilePicture
       ? user.profilePicture.startsWith("http")
@@ -534,7 +526,8 @@ export default function ProfileForm({
         {/* Quick generic hint if validation blocks submit */}
         {Object.keys(errors || {}).length > 0 && (
           <p className="text-sm mt-2 text-red-600">
-            {t("common.fixErrors") || "Please fix the highlighted fields before saving."}
+            {t("common.fixErrors") ||
+              "Please fix the highlighted fields before saving."}
           </p>
         )}
 
@@ -559,4 +552,9 @@ export default function ProfileForm({
     </FormProvider>
   );
 }
+// --- REPLACE START: remove duplicate default export at end of file ---
+// (Removed to avoid "Only one default export allowed per module")
+// export default ProfileForm;
 // --- REPLACE END ---
+
+

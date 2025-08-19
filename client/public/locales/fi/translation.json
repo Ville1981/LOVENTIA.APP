@@ -146,7 +146,7 @@
   },
   "etusivu": {
     "aloita": "Aloita nyt",
-    "heroOtsikko": "Tervetuloa DateSiteen",
+    "heroOtsikko": "Tervetuloa Loventia.siteen",
     "heroTeksti": "Löydä merkityksellisiä yhteyksiä helposti ja turvallisesti.",
     "heroTekstit": [
       "Löydä kestävä rakkaus.",
@@ -156,7 +156,7 @@
     "katso_kayttajat": "Katso käyttäjiä",
     "kuvaus": "Löydä seuraa, ystäviä tai rakkautta helposti ja turvallisesti.",
     "lue_lisaa": "Lue lisää",
-    "tervetuloa": "Tervetuloa DateSiteen!"
+    "tervetuloa": "Tervetuloa Loventia.siteen!"
   },
   "etusivu.heroTekstit.0": "Löydä kestävä rakkaus.",
   "etusivu.heroTekstit.1": "Tapaa samanhenkisiä ihmisiä.",
@@ -416,7 +416,7 @@
   "safety": "Turvavinkit",
   "security": "Turvallisuus",
   "site": {
-    "title": "DateSite"
+    "title": "Loventia.site"
   },
   "special": "Erikoiset",
   "subnav": {

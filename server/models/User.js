@@ -26,7 +26,10 @@ try {
   // Interop: support both module.exports = Model and { default: Model }
   LoadedUser = (maybeModule && maybeModule.default) ? maybeModule.default : maybeModule;
 
-  if (typeof LoadedUser !== 'function' && !LoadedUser?.prototype?.constructor?.name) {
+  if (
+    typeof LoadedUser !== 'function' &&
+    !(LoadedUser && LoadedUser.prototype && LoadedUser.prototype.constructor)
+  ) {
     throw new TypeError(
       '[models/User.js] Loaded User model is not a constructor/function. ' +
       'Ensure server/models/User.cjs exports the Mongoose model via module.exports = UserModel;'

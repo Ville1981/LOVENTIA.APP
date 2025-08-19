@@ -2,7 +2,7 @@
   "Admin": "Msimamizi",
   "Discover": "Gundua",
   "Etusivu": {
-    "heroOtsikko": "Karibu kwenye DateSite!",
+    "heroOtsikko": "Karibu kwenye Loventia.site!",
     "heroTeksti": "Pata uhusiano wa maana kwa urahisi na kwa usalama.",
     "heroTekstit": {
       "0": "Pata upendo wa kweli.",
@@ -153,7 +153,7 @@
   },
   "etusivu": {
     "aloita": "Get started",
-    "heroOtsikko": "Welcome to DateSite!",
+    "heroOtsikko": "Welcome to Loventia.site!",
     "heroTeksti": "Find meaningful connections easily and safely.",
     "heroTekstit": [
       "Find love that lasts.",
@@ -163,7 +163,7 @@
     "katso_kayttajat": "See users",
     "kuvaus": "Find companionship, friends or love easily and safely.",
     "lue_lisaa": "Read more",
-    "tervetuloa": "Welcome to DateSite!"
+    "tervetuloa": "Welcome to Loventia.site!"
   },
   "etusivu.heroTekstit.0": "Find love that lasts.",
   "etusivu.heroTekstit.1": "Meet people who share your values.",
@@ -432,7 +432,7 @@
   "safety": "Vidokezo vya Usalama",
   "security": "Usalama",
   "site": {
-    "title": "DateSite"
+    "title": "Loventia.site"
   },
   "special": "Maalum",
   "subnav": {

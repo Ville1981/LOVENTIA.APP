@@ -1,9 +1,11 @@
+// client/src/pages/ChatPage.jsx
+
 /* eslint-env browser */
 import React, { useEffect, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 
-// --- REPLACE START: import socket helpers for reconnect & dedupe ---
+// --- REPLACE START: import socket helpers for reconnect & dedupe, fix REST paths (no /api/api), safer token parse ---
 import {
   connectSocket,
   disconnectSocket,
@@ -36,23 +38,27 @@ export default function ChatPage() {
   useEffect(() => {
     if (!userId) return;
 
-    // parse current user ID from token
+    // parse current user ID from token (safe)
     const raw = localStorage.getItem("accessToken");
     let myId = null;
     try {
-      const payload = JSON.parse(atob(raw.split(".")[1]));
-      myId = payload.id;
-    } catch (err) {
+      if (raw && raw.split(".").length === 3) {
+        const payload = JSON.parse(atob(raw.split(".")[1]));
+        myId = payload?.id || payload?._id || null;
+      }
+    } catch {
       // ignore invalid token payload
     }
 
     // Fetch history via REST
     const fetchMessages = async () => {
       try {
-        const res = await api.get(`/api/messages/${userId}`);
+        // axiosInstance already has baseURL `${BACKEND_BASE_URL}/api`
+        // so do NOT prefix with /api here.
+        const res = await api.get(`/messages/${userId}`);
         const msgs = Array.isArray(res.data) ? res.data : [];
         msgs.forEach((m) => {
-          const id = m._id ? m._id.toString() : null;
+          const id = m._id ? String(m._id) : null;
           if (id) messageIdsRef.current.add(id);
         });
         setMessages(msgs);
@@ -64,14 +70,14 @@ export default function ChatPage() {
 
     // Initialize socket connection & listeners
     const initSocket = () => {
-      // --- REPLACE START: connect socket with conversationId query ---
-      const conversationId = [myId, userId].sort().join("_");
+      // --- REPLACE START: connect socket with conversationId query (stable across both users) ---
+      const conversationId = [myId, userId].filter(Boolean).sort().join("_");
       connectSocket({ query: { conversationId } });
       // --- REPLACE END ---
       joinRoom(conversationId);
 
       const handleSocketMessage = (msg) => {
-        const msgId = msg._id ? msg._id.toString() : null;
+        const msgId = msg?._id ? String(msg._id) : null;
         if (!msgId || messageIdsRef.current.has(msgId)) return;
         messageIdsRef.current.add(msgId);
         setMessages((prev) => [...prev, msg]);
@@ -97,26 +103,29 @@ export default function ChatPage() {
     const text = newMessage.trim();
     if (!text) return;
 
-    // parse current user ID
+    // parse current user ID (safe)
     const raw = localStorage.getItem("accessToken");
     let myId = null;
     try {
-      const payload = JSON.parse(atob(raw.split(".")[1]));
-      myId = payload.id;
-    } catch (err) {
+      if (raw && raw.split(".").length === 3) {
+        const payload = JSON.parse(atob(raw.split(".")[1]));
+        myId = payload?.id || payload?._id || null;
+      }
+    } catch {
       // ignore parsing errors
     }
 
-    const conversationId = [myId, userId].sort().join("_");
+    const conversationId = [myId, userId].filter(Boolean).sort().join("_");
 
     // Optimistically emit via socket
     sendSocketMessage(conversationId, text);
 
     // Persist via REST
     try {
-      const res = await api.post(`/api/messages/${userId}`, { text });
-      const saved = res.data;
-      const savedId = saved._id ? saved._id.toString() : null;
+      // axiosInstance baseURL already includes /api
+      const res = await api.post(`/messages/${userId}`, { text });
+      const saved = res?.data;
+      const savedId = saved?._id ? String(saved._id) : null;
       if (savedId && !messageIdsRef.current.has(savedId)) {
         messageIdsRef.current.add(savedId);
         setMessages((prev) => [...prev, saved]);
@@ -136,22 +145,20 @@ export default function ChatPage() {
 
       <div className="flex-1 overflow-y-auto bg-gray-100 p-4 rounded shadow-sm">
         {messages.map((msg, idx) => {
-          const isIncoming = msg.sender.toString() === userId;
+          // tolerate both string and object ids
+          const sender = msg?.sender?.toString ? msg.sender.toString() : String(msg?.sender || "");
+          const isIncoming = sender === String(userId);
           return (
             <div
               key={msg._id || idx}
-              className={`my-2 flex ${
-                isIncoming ? "justify-start" : "justify-end"
-              }`}
+              className={`my-2 flex ${isIncoming ? "justify-start" : "justify-end"}`}
             >
               <div
                 className={`p-2 rounded-lg max-w-xs whitespace-pre-wrap ${
-                  isIncoming
-                    ? "bg-white text-left"
-                    : "bg-blue-500 text-white text-right"
+                  isIncoming ? "bg-white text-left" : "bg-blue-500 text-white text-right"
                 }`}
               >
-                {msg.text}
+                {msg?.text ?? ""}
               </div>
             </div>
           );

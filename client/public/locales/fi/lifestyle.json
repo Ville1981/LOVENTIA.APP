@@ -1,0 +1,19 @@
+{
+  "sectionTitle": "Elämäntapa",
+  "smoke": "Tupakointi",
+  "drink": "Alkoholi",
+  "drugs": "Huumeet",
+  "activityLevel": "Aktiivisuustaso",
+  "bodyType": "Vartalotyyppi",
+  "nutritionPreferences": "Ruokavalio",
+  "diet": {
+    "none": "Ei määritelty",
+    "omnivore": "Sekasyöjä",
+    "vegetarian": "Kasvissyöjä",
+    "vegan": "Vegaani",
+    "pescatarian": "Peskovegetaristi",
+    "flexitarian": "Fleksitaristi",
+    "keto": "Keto",
+    "other": "Muu"
+  }
+}

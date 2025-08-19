@@ -74,25 +74,25 @@
   "cookies": "Cookies",
   "countries": {
     "Argentina": "Argentina",
-    "Brasilia": "Brazil",
+    "Brazil": "Brazil",
     "Chile": "Chile",
-    "Espanja": "Spain",
-    "Intia": "India",
-    "Iso-Britannia": "United Kingdom",
-    "Italia": "Italy",
-    "Japani": "Japan",
-    "Kanada": "Canada",
-    "Kazakstan": "Kazakhstan",
-    "Kiina": "China",
-    "Norja": "Norway",
-    "Portugali": "Portugal",
-    "Ranska": "France",
-    "Ruotsi": "Sweden",
-    "Saksa": "Germany",
-    "Suomi": "Finland",
-    "Ukraina": "Ukraine",
-    "Venäjä": "Russia",
-    "Yhdysvallat": "United States"
+    "Spain": "Spain",
+    "India": "India",
+    "United Kingdom": "United Kingdom",
+    "Italy": "Italy",
+    "Japan": "Japan",
+    "Canada": "Canada",
+    "Kazakhstan": "Kazakhstan",
+    "China": "China",
+    "Norway": "Norway",
+    "Portugal": "Portugal",
+    "France": "France",
+    "Sweden": "Sweden",
+    "Germany": "Germany",
+    "Finland": "Finland",
+    "Ukraine": "Ukraine",
+    "Russia": "Russia",
+    "United States": "United States"
   },
   "country": "Country",
   "discover": {
@@ -144,7 +144,7 @@
   },
   "etusivu": {
     "aloita": "Get started",
-    "heroOtsikko": "Welcome to DateSite!",
+    "heroOtsikko": "Welcome to Loventia.site!",
     "heroTeksti": "Find meaningful connections easily and safely.",
     "heroTekstit": [
       "Find love that lasts.",
@@ -154,7 +154,7 @@
     "katso_kayttajat": "See users",
     "kuvaus": "Find companionship, friends or love easily and safely.",
     "lue_lisaa": "Read more",
-    "tervetuloa": "Welcome to DateSite!"
+    "tervetuloa": "Welcome to Loventia.site!"
   },
   "etusivu.heroTekstit.0": "Find love that lasts.",
   "etusivu.heroTekstit.1": "Meet people who share your values.",
@@ -165,6 +165,17 @@
     "0": "Find love that lasts.",
     "1": "Meet people who share your values.",
     "2": "Your next match is one click away."
+  },
+  "home.title": "Welcome to Loventia.site!",
+  "home.subtitle": "Find meaningful connections easily and safely.",
+  "home": {
+    "title": "Welcome to Loventia.site!",
+    "subtitle": "Find meaningful connections easily and safely.",
+    "texts": [
+      "Find love that lasts.",
+      "Meet people who share your values.",
+      "Your next match is one click away."
+    ]
   },
   "impressum": "Impressum",
   "lifestyle": {
@@ -244,40 +255,6 @@
     "tagline": "Match better. Love smarter. 💘",
     "terms": "Terms"
   },
-  "nav.about": "About",
-  "nav.admin": "Admin",
-  "nav.blog": "Blog",
-  "nav.careers": "Careers",
-  "nav.coInfo": "Colorado Info",
-  "nav.community": "Community",
-  "nav.company": "Company",
-  "nav.conditions": "Conditions",
-  "nav.contact": "Contact",
-  "nav.cookies": "Cookies",
-  "nav.discover": "Discover",
-  "nav.download": "Download",
-  "nav.follow": "Follow",
-  "nav.health": "Health Policy",
-  "nav.home": "Home",
-  "nav.impressum": "Impressum",
-  "nav.likes": "Likes",
-  "nav.login": "Login",
-  "nav.map": "Map",
-  "nav.matches": "Matches",
-  "nav.messages": "Messages",
-  "nav.premium": "Upgrade",
-  "nav.press": "Press",
-  "nav.privacy": "Privacy",
-  "nav.profile": "Profile",
-  "nav.register": "Register",
-  "nav.rights": "All rights reserved.",
-  "nav.safety": "Safety Tips",
-  "nav.security": "Security",
-  "nav.settings": "Settings",
-  "nav.special": "Special",
-  "nav.support": "Support",
-  "nav.tagline": "Match better. Love smarter. 💘",
-  "nav.terms": "Terms",
   "notifications": {
     "likeReceived": "{{username}} liked your profile",
     "matchFound": "You have a new match with {{username}}",
@@ -416,7 +393,7 @@
     "title": "Account settings"
   },
   "site": {
-    "title": "DateSite"
+    "title": "Loventia.site"
   },
   "special": "Special",
   "subnav": {

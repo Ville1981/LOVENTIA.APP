@@ -144,7 +144,7 @@
   },
   "etusivu": {
     "aloita": "ابدأ الآن",
-    "heroOtsikko": "مرحبًا بك في DateSite!",
+    "heroOtsikko": "مرحبًا بك في Loventia.site!",
     "heroTeksti": "اعثر على علاقات ذات مغزى بسهولة وأمان.",
     "heroTekstit": [
       "اعثر على الحب الذي يدوم.",
@@ -154,7 +154,7 @@
     "katso_kayttajat": "عرض المستخدمين",
     "kuvaus": "اعثر على رفقة أو أصدقاء أو حب بسهولة وأمان.",
     "lue_lisaa": "اقرأ المزيد",
-    "tervetuloa": "مرحبًا بك في DateSite!"
+    "tervetuloa": "مرحبًا بك في Loventia.site!"
   },
   "etusivu.heroTekstit.0": "اعثر على الحب الذي يدوم.",
   "etusivu.heroTekstit.1": "قابل أشخاصًا يشاركونك قيمك.",
@@ -423,7 +423,7 @@
   "safety": "نصائح الأمان",
   "security": "الأمان",
   "site": {
-    "title": "موقع المواعدة"
+    "title": "Loventia.site"
   },
   "special": "خاص",
   "subnav": {

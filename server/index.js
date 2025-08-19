@@ -1,3 +1,5 @@
+// server/index.js
+
 // --- REPLACE START: load environment variables early ---
 import 'dotenv/config';
 // --- REPLACE END ---
@@ -37,14 +39,18 @@ import paypalWebhookRouter from './routes/paypalWebhook.js';
 // --- REPLACE END ---
 
 // --- REPLACE START: App routes ---
+// Keep existing folder structure but FIX users route filename to match on-disk file.
 import * as AuthPublicModule from './src/routes/authRoutes.js';
 const authRoutes = AuthPublicModule.default || AuthPublicModule;
 
 import * as AuthPrivateModule from './src/routes/authPrivateRoutes.js';
 const authPrivateRoutes = AuthPrivateModule.default || AuthPrivateModule;
 
-import * as UserModule from './routes/userRoutes.js';
-const userRoutes = UserModule.default || UserModule;
+// ✅ FIX: import the existing users router from ./routes/users.js (plural, ESM-converted)
+ // --- REPLACE START: users route path fix (singular → plural) ---
+import * as UsersRouterModule from './routes/user.js';
+const userRoutes = UsersRouterModule.default || UsersRouterModule;
+ // --- REPLACE END ---
 
 import * as ImageModule from './routes/imageRoutes.js';
 const imageRoutes = ImageModule.default || ImageModule;
@@ -234,15 +240,19 @@ app.use('/api', (_req, res) => res.status(404).json({ error: 'API route not foun
 // --- REPLACE START: SPA fallback ---
 if (hasClientDist) {
   app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api') ||
-        req.path.startsWith('/stripe-webhook') ||
-        req.path.startsWith('/paypal')) {
+    if (
+      req.path.startsWith('/api') ||
+      req.path.startsWith('/stripe-webhook') ||
+      req.path.startsWith('/paypal')
+    ) {
       return next();
     }
     return res.sendFile(path.join(clientDistDir, 'index.html'));
   });
 } else {
-  app.get('/', (_req, res) => res.status(200).json({ ok: true, message: 'Loventia API (client served separately).' }));
+  app.get('/', (_req, res) =>
+    res.status(200).json({ ok: true, message: 'Loventia API (client served separately).' })
+  );
 }
 // --- REPLACE END ---
 
@@ -264,12 +274,16 @@ function printRoutes(appInstance) {
     const lines = [];
     for (const layer of stack) {
       if (layer?.route?.path) {
-        const methods = Object.keys(layer.route.methods).map((m) => m.toUpperCase()).join(', ');
+        const methods = Object.keys(layer.route.methods)
+          .map((m) => m.toUpperCase())
+          .join(', ');
         lines.push(`${methods.padEnd(6)} ${layer.route.path}`);
       } else if (layer?.name === 'router' && layer?.handle?.stack) {
         for (const r of layer.handle.stack) {
           if (r?.route?.path) {
-            const methods = Object.keys(r.route.methods).map((m) => m.toUpperCase()).join(', ');
+            const methods = Object.keys(r.route.methods)
+              .map((m) => m.toUpperCase())
+              .join(', ');
             lines.push(`${methods.padEnd(6)} ${r.route.path}`);
           }
         }
@@ -314,7 +328,8 @@ const startServer = () => {
 };
 
 if (mongoUri) {
-  mongoose.connect(mongoUri)
+  mongoose
+    .connect(mongoUri)
     .then(() => {
       console.log('✅ MongoDB connected');
       startServer();

@@ -40,6 +40,7 @@ import Register from "./pages/Register";
 import Settings from "./pages/Settings";
 import Upgrade from "./pages/Upgrade";
 import WhoLikedMe from "./pages/WhoLikedMe";
+import SettingsPage from "./pages/SettingsPage";
 
 // PrivateRoute uses context user
 function PrivateRoute({ children }) {
@@ -177,6 +178,7 @@ export default function App() {
                   </PrivateRoute>
                 }
               />
+              <Route path="/settings" element={<SettingsPage />} />
 
               <Route path="forgot-password" element={<ForgotPassword />} />
               <Route path="reset-password" element={<ResetPassword />} />
