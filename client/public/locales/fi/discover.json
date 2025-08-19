@@ -1,0 +1,18 @@
+{
+  "title": "Löydä ihmisiä",
+  "instructions": "Aseta suodattimet ja paina Suodata nähdäksesi osumat.",
+  "ageRange": "Ikähaarukka",
+  "username": "Käyttäjänimi",
+  "gender": "Sukupuoli",
+  "orientation": "Seksuaalinen suuntautuminen",
+  "profession": "Ammatti",
+  "religion": "Uskonto",
+  "religionImportance": "Uskonnon merkitys",
+  "politicalIdeology": "Poliittinen ideologia",
+  "country": "Maa",
+  "region": "Maakunta/Osavaltio",
+  "city": "Kaupunki",
+  "customCountry": "Mukautettu maa",
+  "customRegion": "Mukautettu alue",
+  "customCity": "Mukautettu kaupunki"
+}
