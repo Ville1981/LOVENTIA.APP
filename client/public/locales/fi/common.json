@@ -1,0 +1,13 @@
+{
+  "appName": "Loventia",
+  "select": "Valitse",
+  "all": "Kaikki",
+  "filter": "Suodata",
+  "loading": "Ladataan",
+  "fixErrors": "Korjaa korostetut kentät ennen tallennusta.",
+  "save": "Tallenna",
+  "cancel": "Peruuta",
+  "update": "Päivitä",
+  "close": "Sulje",
+  "language": "Kieli"
+}

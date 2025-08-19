@@ -4,6 +4,29 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
+/**
+ * User schema
+ * - Keeps original structure and field names
+ * - Adds missing fields used by the client (e.g., politicalIdeology, location, lifestyle, preferences)
+ * - Provides virtuals for legacy aliases and convenience (country/region/city ↔ location.*, photos ↔ extraImages, etc.)
+ * - Preserves CommonJS exports for maximum compatibility with existing code
+ */
+
+// Transform function to hide sensitive fields in JSON output.
+// Keeps compatibility while preventing accidental leakage of secrets.
+function safeTransform(_doc, ret) {
+  try {
+    delete ret.password;
+    delete ret.passwordResetToken;
+    delete ret.passwordResetExpires;
+    // Mongoose internal fields clean-up (keep id via virtual)
+    delete ret.__v;
+  } catch {
+    // noop
+  }
+  return ret;
+}
+
 // Define User schema with all necessary fields.
 // IMPORTANT: `politicalIdeology` replaces legacy `ideology`. A virtual alias is provided for backward compatibility.
 const userSchema = new mongoose.Schema(
@@ -15,30 +38,30 @@ const userSchema = new mongoose.Schema(
     isPremium:          { type: Boolean, default: false },
 
     // Profile details
-    name:               String,
-    age:                Number,
-    gender:             String,
-    status:             String,
-    religion:           String,
-    religionImportance: String,
-    children:           String,
-    pets:               String,
-    summary:            String,
+    name:               { type: String, trim: true },
+    age:                { type: Number, min: 0, max: 130 },
+    gender:             { type: String, trim: true },
+    status:             { type: String, trim: true },
+    religion:           { type: String, trim: true },
+    religionImportance: { type: String, trim: true },
+    children:           { type: String, trim: true },
+    pets:               { type: String, trim: true },
+    summary:            { type: String, trim: true },
 
-    goal:               String,
-    lookingFor:         String,
-    profession:         String,
-    professionCategory: String,
-    bodyType:           String,
-    height:             Number,
-    heightUnit:         String,
-    weight:             Number,
-    weightUnit:         String,
-    education:          String,
-    healthInfo:         String,
-    activityLevel:      String,
+    goal:               { type: String, trim: true },
+    lookingFor:         { type: String, trim: true },
+    profession:         { type: String, trim: true },
+    professionCategory: { type: String, trim: true },
+    bodyType:           { type: String, trim: true },
+    height:             { type: Number, min: 0, max: 300 },
+    heightUnit:         { type: String, trim: true },
+    weight:             { type: Number, min: 0, max: 1000 },
+    weightUnit:         { type: String, trim: true },
+    education:          { type: String, trim: true },
+    healthInfo:         { type: String, trim: true },
+    activityLevel:      { type: String, trim: true },
     nutritionPreferences: { type: [String], default: [] },
-    orientation:        String,
+    orientation:        { type: String, trim: true },
 
     // ✅ New field persisted
     politicalIdeology: {
@@ -53,32 +76,37 @@ const userSchema = new mongoose.Schema(
       default: '',
     },
 
-    location:           {
-      country:          { type: String },
-      region:           { type: String },
-      city:             { type: String },
+    // Location block used by client; top-level virtuals map to these fields
+    location: {
+      country:          { type: String, trim: true },
+      region:           { type: String, trim: true },
+      city:             { type: String, trim: true },
     },
 
-    customCity:         String,
-    customRegion:       String,
-    customCountry:      String,
+    // Custom location text overrides (optional)
+    customCity:         { type: String, trim: true },
+    customRegion:       { type: String, trim: true },
+    customCountry:      { type: String, trim: true },
 
-    latitude:           Number,
-    longitude:          Number,
+    // Coordinates (numeric)
+    latitude:           { type: Number, min: -90, max: 90 },
+    longitude:          { type: Number, min: -180, max: 180 },
 
-    preferredGender:    { type: String, default: 'any' },
-    preferredMinAge:    { type: Number, default: 18 },
-    preferredMaxAge:    { type: Number, default: 120 },
+    // Preferences used in Discover/filters
+    preferredGender:    { type: String, default: 'any', trim: true },
+    preferredMinAge:    { type: Number, default: 18, min: 18, max: 120 },
+    preferredMaxAge:    { type: Number, default: 120, min: 18, max: 120 },
     preferredInterests: { type: [String], default: [] },
 
     interests:          { type: [String], default: [] },
 
-    smoke:              String,
-    drink:              String,
-    drugs:              String,
+    // Lifestyle filters
+    smoke:              { type: String, trim: true },
+    drink:              { type: String, trim: true },
+    drugs:              { type: String, trim: true },
 
     // Media
-    profilePicture:     String,              // canonical single avatar path
+    profilePicture:     { type: String, trim: true },  // canonical single avatar path
     extraImages:        { type: [String], default: [] }, // gallery
 
     // Social graph
@@ -88,12 +116,12 @@ const userSchema = new mongoose.Schema(
     blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 
     // ✅ Password reset fields
-    passwordResetToken:   String,
-    passwordResetExpires: Date,
+    passwordResetToken:   { type: String, trim: true },
+    passwordResetExpires: { type: Date },
   },
   {
     timestamps: true,
-    toJSON:   { virtuals: true },
+    toJSON:   { virtuals: true, transform: safeTransform },
     toObject: { virtuals: true },
     strict: true,
   }
@@ -105,12 +133,15 @@ const userSchema = new mongoose.Schema(
 function ensureLocation(doc) {
   if (!doc.location) doc.location = {};
 }
+
 userSchema.virtual('country')
   .get(function () { return this.location ? this.location.country : undefined; })
   .set(function (v) { ensureLocation(this); this.location.country = v; });
+
 userSchema.virtual('region')
   .get(function () { return this.location ? this.location.region : undefined; })
   .set(function (v) { ensureLocation(this); this.location.region = v; });
+
 userSchema.virtual('city')
   .get(function () { return this.location ? this.location.city : undefined; })
   .set(function (v) { ensureLocation(this); this.location.city = v; });
@@ -119,6 +150,7 @@ userSchema.virtual('city')
 userSchema.virtual('lat')
   .get(function () { return this.latitude; })
   .set(function (v) { this.latitude = v; });
+
 userSchema.virtual('lng')
   .get(function () { return this.longitude; })
   .set(function (v) { this.longitude = v; });
@@ -128,7 +160,7 @@ userSchema.virtual('ideology')
   .get(function () { return this.politicalIdeology; })
   .set(function (v) { this.politicalIdeology = v; });
 
-// id as string
+// id as string (friendly)
 userSchema.virtual('id').get(function () {
   try { return this._id ? this._id.toString() : undefined; } catch { return undefined; }
 });
@@ -138,6 +170,7 @@ userSchema.virtual('id').get(function () {
 userSchema.virtual('avatar')
   .get(function () { return this.profilePicture; })
   .set(function (v) { this.profilePicture = v; });
+
 userSchema.virtual('profilePhoto')
   .get(function () { return this.profilePicture; })
   .set(function (v) { this.profilePicture = v; });
@@ -150,7 +183,11 @@ userSchema.virtual('photos')
   });
 
 /* ----------------------- Auth helper ----------------------- */
-
+/**
+ * findByCredentials
+ * Accepts either a bcrypt-hashed password or a plain-text password (for legacy/dev).
+ * Returns the user document if credentials match, otherwise null.
+ */
 userSchema.statics.findByCredentials = async function (email, password) {
   if (!email || !password) return null;
   const candidate = await this.findOne({ email: String(email).toLowerCase().trim() }).exec();
@@ -176,13 +213,20 @@ try {
     { name: 'idx_user_location' }
   );
   userSchema.index({ gender: 1, age: 1 }, { name: 'idx_user_gender_age' });
-} catch { /* noop */ }
+  // Keep separate numeric indexes for potential range queries
+  userSchema.index({ latitude: 1, longitude: 1 }, { name: 'idx_user_lat_lng' });
+} catch {
+  /* noop */
+}
 
 /* ----------------------- Model export ----------------------- */
 
 let UserModel;
-try { UserModel = mongoose.model('User'); }
-catch { UserModel = mongoose.model('User', userSchema); }
+try {
+  UserModel = mongoose.model('User');
+} catch {
+  UserModel = mongoose.model('User', userSchema);
+}
 
 module.exports = UserModel;
 module.exports.User = UserModel;        // named export (interop)

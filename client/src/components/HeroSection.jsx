@@ -15,22 +15,26 @@ function HeroSection() {
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
   const { t, i18n } = useTranslation();
 
-  // 🔹 Kielikohtainen valinta teksteille
+  // Language buckets kept (not strictly needed now) to avoid future regressions
   const latinLangs = ["es-ES", "es-MX", "es-AR", "es-CO"];
   const modernLangs = ["it", "pl", "sw"];
 
-  // 🔄 Uusi logiikka joka kattaa sw + ur + muut
+  // --- REPLACE START -------------------------------------------------
+  // Root cause: EN fell back to "hero.*" keys which do not exist.
+  // Fix: always use the same 'etusivu.heroTekstit.*' keys for every language.
+  // We keep the older branching variables for compatibility, but the keys
+  // themselves are unified. Provide robust defaultValue fallbacks.
   const useModernText =
     modernLangs.includes(i18n.language) ||
     (!latinLangs.includes(i18n.language) && i18n.language !== "en");
 
-  const textKeys = useModernText
-    ? [
-        "etusivu.heroTekstit.0",
-        "etusivu.heroTekstit.1",
-        "etusivu.heroTekstit.2",
-      ]
-    : ["hero.0", "hero.1", "hero.2"];
+  // Unified key list (same for all languages)
+  const textKeys = [
+    "etusivu.heroTekstit.0",
+    "etusivu.heroTekstit.1",
+    "etusivu.heroTekstit.2",
+  ];
+  // --- REPLACE END ---------------------------------------------------
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -64,7 +68,18 @@ function HeroSection() {
           }`}
         >
           <h1 dir={i18n.language === "ar" ? "rtl" : "ltr"}>
-            {t(textKeys[currentTextIndex])}
+            {
+              // --- REPLACE START: add safe fallbacks so EN (and any missing locale) shows text ---
+              t(textKeys[currentTextIndex], {
+                defaultValue:
+                  currentTextIndex === 0
+                    ? "Meet kind singles near you"
+                    : currentTextIndex === 1
+                    ? "Safe. Respectful. Real."
+                    : "Start your story today",
+              })
+              // --- REPLACE END ---
+            }
           </h1>
         </div>
       </div>
@@ -73,3 +88,4 @@ function HeroSection() {
 }
 
 export default HeroSection;
+

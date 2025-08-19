@@ -1,0 +1,18 @@
+{
+  "title": "Discover people",
+  "instructions": "Set your filters and tap Filter to see matching profiles.",
+  "ageRange": "Age range",
+  "username": "Username",
+  "gender": "Gender",
+  "orientation": "Sexual orientation",
+  "profession": "Profession",
+  "religion": "Religion",
+  "religionImportance": "Religious importance",
+  "politicalIdeology": "Political ideology",
+  "country": "Country",
+  "region": "Region/State",
+  "city": "City",
+  "customCountry": "Custom country",
+  "customRegion": "Custom region",
+  "customCity": "Custom city"
+}

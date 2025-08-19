@@ -144,7 +144,7 @@
   },
   "etusivu": {
     "aloita": "Başla",
-    "heroOtsikko": "DateSite'a Hoşgeldiniz!",
+    "heroOtsikko": "Loventia.site'a Hoşgeldiniz!",
     "heroTeksti": "Anlamlı bağlantılar kolayca ve güvenli şekilde bulun.",
     "heroTekstit": [
       "Kalıcı bir aşk bul.",
@@ -154,7 +154,7 @@
     "katso_kayttajat": "Kullanıcıları Gör",
     "kuvaus": "Arkadaşlık, dostluk ya da aşkı güvenle bul.",
     "lue_lisaa": "Daha fazla oku",
-    "tervetuloa": "DateSite'a Hoşgeldiniz!"
+    "tervetuloa": "Loventia.site'a Hoşgeldiniz!"
   },
   "etusivu.heroTekstit.0": "Kalıcı bir aşk bul.",
   "etusivu.heroTekstit.1": "Değerlerini paylaşan insanlarla tanış.",
@@ -423,7 +423,7 @@
   "safety": "Güvenlik İpuçları",
   "security": "Güvenlik",
   "site": {
-    "title": "Arkadaşlık Sitesi"
+    "title": "Loventia.site"
   },
   "special": "Özel",
   "subnav": {
