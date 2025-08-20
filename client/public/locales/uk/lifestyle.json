@@ -1,8 +1,8 @@
 {
-  "diet": "Diet",
-  "drink": "Alcohol",
-  "drugs": "Drugs",
-  "exercise": "Exercise",
-  "smoke": "Smoking",
-  "title": "Lifestyle"
+  "diet": "Дієта",
+  "drink": "Алкоголь",
+  "drugs": "Наркотики",
+  "exercise": "Фізична активність",
+  "smoke": "Куріння",
+  "title": "Спосіб життя"
 }

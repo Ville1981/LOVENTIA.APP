@@ -19,7 +19,7 @@ const FormLookingFor = ({ t, fieldName = "lookingFor" }) => {
 
   // Options for what the user is looking for
   const options = [
-    { value: "", label: t("common.all") },
+    { value: "", label: t("common:all") },
     { value: "Friendship", label: t("looking.friendship") },
     { value: "Getting to Know", label: t("looking.gettingToKnow") },
     { value: "Dating", label: t("looking.dating") },
@@ -29,7 +29,7 @@ const FormLookingFor = ({ t, fieldName = "lookingFor" }) => {
     { value: "Chat Only", label: t("looking.chatOnly") },
     { value: "Casual", label: t("looking.casual") },
     { value: "Undecided", label: t("looking.undecided") },
-    { value: "Other", label: t("common.other") },
+    { value: "Other", label: t("common:other") },
   ];
 
   return (

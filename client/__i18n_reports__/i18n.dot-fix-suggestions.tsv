@@ -1,0 +1,163 @@
+file	current	proposed
+cypress/integration/socket-reconnect.spec.js	div.p-2	
+src/components/ChildrenPetsFields.jsx	common.select	common:select
+src/components/ChildrenPetsFields.jsx	common.other	common:other
+src/components/ChildrenPetsFields.jsx	common.select	common:select
+src/components/ChildrenPetsFields.jsx	pets.cat	profile:cat
+src/components/ChildrenPetsFields.jsx	pets.dog	profile:dog
+src/components/ChildrenPetsFields.jsx	pets.both	profile:both
+src/components/ChildrenPetsFields.jsx	common.other	common:other
+src/components/ChildrenPetsFields.jsx	pets.none	profile:none
+src/components/ConversationCard.jsx	conversationCard.avatarAlt	translation:avatarAlt
+src/components/ConversationList.jsx	chat.overview.loading	chat:overview.loading
+src/components/ConversationList.jsx	chat.overview.error	chat:overview.error
+src/components/ConversationList.jsx	chat.overview.title	chat:overview.title
+src/components/ConversationList.jsx	chat.overview.title	chat:overview.title
+src/components/ConversationList.jsx	chat.overview.title	chat:overview.title
+src/components/ConversationList.jsx	chat.overview.title	chat:overview.title
+src/components/ConversationsOverview.jsx	chat.loading	chat:loading
+src/components/ConversationsOverview.jsx	chat.overview.error	chat:overview.error
+src/components/ConversationsOverview.jsx	chat.overview.retry	chat:overview.retry
+src/components/ConversationsOverview.jsx	chat.overview.retry	chat:overview.retry
+src/components/ConversationsOverview.jsx	chat.overview.placeholderName	chat:overview.placeholderName
+src/components/ConversationsOverview.jsx	chat.overview.placeholderSnippet	chat:overview.placeholderSnippet
+src/components/EducationReligionImportanceFields.jsx	common.select	common:select
+src/components/EducationReligionImportanceFields.jsx	common.select	common:select
+src/components/EducationReligionImportanceFields.jsx	religionImportance.notImportant	profile:notImportant
+src/components/EducationReligionImportanceFields.jsx	religionImportance.somewhatImportant	profile:somewhatImportant
+src/components/EducationReligionImportanceFields.jsx	religionImportance.veryImportant	profile:veryImportant
+src/components/Footer.jsx	nav.*	common:*
+src/components/Footer.jsx	nav.company	common:company
+src/components/Footer.jsx	nav.about	common:about
+src/components/Footer.jsx	nav.careers	common:careers
+src/components/Footer.jsx	nav.press	common:press
+src/components/Footer.jsx	nav.conditions	common:conditions
+src/components/Footer.jsx	nav.privacy	common:privacy
+src/components/Footer.jsx	nav.terms	common:terms
+src/components/Footer.jsx	nav.cookies	common:cookies
+src/components/Footer.jsx	nav.community	common:community
+src/components/Footer.jsx	nav.health	common:health
+src/components/Footer.jsx	nav.coInfo	common:coInfo
+src/components/Footer.jsx	nav.contact	common:contact
+src/components/Footer.jsx	nav.support	common:support
+src/components/Footer.jsx	nav.security	common:security
+src/components/Footer.jsx	nav.safety	common:safety
+src/components/Footer.jsx	nav.impressum	common:impressum
+src/components/Footer.jsx	nav.follow	common:follow
+src/components/Footer.jsx	nav.blog	common:blog
+src/components/Footer.jsx	nav.special	common:special
+src/components/Footer.jsx	nav.map	common:map
+src/components/Footer.jsx	nav.admin	common:admin
+src/components/Footer.jsx	nav.download	common:download
+src/components/Footer.jsx	nav.settings	common:settings
+src/components/Footer.jsx	site.brand	translation:brand
+src/components/Footer.jsx	nav.rights	common:rights
+src/components/Footer.jsx	nav.tagline	common:tagline
+src/components/LookingForField.jsx	common.select	common:select
+src/components/LookingForField.jsx	looking.friend	
+src/components/LookingForField.jsx	looking.gettingToKnow	
+src/components/LookingForField.jsx	looking.dating	
+src/components/LookingForField.jsx	looking.dates	
+src/components/LookingForField.jsx	looking.longTerm	
+src/components/LookingForField.jsx	looking.marriage	
+src/components/LookingForField.jsx	looking.chatOnly	
+src/components/LookingForField.jsx	looking.casual	
+src/components/LookingForField.jsx	looking.undecided	
+src/components/LookingForField.jsx	common.other	common:other
+src/components/Navbar.jsx	nav.*	common:*
+src/components/Navbar.jsx	nav.*	common:*
+src/components/Navbar.jsx	site.title	translation:title
+src/components/profileFields/FormChildrenPets.jsx	common.all	common:all
+src/components/profileFields/FormChildrenPets.jsx	common.select	common:select
+src/components/profileFields/FormChildrenPets.jsx	common.other	common:other
+src/components/profileFields/FormChildrenPets.jsx	common.all	common:all
+src/components/profileFields/FormChildrenPets.jsx	common.select	common:select
+src/components/profileFields/FormChildrenPets.jsx	pets.cat	profile:cat
+src/components/profileFields/FormChildrenPets.jsx	pets.dog	profile:dog
+src/components/profileFields/FormChildrenPets.jsx	pets.both	profile:both
+src/components/profileFields/FormChildrenPets.jsx	common.other	common:other
+src/components/profileFields/FormChildrenPets.jsx	pets.none	profile:none
+src/components/profileFields/FormEducation.jsx	education.basic	profile:basic
+src/components/profileFields/FormEducation.jsx	education.secondary	profile:secondary
+src/components/profileFields/FormEducation.jsx	education.vocational	profile:vocational
+src/components/profileFields/FormEducation.jsx	education.higher	profile:higher
+src/components/profileFields/FormEducation.jsx	education.phd	profile:phd
+src/components/profileFields/FormLookingFor.jsx	common.all	common:all
+src/components/profileFields/FormLookingFor.jsx	looking.friendship	
+src/components/profileFields/FormLookingFor.jsx	looking.gettingToKnow	
+src/components/profileFields/FormLookingFor.jsx	looking.dating	
+src/components/profileFields/FormLookingFor.jsx	looking.dates	
+src/components/profileFields/FormLookingFor.jsx	looking.longTerm	
+src/components/profileFields/FormLookingFor.jsx	looking.marriage	
+src/components/profileFields/FormLookingFor.jsx	looking.chatOnly	
+src/components/profileFields/FormLookingFor.jsx	looking.casual	
+src/components/profileFields/FormLookingFor.jsx	looking.undecided	
+src/components/profileFields/FormLookingFor.jsx	common.other	common:other
+src/pages/AdminPanel.jsx	discover.fetchError	discover:fetchError
+src/pages/AdminPanel.jsx	admin.confirmDelete	translation:confirmDelete
+src/pages/AdminPanel.jsx	messages.error	translation:error
+src/pages/AdminPanel.jsx	messages.error	translation:error
+src/pages/AdminPanel.jsx	buttons.back	translation:back
+src/pages/AdminPanel.jsx	error.forbidden	translation:forbidden
+src/pages/AdminPanel.jsx	buttons.back	translation:back
+src/pages/AdminPanel.jsx	admin.title	translation:title
+src/pages/AdminPanel.jsx	messages.loading	translation:loading
+src/pages/AdminPanel.jsx	discover.noResults	discover:noResults
+src/pages/AdminPanel.jsx	admin.name	translation:name
+src/pages/AdminPanel.jsx	admin.location	translation:location
+src/pages/AdminPanel.jsx	profile.username	profile:username
+src/pages/AdminPanel.jsx	admin.hidden	translation:hidden
+src/pages/AdminPanel.jsx	admin.actions	translation:actions
+src/pages/AdminPanel.jsx	admin.yes	translation:yes
+src/pages/AdminPanel.jsx	admin.no	translation:no
+src/pages/AdminPanel.jsx	admin.unhide	translation:unhide
+src/pages/AdminPanel.jsx	admin.hide	translation:hide
+src/pages/AdminPanel.jsx	admin.delete	translation:delete
+src/pages/AdminPanel.jsx	common.select	common:select
+src/pages/ChatPage.jsx	chat.title	chat:title
+src/pages/ChatPage.jsx	chat.placeholder	chat:placeholder
+src/pages/ChatPage.jsx	chat.send	chat:send
+src/pages/ConversationsOverview.jsx	chat.overview.loading	chat:overview.loading
+src/pages/ConversationsOverview.jsx	chat.overview.error	chat:overview.error
+src/pages/ConversationsOverview.jsx	chat.overview.title	chat:overview.title
+src/pages/Etusivu.jsx	home.title	
+src/pages/Etusivu.jsx	home.subtitle	
+src/pages/MapPage.jsx	map.cityNotFound	translation:cityNotFound
+src/pages/MapPage.jsx	map.title	translation:title
+src/pages/MapPage.jsx	map.youAreHere	translation:youAreHere
+src/pages/MapPage.jsx	map.distance	translation:distance
+src/pages/MatchPage.jsx	matches.title	translation:title
+src/pages/MatchPage.jsx	matches.noMatches	translation:noMatches
+src/pages/MatchPage.jsx	profile.age	profile:age
+src/pages/MatchPage.jsx	matches.score	translation:score
+src/pages/MatchPage.jsx	matches.openChat	translation:openChat
+src/pages/MessagesList.jsx	overview.error	translation:error
+src/pages/MessagesOverview.jsx	chat.overview.title	chat:overview.title
+src/pages/MessagesOverview.jsx	chat.overview.pageDescription	chat:overview.pageDescription
+src/pages/MessagesOverview.jsx	chat.overview.title	chat:overview.title
+src/pages/PremiumCancel.jsx	premium.cancelTitle	translation:cancelTitle
+src/pages/PremiumCancel.jsx	premium.cancelTitle	translation:cancelTitle
+src/pages/PremiumCancel.jsx	premium.cancelMessage	translation:cancelMessage
+src/pages/PremiumSuccess.jsx	premium.updating	translation:updating
+src/pages/PremiumSuccess.jsx	premium.successMessage	translation:successMessage
+src/pages/PremiumSuccess.jsx	premium.errorMessage	translation:errorMessage
+src/pages/PremiumSuccess.jsx	premium.successTitle	translation:successTitle
+src/pages/Settings.jsx	settings.title	translation:title
+src/pages/Settings.jsx	settings.deleteConfirm	translation:deleteConfirm
+src/pages/Settings.jsx	settings.deleteErrorConsole	translation:deleteErrorConsole
+src/pages/Settings.jsx	settings.deleteErrorAlert	translation:deleteErrorAlert
+src/pages/Settings.jsx	settings.title	translation:title
+src/pages/Settings.jsx	settings.dangerTitle	translation:dangerTitle
+src/pages/Settings.jsx	settings.dangerDescription	translation:dangerDescription
+src/pages/Settings.jsx	settings.deleteButton	translation:deleteButton
+src/pages/SettingsPage.jsx	settings.deleteConfirm	translation:deleteConfirm
+src/pages/SettingsPage.jsx	settings.deleteErrorConsole	translation:deleteErrorConsole
+src/pages/SettingsPage.jsx	settings.deleteErrorAlert	translation:deleteErrorAlert
+src/pages/SettingsPage.jsx	settings.deleteErrorConsole	translation:deleteErrorConsole
+src/pages/SettingsPage.jsx	settings.deleteErrorAlert	translation:deleteErrorAlert
+src/pages/SettingsPage.jsx	buttons.back	translation:back
+src/pages/SettingsPage.jsx	settings.title	translation:title
+src/pages/SettingsPage.jsx	settings.dangerTitle	translation:dangerTitle
+src/pages/SettingsPage.jsx	settings.dangerDescription	translation:dangerDescription
+src/pages/SettingsPage.jsx	messages.loading	translation:loading
+src/pages/SettingsPage.jsx	settings.deleteButton	translation:deleteButton

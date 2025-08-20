@@ -1,0 +1,16 @@
+common:appName
+common:cancel
+common:close
+common:home.subtitle
+common:home.title
+common:language
+common:nav.admin
+common:nav.discover
+common:nav.home
+common:nav.login
+common:nav.logout
+common:nav.profile
+common:nav.register
+common:save
+common:update
+profile:lookingFor

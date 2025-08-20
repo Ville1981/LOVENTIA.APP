@@ -1,8 +1,8 @@
 {
-  "diet": "Diet",
+  "diet": "תזונה",
   "drink": "Drink",
-  "drugs": "Drugs",
-  "exercise": "Exercise",
+  "drugs": "סמים",
+  "exercise": "פעילות גופנית",
   "smoke": "Smoke",
-  "title": "Lifestyle"
+  "title": "אורח חיים"
 }

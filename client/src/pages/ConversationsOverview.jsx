@@ -75,7 +75,7 @@ export default function ConversationsOverview() {
       >
         <span className="spinner" />
         <p className="sr-only">
-          {t("chat.overview.loading", "Loading conversations…")}
+          {t("chat:overview.loading", "Loading conversations…")}
         </p>
       </section>
     );
@@ -85,7 +85,7 @@ export default function ConversationsOverview() {
   if (error) {
     return (
       <section className="text-center p-4 text-red-600" role="alert">
-        {t("chat.overview.error", "Unable to load conversations.")}
+        {t("chat:overview.error", "Unable to load conversations.")}
       </section>
     );
   }
@@ -96,7 +96,7 @@ export default function ConversationsOverview() {
   return (
     <section
       className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 p-4"
-      aria-label={t("chat.overview.title", "Conversations")}
+      aria-label={t("chat:overview.title", "Conversations")}
     >
       {list.map((conv) => (
         <div

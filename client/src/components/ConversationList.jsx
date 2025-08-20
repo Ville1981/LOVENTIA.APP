@@ -37,7 +37,7 @@ export default function ConversationList() {
     return (
       <section className={styles.loading} aria-busy="true">
         <Spinner />
-        <p>{t("chat.overview.loading", "Loading conversations…")}</p>
+        <p>{t("chat:overview.loading", "Loading conversations…")}</p>
       </section>
     );
   }
@@ -48,7 +48,7 @@ export default function ConversationList() {
         <ErrorState
           message={
             error.response?.data?.message ||
-            t("chat.overview.error", "Unable to load conversations.")
+            t("chat:overview.error", "Unable to load conversations.")
           }
         />
       </section>
@@ -60,9 +60,9 @@ export default function ConversationList() {
     return (
       <section
         className={styles.empty}
-        aria-label={t("chat.overview.title", "Conversations")}
+        aria-label={t("chat:overview.title", "Conversations")}
       >
-        <h2 className="sr-only">{t("chat.overview.title", "Conversations")}</h2>
+        <h2 className="sr-only">{t("chat:overview.title", "Conversations")}</h2>
         <ConversationCard convo={bunnyUser} />
       </section>
     );
@@ -72,10 +72,10 @@ export default function ConversationList() {
   return (
     <section
       className={styles.list}
-      aria-label={t("chat.overview.title", "Conversations")}
+      aria-label={t("chat:overview.title", "Conversations")}
     >
       <h2 className="text-xl font-semibold mb-4">
-        {t("chat.overview.title", "Conversations")}
+        {t("chat:overview.title", "Conversations")}
       </h2>
       {conversations.map((convo) => (
         <ConversationCard key={convo.userId} convo={convo} />
