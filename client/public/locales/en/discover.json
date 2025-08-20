@@ -1,14 +1,29 @@
 {
-  "ageRange": "Age range",
-  "error": "Something went wrong. Please try again.",
-  "gender": "Gender",
-  "instructions": "Set filters and click Filter to find people.",
-  "noResults": "No results found.",
-  "orientation": "Sexual orientation",
-  "politicalIdeology": "Political ideology",
-  "profession": "Profession",
-  "religion": "Religion",
-  "religionImportance": "Importance of religion",
   "title": "Discover",
-  "username": "Username"
+  "subtitle": "Tune your filters to find the right matches.",
+  "filters": {
+    "age": "Age",
+    "minAge": "Min age",
+    "maxAge": "Max age",
+    "distance": "Distance",
+    "maxDistance": "Max distance",
+    "location": "Location",
+    "gender": "Gender",
+    "orientation": "Orientation",
+    "lifestyle": "Lifestyle",
+    "interests": "Interests",
+    "apply": "Apply filters",
+    "reset": "Reset",
+    "clear": "Clear all"
+  },
+  "results": {
+    "heading": "Results",
+    "empty": "No matches with current filters.",
+    "loadMore": "Load more"
+  },
+  "cards": {
+    "age": "Age",
+    "distance": "Distance",
+    "view": "View profile"
+  }
 }

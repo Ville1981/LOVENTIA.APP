@@ -3,7 +3,7 @@
 // --- REPLACE START: ensure i18n is loaded before React tree (single init only) ---
 import "./i18n"; // load i18n once; DO NOT also import "./i18n/config"
 // --- REPLACE END ---
-import React from "react";
+import React, { Suspense } from "react";
 import ReactDOM from "react-dom/client";
 
 import "./global.css";

@@ -1,14 +1,40 @@
 {
-  "ageRange": "Age range",
-  "error": "Something went wrong. Please try again.",
-  "gender": "Gender",
+  "title": "Знайти",
+  "subtitle": "Налаштуйте фільтри, щоб знайти відповідні збіги.",
+  "filters": {
+    "age": "Вік",
+    "minAge": "Мінімальний вік",
+    "maxAge": "Максимальний вік",
+    "distance": "Відстань",
+    "maxDistance": "Максимальна відстань",
+    "location": "Місцезнаходження",
+    "gender": "Стать",
+    "orientation": "Orientation",
+    "lifestyle": "Спосіб життя",
+    "interests": "Інтереси",
+    "apply": "Застосувати фільтри",
+    "reset": "Скинути",
+    "clear": "Очистити все"
+  },
+  "results": {
+    "heading": "Результати",
+    "empty": "Немає збігів із поточними фільтрами.",
+    "loadMore": "Завантажити ще"
+  },
+  "cards": {
+    "age": "Вік",
+    "distance": "Відстань",
+    "view": "Переглянути профіль"
+  },
+  "ageRange": "Віковий діапазон",
+  "error": "Щось пішло не так. Спробуйте ще раз.",
+  "gender": "Стать",
   "instructions": "Set filters and click Filter to find people.",
-  "noResults": "No results found.",
-  "orientation": "Sexual orientation",
-  "politicalIdeology": "Political ideology",
-  "profession": "Profession",
-  "religion": "Religion",
-  "religionImportance": "Importance of religion",
-  "title": "Discover",
-  "username": "Username"
+  "noResults": "Результатів не знайдено.",
+  "orientation": "Сексуальна орієнтація",
+  "politicalIdeology": "Політична ідеологія",
+  "profession": "Професія",
+  "religion": "Релігія",
+  "religionImportance": "Важливість релігії",
+  "username": "Ім’я користувача"
 }

@@ -1,6 +1,6 @@
 // client/src/components/Navbar.jsx
 
-// --- REPLACE START: read auth from AuthContext.user + bootstrapped + use t('nav.*') keys ---
+// --- REPLACE START: read auth from AuthContext.user + bootstrapped + use t('common:nav.*') keys ---
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -12,7 +12,7 @@ import { useAuth } from "../contexts/AuthContext";
 /**
  * Navbar
  * - Reads auth state from AuthContext (user + bootstrapped)
- * - Uses i18n t('nav.*') keys for all labels
+ * - Uses i18n t('common:nav.*') keys for all labels
  * - IMPORTANT FIX: do NOT compute translated labels inside static arrays.
  *   Keep only {path,key} and call t(key) at render time so language changes re-render correctly.
  * - Provides defaultValue fallbacks so raw keys (e.g., "nav.home") never leak to UI

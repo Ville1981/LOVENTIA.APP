@@ -43,7 +43,7 @@ export default function AdminPanel() {
       setUsers(list);
     } catch (e) {
       console.error("Admin fetch users failed:", e);
-      setErr(t("discover.fetchError", { defaultValue: "Error fetching users." }));
+      setErr(t("discover:fetchError", { defaultValue: "Error fetching users." }));
     } finally {
       setLoading(false);
     }
@@ -153,7 +153,7 @@ export default function AdminPanel() {
       {loading ? (
         <div className="text-gray-600">{t("messages.loading", { defaultValue: "Loading..." })}</div>
       ) : users.length === 0 ? (
-        <div className="text-gray-600">{t("discover.noResults", { defaultValue: "No results" })}</div>
+        <div className="text-gray-600">{t("discover:noResults", { defaultValue: "No results" })}</div>
       ) : (
         <div className="overflow-x-auto border rounded-lg">
           <table className="min-w-full text-sm">
@@ -161,7 +161,7 @@ export default function AdminPanel() {
               <tr className="text-left">
                 <th className="px-3 py-2">{t("admin.name", { defaultValue: "Name" })}</th>
                 <th className="px-3 py-2">{t("admin.location", { defaultValue: "Location" })}</th>
-                <th className="px-3 py-2">{t("profile.username", { defaultValue: "Username" })}</th>
+                <th className="px-3 py-2">{t("profile:username", { defaultValue: "Username" })}</th>
                 <th className="px-3 py-2">{t("admin.hidden", { defaultValue: "Hidden?" })}</th>
                 <th className="px-3 py-2">{t("admin.actions", { defaultValue: "Actions" })}</th>
               </tr>
@@ -233,7 +233,7 @@ export default function AdminPanel() {
 
       <div className="flex items-center gap-2">
         <Button onClick={() => setRefreshKey((k) => k + 1)} variant="secondary">
-          {t("common.select", { defaultValue: "Select" }) /* simple placeholder: acts as "Refresh" if you prefer you can change key */}
+          {t("common:select", { defaultValue: "Select" }) /* simple placeholder: acts as "Refresh" if you prefer you can change key */}
         </Button>
         {/* If you prefer a dedicated refresh label, add to locales: "common.refresh": "Refresh" and use it here */}
       </div>

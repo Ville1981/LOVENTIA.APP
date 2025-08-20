@@ -1,14 +1,40 @@
 {
-  "ageRange": "Age range",
-  "error": "Something went wrong. Please try again.",
-  "gender": "Gender",
+  "title": "اكتشف",
+  "subtitle": "قم بضبط عوامل التصفية للعثور على المطابقات المناسبة.",
+  "filters": {
+    "age": "العمر",
+    "minAge": "أقل عمر",
+    "maxAge": "أقصى عمر",
+    "distance": "المسافة",
+    "maxDistance": "أقصى مسافة",
+    "location": "الموقع",
+    "gender": "النوع",
+    "orientation": "Orientation",
+    "lifestyle": "نمط الحياة",
+    "interests": "الاهتمامات",
+    "apply": "تطبيق عوامل التصفية",
+    "reset": "إعادة تعيين",
+    "clear": "مسح الكل"
+  },
+  "results": {
+    "heading": "النتائج",
+    "empty": "لا توجد نتائج وفق عوامل التصفية الحالية.",
+    "loadMore": "تحميل المزيد"
+  },
+  "cards": {
+    "age": "العمر",
+    "distance": "المسافة",
+    "view": "عرض الملف الشخصي"
+  },
+  "ageRange": "الفئة العمرية",
+  "error": "حدث خطأ ما. الرجاء المحاولة مرة أخرى.",
+  "gender": "النوع",
   "instructions": "Refine your search using the filters below.",
-  "noResults": "No results found.",
-  "orientation": "Sexual orientation",
-  "politicalIdeology": "Political ideology",
-  "profession": "Profession",
-  "religion": "Religion",
-  "religionImportance": "Religion importance",
-  "title": "Discover",
-  "username": "Username"
+  "noResults": "لا توجد نتائج.",
+  "orientation": "الميول الجنسي",
+  "politicalIdeology": "الأيديولوجيا السياسية",
+  "profession": "المهنة",
+  "religion": "الدين",
+  "religionImportance": "أهمية الدين",
+  "username": "اسم المستخدم"
 }

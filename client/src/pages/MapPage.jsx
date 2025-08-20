@@ -170,7 +170,7 @@ const MapPage = ({ onLocationSelect }) => {
             <Marker key={u._id} position={pos}>
               <Popup>
                 <strong>{u.name}</strong><br />
-                {u.age} {t("profile.age")}<br />
+                {u.age} {t("profile:age")}<br />
                 {u.interests?.join(", ")}<br />
                 <small>
                   {t("map.distance")} {dist} km
