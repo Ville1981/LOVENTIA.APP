@@ -1,7 +1,8 @@
-// --- REPLACE START: ensure AuthContext + axios paths and guard setAuthUser ---
+// --- ensure AuthContext + axios paths and guard setAuthUser ---
 import PropTypes from "prop-types";
 import React, { useEffect, useState, useCallback } from "react";
 import { Link, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 import ProfileForm from "../components/profileFields/ProfileForm";
 // NOTE: Remove BACKEND_BASE_URL usage for profile calls – we centralize via userService
@@ -17,6 +18,9 @@ import { getUserProfile, updateOwnProfile } from "../services/userService";
  * Tab navigation is commented out; only “Preferences” renders.
  */
 export default function ProfileHub() {
+  // i18n-käännökset: käytä oikeaa t-funktiota, EI omaa stubia
+  const { t } = useTranslation(["profile", "common", "discover", "lifestyle"]);
+
   // Prefer context-managed user (axios instance sets header); legacy localStorage not needed
   // const legacyToken =
   //   localStorage.getItem("accessToken") || localStorage.getItem("token") || "";
@@ -71,22 +75,12 @@ export default function ProfileHub() {
   });
   // --- end local state ---
 
-  // Simple translation stub
-  const t = (key) => {
-    const translations = {
-      "profile.saved": "Profile saved",
-      "profile.saveChanges": "Save changes",
-    };
-    return translations[key] || key;
-  };
-
   const fetchUser = useCallback(async () => {
     try {
-      // --- REPLACE START: use centralized userService (api instance attaches Bearer automatically) ---
+      // use centralized userService (api instance attaches Bearer automatically)
       const res = await getUserProfile(userIdParam);
       // Server may return { user: {...} } or a raw user object
       const u = res?.user ?? res;
-      // --- REPLACE END ---
 
       setUser(u);
 
@@ -152,11 +146,14 @@ export default function ProfileHub() {
     if (userIdParam) return; // no editing others
 
     try {
-      // --- REPLACE START: centralized update via userService (api sets headers) ---
+      // centralized update via userService (api sets headers)
       const updated = await updateOwnProfile(formData);
-      // --- REPLACE END ---
+
       setSuccess(true);
-      setMessage(t("profile.saved"));
+      // Prefer localized message if available
+      setMessage(
+        t("profile:saved") || t("profile:saveChanges") || "Profile saved"
+      );
       setUser(updated);
       if (typeof setAuthUser === "function") {
         setAuthUser(updated);
@@ -188,7 +185,7 @@ export default function ProfileHub() {
           data-cy="ProfileHub__photosButton"
         >
           <i className="i-pencil mr-3 text-2xl" aria-hidden="true" />
-          Manage Photos
+          {t("profile:managePhotos") || "Manage Photos"}
         </Link>
       </div>
 
@@ -217,4 +214,4 @@ export default function ProfileHub() {
 ProfileHub.propTypes = {
   // no props expected
 };
-// --- REPLACE END ---
+

@@ -1,8 +1,8 @@
 {
-  "diet": "Diet",
+  "diet": "आहार",
   "drink": "Drink",
-  "drugs": "Drugs",
-  "exercise": "Exercise",
+  "drugs": "नशीले पदार्थ",
+  "exercise": "व्यायाम",
   "smoke": "Smoke",
-  "title": "Lifestyle"
+  "title": "जीवनशैली"
 }

@@ -1,14 +1,29 @@
 {
-  "ageRange": "Ikähaarukka",
-  "error": "Jotain meni pieleen. Yritä uudelleen.",
-  "gender": "Sukupuoli",
-  "instructions": "Aseta suodattimet ja paina Suodata löytääksesi ihmisiä.",
-  "noResults": "Ei hakutuloksia.",
-  "orientation": "Seksuaalinen suuntautuminen",
-  "politicalIdeology": "Poliittinen ideologia",
-  "profession": "Ammatti",
-  "religion": "Uskonto",
-  "religionImportance": "Uskonnon tärkeys",
-  "title": "Etsi",
-  "username": "Käyttäjänimi"
+  "title": "Haku",
+  "subtitle": "Säädä suodattimia sopivien osumien löytämiseksi.",
+  "filters": {
+    "age": "Ikä",
+    "minAge": "Min ikä",
+    "maxAge": "Max ikä",
+    "distance": "Etäisyys",
+    "maxDistance": "Maksimi etäisyys",
+    "location": "Sijainti",
+    "gender": "Sukupuoli",
+    "orientation": "Suuntautuminen",
+    "lifestyle": "Elämäntyyli",
+    "interests": "Kiinnostuksen kohteet",
+    "apply": "Käytä suodattimia",
+    "reset": "Nollaa",
+    "clear": "Tyhjennä kaikki"
+  },
+  "results": {
+    "heading": "Tulokset",
+    "empty": "Ei osumia nykyisillä suodattimilla.",
+    "loadMore": "Lataa lisää"
+  },
+  "cards": {
+    "age": "Ikä",
+    "distance": "Etäisyys",
+    "view": "Näytä profiili"
+  }
 }

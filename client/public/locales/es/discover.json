@@ -1,14 +1,40 @@
 {
-  "ageRange": "Age range",
-  "error": "Something went wrong. Please try again.",
-  "gender": "Gender",
+  "title": "Descubrir",
+  "subtitle": "Ajusta tus filtros para encontrar las mejores coincidencias.",
+  "filters": {
+    "age": "Edad",
+    "minAge": "Edad mínima",
+    "maxAge": "Edad máxima",
+    "distance": "Distancia",
+    "maxDistance": "Distancia máxima",
+    "location": "Ubicación",
+    "gender": "Género",
+    "orientation": "Orientation",
+    "lifestyle": "Estilo de vida",
+    "interests": "Intereses",
+    "apply": "Aplicar filtros",
+    "reset": "Restablecer",
+    "clear": "Borrar todo"
+  },
+  "results": {
+    "heading": "Resultados",
+    "empty": "No hay coincidencias con los filtros actuales.",
+    "loadMore": "Cargar más"
+  },
+  "cards": {
+    "age": "Edad",
+    "distance": "Distancia",
+    "view": "Ver perfil"
+  },
+  "ageRange": "Rango de edad",
+  "error": "Algo salió mal. Inténtalo de nuevo.",
+  "gender": "Género",
   "instructions": "Set filters and click Filter to find people.",
-  "noResults": "No results found.",
-  "orientation": "Sexual orientation",
-  "politicalIdeology": "Political ideology",
-  "profession": "Profession",
-  "religion": "Religion",
-  "religionImportance": "Importance of religion",
-  "title": "Discover",
-  "username": "Username"
+  "noResults": "No se encontraron resultados.",
+  "orientation": "Orientación sexual",
+  "politicalIdeology": "Ideología política",
+  "profession": "Profesión",
+  "religion": "Religión",
+  "religionImportance": "Importancia de la religión",
+  "username": "Nombre de usuario"
 }

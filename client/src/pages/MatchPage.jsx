@@ -116,7 +116,7 @@ const MatchPage = () => {
                 />
                 <h3 className="text-lg font-bold">{name}</h3>
                 <p className="text-sm text-gray-600">
-                  {user?.age ? `${user.age} ${t("profile.age", "years")}` : ""}
+                  {user?.age ? `${user.age} ${t("profile:age", "years")}` : ""}
                   {user?.gender ? ` – ${user.gender}` : ""}
                 </p>
                 {goal && (

@@ -57,7 +57,7 @@ export default function ConversationsOverview() {
         className={styles.spinner}
         role="status"
         aria-live="polite"
-        aria-label={t("chat.loading", "Loading conversations...")}
+        aria-label={t("chat:loading", "Loading conversations...")}
       />
     );
   }
@@ -66,13 +66,13 @@ export default function ConversationsOverview() {
     return (
       // --- REPLACE START: error display with retry ---
       <div role="alert" className={styles.error}>
-        <p>{t("chat.overview.error", "Couldn’t load conversations.")}</p>
+        <p>{t("chat:overview.error", "Couldn’t load conversations.")}</p>
         <button
           onClick={() => window.location.reload()}
           className={styles.retryButton}
-          aria-label={t("chat.overview.retry", "Retry")}
+          aria-label={t("chat:overview.retry", "Retry")}
         >
-          {t("chat.overview.retry", "Retry")}
+          {t("chat:overview.retry", "Retry")}
         </button>
       </div>
       // --- REPLACE END ---
@@ -83,10 +83,9 @@ export default function ConversationsOverview() {
     // --- REPLACE START: i18n placeholder values ---
     const bunnyUser = {
       userId: "1",
-      name: t("chat.overview.placeholderName", "Bunny"),
+      name: t("chat:overview.placeholderName", "Bunny"),
       avatarUrl: "/assets/bunny1.jpg",
-      snippet: t(
-        "chat.overview.placeholderSnippet",
+      snippet: t("chat:overview.placeholderSnippet",
         "Hi there! Let's start our chat."
       ),
       lastMessageTimestamp: new Date().toISOString(),

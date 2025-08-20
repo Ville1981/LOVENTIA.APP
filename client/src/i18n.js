@@ -30,7 +30,7 @@ export const NAMESPACES = [
   "navbar",
   "footer",
   "translation"
-]
+];
 
 const FALLBACK_LANG = "en";
 const STORAGE_KEY = "i18nextLng";

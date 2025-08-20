@@ -1,14 +1,40 @@
 {
-  "ageRange": "Age range",
-  "error": "Something went wrong. Please try again.",
-  "gender": "Gender",
+  "title": "גלה",
+  "subtitle": "כוונן את המסננים כדי למצוא התאמות מתאימות.",
+  "filters": {
+    "age": "גיל",
+    "minAge": "גיל מינימלי",
+    "maxAge": "גיל מקסימלי",
+    "distance": "מרחק",
+    "maxDistance": "מרחק מקסימלי",
+    "location": "מיקום",
+    "gender": "מגדר",
+    "orientation": "Orientation",
+    "lifestyle": "אורח חיים",
+    "interests": "תחומי עניין",
+    "apply": "החל מסננים",
+    "reset": "איפוס",
+    "clear": "נקה הכל"
+  },
+  "results": {
+    "heading": "תוצאות",
+    "empty": "אין התאמות למסננים הנוכחיים.",
+    "loadMore": "טען עוד"
+  },
+  "cards": {
+    "age": "גיל",
+    "distance": "מרחק",
+    "view": "צפה בפרופיל"
+  },
+  "ageRange": "טווח גילאים",
+  "error": "ארעה שגיאה. נסה שוב.",
+  "gender": "מגדר",
   "instructions": "Refine your search using the filters below.",
-  "noResults": "No results found.",
-  "orientation": "Sexual orientation",
-  "politicalIdeology": "Political ideology",
-  "profession": "Profession",
-  "religion": "Religion",
-  "religionImportance": "Religion importance",
-  "title": "Discover",
-  "username": "Username"
+  "noResults": "לא נמצאו תוצאות.",
+  "orientation": "נטייה מינית",
+  "politicalIdeology": "אידיאולוגיה פוליטית",
+  "profession": "מקצוע",
+  "religion": "דת",
+  "religionImportance": "חשיבות הדת",
+  "username": "שם משתמש"
 }

@@ -140,7 +140,7 @@ export default function ChatPage() {
   return (
     <div className="flex flex-col max-w-2xl mx-auto h-screen p-4">
       <h2 className="text-xl font-bold mb-2 text-center">
-        💬 {t("chat.title")}
+        💬 {t("chat:title")}
       </h2>
 
       <div className="flex-1 overflow-y-auto bg-gray-100 p-4 rounded shadow-sm">
@@ -172,13 +172,13 @@ export default function ChatPage() {
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           className="flex-1 border rounded p-2"
-          placeholder={t("chat.placeholder")}
+          placeholder={t("chat:placeholder")}
         />
         <button
           onClick={handleSend}
           className="bg-blue-600 text-white px-4 rounded hover:bg-blue-700"
         >
-          {t("chat.send")}
+          {t("chat:send")}
         </button>
       </div>
     </div>

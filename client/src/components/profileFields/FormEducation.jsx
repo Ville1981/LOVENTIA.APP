@@ -29,7 +29,7 @@ const FormEducation = ({ t, includeAllOption = false }) => {
       {/* Koulutustaso */}
       <div className="w-full">
         <label htmlFor="education" className="block font-medium mb-1">
-          🎓 {t("profile:education")}
+          🎓 {t("profile:education.label")}
         </label>
         <select
           id="education"
@@ -39,13 +39,13 @@ const FormEducation = ({ t, includeAllOption = false }) => {
         >
           {includeAllOption && <option value="">{t("common:all")}</option>}
           <option value="">{t("common:select")}</option>
-          <option value="Peruskoulu">{t("education.basic")}</option>
-          <option value="Toinen aste">{t("education.secondary")}</option>
-          <option value="Ammatillinen">{t("education.vocational")}</option>
+          <option value="Peruskoulu">{t("profile:education.basic")}</option>
+          <option value="Toinen aste">{t("profile:education.secondary")}</option>
+          <option value="Ammatillinen">{t("profile:education.vocational")}</option>
           <option value="Korkeakoulu / yliopisto">
-            {t("education.higher")}
+            {t("profile:education.higher")}
           </option>
-          <option value="Tohtori / tutkimus">{t("education.phd")}</option>
+          <option value="Tohtori / tutkimus">{t("profile:education.phd")}</option>
           <option value="Muu">{t("common:other")}</option>
         </select>
         {errors.education && (
