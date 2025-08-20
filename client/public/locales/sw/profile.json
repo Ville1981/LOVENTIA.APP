@@ -1,0 +1,29 @@
+{
+  "about": "About me",
+  "age": "Age",
+  "bodyType": "Body type",
+  "children": "Children",
+  "education": "Education",
+  "gender": "Gender",
+  "goals": "Goals",
+  "height": "Height",
+  "heightUnit": "cm",
+  "location": {
+    "city": "City",
+    "country": "Country",
+    "manualCity": "Manual city",
+    "manualCountry": "Manual country",
+    "manualRegion": "Manual region / state",
+    "region": "Region / State"
+  },
+  "orientation": "Sexual orientation",
+  "pets": "Pets",
+  "politicalIdeology": "Political ideology",
+  "profession": "Profession",
+  "professionCategory": "Profession category",
+  "religion": "Religion",
+  "religionImportance": "Religion importance",
+  "searchingFor": "Looking for",
+  "weight": "Weight",
+  "weightUnit": "kg"
+}

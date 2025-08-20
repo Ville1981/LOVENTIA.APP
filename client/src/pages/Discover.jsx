@@ -1,4 +1,6 @@
-// --- REPLACE START: Discover page – wait for auth bootstrap, avoid /api/api, send age only when changed, show Bunny only on empty/error, absolutize image URLs ---
+// client/src/pages/Discover.jsx
+
+// --- REPLACE START: Discover page – add discover/common/profile/lifestyle namespaces + the rest unchanged ---
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -59,7 +61,9 @@ function absolutizeImage(pathOrUrl) {
 }
 
 const Discover = () => {
-  const { t } = useTranslation();
+  // ✅ Load all namespaces used in this page & its child form components
+  const { t } = useTranslation(["discover", "common", "profile", "lifestyle"]);
+
   // IMPORTANT: wait until Auth has refreshed token & /auth/me has resolved
   const { user: authUser, bootstrapped } = useAuth();
 
@@ -69,7 +73,7 @@ const Discover = () => {
   const [error, setError] = useState("");
   const [filterKey, setFilterKey] = useState("initial");
 
-  // Filter form fields state (keep structure as-is; defaults 18/120 are UI defaults, not always sent)
+  // Filter form fields state
   const [username, setUsername] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
@@ -100,19 +104,14 @@ const Discover = () => {
     if ("scrollRestoration" in window.history) {
       window.history.scrollRestoration = "manual";
     }
-    // Wait for Auth bootstrap (refresh token + /auth/me), otherwise first call may be 401
     if (bootstrapped) {
-      // DEV-only: include own profile so we always have at least one image to verify
       const initialParams = { ...(import.meta.env.DEV ? { includeSelf: 1 } : {}) };
       loadUsers(initialParams);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authUser, bootstrapped]);
 
   /**
    * Data load via GET /discover?...
-   * NOTE: axiosInstance already has baseURL = `${BACKEND_BASE_URL}/api`,
-   * so DO NOT prefix with /api here (avoid /api/api duplication).
    */
   const loadUsers = async (params = {}) => {
     setIsLoading(true);
@@ -121,7 +120,6 @@ const Discover = () => {
       const res = await api.get("/discover", { params });
       const data = res?.data?.users ?? res?.data ?? [];
 
-      // Map images to absolute URLs; keep id/_id normalization
       const normalized = Array.isArray(data)
         ? data.map((u) => {
             const photos =
@@ -142,7 +140,6 @@ const Discover = () => {
           })
         : [];
 
-      // Show Bunny ONLY if backend returned no users (or on error fallback below)
       if (normalized.length === 0) {
         setUsers([bunnyUser]);
       } else {
@@ -151,11 +148,8 @@ const Discover = () => {
 
       setFilterKey(Date.now().toString());
     } catch (err) {
-      // Keep error message generic for UI; log full for devtools
-      // eslint-disable-next-line no-console
       console.error("Error loading users:", err);
-      setError(t("discover.error"));
-      // Fallback to Bunny on error
+      setError(t("discover:error"));
       setUsers([bunnyUser]);
       setFilterKey(Date.now().toString());
     } finally {
@@ -164,7 +158,7 @@ const Discover = () => {
   };
 
   /**
-   * Handle swipe actions (like/dislike). Keep scroll position stable.
+   * Handle swipe actions
    */
   const handleAction = (userId, actionType) => {
     const currentScroll = window.scrollY;
@@ -175,7 +169,6 @@ const Discover = () => {
       }, 0);
     });
     if (userId !== bunnyUser.id) {
-      // axiosInstance baseURL already /api
       api
         .post(`/discover/${userId}/${actionType}`)
         .catch((err) => console.error(`Error executing ${actionType}:`, err));
@@ -183,11 +176,7 @@ const Discover = () => {
   };
 
   /**
-   * Filter submission: GET /discover with query built from form values.
-   * IMPORTANT:
-   * - Send minAge/maxAge ONLY when user actually changes them from defaults (18/120).
-   * - Map customCountry/Region/City over plain ones when present.
-   * - In DEV include own profile to guarantee an image while testing.
+   * Handle filter submit
    */
   const handleFilter = (formValues) => {
     const query = {
@@ -198,12 +187,10 @@ const Discover = () => {
       ...(import.meta.env.DEV ? { includeSelf: 1 } : {}),
     };
 
-    // Clean empty strings/nulls
     Object.keys(query).forEach((k) => {
       if (query[k] === "" || query[k] == null) delete query[k];
     });
 
-    // Age only if changed from defaults (prevents over-filtering when DB ages are missing/strings)
     const parsedMin = Number(formValues.minAge);
     const parsedMax = Number(formValues.maxAge);
     const minIsValid = Number.isFinite(parsedMin);
@@ -227,7 +214,6 @@ const Discover = () => {
     loadUsers(query);
   };
 
-  // Keep props structure intact for DiscoverFilters
   const values = {
     username,
     age,
@@ -323,7 +309,7 @@ const Discover = () => {
                   />
                   {users.length === 0 && (
                     <div className="mt-12 text-center text-gray-500">
-                      🔍 {t("discover.noResults")}
+                      🔍 {t("discover:noResults")}
                     </div>
                   )}
                 </>
@@ -340,3 +326,4 @@ const Discover = () => {
 
 export default Discover;
 // --- REPLACE END ---
+

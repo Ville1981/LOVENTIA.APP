@@ -1,10 +1,13 @@
-// File: client/src/main.jsx
+// client/src/main.jsx
 
+// --- REPLACE START: ensure i18n is loaded before React tree (single init only) ---
+import "./i18n"; // load i18n once; DO NOT also import "./i18n/config"
+// --- REPLACE END ---
 import React from "react";
 import ReactDOM from "react-dom/client";
 
 import "./global.css";
-import "./i18n/config"; // ensure i18n is loaded before app
+// import "./i18n/config"; // (removed – duplicated init would override nsSeparator)
 import "leaflet/dist/leaflet.css";
 import "./styles/ads.css";
 
@@ -37,6 +40,7 @@ function renderApp() {
 }
 
 function bootstrapReactApp() {
+  // If i18n already initialized, render immediately; otherwise wait for "initialized"
   if (i18n.isInitialized) {
     renderApp();
     return;
@@ -59,6 +63,7 @@ if (import.meta.env.DEV && enableMSW) {
     )
     .then(bootstrapReactApp)
     .catch((err) => {
+      // eslint-disable-next-line no-console
       console.error("MSW failed to start", err);
       bootstrapReactApp();
     });

@@ -9,5 +9,18 @@
   "cancel": "Cancel",
   "update": "Update",
   "close": "Close",
-  "language": "Language"
+  "language": "Language",
+  "home": {
+    "title": "Encuentra conexiones reales",
+    "subtitle": "Menos deslizamientos, mejores matches — una comunidad para citas con sentido."
+  },
+  "nav": {
+    "home": "Inicio",
+    "discover": "Descubrir",
+    "profile": "Perfil",
+    "login": "Iniciar sesión",
+    "register": "Registrarse",
+    "logout": "Logout",
+    "admin": "Admin"
+  }
 }

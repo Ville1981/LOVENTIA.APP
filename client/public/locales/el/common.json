@@ -9,5 +9,18 @@
   "cancel": "Cancel",
   "update": "Update",
   "close": "Close",
-  "language": "Language"
+  "language": "Language",
+  "home": {
+    "title": "Βρες αληθινές γνωριμίες",
+    "subtitle": "Λιγότερα swipes, καλύτερα ταιριάσματα — κοινότητα για ουσιαστικές σχέσεις."
+  },
+  "nav": {
+    "home": "Αρχική",
+    "discover": "Ανακάλυψη",
+    "profile": "Προφίλ",
+    "login": "Σύνδεση",
+    "register": "Εγγραφή",
+    "logout": "Logout",
+    "admin": "Διαχειριστής"
+  }
 }

@@ -1,470 +1,510 @@
-import express from 'express';
-import path from 'path';
-import fs from 'fs';
-import mongoose from 'mongoose';
-import multer from 'multer';
-import { body, validationResult } from 'express-validator';
+// server/routes/users.js
 
-// --- REPLACE START: interop for CommonJS User model (fixed path from routes -> models) ---
-import * as UserModule from '../models/User.js';
+// --- REPLACE START: migrate file to ESM (imports instead of require) ---
+import express from "express";
+import jwt from "jsonwebtoken";
+import multer from "multer";
+import pathFs from "path";
+import fs from "fs";
+import mongoose from "mongoose";
+import { body, validationResult } from "express-validator";
+
+// Interop for User model (ESM wrapper default-exporting the CJS model)
+import * as UserModule from "../models/User.js";
 const User = UserModule.default || UserModule;
 // --- REPLACE END ---
 
-// --- REPLACE START: interop for controllers (FIX: match on-disk casing exactly = userController.js) ---
-import * as UC from '../controllers/userController.js';
+const router = express.Router();
+
+// --- REPLACE START: load ESM controller via direct import (Jest/CJS compatible) ---
+import * as UserControllerModule from "../controllers/userController.js";
 const {
   registerUser,
   loginUser,
+  getMe,
   getMatchesWithScore,
   upgradeToPremium,
   uploadExtraPhotos,
   uploadPhotoStep,
   deletePhotoSlot,
-  getMe,
-  updateProfile,
-} = (UC.default || UC);
+  forgotPassword,
+  resetPassword,
+} = UserControllerModule.default || UserControllerModule;
 // --- REPLACE END ---
 
-// --- REPLACE START: import authenticate middleware correctly (fixed path) ---
-import authenticate from '../middleware/authenticate.js';
-// --- REPLACE END ---
+// --- REPLACE START: stronger auth (header/cookie/query + multiple secrets) ---
+function pickFirstDefined(...vals) {
+  for (const v of vals) if (v !== undefined && v !== null && v !== "") return v;
+  return undefined;
+}
+function tokenFromAuthHeader(req) {
+  const h = req?.headers?.authorization;
+  if (!h || typeof h !== "string") return null;
+  const m = h.match(/^Bearer\s+(.+)$/i);
+  return m ? m[1] : null;
+}
+function tokenFromCookies(req) {
+  const c = req?.cookies || {};
+  return c.accessToken || c.jwt || c.token || c.refreshToken || null;
+}
+function tokenFromQuery(req) {
+  const q = req?.query || {};
+  const v = q.token || q.access_token || q.accessToken;
+  return typeof v === "string" && v.length ? v : null;
+}
+function resolveToken(req) {
+  return tokenFromAuthHeader(req) || tokenFromCookies(req) || tokenFromQuery(req) || null;
+}
 
-const router = express.Router();
-
-/* ──────────────────────────────────────────────────────────────────────────────
-   Upload setup
-────────────────────────────────────────────────────────────────────────────── */
-const ensureUploadsDir = () => {
-  const dir = path.resolve('uploads');
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+// 🔐 Middleware: ensure token validity, attach req.user AND req.userId
+function authenticateToken(req, res, next) {
+  const token = resolveToken(req);
+  if (!token) {
+    res.set("WWW-Authenticate", 'Bearer realm="api"');
+    return res.status(401).json({ error: "No token provided" });
   }
-};
-ensureUploadsDir();
+  const secret = pickFirstDefined(process.env.JWT_SECRET, process.env.ACCESS_TOKEN_SECRET);
+  if (!secret) return res.status(500).json({ error: "Server JWT secret not configured" });
+  try {
+    const decoded = jwt.verify(token, secret);
+    const id = String(decoded.id || decoded.userId || decoded.sub || decoded._id || "");
+    if (!id) return res.status(401).json({ error: "Invalid token payload" });
+    req.userId = id; // backward compat for existing routes
+    req.user = { id, userId: id, role: decoded.role || "user", ...decoded }; // compat with controller
+    return next();
+  } catch {
+    return res.status(401).json({ error: "Invalid or expired token" });
+  }
+}
+// --- REPLACE END ---
 
+// 🎯 JSON-body parser
+router.use(express.json());
+
+// --- REPLACE START: ensure uploads dir exists to avoid Multer ENOENT ---
+const uploadsDir = pathFs.resolve(process.cwd(), "uploads");
+try {
+  if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+} catch {
+  /* noop */
+}
+// --- REPLACE END ---
+
+// 🔧 Multer storage + file removal helper
 const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, 'uploads/'),
-  filename: (_req, file, cb) => {
-    cb(null, `${Date.now()}${path.extname(file.originalname)}`);
-  },
+  destination: (_req, _file, cb) => cb(null, "uploads/"),
+  filename: (_req, file, cb) =>
+    cb(
+      null,
+      Date.now() +
+        "-" +
+        Math.round(Math.random() * 1e9) +
+        pathFs.extname(file.originalname)
+    ),
 });
 const upload = multer({ storage });
 
-const removeFile = (filePath) => {
+function removeFile(filePath) {
   try {
-    if (!filePath || typeof filePath !== 'string') return;
-    const p = path.resolve(filePath);
-    if (fs.existsSync(p)) {
-      fs.unlinkSync(p);
-    }
-  } catch (e) {
-    console.warn('removeFile warning:', e?.message || e);
+    if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  } catch {
+    /* noop */
   }
-};
+}
 
-const handleValidation = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-  next();
-};
+/* ============================================================================
+   PUBLIC AUTH ROUTES
+============================================================================ */
+router.post("/register", registerUser);
+router.post("/login", loginUser);
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password", resetPassword);
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   Auth routes
-────────────────────────────────────────────────────────────────────────────── */
-router.post(
-  '/register',
-  [
-    body('username').notEmpty().withMessage('Username is required'),
-    body('email').isEmail().withMessage('Valid email required'),
-    body('password')
-      .isLength({ min: 6 })
-      .withMessage('Password must be at least 6 characters'),
-  ],
-  handleValidation,
-  registerUser
-);
+/* ============================================================================
+   PROFILE & ACCOUNT
+============================================================================ */
 
-router.post(
-  '/login',
-  [
-    body('email').isEmail().withMessage('Valid email required'),
-    body('password').notEmpty().withMessage('Password is required'),
-  ],
-  handleValidation,
-  loginUser
-);
-
-// --- REPLACE START: return full user document via controller getMe ---
-router.get('/me', authenticate, async (req, res) => {
-  try {
-    const id = req.user?.id || req.user?._id || req.user?.userId;
-    if (!id || !mongoose.Types.ObjectId.isValid(String(id))) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-    return getMe(req, res);
-  } catch (err) {
-    console.error('GET /users/me error:', err);
-    return res.status(500).json({ error: 'Failed to fetch user' });
-  }
-});
-
-router.get('/profile', authenticate, async (req, res) => {
-  try {
-    const id = req.user?.id || req.user?._id || req.user?.userId;
-    if (!id || !mongoose.Types.ObjectId.isValid(String(id))) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-    return getMe(req, res);
-  } catch (err) {
-    console.error('GET /users/profile error:', err);
-    return res.status(500).json({ error: 'Failed to fetch user' });
-  }
-});
+// --- REPLACE START: add GET /profile alias BEFORE :id to avoid shadowing ---
+router.get("/profile", authenticateToken, getMe);
 // --- REPLACE END ---
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   Profile update
-────────────────────────────────────────────────────────────────────────────── */
-const UPDATABLE_FIELDS = new Set([
-  'username',
-  'email',
-  'summary',
-  'gender',
-  'orientation',
-  'goal',
-  'lookingFor',
-  'age',
-  'height',
-  'heightUnit',
-  'weight',
-  'weightUnit',
-  'city',
-  'region',
-  'country',
-  'customCity',
-  'customRegion',
-  'customCountry',
-  'profession',
-  'professionCategory',
-  'education',
-  'religion',
-  'religionImportance',
-  'children',
-  'pets',
-  'nutritionPreferences',
-  'activityLevel',
-  'healthInfo',
-  'smoke',
-  'drink',
-  'drugs',
-  'latitude',
-  'longitude',
-  'profilePhoto',
-  'extraImages',
-  // --- REPLACE START: allow Political ideology updates from client ---
-  'politicalIdeology',
-  // --- REPLACE END ---
-]);
-
-// --- REPLACE START: add hybrid PUT /profile with location mapping ---
+// =====================
+/* ✅ Profile update with validation */
+// =====================
 router.put(
-  '/profile',
-  authenticate,
+  "/profile",
+  authenticateToken,
   upload.fields([
-    { name: 'profilePhoto', maxCount: 1 },
-    { name: 'extraImages', maxCount: 20 },
+    { name: "profilePhoto", maxCount: 1 },
+    { name: "extraImages", maxCount: 20 },
   ]),
+  [
+    body("username").optional().notEmpty().withMessage("Username is required"),
+    body("email").optional().isEmail().withMessage("Invalid email"),
+    body("age").optional().isInt({ min: 18 }).withMessage("Age must be at least 18"),
+    body("gender").optional().notEmpty().withMessage("Gender is required"),
+    body("orientation").optional().notEmpty().withMessage("Orientation is required"),
+    body("height").optional().isNumeric().withMessage("Height must be a number"),
+    body("weight").optional().isNumeric().withMessage("Weight must be a number"),
+    body("latitude").optional().isFloat({ min: -90, max: 90 }).withMessage("Invalid latitude"),
+    body("longitude").optional().isFloat({ min: -180, max: 180 }).withMessage("Invalid longitude"),
+    body("professionCategory")
+      .optional({ checkFalsy: true })
+      .isIn([
+        "",
+        "Administration",
+        "Finance",
+        "Military",
+        "Technical",
+        "Healthcare",
+        "Education",
+        "Entrepreneur",
+        "Law",
+        "Farmer/Forest worker",
+        "Theologian/Priest",
+        "Service",
+        "Artist",
+        "DivineServant",
+        "Homeparent",
+        "Service",
+        "FoodIndustry",
+        "Retail",
+        "Arts",
+        "Government",
+        "Retired",
+        "Athlete",
+        "Other",
+      ])
+      .withMessage("Invalid profession category"),
+    body("nutritionPreferences").optional().isArray().withMessage("Nutrition preferences must be an array"),
+    // --- REPLACE START: accept politicalIdeology input (trim/sanitize lightly) ---
+    body("politicalIdeology").optional().trim().escape(),
+    // Also accept legacy 'ideology' and sanitize it (we map it below)
+    body("ideology").optional().trim().escape(),
+    // --- REPLACE END ---
+  ],
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+    next();
+  },
   async (req, res) => {
     try {
-      const uid = req.user?.id || req.user?._id || req.user?.userId;
-      if (!uid || !mongoose.Types.ObjectId.isValid(String(uid))) {
-        return res.status(401).json({ error: 'Unauthorized' });
-      }
+      const user = await User.findById(req.userId);
+      if (!user) return res.status(404).json({ error: "User not found" });
 
-      const hasProfilePhoto =
-        Array.isArray(req.files?.profilePhoto) && req.files.profilePhoto.length > 0;
-      const hasExtraImages =
-        Array.isArray(req.files?.extraImages) && req.files.extraImages.length > 0;
-      const hasFiles = hasProfilePhoto || hasExtraImages;
-
-      // If no files uploaded, delegate to controller (keeps existing behavior)
-      if (!hasFiles) {
-        // Controller's updateProfile will still work; we add an extra safety mapping below
-        // when handling files locally.
-        return updateProfile(req, res);
-      }
-
-      // With files: do local update + save
-      const user = await User.findById(uid);
-      if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-
-      // Assign scalar fields from body
-      if (req.body && typeof req.body === 'object') {
-        for (const [key, val] of Object.entries(req.body)) {
-          if (!UPDATABLE_FIELDS.has(key)) continue;
-          if (key === 'nutritionPreferences' || key === 'extraImages') {
-            let parsed = val;
-            if (typeof val === 'string') {
-              try {
-                parsed = JSON.parse(val);
-              } catch {
-                // keep as-is; may be a single string
-              }
-            }
-            user[key] = parsed;
-          } else {
-            user[key] = val;
-          }
-        }
-      }
-
-      // --- REPLACE START: map top-level country/region/city -> nested location before save ---
+      // --- REPLACE START: normalize ideology keys BEFORE whitelist copy ---
       /**
-       * Ensure that top-level "country/region/city" from the profile form end up in
-       * the canonical nested schema: user.location.{country,region,city}.
-       * Also accept optional dot-notation "location.country" if ever sent.
+       * Robust mapping between UI key `politicalIdeology` and any legacy `ideology`.
+       * - If only `ideology` is present, copy it to `politicalIdeology`.
+       * - We do NOT persist `ideology` directly to avoid strict schema issues.
        */
-      const hasTopCountry = Object.prototype.hasOwnProperty.call(req.body || {}, 'country');
-      const hasTopRegion  = Object.prototype.hasOwnProperty.call(req.body || {}, 'region');
-      const hasTopCity    = Object.prototype.hasOwnProperty.call(req.body || {}, 'city');
-
-      const hasDotCountry = Object.prototype.hasOwnProperty.call(req.body || {}, 'location.country');
-      const hasDotRegion  = Object.prototype.hasOwnProperty.call(req.body || {}, 'location.region');
-      const hasDotCity    = Object.prototype.hasOwnProperty.call(req.body || {}, 'location.city');
-
-      if (hasTopCountry || hasTopRegion || hasTopCity || hasDotCountry || hasDotRegion || hasDotCity) {
-        user.location = user.location || {};
-        if (hasTopCountry) user.location.country = req.body.country;
-        if (hasTopRegion)  user.location.region  = req.body.region;
-        if (hasTopCity)    user.location.city    = req.body.city;
-
-        if (hasDotCountry) user.location.country = req.body['location.country'];
-        if (hasDotRegion)  user.location.region  = req.body['location.region'];
-        if (hasDotCity)    user.location.city    = req.body['location.city'];
+      if (
+        (req.body.politicalIdeology === undefined ||
+          req.body.politicalIdeology === null ||
+          req.body.politicalIdeology === "") &&
+        typeof req.body.ideology !== "undefined"
+      ) {
+        req.body.politicalIdeology = req.body.ideology;
+      }
+      if (Object.prototype.hasOwnProperty.call(req.body, "ideology")) {
+        delete req.body.ideology;
       }
       // --- REPLACE END ---
 
-      // Files: profile photo
-      if (hasProfilePhoto) {
-        if (user.profilePicture) removeFile(user.profilePicture);
+      // Fields to update
+      const fields = [
+        "username",
+        "email",
+        "age",
+        "gender",
+        "orientation",
+        "education",
+        "height",
+        "weight",
+        "status",
+        "religion",
+        "religionImportance",
+        "children",
+        "pets",
+        "summary",
+        "goal",
+        "lookingFor",
+        "profession",
+        "professionCategory",
+        "heightUnit",
+        "country",
+        "region",
+        "city",
+        "latitude",
+        "longitude",
+        "smoke",
+        "drink",
+        "drugs",
+        "bodyType",
+        "activityLevel",
+        "nutritionPreferences",
+        "healthInfo",
+        "interests",
+        "preferredGender",
+        "preferredMinAge",
+        "preferredMaxAge",
+        "preferredInterests",
+        "preferredCountry",
+        "preferredReligion",
+        "preferredReligionImportance",
+        "preferredEducation",
+        "preferredProfession",
+        "preferredChildren",
+        // --- REPLACE START: added missing field for political ideology ---
+        "politicalIdeology",
+        // --- REPLACE END ---
+      ];
+
+      fields.forEach((field) => {
+        if (req.body[field] !== undefined) {
+          if (["interests", "preferredInterests"].includes(field)) {
+            user[field] = Array.isArray(req.body[field])
+              ? req.body[field]
+              : typeof req.body[field] === "string"
+              ? req.body[field].split(",").map((s) => s.trim())
+              : [];
+          } else if (field === "nutritionPreferences") {
+            if (Array.isArray(req.body[field])) user[field] = req.body[field];
+            else if (typeof req.body[field] === "string") user[field] = [req.body[field]];
+            else user[field] = [];
+          } else {
+            user[field] = req.body[field];
+          }
+        }
+      });
+
+      // --- REPLACE START: map top-level country/region/city into nested location before save ---
+      if (
+        req.body.country !== undefined ||
+        req.body.region !== undefined ||
+        req.body.city !== undefined
+      ) {
+        user.location = user.location || {};
+        if (req.body.country !== undefined) user.location.country = req.body.country;
+        if (req.body.region !== undefined) user.location.region = req.body.region;
+        if (req.body.city !== undefined) user.location.city = req.body.city;
+      }
+      // --- REPLACE END ---
+
+      // Profile picture
+      if (req.files?.profilePhoto?.length) {
+        removeFile(user.profilePicture);
         user.profilePicture = req.files.profilePhoto[0].path;
       }
 
-      // Files: extra images
-      if (hasExtraImages) {
-        if (Array.isArray(user.extraImages)) {
-          user.extraImages.forEach(removeFile);
-        }
+      // Extra images
+      if (req.files?.extraImages?.length) {
+        (user.extraImages || []).forEach(removeFile);
         user.extraImages = req.files.extraImages.map((f) => f.path);
       }
 
-      // Optional: front might send an existing relative path (no new upload)
-      if (typeof req.body?.profilePhoto === 'string' && req.body.profilePhoto.trim()) {
-        user.profilePicture = req.body.profilePhoto.trim();
-      }
-
-      const updatedUser = await user.save();
-      return res.json({ user: updatedUser });
+      const updated = await user.save();
+      res.json(updated);
     } catch (err) {
-      console.error('PUT /users/profile error:', err);
-      return res.status(500).json({ error: 'Profile update failed' });
+      console.error("Profile update error:", err);
+      res.status(500).json({ error: "Profile update failed", details: err.message });
     }
   }
 );
-// --- REPLACE END ---
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   Account deletion (DELETE /users/me)
-────────────────────────────────────────────────────────────────────────────── */
-// --- REPLACE START: add safe cascade delete for the authenticated user ---
-/**
- * Safely deletes a user and attempts to cascade-delete related assets:
- *  - Removes profile picture and extra images from disk.
- *  - Deletes related messages if a Message model exists (best-effort).
- *  - Finally deletes the user document itself.
- *
- * This function is defensive: if a related collection/model is missing,
- * it will not throw; it logs and continues with user deletion.
- */
-const cascadeDeleteUser = async (userId) => {
-  const user = await User.findById(userId);
-  if (!user) return { deletedUser: false, removedFiles: 0, deletedMessages: 0 };
+// ✅ Current user profile
+router.get("/me", authenticateToken, getMe);
 
-  // Remove files from disk
-  let removedFiles = 0;
+// 💎 Premium upgrade (alt path kept for compatibility)
+router.post("/upgrade-premium", authenticateToken, upgradeToPremium);
+router.post("/premium", authenticateToken, upgradeToPremium);
+
+// 👀 Who liked me (premium-only)
+router.get("/who-liked-me", authenticateToken, async (req, res) => {
   try {
-    if (user.profilePicture) {
-      removeFile(user.profilePicture);
-      removedFiles += 1;
-    }
-    if (Array.isArray(user.extraImages) && user.extraImages.length > 0) {
-      for (const img of user.extraImages) {
-        removeFile(img);
-        removedFiles += 1;
-      }
-    }
-  } catch (e) {
-    console.warn('File cleanup warning:', e?.message || e);
+    const me = await User.findById(req.userId);
+    if (!me) return res.status(404).json({ error: "User not found" });
+    if (!me.isPremium) return res.status(403).json({ error: "Premium only" });
+    const likers = await User.find({ likes: req.userId }).select("username profilePicture");
+    res.json(likers);
+  } catch {
+    res.status(500).json({ error: "Server error" });
   }
+});
 
-  // Best-effort: delete messages if model exists
-  let deletedMessages = 0;
+// 📍 Nearby users (by coordinates)
+router.get("/nearby", authenticateToken, async (req, res) => {
   try {
-    // Try dynamic import to avoid hard dependency if model/file is absent
-    const MsgModule = await import('../models/Message.js').catch(() => null);
-    const Message = MsgModule?.default || MsgModule;
-    if (Message && typeof Message.deleteMany === 'function') {
-      const res1 = await Message.deleteMany({ sender: userId });
-      const res2 = await Message.deleteMany({ receiver: userId });
-      // Some schemas might use participants array; try that too (won't fail if no index)
-      const res3 = await Message.deleteMany({ participants: userId }).catch(() => ({ deletedCount: 0 }));
-      deletedMessages =
-        (res1?.deletedCount || 0) + (res2?.deletedCount || 0) + (res3?.deletedCount || 0);
-    }
-  } catch (e) {
-    console.warn('Message cleanup skipped:', e?.message || e);
-  }
-
-  // Finally delete the user document
-  await User.findByIdAndDelete(userId);
-
-  return { deletedUser: true, removedFiles, deletedMessages };
-};
-
-router.delete('/me', authenticate, async (req, res) => {
-  try {
-    const uid = req.user?.id || req.user?._id || req.user?.userId;
-    if (!uid || !mongoose.Types.ObjectId.isValid(String(uid))) {
-      return res.status(401).json({ error: 'Unauthorized' });
+    const user = await User.findById(req.userId);
+    const maxDistanceKm = 50;
+    if (!user || user.latitude == null || user.longitude == null) {
+      return res.status(400).json({ error: "User location is missing" });
     }
 
-    const result = await cascadeDeleteUser(String(uid));
+    const users = await User.find({
+      _id: { $ne: req.userId },
+      latitude: { $exists: true },
+      longitude: { $exists: true },
+    }).select("-password");
 
-    // No content is standard, but include minimal headers for clients if needed
-    // You can switch to 200 with JSON if you want to inspect result details.
-    if (!result.deletedUser) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+    const toRad = (deg) => (deg * Math.PI) / 180;
+    const earthRadius = 6371;
 
-    // Optional debug header info (safe, not required)
-    res.setHeader('X-Removed-Files', String(result.removedFiles || 0));
-    res.setHeader('X-Deleted-Messages', String(result.deletedMessages || 0));
+    const nearby = users.filter((u) => {
+      const dLat = toRad((u.latitude || 0) - user.latitude);
+      const dLon = toRad((u.longitude || 0) - user.longitude);
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(user.latitude)) * Math.cos(toRad(u.latitude || 0)) * Math.sin(dLon / 2) ** 2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const d = earthRadius * c;
+      return d <= maxDistanceKm;
+    });
 
-    return res.status(204).send(); // No Content
+    res.json(nearby);
   } catch (err) {
-    console.error('DELETE /users/me error:', err);
-    return res.status(500).json({ error: 'Failed to delete account' });
+    console.error("Nearby error:", err);
+    res.status(500).json({ error: "Server error" });
   }
 });
-// --- REPLACE END ---
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   Social
-────────────────────────────────────────────────────────────────────────────── */
-router.post('/like/:id', authenticate, async (_req, res) => {
-  return res.json({ message: 'User liked' });
+/* ============================================================================
+   SOCIAL GRAPH
+============================================================================ */
+
+// ❤️ Like
+router.post("/like/:id", authenticateToken, async (req, res) => {
+  try {
+    const current = await User.findById(req.userId);
+    const target = req.params.id;
+    if (!current || !target) return res.status(400).json({ error: "Invalid request" });
+    if (!current.likes.includes(target)) {
+      current.likes.push(target);
+      await current.save();
+    }
+    res.json({ message: "Liked successfully" });
+  } catch {
+    res.status(500).json({ error: "Server error" });
+  }
 });
 
-router.post('/superlike/:id', authenticate, async (_req, res) => {
-  return res.json({ message: 'User superliked' });
+// 🌟 Superlike (with premium limits)
+router.post("/superlike/:id", authenticateToken, async (req, res) => {
+  try {
+    const current = await User.findById(req.userId);
+    const target = req.params.id;
+    if (!current || !target) return res.status(400).json({ error: "Invalid request" });
+
+    const now = new Date();
+    current.superLikeTimestamps = (current.superLikeTimestamps || []).filter(
+      (ts) => now - new Date(ts) < 48 * 60 * 60 * 1000
+    );
+    const limit = current.isPremium ? 3 : 1;
+    if (current.superLikeTimestamps.length >= limit) {
+      return res.status(403).json({ error: "Superlike limit reached" });
+    }
+    if (!current.superLikes.includes(target)) {
+      current.superLikes.push(target);
+      current.superLikeTimestamps.push(now);
+      await current.save();
+    }
+    res.json({ message: "Superliked successfully" });
+  } catch {
+    res.status(500).json({ error: "Server error" });
+  }
 });
 
-router.post('/block/:id', authenticate, async (_req, res) => {
-  return res.json({ message: 'User blocked' });
+// 🚫 Block user
+router.post("/block/:id", authenticateToken, async (req, res) => {
+  try {
+    const me = await User.findById(req.userId);
+    const blockId = req.params.id;
+    if (!me) return res.status(404).json({ message: "User not found" });
+    if (me._id.equals(blockId)) return res.status(400).json({ message: "Cannot block yourself" });
+    if (!me.blockedUsers.includes(blockId)) {
+      me.blockedUsers.push(blockId);
+      await me.save();
+    }
+    res.json({ message: "User blocked" });
+  } catch {
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   Premium & matches
-────────────────────────────────────────────────────────────────────────────── */
-router.post('/upgrade-premium', authenticate, upgradeToPremium);
-router.get('/matches', authenticate, getMatchesWithScore);
+/* ============================================================================
+   MATCHES
+============================================================================ */
+router.get("/matches", authenticateToken, getMatchesWithScore);
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   Misc
-────────────────────────────────────────────────────────────────────────────── */
-router.get('/who-liked-me', authenticate, async (_req, res) => {
-  return res.json([]);
-});
-
-router.get('/nearby', authenticate, async (_req, res) => {
-  return res.json([]);
-});
-
-/* ──────────────────────────────────────────────────────────────────────────────
-   Photo upload
-────────────────────────────────────────────────────────────────────────────── */
+/* ============================================================================
+   IMAGES
+============================================================================ */
 router.post(
-  '/:id/upload-avatar',
-  authenticate,
-  upload.single('profilePhoto'),
+  "/:id/upload-avatar",
+  authenticateToken,
+  upload.single("profilePhoto"),
   async (req, res) => {
     try {
-      const uid = req.user?.id || req.user?._id || req.user?.userId;
-      const user = await User.findById(uid);
-      if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-      if (!req.file) {
-        return res.status(400).json({ error: 'No file uploaded' });
-      }
+      const { id } = req.params;
+      if (req.userId !== id) return res.status(403).json({ error: "Forbidden" });
+      const user = await User.findById(id);
+      if (!user) return res.status(404).json({ error: "User not found" });
 
-      if (user.profilePicture) removeFile(user.profilePicture);
+      removeFile(user.profilePicture);
       user.profilePicture = req.file.path;
       await user.save();
-      return res.json({ profilePicture: user.profilePicture });
+
+      res.json(user);
     } catch (err) {
-      console.error('Upload-avatar error:', err);
-      return res.status(500).json({ error: 'Failed to upload avatar' });
+      console.error("upload-avatar error:", err);
+      res.status(500).json({ error: "Avatar upload failed" });
     }
   }
 );
 
-router.post(
-  '/:id/upload-photos',
-  authenticate,
-  upload.array('photos', 20),
-  uploadExtraPhotos
-);
+router.post("/:id/upload-photos", authenticateToken, upload.array("photos", 20), uploadExtraPhotos);
+router.post("/:id/upload-photo-step", authenticateToken, upload.single("photo"), uploadPhotoStep);
+router.delete("/:id/photos/:slot", authenticateToken, deletePhotoSlot);
 
-router.post(
-  '/:id/upload-photo-step',
-  authenticate,
-  upload.single('photo'),
-  uploadPhotoStep
-);
+/* ============================================================================
+   LISTS & PUBLIC PROFILES
+============================================================================ */
 
-router.delete('/:id/photos/:slot', authenticate, deletePhotoSlot);
-
-/* ──────────────────────────────────────────────────────────────────────────────
-   Param validation
-────────────────────────────────────────────────────────────────────────────── */
-router.param('id', (_req, res, next, id) => {
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ error: 'Invalid user ID' });
+// --- REPLACE START: fix route order (static before /:id to avoid conflicts) ---
+router.get("/all", authenticateToken, async (req, res) => {
+  try {
+    const list = await User.find({ _id: { $ne: req.userId } }).select("username profilePicture");
+    res.json(list);
+  } catch {
+    res.status(401).json({ error: "Invalid token" });
   }
-  next();
 });
+// --- REPLACE END ---
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   Public profile
-────────────────────────────────────────────────────────────────────────────── */
-router.get('/:id', async (req, res) => {
+// --- REPLACE START: validate :id to avoid 'profile' hitting this route ---
+router.param("id", (_req, res, next, id) => {
+  if (!mongoose.Types.ObjectId.isValid(String(id))) {
+    return res.status(400).json({ error: "Invalid user ID" });
+  }
+  return next();
+});
+// --- REPLACE END ---
+
+// ✅ Public profile by ID
+router.get("/:id", async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select(
-      '-password -email -blockedUsers'
+      "-password -email -likes -superLikes -blockedUsers"
     );
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    return res.json(user);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    res.json(user);
   } catch (err) {
-    console.error('Public profile fetch error:', err);
-    return res.status(500).json({ error: 'Server error' });
+    console.error("Public profile fetch error:", err?.message || err);
+    res.status(500).json({ error: "Server error" });
   }
 });
 
+// --- REPLACE START: ESM export default router ---
 export default router;
+// --- REPLACE END ---

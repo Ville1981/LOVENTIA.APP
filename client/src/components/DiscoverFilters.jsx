@@ -1,3 +1,5 @@
+// client/src/components/DiscoverFilters.jsx
+
 // --- REPLACE START: DiscoverFilters wired for backend filters, stable options, and identical lists with ProfileForm ---
 import PropTypes from "prop-types";
 import React, { useMemo } from "react";
@@ -102,7 +104,7 @@ const DiscoverFilters = ({
     () =>
       RELIGION_OPTIONS.map((opt) => ({
         ...opt,
-        text: t(opt.key) || opt.label || t("common.select"),
+        text: t(opt.key) || opt.label || t("common:select"),
       })),
     [t]
   );
@@ -111,7 +113,7 @@ const DiscoverFilters = ({
     () =>
       RELIGION_IMPORTANCE_OPTIONS.map((opt) => ({
         ...opt,
-        text: t(opt.key) || opt.label || t("common.select"),
+        text: t(opt.key) || opt.label || t("common:select"),
       })),
     [t]
   );
@@ -120,7 +122,7 @@ const DiscoverFilters = ({
     () =>
       POLITICAL_IDEOLOGY_OPTIONS.map((opt) => ({
         ...opt,
-        text: t(opt.key) || opt.label || t("common.select"),
+        text: t(opt.key) || opt.label || t("common:select"),
       })),
     [t]
   );
@@ -129,7 +131,7 @@ const DiscoverFilters = ({
     () =>
       GENDER_OPTIONS.map((opt) => ({
         ...opt,
-        text: t(opt.key) || opt.label || t("common.select"),
+        text: t(opt.key) || opt.label || t("common:select"),
       })),
     [t]
   );
@@ -138,7 +140,7 @@ const DiscoverFilters = ({
     () =>
       ORIENTATION_OPTIONS.map((opt) => ({
         ...opt,
-        text: t(opt.key) || opt.label || t("common.select"),
+        text: t(opt.key) || opt.label || t("common:select"),
       })),
     [t]
   );
@@ -157,20 +159,20 @@ const DiscoverFilters = ({
               data-cy="DiscoverFilters__title"
               className="text-3xl font-bold mb-2"
             >
-              {t("discover.title")}
+              {t("discover:title")}
             </h2>
             <p
               data-cy="DiscoverFilters__instructions"
               className="text-gray-600"
             >
-              {t("discover.instructions")}
+              {t("discover:instructions")}
             </p>
           </div>
 
           {/* Age range: minAge and maxAge */}
           <div className="flex flex-col gap-2">
             <label htmlFor="minAge" className="font-medium">
-              {t("discover.ageRange")}
+              {t("discover:ageRange")}
             </label>
             <div className="flex space-x-2">
               <input
@@ -195,7 +197,7 @@ const DiscoverFilters = ({
           {/* Username (filter only) */}
           <div>
             <label className="block font-medium mb-1">
-              {t("discover.username")}
+              {t("discover:username")}
             </label>
             <input
               type="text"
@@ -207,7 +209,7 @@ const DiscoverFilters = ({
           {/* Gender */}
           <div>
             <label className="block font-medium mb-1">
-              {t("discover.gender")}
+              {t("discover:gender")}
             </label>
             <select
               {...register("gender")}
@@ -224,7 +226,7 @@ const DiscoverFilters = ({
           {/* Sexual orientation */}
           <div>
             <label className="block font-medium mb-1">
-              ❤️ {t("discover.orientation")}
+              ❤️ {t("discover:orientation")}
             </label>
             <select
               {...register("orientation")}
@@ -256,13 +258,13 @@ const DiscoverFilters = ({
           {/* Profession (placeholder select; mirror ProfileForm list when finalized) */}
           <div>
             <label className="block font-medium mb-1">
-              {t("discover.profession")}
+              {t("discover:profession")}
             </label>
             <select
               {...register("profession")}
               className="w-full p-2 border rounded"
             >
-              <option value="">{t("common.all")}</option>
+              <option value="">{t("common:all")}</option>
               {/* Keep in sync with ProfileForm categories if you expose them here */}
             </select>
           </div>
@@ -270,7 +272,7 @@ const DiscoverFilters = ({
           {/* Religion & importance */}
           <div>
             <label className="block font-medium mb-1">
-              🛐 {t("discover.religion")}
+              🛐 {t("discover:religion")}
             </label>
             <select
               {...register("religion")}
@@ -285,7 +287,7 @@ const DiscoverFilters = ({
           </div>
           <div>
             <label className="block font-medium mb-1">
-              {t("discover.religionImportance")}
+              {t("discover:religionImportance")}
             </label>
             <select
               {...register("religionImportance")}
@@ -302,7 +304,7 @@ const DiscoverFilters = ({
           {/* Political ideology */}
           <div>
             <label className="block font-medium mb-1">
-              🗳️ {t("discover.politicalIdeology")}
+              🗳️ {t("discover:politicalIdeology")}
             </label>
             <select
               {...register("politicalIdeology")}
@@ -335,7 +337,7 @@ const DiscoverFilters = ({
               type="submit"
               className="bg-pink-600 text-white font-bold py-2 px-8 rounded-full hover:opacity-90 transition duration-200"
             >
-              🔍 {t("common.filter")}
+              🔍 {t("common:filter")}
             </button>
           </div>
         </form>
@@ -355,3 +357,4 @@ DiscoverFilters.propTypes = {
 
 export default React.memo(DiscoverFilters);
 // --- REPLACE END ---
+

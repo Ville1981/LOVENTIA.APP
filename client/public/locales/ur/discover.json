@@ -1,0 +1,14 @@
+{
+  "ageRange": "Age range",
+  "error": "Something went wrong. Please try again.",
+  "gender": "Gender",
+  "instructions": "Refine your search using the filters below.",
+  "noResults": "No results found.",
+  "orientation": "Sexual orientation",
+  "politicalIdeology": "Political ideology",
+  "profession": "Profession",
+  "religion": "Religion",
+  "religionImportance": "Religion importance",
+  "title": "Discover",
+  "username": "Username"
+}

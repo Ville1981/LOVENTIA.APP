@@ -27,7 +27,7 @@ const FormChildrenPets = ({ t, includeAllOption = false }) => {
       {/* Lapset */}
       <div className="w-full">
         <label htmlFor="children" className="block font-medium mb-1">
-          👶 {t("profile.children")}
+          👶 {t("profile:children")}
         </label>
         <select
           id="children"
@@ -37,9 +37,9 @@ const FormChildrenPets = ({ t, includeAllOption = false }) => {
         >
           {includeAllOption && <option value="">{t("common.all")}</option>}
           <option value="">{t("common.select")}</option>
-          <option value="Kyllä">{t("profile.childrenYes")}</option>
-          <option value="Ei">{t("profile.childrenNo")}</option>
-          <option value="Aikuisia lapsia">{t("profile.childrenAdult")}</option>
+          <option value="Kyllä">{t("profile:childrenYes")}</option>
+          <option value="Ei">{t("profile:childrenNo")}</option>
+          <option value="Aikuisia lapsia">{t("profile:childrenAdult")}</option>
           <option value="Muu">{t("common.other")}</option>
         </select>
         {errors.children && (
@@ -55,7 +55,7 @@ const FormChildrenPets = ({ t, includeAllOption = false }) => {
       {/* Lemmikit */}
       <div className="w-full">
         <label htmlFor="pets" className="block font-medium mb-1">
-          🐾 {t("profile.pets")}
+          🐾 {t("profile:pets")}
         </label>
         <select
           id="pets"

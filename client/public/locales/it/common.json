@@ -9,5 +9,18 @@
   "cancel": "Cancel",
   "update": "Update",
   "close": "Close",
-  "language": "Language"
+  "language": "Language",
+  "home": {
+    "title": "Trova connessioni reali",
+    "subtitle": "Meno swipe, più match — una community per incontri significativi."
+  },
+  "nav": {
+    "home": "Home",
+    "discover": "Scopri",
+    "profile": "Profilo",
+    "login": "Accedi",
+    "register": "Registrati",
+    "logout": "Logout",
+    "admin": "Admin"
+  }
 }

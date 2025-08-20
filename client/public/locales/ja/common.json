@@ -9,5 +9,18 @@
   "cancel": "Cancel",
   "update": "Update",
   "close": "Close",
-  "language": "Language"
+  "language": "Language",
+  "home": {
+    "title": "本当のつながりを見つけよう",
+    "subtitle": "スワイプは少なく、マッチはより良く。意味ある出会いのコミュニティへ."
+  },
+  "nav": {
+    "home": "ホーム",
+    "discover": "発見",
+    "profile": "プロフィール",
+    "login": "ログイン",
+    "register": "登録",
+    "logout": "Logout",
+    "admin": "管理"
+  }
 }

@@ -1,3 +1,5 @@
+// File: client/src/App.jsx
+
 // --- REPLACE START: import grouping and PrivateRoute using context user+bootstrapped ---
 import React, { useEffect, Suspense } from "react";
 import {
@@ -178,6 +180,7 @@ export default function App() {
                   </PrivateRoute>
                 }
               />
+              {/* Note: double Settings route, check if both needed */}
               <Route path="/settings" element={<SettingsPage />} />
 
               <Route path="forgot-password" element={<ForgotPassword />} />
@@ -191,3 +194,4 @@ export default function App() {
     </ErrorBoundary>
   );
 }
+

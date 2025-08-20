@@ -9,5 +9,18 @@
   "cancel": "Cancel",
   "update": "Update",
   "close": "Close",
-  "language": "Language"
+  "language": "Language",
+  "home": {
+    "title": "Trouvez de vraies connexions",
+    "subtitle": "Moins de swipe, de meilleurs matchs — une communauté pour des rencontres sincères."
+  },
+  "nav": {
+    "home": "Accueil",
+    "discover": "Découvrir",
+    "profile": "Profil",
+    "login": "Se connecter",
+    "register": "S'inscrire",
+    "logout": "Logout",
+    "admin": "Admin"
+  }
 }

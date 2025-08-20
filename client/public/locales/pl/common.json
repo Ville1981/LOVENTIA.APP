@@ -9,5 +9,18 @@
   "cancel": "Cancel",
   "update": "Update",
   "close": "Close",
-  "language": "Language"
+  "language": "Language",
+  "home": {
+    "title": "Znajdź prawdziwe relacje",
+    "subtitle": "Mniej swipe’ów, lepsze dopasowania — społeczność dla poważnych relacji."
+  },
+  "nav": {
+    "home": "Strona główna",
+    "discover": "Odkrywaj",
+    "profile": "Profil",
+    "login": "Zaloguj się",
+    "register": "Zarejestruj się",
+    "logout": "Logout",
+    "admin": "Admin"
+  }
 }

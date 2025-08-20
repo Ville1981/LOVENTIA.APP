@@ -42,7 +42,7 @@ const FormLookingFor = ({ t, fieldName = "lookingFor" }) => {
         className="block font-medium mb-1"
         data-cy="FormLookingFor__label"
       >
-        🔍 {t("profile.searchingFor")}
+        🔍 {t("profile:searchingFor")}
       </label>
       <select
         id={fieldName}

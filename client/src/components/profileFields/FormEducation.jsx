@@ -1,3 +1,5 @@
+// --- REPLACE START: i18n namespace fixes (ns.key -> ns:key), no logic removed ---
+// --- REPLACE END ---
 // src/components/profileFields/FormEducation.jsx
 
 import PropTypes from "prop-types";
@@ -27,7 +29,7 @@ const FormEducation = ({ t, includeAllOption = false }) => {
       {/* Koulutustaso */}
       <div className="w-full">
         <label htmlFor="education" className="block font-medium mb-1">
-          🎓 {t("profile.education")}
+          🎓 {t("profile:education")}
         </label>
         <select
           id="education"
@@ -35,8 +37,8 @@ const FormEducation = ({ t, includeAllOption = false }) => {
           className="p-2 border rounded w-full"
           data-cy="FormEducation__educationSelect"
         >
-          {includeAllOption && <option value="">{t("common.all")}</option>}
-          <option value="">{t("common.select")}</option>
+          {includeAllOption && <option value="">{t("common:all")}</option>}
+          <option value="">{t("common:select")}</option>
           <option value="Peruskoulu">{t("education.basic")}</option>
           <option value="Toinen aste">{t("education.secondary")}</option>
           <option value="Ammatillinen">{t("education.vocational")}</option>
@@ -44,7 +46,7 @@ const FormEducation = ({ t, includeAllOption = false }) => {
             {t("education.higher")}
           </option>
           <option value="Tohtori / tutkimus">{t("education.phd")}</option>
-          <option value="Muu">{t("common.other")}</option>
+          <option value="Muu">{t("common:other")}</option>
         </select>
         {errors.education && (
           <p
