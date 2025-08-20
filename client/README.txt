@@ -1,0 +1,1 @@
+Place into client/. Adds placeholders for: ko, lt, lv, nl, no, pl, pt, ro, ru, sk, sv, sw, tr, uk, ur, zh

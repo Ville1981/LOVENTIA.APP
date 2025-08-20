@@ -9,5 +9,18 @@
   "cancel": "Cancel",
   "update": "Update",
   "close": "Close",
-  "language": "Language"
+  "language": "Language",
+  "home": {
+    "title": "Gerçek bağlar kur",
+    "subtitle": "Daha az kaydır, daha iyi eşleş — anlamlı ilişkiler için topluluk."
+  },
+  "nav": {
+    "home": "Ana sayfa",
+    "discover": "Keşfet",
+    "profile": "Profil",
+    "login": "Giriş yap",
+    "register": "Kayıt ol",
+    "logout": "Logout",
+    "admin": "Yönetici"
+  }
 }

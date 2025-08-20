@@ -9,5 +9,18 @@
   "cancel": "Cancel",
   "update": "Update",
   "close": "Close",
-  "language": "Language"
+  "language": "Language",
+  "home": {
+    "title": "Echte Verbindungen finden",
+    "subtitle": "Weniger wischen, besser matchen — eine Community für ernsthaftes Dating."
+  },
+  "nav": {
+    "home": "Startseite",
+    "discover": "Entdecken",
+    "profile": "Profil",
+    "login": "Anmelden",
+    "register": "Registrieren",
+    "logout": "Logout",
+    "admin": "Admin"
+  }
 }

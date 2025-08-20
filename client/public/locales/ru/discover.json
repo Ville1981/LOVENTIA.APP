@@ -1,18 +1,14 @@
 {
-  "title": "Discover people",
-  "instructions": "Set your filters and tap Filter to see matching profiles.",
   "ageRange": "Age range",
-  "username": "Username",
+  "error": "Something went wrong. Please try again.",
   "gender": "Gender",
+  "instructions": "Set filters and click Filter to find people.",
+  "noResults": "No results found.",
   "orientation": "Sexual orientation",
+  "politicalIdeology": "Political ideology",
   "profession": "Profession",
   "religion": "Religion",
-  "religionImportance": "Religious importance",
-  "politicalIdeology": "Political ideology",
-  "country": "Country",
-  "region": "Region/State",
-  "city": "City",
-  "customCountry": "Custom country",
-  "customRegion": "Custom region",
-  "customCity": "Custom city"
+  "religionImportance": "Importance of religion",
+  "title": "Discover",
+  "username": "Username"
 }

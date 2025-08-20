@@ -1,19 +1,8 @@
 {
-  "sectionTitle": "Lifestyle",
-  "smoke": "Smoking",
+  "diet": "Diet",
   "drink": "Alcohol",
   "drugs": "Drugs",
-  "activityLevel": "Activity level",
-  "bodyType": "Body type",
-  "nutritionPreferences": "Diet",
-  "diet": {
-    "none": "None",
-    "omnivore": "Omnivore",
-    "vegetarian": "Vegetarian",
-    "vegan": "Vegan",
-    "pescatarian": "Pescatarian",
-    "flexitarian": "Flexitarian",
-    "keto": "Keto",
-    "other": "Other"
-  }
+  "exercise": "Exercise",
+  "smoke": "Smoking",
+  "title": "Lifestyle"
 }

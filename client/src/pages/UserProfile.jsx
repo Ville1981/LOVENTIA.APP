@@ -1,5 +1,3 @@
-// client/src/pages/UserProfile.jsx
-
 // --- REPLACE START: add i18n support, robust submit/fetch, and keep full structure ---
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -34,7 +32,7 @@ const UserProfile = () => {
 
       setSuccess(true);
       // Translation key with safe fallback
-      setMessage(t("profile.updateSuccess") || "Profile updated successfully.");
+      setMessage(t("profile:updateSuccess") || "Profile updated successfully.");
       console.info("✅ Profile updated:", res?.data);
     } catch (err) {
       const status = err?.response?.status;
@@ -49,8 +47,8 @@ const UserProfile = () => {
       // Show specific message for 401, otherwise generic error
       setMessage(
         (status === 401 &&
-          (t("profile.authRequired") || "Authentication required.")) ||
-          t("profile.updateError") ||
+          (t("profile:authRequired") || "Authentication required.")) ||
+          t("profile:updateError") ||
           "Failed to update profile."
       );
     }
@@ -69,8 +67,8 @@ const UserProfile = () => {
         console.error("❌ Fetch failed:", status, err?.message, err);
         setMessage(
           (status === 401 &&
-            (t("profile.authRequired") || "Authentication required.")) ||
-            t("profile.loadError") ||
+            (t("profile:authRequired") || "Authentication required.")) ||
+            t("profile:loadError") ||
             "Failed to load profile."
         );
       }
@@ -87,7 +85,7 @@ const UserProfile = () => {
     return (
       <div className="text-center py-8" data-cy="UserProfile__loading">
         <span className="text-gray-600">
-          {t("common.loading") || "Loading"}
+          {t("common:loading") || "Loading"}
         </span>
       </div>
     );
@@ -102,8 +100,8 @@ const UserProfile = () => {
         {/* Keep the original conditional title behavior */}
         👤{" "}
         {userIdParam
-          ? t("profile.viewOther") || "Profile"
-          : t("profile.viewOwn") || "My Profile"}
+          ? t("profile:viewOther") || "Profile"
+          : t("profile:viewOwn") || "My Profile"}
       </h2>
 
       {userIdParam ? (
@@ -112,10 +110,10 @@ const UserProfile = () => {
           data-cy="UserProfile__public"
         >
           <h3 className="text-lg font-semibold">
-            {t("profile.publicInfo") || "Public information"}
+            {t("profile:publicInfo") || "Public information"}
           </h3>
           <p>
-            <strong>{t("profile.username") || "Username"}:</strong>{" "}
+            <strong>{t("profile:username") || "Username"}:</strong>{" "}
             {user.username}
           </p>
           {/* Keep space for additional public fields if needed later */}
@@ -151,3 +149,4 @@ const UserProfile = () => {
 
 export default UserProfile;
 // --- REPLACE END ---
+

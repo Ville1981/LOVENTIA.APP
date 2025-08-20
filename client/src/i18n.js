@@ -1,4 +1,3 @@
-// client/src/i18n.js
 // --- REPLACE START: robust i18n init with HttpBackend, detector, multi-namespaces, and helpers ---
 /* eslint-env browser */
 import i18n from "i18next";
@@ -19,9 +18,7 @@ import HttpBackend from "i18next-http-backend";
 
 // Keep this aligned with available folders under /public/locales
 export const SUPPORTED_LANGS = [
-  "en", "fi", "sv", "de", "fr", "es", "it", "pt", "pl", "ro",
-  "tr", "nl", "no", "da", "cs", "sk", "hu", "et", "lt", "lv",
-  "bg", "el", "uk", "ru", "ja", "ko", "zh"
+  "en", "fi", "sv", "de", "fr", "es", "it", "pt", "pl", "ro", "tr", "nl", "no", "da", "cs", "sk", "hu", "et", "lt", "lv", "bg", "el", "uk", "ru", "ja", "ko", "zh", "ar", "he", "hi", "sw", "ur",
 ];
 
 export const NAMESPACES = [
@@ -32,7 +29,8 @@ export const NAMESPACES = [
   "chat",
   "navbar",
   "footer",
-];
+  "translation"
+]
 
 const FALLBACK_LANG = "en";
 const STORAGE_KEY = "i18nextLng";
@@ -89,8 +87,12 @@ i18n
     lng: persisted, // start from persisted if available
     ns: NAMESPACES,
     defaultNS: "common",
-    fallbackNS: "common",
+    fallbackNS: ["common", "translation"],
     load: "currentOnly", // do not auto-load en-US if we only provide en
+
+    // Explicit separators (important for ns:key syntax)
+    nsSeparator: ":",       // e.g. "profile:age"
+    keySeparator: ".",      // keep dotted keys for nested JSON (default)
 
     // Interpolation for React (no XSS risk because React escapes)
     interpolation: {
@@ -161,3 +163,15 @@ export function preloadNamespace(ns, lng = i18n.language) {
 export default i18n;
 // --- REPLACE END ---
 
+// --- REPLACE START: expose i18n for console debugging ---
+if (typeof window !== "undefined" && window && !window.i18next) {
+  window.i18next = i18n;
+  window.t = i18n.t.bind(i18n);
+  // eslint-disable-next-line no-console
+  console.info("[i18n] window.i18next exposed:", {
+    lng: i18n.language,
+    ns: i18n.options?.ns,
+    nsSeparator: i18n.options?.nsSeparator,
+  });
+}
+// --- REPLACE END ---

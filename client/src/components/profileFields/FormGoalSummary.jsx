@@ -34,12 +34,12 @@ const FormGoalSummary = ({
           className="block font-medium mb-1"
           data-cy="FormGoalSummary__summaryLabel"
         >
-          📄 {t("profile.about")}
+          📄 {t("profile:about")}
         </label>
         <textarea
           id={summaryField}
           {...register(summaryField)}
-          placeholder={t("profile.about")}
+          placeholder={t("profile:about")}
           className="p-2 border rounded w-full"
           rows={3}
           data-cy="FormGoalSummary__summaryInput"
@@ -61,12 +61,12 @@ const FormGoalSummary = ({
           className="block font-medium mb-1"
           data-cy="FormGoalSummary__goalLabel"
         >
-          🎯 {t("profile.goals")}
+          🎯 {t("profile:goals")}
         </label>
         <textarea
           id={goalField}
           {...register(goalField)}
-          placeholder={t("profile.goals")}
+          placeholder={t("profile:goals")}
           className="p-2 border rounded w-full"
           rows={3}
           data-cy="FormGoalSummary__goalInput"

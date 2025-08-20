@@ -1,18 +1,14 @@
 {
-  "title": "Löydä ihmisiä",
-  "instructions": "Aseta suodattimet ja paina Suodata nähdäksesi osumat.",
   "ageRange": "Ikähaarukka",
-  "username": "Käyttäjänimi",
+  "error": "Jotain meni pieleen. Yritä uudelleen.",
   "gender": "Sukupuoli",
+  "instructions": "Aseta suodattimet ja paina Suodata löytääksesi ihmisiä.",
+  "noResults": "Ei hakutuloksia.",
   "orientation": "Seksuaalinen suuntautuminen",
+  "politicalIdeology": "Poliittinen ideologia",
   "profession": "Ammatti",
   "religion": "Uskonto",
-  "religionImportance": "Uskonnon merkitys",
-  "politicalIdeology": "Poliittinen ideologia",
-  "country": "Maa",
-  "region": "Maakunta/Osavaltio",
-  "city": "Kaupunki",
-  "customCountry": "Mukautettu maa",
-  "customRegion": "Mukautettu alue",
-  "customCity": "Mukautettu kaupunki"
+  "religionImportance": "Uskonnon tärkeys",
+  "title": "Etsi",
+  "username": "Käyttäjänimi"
 }

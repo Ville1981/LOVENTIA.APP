@@ -1,3 +1,5 @@
+// client/src/components/Navbar.jsx
+
 // --- REPLACE START: read auth from AuthContext.user + bootstrapped + use t('nav.*') keys ---
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -13,13 +15,11 @@ import { useAuth } from "../contexts/AuthContext";
  * - Uses i18n t('nav.*') keys for all labels
  * - IMPORTANT FIX: do NOT compute translated labels inside static arrays.
  *   Keep only {path,key} and call t(key) at render time so language changes re-render correctly.
- * - Removes visible "nav.*" prefixes via defaultValue fallbacks
+ * - Provides defaultValue fallbacks so raw keys (e.g., "nav.home") never leak to UI
  * - Shows guest links until bootstrapping finishes, then user/admin links
  */
 const Navbar = () => {
   const { t } = useTranslation();
-
-  // Auth context state
   const { user, bootstrapped } = useAuth();
 
   // Role flags
@@ -50,7 +50,7 @@ const Navbar = () => {
     "nav.admin": "Admin",
   };
 
-  // NOTE: keep only keys here, no t(...) calls inside arrays.
+  // NOTE: keep only keys here, no t(...) calls inside arrays so language switches live-update
   // Always visible
   const commonLinks = [
     { path: "/", key: "nav.home" },
@@ -154,4 +154,3 @@ const Navbar = () => {
 
 export default Navbar;
 // --- REPLACE END ---
-

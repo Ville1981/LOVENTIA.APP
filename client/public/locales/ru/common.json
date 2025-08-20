@@ -9,5 +9,18 @@
   "cancel": "Cancel",
   "update": "Update",
   "close": "Close",
-  "language": "Language"
+  "language": "Language",
+  "home": {
+    "title": "Найдите настоящие знакомства",
+    "subtitle": "Меньше свайпов, больше совпадений — сообщество для серьёзных знакомств."
+  },
+  "nav": {
+    "home": "Домой",
+    "discover": "Обзор",
+    "profile": "Профиль",
+    "login": "Войти",
+    "register": "Регистрация",
+    "logout": "Logout",
+    "admin": "Админ"
+  }
 }

@@ -9,5 +9,18 @@
   "cancel": "Peruuta",
   "update": "Päivitä",
   "close": "Sulje",
-  "language": "Kieli"
+  "language": "Kieli",
+  "home": {
+    "title": "Löydä aitoja yhteyksiä",
+    "subtitle": "Vähemmän swippausta, parempia osumia — liity merkitykselliseen yhteisöön."
+  },
+  "nav": {
+    "home": "Etusivu",
+    "discover": "Löydä",
+    "profile": "Profiili",
+    "login": "Kirjaudu",
+    "register": "Rekisteröidy",
+    "logout": "Kirjaudu ulos",
+    "admin": "Ylläpito"
+  }
 }

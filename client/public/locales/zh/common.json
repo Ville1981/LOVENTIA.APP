@@ -9,5 +9,18 @@
   "cancel": "Cancel",
   "update": "Update",
   "close": "Close",
-  "language": "Language"
+  "language": "Language",
+  "home": {
+    "title": "找到真正的连接",
+    "subtitle": "少滑动，多匹配——为有意义的约会而建的社区。"
+  },
+  "nav": {
+    "home": "首页",
+    "discover": "发现",
+    "profile": "个人资料",
+    "login": "登录",
+    "register": "注册",
+    "logout": "Logout",
+    "admin": "管理员"
+  }
 }

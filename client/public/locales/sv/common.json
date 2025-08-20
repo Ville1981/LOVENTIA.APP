@@ -9,5 +9,18 @@
   "cancel": "Cancel",
   "update": "Update",
   "close": "Close",
-  "language": "Language"
+  "language": "Language",
+  "home": {
+    "title": "Hitta äkta kontakter",
+    "subtitle": "Mindre swipande, bättre matcher — gå med i en meningsfull gemenskap."
+  },
+  "nav": {
+    "home": "Hem",
+    "discover": "Upptäck",
+    "profile": "Profil",
+    "login": "Logga in",
+    "register": "Registrera",
+    "logout": "Logout",
+    "admin": "Admin"
+  }
 }
