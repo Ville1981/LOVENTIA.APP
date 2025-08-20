@@ -1,10 +1,16 @@
 {
   "about": "About me",
   "age": "Age",
-  "bodyType": "Body type",
+  "bodyType": {
+    "label": "Body type"
+  },
   "children": "Children",
-  "education": "Education",
-  "gender": "Gender",
+  "education": {
+    "label": "Education"
+  },
+  "gender": {
+    "label": "Gender"
+  },
   "goals": "Goals",
   "height": "Height",
   "heightUnit": "cm",
@@ -17,7 +23,9 @@
     "region": "Region"
   },
   "lookingFor": "Looking for",
-  "orientation": "Sexual orientation",
+  "orientation": {
+    "label": "Orientation"
+  },
   "pets": "Pets",
   "politicalIdeology": "Political ideology",
   "profession": "Profession",
@@ -26,5 +34,8 @@
   "religionImportance": "Religion importance",
   "searchingFor": "Looking for",
   "weight": "Weight",
-  "weightUnit": "kg"
+  "weightUnit": "kg",
+  "username": "Username",
+  "email": "Email",
+  "save": "Save"
 }

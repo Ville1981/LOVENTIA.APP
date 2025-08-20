@@ -1,14 +1,40 @@
 {
-  "ageRange": "Age range",
-  "error": "Something went wrong. Please try again.",
-  "gender": "Gender",
+  "title": "Ontdekken",
+  "subtitle": "Pas je filters aan om de juiste matches te vinden.",
+  "filters": {
+    "age": "Leeftijd",
+    "minAge": "Minimumleeftijd",
+    "maxAge": "Maximumleeftijd",
+    "distance": "Afstand",
+    "maxDistance": "Maximale afstand",
+    "location": "Locatie",
+    "gender": "Geslacht",
+    "orientation": "Orientation",
+    "lifestyle": "Levensstijl",
+    "interests": "Interesses",
+    "apply": "Filters toepassen",
+    "reset": "Resetten",
+    "clear": "Alles wissen"
+  },
+  "results": {
+    "heading": "Resultaten",
+    "empty": "Geen overeenkomsten met de huidige filters.",
+    "loadMore": "Meer laden"
+  },
+  "cards": {
+    "age": "Leeftijd",
+    "distance": "Afstand",
+    "view": "Profiel bekijken"
+  },
+  "ageRange": "Leeftijdsbereik",
+  "error": "Er is iets misgegaan. Probeer het opnieuw.",
+  "gender": "Geslacht",
   "instructions": "Set filters and click Filter to find people.",
-  "noResults": "No results found.",
-  "orientation": "Sexual orientation",
-  "politicalIdeology": "Political ideology",
-  "profession": "Profession",
-  "religion": "Religion",
-  "religionImportance": "Importance of religion",
-  "title": "Discover",
-  "username": "Username"
+  "noResults": "Geen resultaten gevonden.",
+  "orientation": "Seksuele geaardheid",
+  "politicalIdeology": "Politieke ideologie",
+  "profession": "Beroep",
+  "religion": "Religie",
+  "religionImportance": "Belang van religie",
+  "username": "Gebruikersnaam"
 }

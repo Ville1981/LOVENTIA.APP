@@ -107,7 +107,7 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
           className="block font-medium mb-1"
           data-cy="FormBasicInfo__genderLabel"
         >
-          {t("profile:gender")}
+          {t("profile:gender.label")}
         </label>
         <select
           id="genderSelect"
@@ -137,7 +137,7 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
           className="block font-medium mb-1"
           data-cy="FormBasicInfo__orientationLabel"
         >
-          ❤️ {t("profile:orientation")}
+          ❤️ {t("profile:orientation.label")}
         </label>
         <select
           id="orientationSelect"
@@ -262,7 +262,7 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
       {/* Body Type */}
       <div className="w-full">
         <label htmlFor="bodyTypeSelect" className="block font-medium mb-1">
-          {t("profile:bodyType")}
+          {t("profile:bodyType.label")}
         </label>
         <select
           id="bodyTypeSelect"

@@ -1,14 +1,40 @@
 {
-  "ageRange": "Age range",
-  "error": "Something went wrong. Please try again.",
-  "gender": "Gender",
+  "title": "खोजें",
+  "subtitle": "उचित मेल खोजने के लिए अपने फ़िल्टर समायोजित करें।",
+  "filters": {
+    "age": "उम्र",
+    "minAge": "न्यूनतम उम्र",
+    "maxAge": "अधिकतम उम्र",
+    "distance": "दूरी",
+    "maxDistance": "अधिकतम दूरी",
+    "location": "स्थान",
+    "gender": "लिंग",
+    "orientation": "Orientation",
+    "lifestyle": "जीवनशैली",
+    "interests": "रुचियां",
+    "apply": "फ़िल्टर लागू करें",
+    "reset": "रीसेट",
+    "clear": "सभी साफ करें"
+  },
+  "results": {
+    "heading": "परिणाम",
+    "empty": "वर्तमान फ़िल्टर से कोई परिणाम नहीं।",
+    "loadMore": "और लोड करें"
+  },
+  "cards": {
+    "age": "उम्र",
+    "distance": "दूरी",
+    "view": "प्रोफ़ाइल देखें"
+  },
+  "ageRange": "आयु सीमा",
+  "error": "कुछ गलत हो गया। कृपया पुनः प्रयास करें।",
+  "gender": "लिंग",
   "instructions": "Refine your search using the filters below.",
-  "noResults": "No results found.",
-  "orientation": "Sexual orientation",
-  "politicalIdeology": "Political ideology",
-  "profession": "Profession",
-  "religion": "Religion",
-  "religionImportance": "Religion importance",
-  "title": "Discover",
-  "username": "Username"
+  "noResults": "कोई परिणाम नहीं मिला।",
+  "orientation": "यौन अभिविन्यास",
+  "politicalIdeology": "राजनैतिक विचारधारा",
+  "profession": "पेशा",
+  "religion": "धर्म",
+  "religionImportance": "धर्म का महत्व",
+  "username": "उपयोगकर्ता नाम"
 }

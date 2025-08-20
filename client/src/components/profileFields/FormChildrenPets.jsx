@@ -35,12 +35,12 @@ const FormChildrenPets = ({ t, includeAllOption = false }) => {
           className="p-2 border rounded w-full"
           data-cy="FormChildrenPets__childrenSelect"
         >
-          {includeAllOption && <option value="">{t("common.all")}</option>}
-          <option value="">{t("common.select")}</option>
+          {includeAllOption && <option value="">{t("common:all")}</option>}
+          <option value="">{t("common:select")}</option>
           <option value="Kyllä">{t("profile:childrenYes")}</option>
           <option value="Ei">{t("profile:childrenNo")}</option>
           <option value="Aikuisia lapsia">{t("profile:childrenAdult")}</option>
-          <option value="Muu">{t("common.other")}</option>
+          <option value="Muu">{t("common:other")}</option>
         </select>
         {errors.children && (
           <p
@@ -63,13 +63,13 @@ const FormChildrenPets = ({ t, includeAllOption = false }) => {
           className="p-2 border rounded w-full"
           data-cy="FormChildrenPets__petsSelect"
         >
-          {includeAllOption && <option value="">{t("common.all")}</option>}
-          <option value="">{t("common.select")}</option>
-          <option value="Kissa">{t("pets.cat")}</option>
-          <option value="Koira">{t("pets.dog")}</option>
-          <option value="Molemmat">{t("pets.both")}</option>
-          <option value="Muu">{t("common.other")}</option>
-          <option value="Ei lemmikkiä">{t("pets.none")}</option>
+          {includeAllOption && <option value="">{t("common:all")}</option>}
+          <option value="">{t("common:select")}</option>
+          <option value="Kissa">{t("profile:pets.cat")}</option>
+          <option value="Koira">{t("profile:pets.dog")}</option>
+          <option value="Molemmat">{t("profile:pets.both")}</option>
+          <option value="Muu">{t("common:other")}</option>
+          <option value="Ei lemmikkiä">{t("profile:pets.none")}</option>
         </select>
         {errors.pets && (
           <p

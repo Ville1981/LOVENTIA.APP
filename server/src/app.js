@@ -52,7 +52,11 @@ let authController;
 try {
   authController = require('./src/api/controllers/authController.js');
 } catch (_) {
-  authController = require('./api/controllers/authController.js');
+  try {
+    authController = require('./api/controllers/authController.js');
+  } catch (_e) {
+    authController = null;
+  }
 }
 // --- REPLACE END ---
 
@@ -76,17 +80,9 @@ async function authenticate(req, res, next) {
 // --- REPLACE END ---
 
 // --- REPLACE START: fix model import paths to actual location in ./models ---
-require(path.resolve(__dirname, './models/User.js'));
-try {
-  require(path.resolve(__dirname, './models/Message.js'));
-} catch (_) {
-  // Optional: some deployments may not have messaging enabled yet
-}
-try {
-  require(path.resolve(__dirname, './models/Payment.js'));
-} catch (_) {
-  // Optional payments model
-}
+try { require(path.resolve(__dirname, './models/User.js')); } catch(_) {}
+try { require(path.resolve(__dirname, './models/Message.js')); } catch (_) {}
+try { require(path.resolve(__dirname, './models/Payment.js')); } catch (_) {}
 // --- REPLACE END ---
 
 const app = express();
@@ -97,6 +93,21 @@ const app = express();
 const IS_TEST = process.env.NODE_ENV === 'test';
 const IS_PROD = process.env.NODE_ENV === 'production';
 const IS_DEV  = !IS_TEST && !IS_PROD;
+
+// === i18n locales static (optional) ===
+// Serve /locales when USE_SERVER_LOCALES=true (client can also serve locales from its own public/ folder)
+if (process.env.USE_SERVER_LOCALES === 'true') {
+  app.use(
+    '/locales',
+    express.static(path.join(process.cwd(), 'public', 'locales'), {
+      fallthrough: false,
+      index: false,
+      maxAge: 0
+    })
+  );
+  console.log('[i18n] Serving locales from server at /locales');
+}
+// === end locales static ===
 
 // Attach a request-id for correlation
 app.use((req, _res, next) => {
@@ -177,7 +188,11 @@ let cookieOptions;
 try {
   ({ cookieOptions } = require('./src/utils/cookieOptions.js'));
 } catch (_) {
-  ({ cookieOptions } = require('./utils/cookieOptions.js'));
+  try {
+    ({ cookieOptions } = require('./utils/cookieOptions.js'));
+  } catch (_e) {
+    cookieOptions = { httpOnly: true, sameSite: 'lax', secure: IS_PROD };
+  }
 }
 app.set('trust proxy', 1);
 app.use(cookieParser());
@@ -187,7 +202,9 @@ app.use(cookieParser());
 ────────────────────────────────────────────────────────────────────────────── */
 const FORCE_HTTPS = process.env.FORCE_HTTPS === 'true';
 if (IS_PROD && FORCE_HTTPS) {
-  app.use(require('./middleware/httpsRedirect.js'));
+  try {
+    app.use(require('./middleware/httpsRedirect.js'));
+  } catch(_) {}
 }
 
 /* ──────────────────────────────────────────────────────────────────────────────
@@ -217,19 +234,26 @@ app.get('/healthcheck', (req, res) => {
 
 // Test alerts endpoint
 app.get('/test-alerts', async (req, res) => {
-  await checkThreshold('Error Rate', 100, Number(process.env.ERROR_RATE_THRESHOLD));
-  res.send('Alerts triggered');
+  try {
+    await checkThreshold('Error Rate', 100, Number(process.env.ERROR_RATE_THRESHOLD));
+    res.send('Alerts triggered');
+  } catch (e) {
+    res.status(500).send('Alert test failed');
+  }
 });
 
 /* ──────────────────────────────────────────────────────────────────────────────
    Webhook routes (before body parsers if raw is needed)
 ────────────────────────────────────────────────────────────────────────────── */
 if (!IS_TEST) {
-  const stripeWebhookRouter = require('./routes/stripeWebhook.js');
-  const paypalWebhookRouter = require('./routes/paypalWebhook.js');
-
-  app.use('/api/payment/stripe-webhook', stripeWebhookRouter);
-  app.use('/api/payment/paypal-webhook', paypalWebhookRouter);
+  try {
+    const stripeWebhookRouter = require('./routes/stripeWebhook.js');
+    app.use('/api/payment/stripe-webhook', stripeWebhookRouter);
+  } catch(_) {}
+  try {
+    const paypalWebhookRouter = require('./routes/paypalWebhook.js');
+    app.use('/api/payment/paypal-webhook', paypalWebhookRouter);
+  } catch(_) {}
 } else {
   console.log('ℹ️ Test mode: skipping webhook route mounts.');
 }
@@ -241,7 +265,7 @@ if (!IS_TEST) {
 app.use(
   '/uploads',
   express.static(
-    require('path').join(process.cwd(), 'uploads'),
+    path.join(process.cwd(), 'uploads'),
     { fallthrough: false, index: false, maxAge: 0 }
   )
 );
@@ -294,10 +318,14 @@ function tryRequireRoute(primary, ...candidates) {
 /* ──────────────────────────────────────────────────────────────────────────────
    Health routes (alias endpoints for LB/proxy checks)
 ────────────────────────────────────────────────────────────────────────────── */
-const healthRoute = require('./routes/health.js');
-app.use('/api/health', healthRoute);
-app.use('/api/healthz', healthRoute); // alias
-app.use('/api/_health', healthRoute); // extra alias for older infra
+try {
+  const healthRoute = require('./routes/health.js');
+  app.use('/api/health', healthRoute);
+  app.use('/api/healthz', healthRoute); // alias
+  app.use('/api/_health', healthRoute); // extra alias for older infra
+} catch(_) {
+  // If health route missing, keep the /healthcheck basic endpoint above
+}
 
 /* ──────────────────────────────────────────────────────────────────────────────
    Auth routes
@@ -306,8 +334,8 @@ if (IS_TEST) {
   const jwt = require('jsonwebtoken');
   const testAuth = express.Router();
 
-  const TEST_JWT_SECRET    = process.env.JWT_SECRET || 'test_secret';
-  const TEST_REFRESH_SECRET= process.env.JWT_REFRESH_SECRET || 'test_refresh_secret';
+  const TEST_JWT_SECRET     = process.env.JWT_SECRET || 'test_secret';
+  const TEST_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'test_refresh_secret';
   const noValidate = (req, _res, next) => next();
 
   // Login: return accessToken and set refresh cookie
@@ -413,12 +441,14 @@ app.use(alias);
 ────────────────────────────────────────────────────────────────────────────── */
 if (!IS_TEST) {
   // Users
-  const userRoutes = tryRequireRoute(
-    './routes/userRoutes.js',
-    './src/routes/userRoutes.js',
-    path.resolve(__dirname, '../routes/userRoutes.js')
-  );
-  app.use('/api/users', authenticate, authorizeRoles('admin', 'user'), userRoutes);
+  try {
+    const userRoutes = tryRequireRoute(
+      './routes/userRoutes.js',
+      './src/routes/userRoutes.js',
+      path.resolve(__dirname, '../routes/userRoutes.js')
+    );
+    app.use('/api/users', authenticate, authorizeRoles('admin', 'user'), userRoutes);
+  } catch(_) {}
 
   // Messages
   try {
@@ -503,11 +533,19 @@ let httpServer = null;
 const PORT = process.env.PORT || 5000;
 
 if (!IS_TEST) {
-  const { initializeSocket } = require('./socket.js');
-  httpServer = initializeSocket(app);
-  httpServer.listen(PORT, () => {
-    console.log(`🚀 Server + Socket.io running on port ${PORT}`);
-  });
+  try {
+    const { initializeSocket } = require('./socket.js');
+    httpServer = initializeSocket(app);
+    httpServer.listen(PORT, () => {
+      console.log(`🚀 Server + Socket.io running on port ${PORT}`);
+    });
+  } catch(_) {
+    // Fallback: run pure Express if socket.js missing
+    httpServer = require('http').createServer(app);
+    httpServer.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+  }
 } else {
   console.log('ℹ️ Test mode: HTTP server is not started.');
 }
@@ -537,4 +575,3 @@ if (!IS_TEST) {
 }
 
 module.exports = app;
-

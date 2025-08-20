@@ -26,5 +26,8 @@
   "religionImportance": "Religion importance",
   "searchingFor": "Looking for",
   "weight": "Weight",
-  "weightUnit": "kg"
+  "weightUnit": "kg",
+  "username": "Username",
+  "email": "Email",
+  "save": "Save"
 }

@@ -3,6 +3,7 @@
 // --- REPLACE START: DiscoverFilters wired for backend filters, stable options, and identical lists with ProfileForm ---
 import PropTypes from "prop-types";
 import React, { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useForm, FormProvider } from "react-hook-form";
 
 // --- REPLACE START: remove unused import FormBasicInfo
@@ -91,8 +92,8 @@ const DiscoverFilters = ({
   // setters,
   // --- REPLACE END
   handleFilter,
-  t,
-}) => {
+  } ) => {
+  const { t, i18n } = useTranslation(["discover","profile","lifestyle","common"]);
   const methods = useForm({
     defaultValues: values,
     mode: "onSubmit",
@@ -209,7 +210,7 @@ const DiscoverFilters = ({
           {/* Gender */}
           <div>
             <label className="block font-medium mb-1">
-              {t("discover:gender")}
+              {t("discover:gender.label")}
             </label>
             <select
               {...register("gender")}
@@ -226,7 +227,7 @@ const DiscoverFilters = ({
           {/* Sexual orientation */}
           <div>
             <label className="block font-medium mb-1">
-              ❤️ {t("discover:orientation")}
+              ❤️ {t("discover:orientation.label")}
             </label>
             <select
               {...register("orientation")}
@@ -272,7 +273,7 @@ const DiscoverFilters = ({
           {/* Religion & importance */}
           <div>
             <label className="block font-medium mb-1">
-              🛐 {t("discover:religion")}
+              🛐 {t("discover:religion.label")}
             </label>
             <select
               {...register("religion")}
