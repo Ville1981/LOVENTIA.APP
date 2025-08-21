@@ -1,0 +1,40 @@
+{
+  "title": "Odkrywaj",
+  "subtitle": "Dostosuj filtry, aby znaleźć odpowiednie dopasowania.",
+  "filters": {
+    "age": "Wiek",
+    "minAge": "Minimalny wiek",
+    "maxAge": "Maksymalny wiek",
+    "distance": "Dystans",
+    "maxDistance": "Maksymalny dystans",
+    "location": "Lokalizacja",
+    "gender": "Płeć",
+    "orientation": "Orientation",
+    "lifestyle": "Styl życia",
+    "interests": "Zainteresowania",
+    "apply": "Zastosuj filtry",
+    "reset": "Resetuj",
+    "clear": "Wyczyść wszystko"
+  },
+  "results": {
+    "heading": "Wyniki",
+    "empty": "Brak wyników dla bieżących filtrów.",
+    "loadMore": "Wczytaj więcej"
+  },
+  "cards": {
+    "age": "Wiek",
+    "distance": "Dystans",
+    "view": "Zobacz profil"
+  },
+  "ageRange": "Przedział wiekowy",
+  "error": "Coś poszło nie tak. Spróbuj ponownie.",
+  "gender": "Płeć",
+  "instructions": "Set filters and click Filter to find people.",
+  "noResults": "Nie znaleziono wyników.",
+  "orientation": "Orientacja seksualna",
+  "politicalIdeology": "Ideologia polityczna",
+  "profession": "Zawód",
+  "religion": "Religia",
+  "religionImportance": "Znaczenie religii",
+  "username": "Nazwa użytkownika"
+}

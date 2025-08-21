@@ -1,0 +1,40 @@
+{
+  "title": "Lebensstil",
+  "smoke": {
+    "label": "Rauchen",
+    "never": "nie",
+    "occasionally": "gelegentlich",
+    "regularly": "regelmäßig",
+    "sober": "rauchfrei"
+  },
+  "drink": {
+    "label": "Alkohol",
+    "never": "nie",
+    "occasionally": "gelegentlich",
+    "regularly": "regelmäßig",
+    "sober": "nüchtern"
+  },
+  "drugs": {
+    "label": "Drogen",
+    "never": "nie",
+    "occasionally": "gelegentlich",
+    "regularly": "regelmäßig",
+    "sober": "drogenfrei"
+  },
+  "diet": {
+    "label": "Ernährung",
+    "omnivore": "Allesesser",
+    "vegetarian": "Vegetarisch",
+    "vegan": "Vegan",
+    "keto": "Keto",
+    "paleo": "Paleo",
+    "other": "Andere"
+  },
+  "exercise": {
+    "label": "Bewegung",
+    "never": "nie",
+    "occasionally": "gelegentlich",
+    "weekly": "wöchentlich",
+    "daily": "täglich"
+  }
+}

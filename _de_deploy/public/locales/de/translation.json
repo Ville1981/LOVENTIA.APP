@@ -1,0 +1,53 @@
+{
+  "common": {
+    "select": "Bitte wählen",
+    "all": "Alle",
+    "other": "Andere",
+    "loading": "Laden..."
+  },
+  "politics": {
+    "left": "Links",
+    "centre": "Mitte",
+    "right": "Rechts",
+    "conservatism": "Konservatismus",
+    "liberalism": "Liberalismus",
+    "socialism": "Sozialismus",
+    "communism": "Kommunismus",
+    "fascism": "Faschismus",
+    "environmentalism": "Umweltschutz/Ökologie",
+    "anarchism": "Anarchismus",
+    "nationalism": "Nationalismus",
+    "populism": "Populismus",
+    "progressivism": "Progressivismus",
+    "libertarianism": "Libertarismus",
+    "democracy": "Demokratie",
+    "other": "Andere"
+  },
+  "religion": {
+    "christianity": "Christentum",
+    "islam": "Islam",
+    "hinduism": "Hinduismus",
+    "buddhism": "Buddhismus",
+    "folk": "Volksglaube",
+    "none": "Keine",
+    "other": "Andere",
+    "atheism": "Atheismus"
+  },
+  "profile": {
+    "notImportant": "unwichtig",
+    "somewhatImportant": "wichtig",
+    "veryImportant": "sehr wichtig",
+    "essential": "essentiell"
+  },
+  "looking": {
+    "friendship": "Freundschaft",
+    "gettingToKnow": "Kennenlernen",
+    "dating": "Dating",
+    "dates": "Treffen",
+    "longTerm": "Langfristige Beziehung",
+    "marriage": "Ehe",
+    "chatOnly": "Nur chatten",
+    "casual": "Locker",
+    "undecided": "Unentschieden"
+  }
+}

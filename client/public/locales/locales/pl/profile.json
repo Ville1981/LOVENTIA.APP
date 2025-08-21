@@ -1,0 +1,33 @@
+{
+  "about": "O mnie",
+  "age": "Wiek",
+  "bodyType": "Typ sylwetki",
+  "children": "Dzieci",
+  "education": "Wykształcenie",
+  "gender": "Płeć",
+  "goals": "Cele",
+  "height": "Wzrost",
+  "heightUnit": "cm",
+  "location": {
+    "city": "Miasto",
+    "country": "Kraj",
+    "manualCity": "Wpisz miasto ręcznie",
+    "manualCountry": "Wpisz kraj ręcznie",
+    "manualRegion": "Wpisz region ręcznie",
+    "region": "Region"
+  },
+  "lookingFor": "Szukam",
+  "orientation": "Orientacja seksualna",
+  "pets": "Zwierzęta",
+  "politicalIdeology": "Ideologia polityczna",
+  "profession": "Zawód",
+  "professionCategory": "Kategoria zawodowa",
+  "religion": "Religia",
+  "religionImportance": "Znaczenie religii",
+  "searchingFor": "Szukam",
+  "weight": "Waga",
+  "weightUnit": "kg",
+  "username": "Nazwa użytkownika",
+  "email": "E-mail",
+  "save": "Zapisz"
+}

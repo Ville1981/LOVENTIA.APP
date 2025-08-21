@@ -1,0 +1,33 @@
+{
+  "about": "Despre mine",
+  "age": "Vârstă",
+  "bodyType": "Tip de corp",
+  "children": "Copii",
+  "education": "Educație",
+  "gender": "Gen",
+  "goals": "Obiective",
+  "height": "Înălțime",
+  "heightUnit": "cm",
+  "location": {
+    "city": "Oraș",
+    "country": "Țară",
+    "manualCity": "Introdu orașul manual",
+    "manualCountry": "Introdu țara manual",
+    "manualRegion": "Introdu regiunea manual",
+    "region": "Regiune"
+  },
+  "lookingFor": "Caut",
+  "orientation": "Orientare sexuală",
+  "pets": "Animale de companie",
+  "politicalIdeology": "Ideologie politică",
+  "profession": "Profesie",
+  "professionCategory": "Categorie profesională",
+  "religion": "Religie",
+  "religionImportance": "Importanța religiei",
+  "searchingFor": "Caut",
+  "weight": "Greutate",
+  "weightUnit": "kg",
+  "username": "Nume de utilizator",
+  "email": "E-mail",
+  "save": "Salvează"
+}

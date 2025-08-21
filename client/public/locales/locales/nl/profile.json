@@ -1,0 +1,33 @@
+{
+  "about": "Over mij",
+  "age": "Leeftijd",
+  "bodyType": "Lichaamstype",
+  "children": "Kinderen",
+  "education": "Opleiding",
+  "gender": "Geslacht",
+  "goals": "Doelen",
+  "height": "Lengte",
+  "heightUnit": "cm",
+  "location": {
+    "city": "Stad",
+    "country": "Land",
+    "manualCity": "Stad handmatig invoeren",
+    "manualCountry": "Land handmatig invoeren",
+    "manualRegion": "Regio handmatig invoeren",
+    "region": "Regio"
+  },
+  "lookingFor": "Zoekt",
+  "orientation": "Seksuele geaardheid",
+  "pets": "Huisdieren",
+  "politicalIdeology": "Politieke ideologie",
+  "profession": "Beroep",
+  "professionCategory": "Beroepscategorie",
+  "religion": "Religie",
+  "religionImportance": "Belang van religie",
+  "searchingFor": "Zoekt",
+  "weight": "Gewicht",
+  "weightUnit": "kg",
+  "username": "Gebruikersnaam",
+  "email": "E-mail",
+  "save": "Opslaan"
+}
