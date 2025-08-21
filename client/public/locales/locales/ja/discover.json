@@ -1,0 +1,40 @@
+{
+  "title": "探す",
+  "subtitle": "フィルターを調整して最適な相手を見つけましょう。",
+  "filters": {
+    "age": "年齢",
+    "minAge": "最小年齢",
+    "maxAge": "最大年齢",
+    "distance": "距離",
+    "maxDistance": "最大距離",
+    "location": "場所",
+    "gender": "性別",
+    "orientation": "Orientation",
+    "lifestyle": "ライフスタイル",
+    "interests": "興味・関心",
+    "apply": "フィルターを適用",
+    "reset": "リセット",
+    "clear": "すべてクリア"
+  },
+  "results": {
+    "heading": "結果",
+    "empty": "現在のフィルターでは見つかりませんでした。",
+    "loadMore": "さらに表示"
+  },
+  "cards": {
+    "age": "年齢",
+    "distance": "距離",
+    "view": "プロフィールを見る"
+  },
+  "ageRange": "年齢範囲",
+  "error": "エラーが発生しました。もう一度お試しください。",
+  "gender": "性別",
+  "instructions": "Set filters and click Filter to find people.",
+  "noResults": "結果が見つかりません。",
+  "orientation": "性的指向",
+  "politicalIdeology": "政治的イデオロギー",
+  "profession": "職業",
+  "religion": "宗教",
+  "religionImportance": "宗教の重要度",
+  "username": "ユーザー名"
+}

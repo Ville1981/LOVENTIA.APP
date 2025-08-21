@@ -1,0 +1,33 @@
+{
+  "about": "自己紹介",
+  "age": "年齢",
+  "bodyType": "体型",
+  "children": "子ども",
+  "education": "学歴",
+  "gender": "性別",
+  "goals": "目標",
+  "height": "身長",
+  "heightUnit": "cm",
+  "location": {
+    "city": "市区町村",
+    "country": "国",
+    "manualCity": "市区町村を手動で入力",
+    "manualCountry": "国を手動で入力",
+    "manualRegion": "地域を手動で入力",
+    "region": "地域"
+  },
+  "lookingFor": "希望する相手",
+  "orientation": "性的指向",
+  "pets": "ペット",
+  "politicalIdeology": "政治的イデオロギー",
+  "profession": "職業",
+  "professionCategory": "職業カテゴリ",
+  "religion": "宗教",
+  "religionImportance": "宗教の重要度",
+  "searchingFor": "希望する相手",
+  "weight": "体重",
+  "weightUnit": "kg",
+  "username": "ユーザー名",
+  "email": "メール",
+  "save": "保存"
+}

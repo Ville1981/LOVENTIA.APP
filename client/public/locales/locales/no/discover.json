@@ -1,0 +1,40 @@
+{
+  "title": "Oppdag",
+  "subtitle": "Juster filtrene dine for å finne riktige treff.",
+  "filters": {
+    "age": "Alder",
+    "minAge": "Minstealder",
+    "maxAge": "Høyeste alder",
+    "distance": "Avstand",
+    "maxDistance": "Maksimal avstand",
+    "location": "Plassering",
+    "gender": "Kjønn",
+    "orientation": "Orientation",
+    "lifestyle": "Livsstil",
+    "interests": "Interesser",
+    "apply": "Bruk filtre",
+    "reset": "Tilbakestill",
+    "clear": "Tøm alt"
+  },
+  "results": {
+    "heading": "Resultater",
+    "empty": "Ingen treff med gjeldende filtre.",
+    "loadMore": "Last inn mer"
+  },
+  "cards": {
+    "age": "Alder",
+    "distance": "Avstand",
+    "view": "Se profil"
+  },
+  "ageRange": "Aldersspenn",
+  "error": "Noe gikk galt. Prøv igjen.",
+  "gender": "Kjønn",
+  "instructions": "Set filters and click Filter to find people.",
+  "noResults": "Ingen resultater funnet.",
+  "orientation": "Seksuell orientering",
+  "politicalIdeology": "Politisk ideologi",
+  "profession": "Yrke",
+  "religion": "Religion",
+  "religionImportance": "Religionens betydning",
+  "username": "Brukernavn"
+}

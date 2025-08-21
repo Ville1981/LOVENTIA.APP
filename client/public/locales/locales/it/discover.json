@@ -1,0 +1,40 @@
+{
+  "title": "Scopri",
+  "subtitle": "Regola i filtri per trovare le corrispondenze giuste.",
+  "filters": {
+    "age": "Età",
+    "minAge": "Età minima",
+    "maxAge": "Età massima",
+    "distance": "Distanza",
+    "maxDistance": "Distanza massima",
+    "location": "Località",
+    "gender": "Genere",
+    "orientation": "Orientation",
+    "lifestyle": "Stile di vita",
+    "interests": "Interessi",
+    "apply": "Applica filtri",
+    "reset": "Reimposta",
+    "clear": "Cancella tutto"
+  },
+  "results": {
+    "heading": "Risultati",
+    "empty": "Nessuna corrispondenza con i filtri attuali.",
+    "loadMore": "Carica altro"
+  },
+  "cards": {
+    "age": "Età",
+    "distance": "Distanza",
+    "view": "Vedi profilo"
+  },
+  "ageRange": "Fascia d'età",
+  "error": "Qualcosa è andato storto. Riprova.",
+  "gender": "Genere",
+  "instructions": "Set filters and click Filter to find people.",
+  "noResults": "Nessun risultato trovato.",
+  "orientation": "Orientamento sessuale",
+  "politicalIdeology": "Ideologia politica",
+  "profession": "Professione",
+  "religion": "Religione",
+  "religionImportance": "Importanza della religione",
+  "username": "Nome utente"
+}

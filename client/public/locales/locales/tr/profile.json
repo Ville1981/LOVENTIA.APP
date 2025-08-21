@@ -1,0 +1,33 @@
+{
+  "about": "Hakkımda",
+  "age": "Yaş",
+  "bodyType": "Vücut tipi",
+  "children": "Çocuklar",
+  "education": "Eğitim",
+  "gender": "Cinsiyet",
+  "goals": "Hedefler",
+  "height": "Boy",
+  "heightUnit": "cm",
+  "location": {
+    "city": "Şehir",
+    "country": "Ülke",
+    "manualCity": "Şehri manuel gir",
+    "manualCountry": "Ülkeyi manuel gir",
+    "manualRegion": "Bölgeyi manuel gir",
+    "region": "Bölge"
+  },
+  "lookingFor": "Arıyor",
+  "orientation": "Cinsel yönelim",
+  "pets": "Evcil hayvanlar",
+  "politicalIdeology": "Siyasi ideoloji",
+  "profession": "Meslek",
+  "professionCategory": "Meslek kategorisi",
+  "religion": "Din",
+  "religionImportance": "Dinin önemi",
+  "searchingFor": "Arıyor",
+  "weight": "Kilo",
+  "weightUnit": "kg",
+  "username": "Kullanıcı adı",
+  "email": "E-posta",
+  "save": "Kaydet"
+}

@@ -1,0 +1,41 @@
+{
+  "about": "About me",
+  "age": "Age",
+  "bodyType": {
+    "label": "Body type"
+  },
+  "children": "Children",
+  "education": {
+    "label": "Education"
+  },
+  "gender": {
+    "label": "Gender"
+  },
+  "goals": "Goals",
+  "height": "Height",
+  "heightUnit": "cm",
+  "location": {
+    "city": "City",
+    "country": "Country",
+    "manualCity": "Enter city manually",
+    "manualCountry": "Enter country manually",
+    "manualRegion": "Enter region manually",
+    "region": "Region"
+  },
+  "lookingFor": "Looking for",
+  "orientation": {
+    "label": "Orientation"
+  },
+  "pets": "Pets",
+  "politicalIdeology": "Political ideology",
+  "profession": "Profession",
+  "professionCategory": "Profession category",
+  "religion": "Religion",
+  "religionImportance": "Religion importance",
+  "searchingFor": "Looking for",
+  "weight": "Weight",
+  "weightUnit": "kg",
+  "username": "Username",
+  "email": "Email",
+  "save": "Save"
+}

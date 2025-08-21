@@ -1,0 +1,40 @@
+{
+  "title": "Descoperă",
+  "subtitle": "Ajustează filtrele pentru a găsi potrivirile potrivite.",
+  "filters": {
+    "age": "Vârstă",
+    "minAge": "Vârsta minimă",
+    "maxAge": "Vârsta maximă",
+    "distance": "Distanță",
+    "maxDistance": "Distanța maximă",
+    "location": "Locație",
+    "gender": "Gen",
+    "orientation": "Orientation",
+    "lifestyle": "Stil de viață",
+    "interests": "Interese",
+    "apply": "Aplică filtre",
+    "reset": "Resetare",
+    "clear": "Șterge tot"
+  },
+  "results": {
+    "heading": "Rezultate",
+    "empty": "Nicio potrivire cu filtrele actuale.",
+    "loadMore": "Încarcă mai mult"
+  },
+  "cards": {
+    "age": "Vârstă",
+    "distance": "Distanță",
+    "view": "Vezi profilul"
+  },
+  "ageRange": "Interval de vârstă",
+  "error": "A apărut o problemă. Încercați din nou.",
+  "gender": "Gen",
+  "instructions": "Set filters and click Filter to find people.",
+  "noResults": "Nu s-au găsit rezultate.",
+  "orientation": "Orientare sexuală",
+  "politicalIdeology": "Ideologie politică",
+  "profession": "Profesie",
+  "religion": "Religie",
+  "religionImportance": "Importanța religiei",
+  "username": "Nume de utilizator"
+}

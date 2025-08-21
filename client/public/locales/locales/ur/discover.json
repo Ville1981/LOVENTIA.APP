@@ -1,0 +1,40 @@
+{
+  "title": "دریافت کریں",
+  "subtitle": "صحیح مماثلتیں تلاش کرنے کے لیے اپنے فلٹرز کو ایڈجسٹ کریں۔",
+  "filters": {
+    "age": "عمر",
+    "minAge": "کم از کم عمر",
+    "maxAge": "زیادہ سے زیادہ عمر",
+    "distance": "فاصلہ",
+    "maxDistance": "زیادہ سے زیادہ فاصلہ",
+    "location": "مقام",
+    "gender": "صنف",
+    "orientation": "Orientation",
+    "lifestyle": "طرزِ زندگی",
+    "interests": "دلچسپیاں",
+    "apply": "فلٹرز لگائیں",
+    "reset": "ری سیٹ",
+    "clear": "سب صاف کریں"
+  },
+  "results": {
+    "heading": "نتائج",
+    "empty": "موجودہ فلٹرز کے ساتھ کوئی مماثلت نہیں۔",
+    "loadMore": "مزید لوڈ کریں"
+  },
+  "cards": {
+    "age": "عمر",
+    "distance": "فاصلہ",
+    "view": "پروفائل دیکھیں"
+  },
+  "ageRange": "عمر کی حد",
+  "error": "کچھ غلط ہو گیا۔ دوبارہ کوشش کریں۔",
+  "gender": "صنف",
+  "instructions": "Refine your search using the filters below.",
+  "noResults": "کوئی نتیجہ نہیں ملا۔",
+  "orientation": "جنسی رجحان",
+  "politicalIdeology": "سیاسی نظریہ",
+  "profession": "پیشہ",
+  "religion": "مذہب",
+  "religionImportance": "مذہب کی اہمیت",
+  "username": "صارف نام"
+}
