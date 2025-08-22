@@ -1,9 +1,9 @@
-// --- REPLACE START: i18n namespace fixes (ns.key -> ns:key), no logic removed ---
-// --- REPLACE END ---
 // src/components/profileFields/FormBasicInfo.jsx
 import PropTypes from "prop-types";
 import React from "react";
 import { useFormContext } from "react-hook-form";
+
+// --- REPLACE START: i18n namespace fixes (ns.key -> ns:key), align keys to JSON, keep structure ---
 
 /**
  * FormBasicInfo
@@ -116,9 +116,11 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
           data-cy="FormBasicInfo__genderSelect"
         >
           <option value="">{t("common:select")}</option>
-          <option value="male">{t("profile:male")}</option>
-          <option value="female">{t("profile:female")}</option>
-          <option value="other">{t("profile:other")}</option>
+          {/* Use options namespace to match JSON */}
+          <option value="male">{t("options:gender.male")}</option>
+          <option value="female">{t("options:gender.female")}</option>
+          {/* Keep original minimal set; other choices exist but not required here */}
+          <option value="other">{t("options:gender.other")}</option>
         </select>
         {errors.gender && (
           <p
@@ -146,10 +148,11 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
           data-cy="FormBasicInfo__orientationSelect"
         >
           <option value="">{t("common:select")}</option>
-          <option value="straight">{t("profile:straight")}</option>
-          <option value="gay">{t("profile:gay")}</option>
-          <option value="bi">{t("profile:bi")}</option>
-          <option value="other">{t("profile:other")}</option>
+          <option value="straight">{t("options:orientation.straight")}</option>
+          <option value="gay">{t("options:orientation.gay")}</option>
+          {/* Fix key: 'bi' → 'bisexual' to match JSON */}
+          <option value="bisexual">{t("options:orientation.bisexual")}</option>
+          <option value="other">{t("options:orientation.other")}</option>
         </select>
         {errors.orientation && (
           <p
@@ -164,8 +167,12 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
       {/* Height & Unit */}
       <div className="w-full grid grid-cols-2 gap-4">
         <div>
-          <label htmlFor="heightInput" className="block font-medium mb-1">
-            {t("profile:height")}
+          <label
+            htmlFor="heightInput"
+            className="block font-medium mb-1"
+            data-cy="FormBasicInfo__heightLabel"
+          >
+            {t("profile:height.label")}
           </label>
           <input
             id="heightInput"
@@ -186,8 +193,13 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
           )}
         </div>
         <div>
-          <label htmlFor="heightUnitSelect" className="block font-medium mb-1">
-            {t("profile:heightUnit")}
+          <label
+            htmlFor="heightUnitSelect"
+            className="block font-medium mb-1"
+            data-cy="FormBasicInfo__heightUnitLabel"
+          >
+            {/* No dedicated label key for the unit selector; keep neutral */}
+            {t("common:select")}
           </label>
           <select
             id="heightUnitSelect"
@@ -196,7 +208,8 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
             data-cy="FormBasicInfo__heightUnitSelect"
           >
             <option value="">{t("common:select")}</option>
-            <option value="Cm">cm</option>
+            {/* Store canonical values; display localized text */}
+            <option value="Cm">{t("profile:cm")}</option>
             <option value="FtIn">ft/in</option>
           </select>
           {errors.heightUnit && (
@@ -213,8 +226,12 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
       {/* Weight & Unit */}
       <div className="w-full grid grid-cols-2 gap-4">
         <div>
-          <label htmlFor="weightInput" className="block font-medium mb-1">
-            {t("profile:weight")}
+          <label
+            htmlFor="weightInput"
+            className="block font-medium mb-1"
+            data-cy="FormBasicInfo__weightLabel"
+          >
+            {t("profile:weight.label")}
           </label>
           <input
             id="weightInput"
@@ -235,8 +252,12 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
           )}
         </div>
         <div>
-          <label htmlFor="weightUnitSelect" className="block font-medium mb-1">
-            {t("profile:weightUnit")}
+          <label
+            htmlFor="weightUnitSelect"
+            className="block font-medium mb-1"
+            data-cy="FormBasicInfo__weightUnitLabel"
+          >
+            {t("common:select")}
           </label>
           <select
             id="weightUnitSelect"
@@ -245,7 +266,7 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
             data-cy="FormBasicInfo__weightUnitSelect"
           >
             <option value="">{t("common:select")}</option>
-            <option value="kg">kg</option>
+            <option value="kg">{t("profile:kg")}</option>
             <option value="lb">lb</option>
           </select>
           {errors.weightUnit && (
@@ -261,7 +282,11 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
 
       {/* Body Type */}
       <div className="w-full">
-        <label htmlFor="bodyTypeSelect" className="block font-medium mb-1">
+        <label
+          htmlFor="bodyTypeSelect"
+          className="block font-medium mb-1"
+          data-cy="FormBasicInfo__bodyTypeLabel"
+        >
           {t("profile:bodyType.label")}
         </label>
         <select
@@ -271,11 +296,11 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
           data-cy="FormBasicInfo__bodyTypeSelect"
         >
           <option value="">{t("common:select")}</option>
-          <option value="Slim">{t("profile:bodyType.slim")}</option>
-          <option value="Normal">{t("profile:bodyType.normal")}</option>
-          <option value="Athletic">{t("profile:bodyType.athletic")}</option>
-          <option value="Overweight">{t("profile:bodyType.overweight")}</option>
-          <option value="Obese">{t("profile:bodyType.obese")}</option>
+          <option value="slim">{t("profile:bodyType.slim")}</option>
+          <option value="normal">{t("profile:bodyType.normal")}</option>
+          <option value="athletic">{t("profile:bodyType.athletic")}</option>
+          <option value="overweight">{t("profile:bodyType.overweight")}</option>
+          <option value="obese">{t("profile:bodyType.obese")}</option>
         </select>
         {errors.bodyType && (
           <p
@@ -296,3 +321,5 @@ FormBasicInfo.propTypes = {
 };
 
 export default FormBasicInfo;
+
+// --- REPLACE END ---

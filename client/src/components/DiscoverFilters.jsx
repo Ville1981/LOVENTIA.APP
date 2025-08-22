@@ -22,65 +22,67 @@ import FormLookingFor from "./profileFields/FormLookingFor";
  * These match ProfileForm exactly, including Democracy and Left/Centre/Right.
  */
 
+// --- REPLACE START: fully-qualify i18n keys to avoid namespace mismatch and keep parity with ProfileForm ---
 // Religion options (match ProfileForm)
 const RELIGION_OPTIONS = [
-  { value: "", key: "common.all", label: "" },
-  { value: "christianity", key: "religion.christianity", label: "Christianity" },
-  { value: "islam", key: "religion.islam", label: "Islam" },
-  { value: "hinduism", key: "religion.hinduism", label: "Hinduism" },
-  { value: "buddhism", key: "religion.buddhism", label: "Buddhism" },
-  { value: "folk", key: "religion.folk", label: "Folk" },
-  { value: "none", key: "religion.none", label: "None" },
-  { value: "other", key: "religion.other", label: "Other" },
-  { value: "atheism", key: "religion.atheism", label: "Atheism" },
+  { value: "", key: "common:all", label: "" },
+  { value: "christianity", key: "profile:religion.christianity", label: "Christianity" },
+  { value: "islam", key: "profile:religion.islam", label: "Islam" },
+  { value: "hinduism", key: "profile:religion.hinduism", label: "Hinduism" },
+  { value: "buddhism", key: "profile:religion.buddhism", label: "Buddhism" },
+  { value: "folk", key: "profile:religion.folk", label: "Folk" },
+  { value: "none", key: "profile:religion.none", label: "None" },
+  { value: "other", key: "profile:religion.other", label: "Other" },
+  { value: "atheism", key: "profile:religion.atheism", label: "Atheism" },
 ];
 
 // Religion importance options (match ProfileForm)
 const RELIGION_IMPORTANCE_OPTIONS = [
-  { value: "", key: "common.all", label: "" },
-  { value: "Not at all important", key: "profile.notImportant", label: "Not at all important" },
-  { value: "Somewhat important", key: "profile.somewhatImportant", label: "Somewhat important" },
-  { value: "Very important", key: "profile.veryImportant", label: "Very important" },
-  { value: "Essential", key: "profile.essential", label: "Essential" },
+  { value: "", key: "common:all", label: "" },
+  { value: "Not at all important", key: "profile:religionImportance.notImportant", label: "Not at all important" },
+  { value: "Somewhat important", key: "profile:religionImportance.somewhatImportant", label: "Somewhat important" },
+  { value: "Very important", key: "profile:religionImportance.veryImportant", label: "Very important" },
+  { value: "Essential", key: "profile:religionImportance.essential", label: "Essential" },
 ];
 
 // Political ideology options (match ProfileForm with Left / Centre / Right and Democracy)
 const POLITICAL_IDEOLOGY_OPTIONS = [
-  { value: "", key: "common.all", label: "" },
-  { value: "Left", key: "politics.left", label: "Left" },
-  { value: "Centre", key: "politics.centre", label: "Centre" },
-  { value: "Right", key: "politics.right", label: "Right" },
-  { value: "Conservatism", key: "politics.conservatism", label: "Conservatism" },
-  { value: "Liberalism", key: "politics.liberalism", label: "Liberalism" },
-  { value: "Socialism", key: "politics.socialism", label: "Socialism" },
-  { value: "Communism", key: "politics.communism", label: "Communism" },
-  { value: "Fascism", key: "politics.fascism", label: "Fascism" },
-  { value: "Environmentalism", key: "politics.environmentalism", label: "Environmentalism" },
-  { value: "Anarchism", key: "politics.anarchism", label: "Anarchism" },
-  { value: "Nationalism", key: "politics.nationalism", label: "Nationalism" },
-  { value: "Populism", key: "politics.populism", label: "Populism" },
-  { value: "Progressivism", key: "politics.progressivism", label: "Progressivism" },
-  { value: "Libertarianism", key: "politics.libertarianism", label: "Libertarianism" },
-  { value: "Democracy", key: "politics.democracy", label: "Democracy" },
-  { value: "other", key: "politics.other", label: "Other" },
+  { value: "", key: "common:all", label: "" },
+  { value: "Left", key: "profile:options.politicalIdeology.left", label: "Left" },
+  { value: "Centre", key: "profile:options.politicalIdeology.centre", label: "Centre" },
+  { value: "Right", key: "profile:options.politicalIdeology.right", label: "Right" },
+  { value: "Conservatism", key: "profile:options.politicalIdeology.conservatism", label: "Conservatism" },
+  { value: "Liberalism", key: "profile:options.politicalIdeology.liberalism", label: "Liberalism" },
+  { value: "Socialism", key: "profile:options.politicalIdeology.socialism", label: "Socialism" },
+  { value: "Communism", key: "profile:options.politicalIdeology.communism", label: "Communism" },
+  { value: "Fascism", key: "profile:options.politicalIdeology.fascism", label: "Fascism" },
+  { value: "Environmentalism", key: "profile:options.politicalIdeology.environmentalism", label: "Environmentalism" },
+  { value: "Anarchism", key: "profile:options.politicalIdeology.anarchism", label: "Anarchism" },
+  { value: "Nationalism", key: "profile:options.politicalIdeology.nationalism", label: "Nationalism" },
+  { value: "Populism", key: "profile:options.politicalIdeology.populism", label: "Populism" },
+  { value: "Progressivism", key: "profile:options.politicalIdeology.progressivism", label: "Progressivism" },
+  { value: "Libertarianism", key: "profile:options.politicalIdeology.libertarianism", label: "Libertarianism" },
+  { value: "Democracy", key: "profile:options.politicalIdeology.democracy", label: "Democracy" },
+  { value: "other", key: "profile:options.politicalIdeology.other", label: "Other" },
 ];
 
 // Gender options (parity with ProfileForm)
 const GENDER_OPTIONS = [
-  { value: "", key: "common.all", label: "" },
-  { value: "male", key: "profile.male", label: "Male" },
-  { value: "female", key: "profile.female", label: "Female" },
-  { value: "other", key: "profile.other", label: "Other" },
+  { value: "", key: "common:all", label: "" },
+  { value: "male", key: "profile:options.gender.male", label: "Male" },
+  { value: "female", key: "profile:options.gender.female", label: "Female" },
+  { value: "other", key: "profile:options.gender.other", label: "Other" },
 ];
 
 // Orientation options (parity with ProfileForm)
 const ORIENTATION_OPTIONS = [
-  { value: "", key: "common.all", label: "" },
-  { value: "straight", key: "profile.straight", label: "Straight" },
-  { value: "gay", key: "profile.gay", label: "Gay" },
-  { value: "bi", key: "profile.bi", label: "Bi" },
-  { value: "other", key: "profile.other", label: "Other" },
+  { value: "", key: "common:all", label: "" },
+  { value: "straight", key: "profile:options.orientation.straight", label: "Straight" },
+  { value: "gay", key: "profile:options.orientation.gay", label: "Gay" },
+  { value: "bi", key: "profile:options.orientation.bisexual", label: "Bi" },
+  { value: "other", key: "profile:options.orientation.other", label: "Other" },
 ];
+// --- REPLACE END ---
 
 /**
  * DiscoverFilters
@@ -92,8 +94,8 @@ const DiscoverFilters = ({
   // setters,
   // --- REPLACE END
   handleFilter,
-  } ) => {
-  const { t, i18n } = useTranslation(["discover","profile","lifestyle","common"]);
+}) => {
+  const { t /*, i18n*/ } = useTranslation(["discover", "profile", "lifestyle", "common"]);
   const methods = useForm({
     defaultValues: values,
     mode: "onSubmit",
@@ -353,7 +355,9 @@ DiscoverFilters.propTypes = {
   // setters: PropTypes.object.isRequired,
   // --- REPLACE END
   handleFilter: PropTypes.func.isRequired,
-  t: PropTypes.func.isRequired,
+  // --- REPLACE START: do not require t as prop; it comes from useTranslation hook
+  // t: PropTypes.func.isRequired,
+  // --- REPLACE END
 };
 
 export default React.memo(DiscoverFilters);

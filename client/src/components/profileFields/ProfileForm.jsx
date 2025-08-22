@@ -15,6 +15,10 @@ import FormLookingFor from "./FormLookingFor";
 import MultiStepPhotoUploader from "./MultiStepPhotoUploader";
 import { BACKEND_BASE_URL } from "../../config";
 
+// --- REPLACE START: add i18n debug import (safe in dev only) ---
+import i18next from "i18next";
+// --- REPLACE END ---
+
 // Normalize Windows backslashes and ensure one leading slash
 const normalizePath = (p = "") =>
   "/" + String(p).replace(/\\/g, "/").replace(/^\/+/, "");
@@ -45,6 +49,51 @@ const professionCategories = [
   "Athlete",
   "Other",
 ];
+
+// --- REPLACE START: add key maps so we can translate reliably even with spaces/camelCase ---
+const PROF_KEY_BY_LABEL = {
+  Administration: "administration",
+  Finance: "finance",
+  Military: "military",
+  Technical: "technical",
+  Healthcare: "healthcare",
+  Education: "education",
+  Entrepreneur: "entrepreneur",
+  Law: "law",
+  "Farmer/Forest worker": "farmerForestWorker",
+  "Theologian/Priest": "theologianPriest",
+  Service: "service",
+  Artist: "artist",
+  DivineServant: "divineServant",
+  Homeparent: "homeparent",
+  FoodIndustry: "foodIndustry",
+  Retail: "retail",
+  Arts: "arts",
+  Government: "government",
+  Retired: "retired",
+  Athlete: "athlete",
+  Other: "other",
+};
+
+const POL_KEY_BY_LABEL = {
+  Left: "left",
+  Centre: "centre",
+  Right: "right",
+  Conservatism: "conservatism",
+  Liberalism: "liberalism",
+  Socialism: "socialism",
+  Communism: "communism",
+  Fascism: "fascism",
+  Environmentalism: "environmentalism",
+  Anarchism: "anarchism",
+  Nationalism: "nationalism",
+  Populism: "populism",
+  Progressivism: "progressivism",
+  Libertarianism: "libertarianism",
+  Democracy: "democracy",
+  Other: "other",
+};
+// --- REPLACE END ---
 
 const dietOptions = [
   "none",
@@ -184,6 +233,39 @@ export default function ProfileForm({
   hideAvatarSection = false,
   hidePhotoSection = false,
 }) {
+  // --- REPLACE START: i18n debug block for Profession category & Political ideology ---
+  if (process.env.NODE_ENV !== "production") {
+    try {
+      console.group("[i18n debug] ProfileForm – Profession & Politics");
+      console.log("lng:", i18next.language);
+      console.log("ns:", i18next.options?.ns);
+      const hasProfileNs =
+        i18next.language &&
+        i18next.hasResourceBundle(i18next.language, "profile");
+      console.log("has profile ns:", hasProfileNs);
+
+      const keysToTest = [
+        "profile:Profession category.administration",
+        "profile:options.professionCategory.administration",
+        "profile:professionCategory.administration",
+        "profile:Political ideology.left",
+        "profile:options.politicalIdeology.left",
+        "profile:politicalIdeology.left",
+        "profile:labels.professionCategory",
+        "profile:professionCategory.label",
+      ];
+
+      keysToTest.forEach((k) => {
+        const v = i18next.t(k, { defaultValue: "<MISS>" });
+        console.log(k, "=>", v);
+      });
+      console.groupEnd();
+    } catch (e) {
+      console.warn("[i18n debug] ProfileForm failed:", e);
+    }
+  }
+  // --- REPLACE END ---
+
   const methods = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
@@ -208,7 +290,6 @@ export default function ProfileForm({
       religion: user.religion || "",
       religionImportance: user.religionImportance || "",
 
-      // New: Political ideology
       politicalIdeology: user.politicalIdeology || "",
 
       children: user.children || "",
@@ -257,7 +338,7 @@ export default function ProfileForm({
       ...current,
       nutritionPreferences: Array.isArray(user.nutritionPreferences)
         ? user.nutritionPreferences[0]
-        : (current.nutritionPreferences ?? user.nutritionPreferences ?? ""),
+        : current.nutritionPreferences ?? user.nutritionPreferences ?? "",
       extraImages: current.extraImages ?? user.extraImages ?? [],
       profilePhoto: current.profilePhoto ?? user.profilePicture ?? "",
       politicalIdeology:
@@ -291,7 +372,6 @@ export default function ProfileForm({
 // --- REPLACE END ---
 // --- REPLACE START: continuation with Political Ideology field (normalize units on submit + log validation errors) ---
   const onFormSubmit = async (data) => {
-    // Debug: if this doesn't print, submit failed validation
     console.log("[ProfileForm] Submitting payload (raw):", data);
 
     // Normalize units so backend always receives canonical values
@@ -342,13 +422,55 @@ export default function ProfileForm({
     return () => clearInterval(iv);
   }, [slideshowImages]);
 
+  // --- REPLACE START: helpers to translate with both key styles (space/camelCase) and prefer options.* ---
+  const tProfessionLabel = () => {
+    return (
+      t("profile:Profession category", { defaultValue: "" }) ||
+      t("profile:professionCategory.label", { defaultValue: "" }) ||
+      t("profile:professionCategory", { defaultValue: "" }) ||
+      "Profession category"
+    );
+  };
+
+  const tProfessionOption = (opt) => {
+    const key = PROF_KEY_BY_LABEL[opt] || opt.toLowerCase();
+    return (
+      // Prefer the canonical options.* namespace first
+      t(`profile:options.professionCategory.${key}`, { defaultValue: "" }) ||
+      // Fallbacks for older keys kept intentionally
+      t(`profile:Profession category.${key}`, { defaultValue: "" }) ||
+      t(`profile:professionCategory.${key}`, { defaultValue: "" }) ||
+      opt
+    );
+  };
+
+  const tPoliticalLabel = () => {
+    return (
+      t("profile:politicalIdeology", { defaultValue: "" }) ||
+      t("profile:Political ideology", { defaultValue: "" }) ||
+      "Political ideology"
+    );
+  };
+
+  const tPoliticalOption = (opt) => {
+    const key = POL_KEY_BY_LABEL[opt] || opt.toLowerCase();
+    return (
+      // Prefer the canonical options.* namespace first
+      t(`profile:options.politicalIdeology.${key}`, { defaultValue: "" }) ||
+      // Fallbacks for older keys kept intentionally
+      t(`profile:Political ideology.${key}`, { defaultValue: opt }) ||
+      t(`profile:politicalIdeology.${key}`, { defaultValue: opt }) ||
+      opt
+    );
+  };
+  // --- REPLACE END ---
+
   return (
     <FormProvider {...methods}>
       <form
         onSubmit={handleSubmit(
           onFormSubmit,
           (errs) => {
-            // Visible debug to quickly spot which fields block submit
             console.warn("[ProfileForm] Validation errors:", errs);
           }
         )}
@@ -394,7 +516,7 @@ export default function ProfileForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">
-              {t("profile:professionCategory")}
+              {tProfessionLabel()}
             </label>
             <select
               {...methods.register("professionCategory")}
@@ -403,7 +525,7 @@ export default function ProfileForm({
               <option value="">{t("common:select")}</option>
               {professionCategories.map((opt) => (
                 <option key={opt} value={opt}>
-                  {t(`profile.professionCategory.${opt}`) || opt}
+                  {tProfessionOption(opt)}
                 </option>
               ))}
             </select>
@@ -475,7 +597,7 @@ export default function ProfileForm({
         {/* New: Political Ideology */}
         <div>
           <label className="block text-sm font-medium mb-1">
-            🗳 {t("profile:politicalIdeology") || "Political Ideology"}
+            🗳 {tPoliticalLabel()}
           </label>
           <select
             {...methods.register("politicalIdeology")}
@@ -483,7 +605,7 @@ export default function ProfileForm({
           >
             {politicalIdeologyOptions.map((opt) => (
               <option key={opt} value={opt}>
-                {opt || t("common:select")}
+                {opt ? tPoliticalOption(opt) : t("common:select")}
               </option>
             ))}
           </select>
@@ -523,7 +645,6 @@ export default function ProfileForm({
           />
         )}
 
-        {/* Quick generic hint if validation blocks submit */}
         {Object.keys(errors || {}).length > 0 && (
           <p className="text-sm mt-2 text-red-600">
             {t("common:fixErrors") ||
@@ -552,8 +673,9 @@ export default function ProfileForm({
     </FormProvider>
   );
 }
+// --- REPLACE END ---
+
 // --- REPLACE START: remove duplicate default export at end of file ---
 // (Removed to avoid "Only one default export allowed per module")
 // export default ProfileForm;
 // --- REPLACE END ---
-

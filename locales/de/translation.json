@@ -11,6 +11,7 @@
   "Profile": "Profil",
   "Register": "Registrieren",
   "about": "Über uns",
+
   "admin": {
     "actions": "Aktionen",
     "confirmDelete": "Bist du sicher, dass du diesen Benutzer löschen möchtest?",
@@ -23,12 +24,15 @@
     "title": "Admin-Panel: Benutzerverwaltung",
     "unhide": "Einblenden",
     "yes": "✅ Ja"
-  },
+    },
+
   "auth": {
-    "username": "Username",
-    "username_placeholder": "Enter your username"
+    "username": "Benutzername",
+    "username_placeholder": "Benutzernamen eingeben"
   },
+
   "blog": "Blog",
+
   "buttons": {
     "back": "Zurück",
     "cancel": "Abbrechen",
@@ -36,42 +40,50 @@
     "edit": "Bearbeiten",
     "submit": "Absenden"
   },
+
   "careers": "Karriere",
+
   "chat": {
-    "conversations": "Your Conversations",
-    "conversationsTitle": "Conversations",
-    "errorLoading": "Failed to load conversations.",
-    "loading": "Loading conversations…",
-    "noConversations": "No conversations yet.",
+    "conversations": "Deine Unterhaltungen",
+    "conversationsTitle": "Unterhaltungen",
+    "errorLoading": "Unterhaltungen konnten nicht geladen werden.",
+    "loading": "Unterhaltungen werden geladen…",
+    "noConversations": "Noch keine Unterhaltungen.",
     "overview": {
-      "empty": "No conversations yet.",
-      "error": "Unable to load conversations.",
-      "loading": "Loading conversations…",
-      "pageDescription": "View and manage your conversations",
+      "empty": "Noch keine Unterhaltungen.",
+      "error": "Unterhaltungen konnten nicht geladen werden.",
+      "loading": "Unterhaltungen werden geladen…",
+      "pageDescription": "Unterhaltungen ansehen und verwalten",
       "placeholderName": "Bunny",
-      "placeholderSnippet": "Hi there! Let’s start our chat.",
-      "retry": "Retry",
-      "title": "Conversations"
+      "placeholderSnippet": "Hallo! Lass uns chatten.",
+      "retry": "Erneut versuchen",
+      "title": "Unterhaltungen"
     },
-    "placeholder": "Nachricht eingeben...",
+    "placeholder": "Nachricht eingeben…",
     "send": "Senden",
     "title": "Chat"
   },
+
   "city": "Stadt",
   "coInfo": "Colorado-Info",
+
   "common": {
-    "all": "All",
+    "all": "Alle",
     "filter": "Filtern",
     "select": "Auswählen"
   },
+
   "community": "Community",
   "company": "Unternehmen",
   "conditions": "Bedingungen",
   "contact": "Kontakt",
+
   "conversationCard": {
-    "avatarAlt": "User avatar"
+    "avatarAlt": "Nutzeravatar"
   },
+
   "cookies": "Cookies",
+
   "countries": {
     "Argentiina": "Argentinien",
     "Argentina": "Argentina",
@@ -95,14 +107,16 @@
     "Venäjä": "Russland",
     "Yhdysvallat": "Vereinigte Staaten"
   },
+
   "country": "Land",
+
   "discover": {
     "adAlt": "Werbefläche – deine Anzeige hier",
-    "ageRange": "Age range",
+    "ageRange": "Altersbereich",
     "cityNotFound": "Deine Stadt konnte nicht ermittelt werden.",
     "fetchError": "Fehler beim Laden der Benutzer.",
     "filter": "Filtern",
-    "gender": "Gender",
+    "gender": "Geschlecht",
     "geolocationNotSupported": "Dein Browser unterstützt keine Geolokalisierung.",
     "instructions": "Wähle Filter, um passende Profile zu finden.",
     "like": "Like",
@@ -112,43 +126,47 @@
     "maxAge": "Höchstalter",
     "minAge": "Mindestalter",
     "nearYou": "in deiner Nähe",
-    "noResults": "No results",
-    "orientation": "Sexual orientation",
-    "politicalIdeology": "Political ideology",
+    "noResults": "Keine Ergebnisse",
+    "orientation": "Sexuelle Orientierung",
+    "politicalIdeology": "Politische Einstellung",
     "premium": "Premium-Nutzer",
-    "profession": "Profession",
-    "professionCategory": "Profession category",
-    "religion": "Religion or values",
-    "religionImportance": "How important is religion?",
-    "searchPlaceholder": "🔍 Suche nach Namen oder Interessen...",
+    "profession": "Beruf",
+    "professionCategory": "Berufskategorie",
+    "religion": "Religion oder Werte",
+    "religionImportance": "Wie wichtig ist Religion?",
+    "searchPlaceholder": "🔍 Suche nach Namen oder Interessen…",
     "superlike": "Superlike",
     "superlikeFailed": "Superlike fehlgeschlagen.",
     "superlikeLimit": "❌ Superlike-Limit erreicht (3/48h).",
     "superliked": "Superlike!",
     "title": "Benutzer entdecken",
-    "username": "Username",
+    "username": "Benutzername",
     "viewProfile": "Profil ansehen"
   },
+
   "download": "Download",
+
   "error": {
-    "badRequest": "Bad request",
-    "forbidden": "Forbidden",
-    "notFound": "Page not found",
-    "serverError": "Server error",
-    "unauthorized": "Unauthorized access"
+    "badRequest": "Ungültige Anfrage",
+    "forbidden": "Zugriff verweigert",
+    "notFound": "Seite nicht gefunden",
+    "serverError": "Serverfehler",
+    "unauthorized": "Nicht autorisiert"
   },
+
   "errors": {
-    "username_invalid": "Username must be 3–30 characters and can only contain letters, numbers, dot, underscore, or hyphen",
-    "username_required": "Username is required",
-    "username_taken": "This username is already taken"
+    "username_invalid": "Benutzername muss 3–30 Zeichen haben und darf nur Buchstaben, Zahlen, Punkt, Unterstrich oder Bindestrich enthalten",
+    "username_required": "Benutzername ist erforderlich",
+    "username_taken": "Dieser Benutzername ist bereits vergeben"
   },
+
   "etusivu": {
     "aloita": "Loslegen",
     "heroOtsikko": "Willkommen bei Loventia.site!",
     "heroTeksti": "Finde sinnvolle Verbindungen einfach und sicher.",
     "heroTekstit": [
       "Finde die Liebe fürs Leben.",
-      "Treffe Menschen mit ähnlichen Werten.",
+      "Triff Menschen mit ähnlichen Werten.",
       "Dein nächstes Match ist nur einen Klick entfernt."
     ],
     "katso_kayttajat": "Benutzer ansehen",
@@ -156,23 +174,30 @@
     "lue_lisaa": "Mehr erfahren",
     "tervetuloa": "Willkommen bei Loventia.site!"
   },
+
   "etusivu.heroTekstit.0": "Finde die Liebe fürs Leben.",
-  "etusivu.heroTekstit.1": "Treffe Menschen mit ähnlichen Werten.",
+  "etusivu.heroTekstit.1": "Triff Menschen mit ähnlichen Werten.",
   "etusivu.heroTekstit.2": "Dein nächstes Match ist nur einen Klick entfernt.",
+
   "follow": "Folgen",
   "health": "Gesundheitshinweis",
+
   "hero": {
     "0": "Finde wahre Liebe.",
     "1": "Triff Menschen mit deinen Werten.",
     "2": "Dein nächstes Match ist nur einen Klick entfernt."
   },
+
   "home": {
     "subtitle": "Weniger wischen, besser matchen — eine Community für ernsthaftes Dating.",
     "title": "Echte Verbindungen finden"
   },
+
   "home.subtitle": "Weniger wischen, besser matchen — eine Community für ernsthaftes Dating.",
   "home.title": "Echte Verbindungen finden",
+
   "impressum": "Impressum",
+
   "lifestyle": {
     "average": "Durchschnittlich",
     "drink": "Alkohol",
@@ -184,45 +209,50 @@
     "sober": "Suchtfrei",
     "title": "Lebensstil"
   },
+
   "likes": {
-    "likeBack": "Like back",
-    "likedYou": "Users who liked you",
-    "noLikes": "No likes yet.",
-    "superlikeBack": "Superlike back",
-    "superlikeLimitReached": "Superlike limit (3/48h) reached.",
-    "superlikedYou": "Users who superliked you",
-    "title": "Your Likes",
-    "viewProfile": "View profile"
+    "likeBack": "Zurückliken",
+    "likedYou": "Nutzer, die dich geliked haben",
+    "noLikes": "Noch keine Likes.",
+    "superlikeBack": "Superlike zurück",
+    "superlikeLimitReached": "Superlike-Limit (3/48h) erreicht.",
+    "superlikedYou": "Nutzer, die dich supergeliked haben",
+    "title": "Deine Likes",
+    "viewProfile": "Profil ansehen"
   },
+
   "map": {
     "cityNotFound": "Stadt konnte nicht ermittelt werden.",
     "fetchError": "Fehler beim Abrufen der Benutzer.",
-    "loadingLocation": "Standort wird abgerufen...",
+    "loadingLocation": "Standort wird abgerufen…",
     "locationError": "Standort konnte nicht geladen werden.",
     "title": "Benutzer auf der Karte",
     "youAreHere": "Du bist hier"
   },
+
   "matches": {
     "noMatches": "Noch keine Matches.",
     "openChat": "Chat öffnen",
     "score": "Match-Score",
     "title": "Deine Matches"
   },
+
   "messages": {
-    "error": "Ein Fehler ist aufgetreten",
-    "loading": "Lade...",
+    "error": "Es ist ein Fehler aufgetreten",
+    "loading": "Laden…",
     "notFound": "Seite nicht gefunden",
     "success": "Aktion erfolgreich"
   },
+
   "nav": {
-    "about": "About",
+    "about": "Über uns",
     "admin": "Admin",
     "blog": "Blog",
-    "careers": "Careers",
+    "careers": "Karriere",
     "coInfo": "Colorado-Info",
     "community": "Community",
     "company": "Unternehmen",
-    "conditions": "Conditions",
+    "conditions": "Bedingungen",
     "contact": "Kontakt",
     "cookies": "Cookies",
     "discover": "Entdecken",
@@ -237,7 +267,7 @@
     "matches": "Matches",
     "messages": "Nachrichten",
     "premium": "Premium",
-    "press": "Press",
+    "press": "Presse",
     "privacy": "Datenschutz",
     "profile": "Profil",
     "register": "Registrieren",
@@ -250,14 +280,15 @@
     "tagline": "Besser matchen. Klüger lieben. 💘",
     "terms": "Nutzungsbedingungen"
   },
-  "nav.about": "About",
+
+  "nav.about": "Über uns",
   "nav.admin": "Admin",
   "nav.blog": "Blog",
-  "nav.careers": "Careers",
+  "nav.careers": "Karriere",
   "nav.coInfo": "Colorado-Info",
   "nav.community": "Community",
   "nav.company": "Unternehmen",
-  "nav.conditions": "Conditions",
+  "nav.conditions": "Bedingungen",
   "nav.contact": "Kontakt",
   "nav.cookies": "Cookies",
   "nav.discover": "Entdecken",
@@ -272,7 +303,7 @@
   "nav.matches": "Matches",
   "nav.messages": "Nachrichten",
   "nav.premium": "Premium",
-  "nav.press": "Press",
+  "nav.press": "Presse",
   "nav.privacy": "Datenschutz",
   "nav.profile": "Profil",
   "nav.register": "Registrieren",
@@ -284,59 +315,64 @@
   "nav.support": "Support",
   "nav.tagline": "Besser matchen. Klüger lieben. 💘",
   "nav.terms": "Nutzungsbedingungen",
+
   "notifications": {
-    "likeReceived": "{{username}} liked your profile",
-    "matchFound": "You have a new match with {{username}}",
-    "newMessage": "You have a new message from {{username}}",
-    "superlikeReceived": "{{username}} superliked you"
+    "likeReceived": "{{username}} hat dein Profil geliked",
+    "matchFound": "Neues Match mit {{username}}",
+    "newMessage": "Neue Nachricht von {{username}}",
+    "superlikeReceived": "{{username}} hat dich supergeliked"
   },
+
   "politics": {
-    "anarchism": "Anarchism",
-    "centre": "Centre",
-    "communism": "Communism",
-    "conservatism": "Conservatism",
-    "democracy": "Democracy",
-    "environmentalism": "Environmentalism",
-    "fascism": "Fascism",
-    "left": "Left",
-    "liberalism": "Liberalism",
-    "libertarianism": "Libertarianism",
-    "nationalism": "Nationalism",
-    "other": "Other",
-    "populism": "Populism",
-    "progressivism": "Progressivism",
-    "right": "Right",
-    "socialism": "Socialism"
+    "anarchism": "Anarchismus",
+    "centre": "Mitte",
+    "communism": "Kommunismus",
+    "conservatism": "Konservatismus",
+    "democracy": "Demokratie",
+    "environmentalism": "Umweltschutz",
+    "fascism": "Faschismus",
+    "left": "Links",
+    "liberalism": "Liberalismus",
+    "libertarianism": "Libertarismus",
+    "nationalism": "Nationalismus",
+    "other": "Anderes",
+    "populism": "Populismus",
+    "progressivism": "Progressivismus",
+    "right": "Rechts",
+    "socialism": "Sozialismus"
   },
+
   "premium": {
     "cancelMessage": "Du hast die Zahlung nicht abgeschlossen. Versuche es erneut.",
     "cancelTitle": "Zahlung abgebrochen",
     "errorMessage": "❌ Premium-Aktualisierung fehlgeschlagen.",
     "successMessage": "✅ Premium ist aktiv! Danke für deinen Kauf.",
     "successTitle": "Premium erfolgreich aktiviert",
-    "updating": "Status wird aktualisiert..."
+    "updating": "Status wird aktualisiert…"
   },
+
   "press": "Presse",
+
   "profile": {
     "about": "Über mich",
-    "addCaption": "Add a caption...",
+    "addCaption": "Bildunterschrift hinzufügen…",
     "age": "Alter",
     "basicEducation": "Grundbildung",
     "bi": "Bisexuell",
     "bodyType": {
-      "athletic": "Athletic",
+      "athletic": "Athletisch",
       "normal": "Normal",
-      "obese": "Obese",
-      "overweight": "Overweight",
-      "thin": "Thin"
+      "obese": "Adipös",
+      "overweight": "Übergewichtig",
+      "thin": "Schlank"
     },
-    "browse": "Browse...",
+    "browse": "Durchsuchen…",
     "categories": {
-      "Education": "Education",
-      "Entrepreneur": "Entrepreneur",
-      "Healthcare": "Healthcare",
-      "Other": "Other",
-      "Technical": "Technical"
+      "Education": "Bildung",
+      "Entrepreneur": "Unternehmer/in",
+      "Healthcare": "Gesundheitswesen",
+      "Other": "Andere",
+      "Technical": "Technik"
     },
     "children": "Hast du Kinder?",
     "city": "Stadt",
@@ -353,12 +389,12 @@
     "goal": "Ziele / Wünsche",
     "goals": "Ziele / Wünsche",
     "height": "Größe (cm)",
-    "heightUnit": "Height unit",
+    "heightUnit": "Größeneinheit",
     "hetero": "Heterosexuell",
     "homo": "Homosexuell",
-    "images": "Additional images",
-    "interests": "Interests",
-    "location": "Location",
+    "images": "Zusätzliche Bilder",
+    "interests": "Interessen",
+    "location": "Standort",
     "lookingFor": "Wonach suchst du?",
     "lowerUni": "Bachelor oder gleichwertig",
     "mainImage": "Hauptprofilbild",
@@ -367,28 +403,28 @@
     "manualCountry": "Oder Land manuell eingeben",
     "manualRegion": "Oder Region manuell eingeben",
     "name": "Name",
-    "noFileChosen": "No file chosen",
+    "noFileChosen": "Keine Datei ausgewählt",
     "notImportant": "Nicht wichtig",
     "orientation": "Sexuelle Orientierung",
     "other": "Divers",
     "pets": "Hast du Haustiere?",
     "phd": "Doktortitel (PhD)",
-    "politicalIdeology": "Political ideology",
+    "politicalIdeology": "Politische Einstellung",
     "premiumMember": "Du bist ein Premium-Mitglied 🎉",
     "profession": "Beruf",
-    "professionCategory": "Profession category",
-    "professionPlaceholder": "Enter your profession...",
+    "professionCategory": "Berufskategorie",
+    "professionPlaceholder": "Gib deinen Beruf ein…",
     "profilePicture": "Profilbild",
     "region": "Region",
     "religion": "Religion oder Werte",
     "religionImportance": "Wie wichtig ist dir Religion?",
-    "removePicture": "Remove picture",
-    "required": "This field is required",
+    "removePicture": "Bild entfernen",
+    "required": "Dieses Feld ist erforderlich",
     "save": "Änderungen speichern",
     "saveChanges": "Änderungen speichern",
-    "saveCropped": "Save photo",
-    "saveError": "Update failed. Please check the fields.",
-    "saveExtraPhotos": "Save extra photos",
+    "saveCropped": "Foto speichern",
+    "saveError": "Aktualisierung fehlgeschlagen. Bitte Felder prüfen.",
+    "saveExtraPhotos": "Zusätzliche Fotos speichern",
     "saveSuccess": "✅ Profil erfolgreich aktualisiert!",
     "saved": "✅ Profil erfolgreich aktualisiert!",
     "searchingFor": "Was suchst du?",
@@ -401,38 +437,46 @@
     "summary": "Über mich",
     "title": "Profil",
     "updateError": "❌ Fehler beim Aktualisieren des Profils.",
-    "updateProfile": "Update profile",
+    "updateProfile": "Profil aktualisieren",
     "upperUni": "Master oder gleichwertig",
-    "username": "Username",
+    "username": "Benutzername",
     "veryImportant": "Sehr wichtig",
     "weight": "Gewicht (kg)",
-    "weightUnit": "Weight unit"
+    "weightUnit": "Gewichtseinheit"
   },
+
   "region": "Region / Bundesland",
+
   "religion": {
-    "atheism": "Atheism",
-    "buddhism": "Buddhism",
-    "christianity": "Christianity",
-    "folk": "Folk",
-    "hinduism": "Hinduism",
+    "atheism": "Atheismus",
+    "buddhism": "Buddhismus",
+    "christianity": "Christentum",
+    "folk": "Volksreligion",
+    "hinduism": "Hinduismus",
     "islam": "Islam",
-    "none": "None",
-    "other": "Other"
+    "none": "Keine",
+    "other": "Andere"
   },
+
   "rights": "Alle Rechte vorbehalten.",
+
   "safety": "Sicherheitstipps",
   "security": "Sicherheit",
+
   "site": {
     "title": "Loventia.site"
   },
+
   "special": "Spezial",
+
   "subnav": {
-    "cupidsPicks": "Cupid's Picks",
-    "matchPercentage": "Match %",
+    "cupidsPicks": "Cupids Auswahl",
+    "matchPercentage": "Match-Rate",
     "passport": "Passport",
-    "recommended": "Recommended",
+    "recommended": "Empfohlen",
     "superlikes": "SuperLikes"
   },
+
   "support": "Support",
   "tagline": "Besser verlieben. Klüger lieben. 💘",
   "terms": "Nutzungsbedingungen"
