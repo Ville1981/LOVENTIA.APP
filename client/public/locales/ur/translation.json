@@ -92,7 +92,25 @@
     "Suomi": "Finland",
     "Ukraina": "Ukraine",
     "Venäjä": "Russia",
-    "Yhdysvallat": "United States"
+    "Yhdysvallat": "United States",
+    "Brazil": "Brazil",
+    "Spain": "Spain",
+    "India": "India",
+    "United Kingdom": "United Kingdom",
+    "Italy": "Italy",
+    "Japan": "Japan",
+    "Canada": "Canada",
+    "Kazakhstan": "Kazakhstan",
+    "China": "China",
+    "Norway": "Norway",
+    "Portugal": "Portugal",
+    "France": "France",
+    "Sweden": "Sweden",
+    "Germany": "Germany",
+    "Finland": "Finland",
+    "Ukraine": "Ukraine",
+    "Russia": "Russia",
+    "United States": "United States"
   },
   "country": "Country",
   "discover": {
@@ -126,7 +144,8 @@
     "superliked": "Superliked!",
     "title": "Discover users",
     "username": "Username",
-    "viewProfile": "View profile"
+    "viewProfile": "View profile",
+    "error": "Failed to load users."
   },
   "download": "ڈاؤن لوڈ",
   "error": {
@@ -167,7 +186,12 @@
   },
   "home": {
     "subtitle": "کم سوائپ، بہتر میچ — بامقصد ڈیٹنگ کے لیے کمیونٹی۔",
-    "title": "حقیقی تعلقات تلاش کریں"
+    "title": "حقیقی تعلقات تلاش کریں",
+    "texts": [
+      "Find love that lasts.",
+      "Meet people who share your values.",
+      "Your next match is one click away."
+    ]
   },
   "home.subtitle": "کم سوائپ، بہتر میچ — بامقصد ڈیٹنگ کے لیے کمیونٹی۔",
   "home.title": "حقیقی تعلقات تلاش کریں",
@@ -508,7 +532,12 @@
     "username": "صارف کا نام",
     "veryImportant": "بہت اہم",
     "weight": "وزن (کلوگرام)",
-    "weightUnit": "Weight unit"
+    "weightUnit": "Weight unit",
+    "bodyType.athletic": "Athletic",
+    "bodyType.normal": "Normal",
+    "bodyType.obese": "Obese",
+    "bodyType.overweight": "Overweight",
+    "bodyType.thin": "Thin"
   },
   "region": "Region / state",
   "religion": {
@@ -537,5 +566,18 @@
   },
   "support": "مدد",
   "tagline": "بہتر میل، ہوشیاری سے محبت کریں۔ 💘",
-  "terms": "شرائط"
+  "terms": "شرائط",
+  "overview": {
+    "error": "Failed to load conversations"
+  },
+  "select_language_label": "Select language",
+  "settings": {
+    "dangerDescription": "When you delete your account, all your data will be permanently removed.",
+    "dangerTitle": "Danger zone",
+    "deleteButton": "Delete my account",
+    "deleteConfirm": "Are you sure you want to permanently delete your account?",
+    "deleteErrorAlert": "Account deletion failed. Please try again later.",
+    "deleteErrorConsole": "Account deletion failed:",
+    "title": "Account settings"
+  }
 }

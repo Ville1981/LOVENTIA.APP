@@ -11,7 +11,6 @@
   "Profile": "Profil",
   "Register": "Registrieren",
   "about": "Über uns",
-
   "admin": {
     "actions": "Aktionen",
     "confirmDelete": "Bist du sicher, dass du diesen Benutzer löschen möchtest?",
@@ -24,15 +23,12 @@
     "title": "Admin-Panel: Benutzerverwaltung",
     "unhide": "Einblenden",
     "yes": "✅ Ja"
-    },
-
+  },
   "auth": {
     "username": "Benutzername",
     "username_placeholder": "Benutzernamen eingeben"
   },
-
   "blog": "Blog",
-
   "buttons": {
     "back": "Zurück",
     "cancel": "Abbrechen",
@@ -40,9 +36,7 @@
     "edit": "Bearbeiten",
     "submit": "Absenden"
   },
-
   "careers": "Karriere",
-
   "chat": {
     "conversations": "Deine Unterhaltungen",
     "conversationsTitle": "Unterhaltungen",
@@ -63,27 +57,21 @@
     "send": "Senden",
     "title": "Chat"
   },
-
   "city": "Stadt",
   "coInfo": "Colorado-Info",
-
   "common": {
     "all": "Alle",
     "filter": "Filtern",
     "select": "Auswählen"
   },
-
   "community": "Community",
   "company": "Unternehmen",
   "conditions": "Bedingungen",
   "contact": "Kontakt",
-
   "conversationCard": {
     "avatarAlt": "Nutzeravatar"
   },
-
   "cookies": "Cookies",
-
   "countries": {
     "Argentiina": "Argentinien",
     "Argentina": "Argentina",
@@ -105,11 +93,27 @@
     "Suomi": "Finnland",
     "Ukraina": "Ukraine",
     "Venäjä": "Russland",
-    "Yhdysvallat": "Vereinigte Staaten"
+    "Yhdysvallat": "Vereinigte Staaten",
+    "Brazil": "Brazil",
+    "Spain": "Spain",
+    "India": "India",
+    "United Kingdom": "United Kingdom",
+    "Italy": "Italy",
+    "Japan": "Japan",
+    "Canada": "Canada",
+    "Kazakhstan": "Kazakhstan",
+    "China": "China",
+    "Norway": "Norway",
+    "Portugal": "Portugal",
+    "France": "France",
+    "Sweden": "Sweden",
+    "Germany": "Germany",
+    "Finland": "Finland",
+    "Ukraine": "Ukraine",
+    "Russia": "Russia",
+    "United States": "United States"
   },
-
   "country": "Land",
-
   "discover": {
     "adAlt": "Werbefläche – deine Anzeige hier",
     "ageRange": "Altersbereich",
@@ -141,11 +145,10 @@
     "superliked": "Superlike!",
     "title": "Benutzer entdecken",
     "username": "Benutzername",
-    "viewProfile": "Profil ansehen"
+    "viewProfile": "Profil ansehen",
+    "error": "Failed to load users."
   },
-
   "download": "Download",
-
   "error": {
     "badRequest": "Ungültige Anfrage",
     "forbidden": "Zugriff verweigert",
@@ -153,13 +156,11 @@
     "serverError": "Serverfehler",
     "unauthorized": "Nicht autorisiert"
   },
-
   "errors": {
     "username_invalid": "Benutzername muss 3–30 Zeichen haben und darf nur Buchstaben, Zahlen, Punkt, Unterstrich oder Bindestrich enthalten",
     "username_required": "Benutzername ist erforderlich",
     "username_taken": "Dieser Benutzername ist bereits vergeben"
   },
-
   "etusivu": {
     "aloita": "Loslegen",
     "heroOtsikko": "Willkommen bei Loventia.site!",
@@ -174,30 +175,28 @@
     "lue_lisaa": "Mehr erfahren",
     "tervetuloa": "Willkommen bei Loventia.site!"
   },
-
   "etusivu.heroTekstit.0": "Finde die Liebe fürs Leben.",
   "etusivu.heroTekstit.1": "Triff Menschen mit ähnlichen Werten.",
   "etusivu.heroTekstit.2": "Dein nächstes Match ist nur einen Klick entfernt.",
-
   "follow": "Folgen",
   "health": "Gesundheitshinweis",
-
   "hero": {
     "0": "Finde wahre Liebe.",
     "1": "Triff Menschen mit deinen Werten.",
     "2": "Dein nächstes Match ist nur einen Klick entfernt."
   },
-
   "home": {
     "subtitle": "Weniger wischen, besser matchen — eine Community für ernsthaftes Dating.",
-    "title": "Echte Verbindungen finden"
+    "title": "Echte Verbindungen finden",
+    "texts": [
+      "Find love that lasts.",
+      "Meet people who share your values.",
+      "Your next match is one click away."
+    ]
   },
-
   "home.subtitle": "Weniger wischen, besser matchen — eine Community für ernsthaftes Dating.",
   "home.title": "Echte Verbindungen finden",
-
   "impressum": "Impressum",
-
   "lifestyle": {
     "average": "Durchschnittlich",
     "drink": "Alkohol",
@@ -209,7 +208,6 @@
     "sober": "Suchtfrei",
     "title": "Lebensstil"
   },
-
   "likes": {
     "likeBack": "Zurückliken",
     "likedYou": "Nutzer, die dich geliked haben",
@@ -220,7 +218,6 @@
     "title": "Deine Likes",
     "viewProfile": "Profil ansehen"
   },
-
   "map": {
     "cityNotFound": "Stadt konnte nicht ermittelt werden.",
     "fetchError": "Fehler beim Abrufen der Benutzer.",
@@ -229,21 +226,18 @@
     "title": "Benutzer auf der Karte",
     "youAreHere": "Du bist hier"
   },
-
   "matches": {
     "noMatches": "Noch keine Matches.",
     "openChat": "Chat öffnen",
     "score": "Match-Score",
     "title": "Deine Matches"
   },
-
   "messages": {
     "error": "Es ist ein Fehler aufgetreten",
     "loading": "Laden…",
     "notFound": "Seite nicht gefunden",
     "success": "Aktion erfolgreich"
   },
-
   "nav": {
     "about": "Über uns",
     "admin": "Admin",
@@ -280,7 +274,6 @@
     "tagline": "Besser matchen. Klüger lieben. 💘",
     "terms": "Nutzungsbedingungen"
   },
-
   "nav.about": "Über uns",
   "nav.admin": "Admin",
   "nav.blog": "Blog",
@@ -315,14 +308,12 @@
   "nav.support": "Support",
   "nav.tagline": "Besser matchen. Klüger lieben. 💘",
   "nav.terms": "Nutzungsbedingungen",
-
   "notifications": {
     "likeReceived": "{{username}} hat dein Profil geliked",
     "matchFound": "Neues Match mit {{username}}",
     "newMessage": "Neue Nachricht von {{username}}",
     "superlikeReceived": "{{username}} hat dich supergeliked"
   },
-
   "politics": {
     "anarchism": "Anarchismus",
     "centre": "Mitte",
@@ -341,7 +332,6 @@
     "right": "Rechts",
     "socialism": "Sozialismus"
   },
-
   "premium": {
     "cancelMessage": "Du hast die Zahlung nicht abgeschlossen. Versuche es erneut.",
     "cancelTitle": "Zahlung abgebrochen",
@@ -350,9 +340,7 @@
     "successTitle": "Premium erfolgreich aktiviert",
     "updating": "Status wird aktualisiert…"
   },
-
   "press": "Presse",
-
   "profile": {
     "about": "Über mich",
     "addCaption": "Bildunterschrift hinzufügen…",
@@ -442,11 +430,14 @@
     "username": "Benutzername",
     "veryImportant": "Sehr wichtig",
     "weight": "Gewicht (kg)",
-    "weightUnit": "Gewichtseinheit"
+    "weightUnit": "Gewichtseinheit",
+    "bodyType.athletic": "Athletic",
+    "bodyType.normal": "Normal",
+    "bodyType.obese": "Obese",
+    "bodyType.overweight": "Overweight",
+    "bodyType.thin": "Thin"
   },
-
   "region": "Region / Bundesland",
-
   "religion": {
     "atheism": "Atheismus",
     "buddhism": "Buddhismus",
@@ -457,18 +448,13 @@
     "none": "Keine",
     "other": "Andere"
   },
-
   "rights": "Alle Rechte vorbehalten.",
-
   "safety": "Sicherheitstipps",
   "security": "Sicherheit",
-
   "site": {
     "title": "Loventia.site"
   },
-
   "special": "Spezial",
-
   "subnav": {
     "cupidsPicks": "Cupids Auswahl",
     "matchPercentage": "Match-Rate",
@@ -476,8 +462,20 @@
     "recommended": "Empfohlen",
     "superlikes": "SuperLikes"
   },
-
   "support": "Support",
   "tagline": "Besser verlieben. Klüger lieben. 💘",
-  "terms": "Nutzungsbedingungen"
+  "terms": "Nutzungsbedingungen",
+  "overview": {
+    "error": "Failed to load conversations"
+  },
+  "select_language_label": "Select language",
+  "settings": {
+    "dangerDescription": "When you delete your account, all your data will be permanently removed.",
+    "dangerTitle": "Danger zone",
+    "deleteButton": "Delete my account",
+    "deleteConfirm": "Are you sure you want to permanently delete your account?",
+    "deleteErrorAlert": "Account deletion failed. Please try again later.",
+    "deleteErrorConsole": "Account deletion failed:",
+    "title": "Account settings"
+  }
 }

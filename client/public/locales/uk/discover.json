@@ -14,7 +14,10 @@
     "interests": "Інтереси",
     "apply": "Застосувати фільтри",
     "reset": "Скинути",
-    "clear": "Очистити все"
+    "clear": "Очистити все",
+    "professionCategory": "💼 Profession category",
+    "politicalIdeology": "🗳 Political ideology",
+    "pets": "🐾 Pets"
   },
   "results": {
     "heading": "Результати",
@@ -36,5 +39,106 @@
   "profession": "Професія",
   "religion": "Релігія",
   "religionImportance": "Важливість релігії",
-  "username": "Ім’я користувача"
+  "username": "Ім’я користувача",
+  "labels": {
+    "header": "Discover",
+    "title": "Discover",
+    "ageRange": "Age range",
+    "username": "Username",
+    "gender": "Gender",
+    "orientation": "Orientation",
+    "education": "Education",
+    "profession": "Profession",
+    "religion": "Religion",
+    "height": "Height",
+    "weight": "Weight",
+    "aboutMe": "About me",
+    "lookingFor": "Looking for"
+  },
+  "placeholders": {
+    "select": "Please select"
+  },
+  "options": {
+    "gender": {
+      "male": "Male",
+      "female": "Female",
+      "nonbinary": "Non-binary",
+      "other": "Other",
+      "preferNot": "Prefer not to say"
+    },
+    "orientation": {
+      "straight": "Straight",
+      "gay": "Gay",
+      "lesbian": "Lesbian",
+      "bisexual": "Bisexual",
+      "asexual": "Asexual",
+      "pansexual": "Pansexual",
+      "queer": "Queer",
+      "questioning": "Questioning",
+      "other": "Other"
+    },
+    "education": {
+      "highschool": "High school",
+      "vocational": "Vocational training",
+      "bachelor": "Bachelor",
+      "master": "Master",
+      "doctorate": "Doctorate",
+      "other": "Other"
+    },
+    "religion": {
+      "agnostic": "Agnostic",
+      "atheist": "Atheist",
+      "buddhist": "Buddhist",
+      "christian": "Christian",
+      "hindu": "Hindu",
+      "jewish": "Jewish",
+      "muslim": "Muslim",
+      "spiritual": "Spiritual",
+      "other": "Other",
+      "preferNot": "Prefer not to say"
+    },
+    "profession": {
+      "student": "Student",
+      "it": "IT / Software",
+      "engineering": "Engineering",
+      "healthcare": "Healthcare",
+      "education": "Education",
+      "business": "Business / Finance",
+      "service": "Service / Retail",
+      "creative": "Creative / Media",
+      "public": "Public sector",
+      "other": "Other"
+    }
+  },
+  "gender.label": "Gender",
+  "orientation.label": "❤️ Orientation",
+  "location.country": "🌍 Country",
+  "location.region": "🗺 Region/State",
+  "location.city": "🏩 City",
+  "education.label": "🎓 Education",
+  "religion.label": "🕊 Religion",
+  "children": "👶 Children",
+  "pets": "🐾 Pets",
+  "lifestyle": "Lifestyle",
+  "smoke": "Smoke",
+  "drink": "Alcohol",
+  "drugs": "Drugs",
+  "diet": "Diet",
+  "exercise": "Exercise",
+  "aboutMe": "📄 About me",
+  "goals": "🎯 Goals",
+  "lookingFor": "🔍 Looking for",
+  "height": "Height",
+  "weight": "Weight",
+  "cm": "cm",
+  "kg": "kg",
+  "professionCategory": "💼 Profession category",
+  "actions": {
+    "apply": "Apply filters",
+    "clear": "Reset filters"
+  },
+  "state": {
+    "noResults": "No matching profiles found.",
+    "loading": "Loading…"
+  }
 }

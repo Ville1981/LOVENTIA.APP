@@ -93,7 +93,25 @@
     "Suomi": "芬兰",
     "Ukraina": "乌克兰",
     "Venäjä": "俄罗斯",
-    "Yhdysvallat": "美国"
+    "Yhdysvallat": "美国",
+    "Brazil": "Brazil",
+    "Spain": "Spain",
+    "India": "India",
+    "United Kingdom": "United Kingdom",
+    "Italy": "Italy",
+    "Japan": "Japan",
+    "Canada": "Canada",
+    "Kazakhstan": "Kazakhstan",
+    "China": "China",
+    "Norway": "Norway",
+    "Portugal": "Portugal",
+    "France": "France",
+    "Sweden": "Sweden",
+    "Germany": "Germany",
+    "Finland": "Finland",
+    "Ukraine": "Ukraine",
+    "Russia": "Russia",
+    "United States": "United States"
   },
   "country": "国家",
   "discover": {
@@ -127,7 +145,8 @@
     "superliked": "超级点赞！",
     "title": "发现用户",
     "username": "Username",
-    "viewProfile": "查看资料"
+    "viewProfile": "查看资料",
+    "error": "Failed to load users."
   },
   "download": "下载",
   "error": {
@@ -168,7 +187,12 @@
   },
   "home": {
     "subtitle": "少滑动，多匹配——为有意义的约会而建的社区。",
-    "title": "找到真正的连接"
+    "title": "找到真正的连接",
+    "texts": [
+      "Find love that lasts.",
+      "Meet people who share your values.",
+      "Your next match is one click away."
+    ]
   },
   "home.subtitle": "少滑动，多匹配——为有意义的约会而建的社区。",
   "home.title": "找到真正的连接",
@@ -397,7 +421,12 @@
     "username": "Username",
     "veryImportant": "Very important",
     "weight": "体重（公斤）",
-    "weightUnit": "Weight unit"
+    "weightUnit": "Weight unit",
+    "bodyType.athletic": "Athletic",
+    "bodyType.normal": "Normal",
+    "bodyType.obese": "Obese",
+    "bodyType.overweight": "Overweight",
+    "bodyType.thin": "Thin"
   },
   "region": "地区 / 省",
   "religion": {
@@ -426,5 +455,18 @@
   },
   "support": "支持",
   "tagline": "更好的匹配，更聪明地去爱 💘",
-  "terms": "服务条款"
+  "terms": "服务条款",
+  "overview": {
+    "error": "Failed to load conversations"
+  },
+  "select_language_label": "Select language",
+  "settings": {
+    "dangerDescription": "When you delete your account, all your data will be permanently removed.",
+    "dangerTitle": "Danger zone",
+    "deleteButton": "Delete my account",
+    "deleteConfirm": "Are you sure you want to permanently delete your account?",
+    "deleteErrorAlert": "Account deletion failed. Please try again later.",
+    "deleteErrorConsole": "Account deletion failed:",
+    "title": "Account settings"
+  }
 }

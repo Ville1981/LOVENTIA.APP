@@ -93,7 +93,25 @@
     "Suomi": "Φινλανδία",
     "Ukraina": "Ουκρανία",
     "Venäjä": "Ρωσία",
-    "Yhdysvallat": "Ηνωμένες Πολιτείες"
+    "Yhdysvallat": "Ηνωμένες Πολιτείες",
+    "Brazil": "Brazil",
+    "Spain": "Spain",
+    "India": "India",
+    "United Kingdom": "United Kingdom",
+    "Italy": "Italy",
+    "Japan": "Japan",
+    "Canada": "Canada",
+    "Kazakhstan": "Kazakhstan",
+    "China": "China",
+    "Norway": "Norway",
+    "Portugal": "Portugal",
+    "France": "France",
+    "Sweden": "Sweden",
+    "Germany": "Germany",
+    "Finland": "Finland",
+    "Ukraine": "Ukraine",
+    "Russia": "Russia",
+    "United States": "United States"
   },
   "country": "Χώρα",
   "discover": {
@@ -127,7 +145,8 @@
     "superliked": "Superlike στάλθηκε!",
     "title": "Ανακάλυψη χρηστών",
     "username": "Username",
-    "viewProfile": "Προβολή προφίλ"
+    "viewProfile": "Προβολή προφίλ",
+    "error": "Failed to load users."
   },
   "download": "Λήψη",
   "error": {
@@ -168,7 +187,12 @@
   },
   "home": {
     "subtitle": "Λιγότερα swipes, καλύτερα ταιριάσματα — κοινότητα για ουσιαστικές σχέσεις.",
-    "title": "Βρες αληθινές γνωριμίες"
+    "title": "Βρες αληθινές γνωριμίες",
+    "texts": [
+      "Find love that lasts.",
+      "Meet people who share your values.",
+      "Your next match is one click away."
+    ]
   },
   "home.subtitle": "Λιγότερα swipes, καλύτερα ταιριάσματα — κοινότητα για ουσιαστικές σχέσεις.",
   "home.title": "Βρες αληθινές γνωριμίες",
@@ -406,7 +430,12 @@
     "username": "Όνομα χρήστη",
     "veryImportant": "Πολύ σημαντική",
     "weight": "Βάρος (kg)",
-    "weightUnit": "Weight unit"
+    "weightUnit": "Weight unit",
+    "bodyType.athletic": "Athletic",
+    "bodyType.normal": "Normal",
+    "bodyType.obese": "Obese",
+    "bodyType.overweight": "Overweight",
+    "bodyType.thin": "Thin"
   },
   "region": "Περιοχή / πολιτεία",
   "religion": {
@@ -435,5 +464,18 @@
   },
   "support": "Υποστήριξη",
   "tagline": "Ταιριάξτε καλύτερα. Αγαπήστε πιο έξυπνα. 💘",
-  "terms": "Όροι"
+  "terms": "Όροι",
+  "overview": {
+    "error": "Failed to load conversations"
+  },
+  "select_language_label": "Select language",
+  "settings": {
+    "dangerDescription": "When you delete your account, all your data will be permanently removed.",
+    "dangerTitle": "Danger zone",
+    "deleteButton": "Delete my account",
+    "deleteConfirm": "Are you sure you want to permanently delete your account?",
+    "deleteErrorAlert": "Account deletion failed. Please try again later.",
+    "deleteErrorConsole": "Account deletion failed:",
+    "title": "Account settings"
+  }
 }

@@ -93,7 +93,25 @@
     "Suomi": "Финляндия",
     "Ukraina": "Украина",
     "Venäjä": "Россия",
-    "Yhdysvallat": "США"
+    "Yhdysvallat": "США",
+    "Brazil": "Brazil",
+    "Spain": "Spain",
+    "India": "India",
+    "United Kingdom": "United Kingdom",
+    "Italy": "Italy",
+    "Japan": "Japan",
+    "Canada": "Canada",
+    "Kazakhstan": "Kazakhstan",
+    "China": "China",
+    "Norway": "Norway",
+    "Portugal": "Portugal",
+    "France": "France",
+    "Sweden": "Sweden",
+    "Germany": "Germany",
+    "Finland": "Finland",
+    "Ukraine": "Ukraine",
+    "Russia": "Russia",
+    "United States": "United States"
   },
   "country": "Страна",
   "discover": {
@@ -127,7 +145,8 @@
     "superliked": "Суперлайк!",
     "title": "Найти пользователей",
     "username": "Username",
-    "viewProfile": "Посмотреть профиль"
+    "viewProfile": "Посмотреть профиль",
+    "error": "Failed to load users."
   },
   "download": "Скачать",
   "error": {
@@ -168,7 +187,12 @@
   },
   "home": {
     "subtitle": "Меньше свайпов, больше совпадений — сообщество для серьёзных знакомств.",
-    "title": "Найдите настоящие знакомства"
+    "title": "Найдите настоящие знакомства",
+    "texts": [
+      "Find love that lasts.",
+      "Meet people who share your values.",
+      "Your next match is one click away."
+    ]
   },
   "home.subtitle": "Меньше свайпов, больше совпадений — сообщество для серьёзных знакомств.",
   "home.title": "Найдите настоящие знакомства",
@@ -406,7 +430,12 @@
     "username": "Username",
     "veryImportant": "Очень важно",
     "weight": "Вес (кг)",
-    "weightUnit": "Weight unit"
+    "weightUnit": "Weight unit",
+    "bodyType.athletic": "Athletic",
+    "bodyType.normal": "Normal",
+    "bodyType.obese": "Obese",
+    "bodyType.overweight": "Overweight",
+    "bodyType.thin": "Thin"
   },
   "region": "Регион / область",
   "religion": {
@@ -435,5 +464,18 @@
   },
   "support": "Поддержка",
   "tagline": "Лучшие совпадения. Умнее люби 💘",
-  "terms": "Условия"
+  "terms": "Условия",
+  "overview": {
+    "error": "Failed to load conversations"
+  },
+  "select_language_label": "Select language",
+  "settings": {
+    "dangerDescription": "When you delete your account, all your data will be permanently removed.",
+    "dangerTitle": "Danger zone",
+    "deleteButton": "Delete my account",
+    "deleteConfirm": "Are you sure you want to permanently delete your account?",
+    "deleteErrorAlert": "Account deletion failed. Please try again later.",
+    "deleteErrorConsole": "Account deletion failed:",
+    "title": "Account settings"
+  }
 }

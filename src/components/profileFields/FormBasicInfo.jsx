@@ -117,10 +117,10 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
         >
           <option value="">{t("common:select")}</option>
           {/* Use options namespace to match JSON */}
-          <option value="male">{t("options:gender.male")}</option>
-          <option value="female">{t("options:gender.female")}</option>
+          <option value="male">{t("profile:options.gender.male")}</option>
+          <option value="female">{t("profile:options.gender.female")}</option>
           {/* Keep original minimal set; other choices exist but not required here */}
-          <option value="other">{t("options:gender.other")}</option>
+          <option value="other">{t("profile:options.gender.other")}</option>
         </select>
         {errors.gender && (
           <p
@@ -148,11 +148,11 @@ const FormBasicInfo = ({ t, hideUsernameEmail = false }) => {
           data-cy="FormBasicInfo__orientationSelect"
         >
           <option value="">{t("common:select")}</option>
-          <option value="straight">{t("options:orientation.straight")}</option>
-          <option value="gay">{t("options:orientation.gay")}</option>
+          <option value="straight">{t("profile:options.orientation.straight")}</option>
+          <option value="gay">{t("profile:options.orientation.gay")}</option>
           {/* Fix key: 'bi' → 'bisexual' to match JSON */}
-          <option value="bisexual">{t("options:orientation.bisexual")}</option>
-          <option value="other">{t("options:orientation.other")}</option>
+          <option value="bisexual">{t("profile:options.orientation.bisexual")}</option>
+          <option value="other">{t("profile:options.orientation.other")}</option>
         </select>
         {errors.orientation && (
           <p

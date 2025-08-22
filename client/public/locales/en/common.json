@@ -1,6 +1,5 @@
 {
   "appName": "Loventia",
-
   "select": "Select",
   "all": "All",
   "other": "Other",
@@ -11,14 +10,11 @@
   "update": "Update",
   "close": "Close",
   "language": "Language",
-
   "fixErrors": "Please fix the highlighted fields.",
-
   "home": {
     "title": "Welcome to Loventia.site!",
     "subtitle": "Find meaningful connections easily and safely."
   },
-
   "nav": {
     "home": "Home",
     "discover": "Discover",
@@ -28,7 +24,6 @@
     "logout": "Logout",
     "admin": "Admin"
   },
-
   "religion": {
     "christianity": "Christianity",
     "islam": "Islam",

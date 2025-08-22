@@ -6,12 +6,12 @@ import { useFormContext } from "react-hook-form";
 
 /**
  * FormChildrenPets
- * Lomakeosio: lapset ja lemmikit
- * Käyttää RHF-kontekstia kenttien rekisteröintiin ja virheiden näyttöön.
+ * Form section: children and pets
+ * Uses RHF context for field registration and error display.
  *
  * Props:
- *   t: lokalisointifunktio (required)
- *   includeAllOption: lisää "All"–valinnan ylös (oletus false)
+ *   t: i18n translate function (required)
+ *   includeAllOption: adds an "All" option at the top (default false)
  */
 const FormChildrenPets = ({ t, includeAllOption = false }) => {
   const {
@@ -24,7 +24,7 @@ const FormChildrenPets = ({ t, includeAllOption = false }) => {
       className="flex flex-col gap-4 w-full text-left"
       data-cy="FormChildrenPets__section"
     >
-      {/* Lapset */}
+      {/* Children */}
       <div className="w-full">
         <label htmlFor="children" className="block font-medium mb-1">
           👶 {t("profile:children")}
@@ -52,7 +52,7 @@ const FormChildrenPets = ({ t, includeAllOption = false }) => {
         )}
       </div>
 
-      {/* Lemmikit */}
+      {/* Pets */}
       <div className="w-full">
         <label htmlFor="pets" className="block font-medium mb-1">
           🐾 {t("profile:pets")}
@@ -65,11 +65,15 @@ const FormChildrenPets = ({ t, includeAllOption = false }) => {
         >
           {includeAllOption && <option value="">{t("common:all")}</option>}
           <option value="">{t("common:select")}</option>
-          <option value="Kissa">{t("profile:pets.cat")}</option>
-          <option value="Koira">{t("profile:pets.dog")}</option>
-          <option value="Molemmat">{t("profile:pets.both")}</option>
+
+          {/* --- REPLACE START: unify i18n keys to profile:options.pets.* --- */}
+          {/* Use the options namespace so DE/EN map 1:1 and don't fallback. */}
+          <option value="Kissa">{t("profile:options.pets.cat")}</option>
+          <option value="Koira">{t("profile:options.pets.dog")}</option>
+          <option value="Molemmat">{t("profile:options.pets.both")}</option>
           <option value="Muu">{t("common:other")}</option>
-          <option value="Ei lemmikkiä">{t("profile:pets.none")}</option>
+          <option value="Ei lemmikkiä">{t("profile:options.pets.none")}</option>
+          {/* --- REPLACE END --- */}
         </select>
         {errors.pets && (
           <p

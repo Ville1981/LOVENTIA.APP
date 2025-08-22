@@ -94,7 +94,25 @@
     "Suomi": "Finlande",
     "Ukraina": "Ukraine",
     "Venäjä": "Russie",
-    "Yhdysvallat": "États-Unis"
+    "Yhdysvallat": "États-Unis",
+    "Brazil": "Brazil",
+    "Spain": "Spain",
+    "India": "India",
+    "United Kingdom": "United Kingdom",
+    "Italy": "Italy",
+    "Japan": "Japan",
+    "Canada": "Canada",
+    "Kazakhstan": "Kazakhstan",
+    "China": "China",
+    "Norway": "Norway",
+    "Portugal": "Portugal",
+    "France": "France",
+    "Sweden": "Sweden",
+    "Germany": "Germany",
+    "Finland": "Finland",
+    "Ukraine": "Ukraine",
+    "Russia": "Russia",
+    "United States": "United States"
   },
   "country": "Pays",
   "discover": {
@@ -128,7 +146,8 @@
     "superliked": "Superlike !",
     "title": "Découvrir des utilisateurs",
     "username": "Username",
-    "viewProfile": "Voir le profil"
+    "viewProfile": "Voir le profil",
+    "error": "Failed to load users."
   },
   "download": "Télécharger",
   "error": {
@@ -169,7 +188,12 @@
   },
   "home": {
     "subtitle": "Moins de swipe, de meilleurs matchs — une communauté pour des rencontres sincères.",
-    "title": "Trouvez de vraies connexions"
+    "title": "Trouvez de vraies connexions",
+    "texts": [
+      "Find love that lasts.",
+      "Meet people who share your values.",
+      "Your next match is one click away."
+    ]
   },
   "home.subtitle": "Moins de swipe, de meilleurs matchs — une communauté pour des rencontres sincères.",
   "home.title": "Trouvez de vraies connexions",
@@ -413,7 +437,12 @@
     "username": "Username",
     "veryImportant": "Très important",
     "weight": "Poids (kg)",
-    "weightUnit": "Weight unit"
+    "weightUnit": "Weight unit",
+    "bodyType.athletic": "Athletic",
+    "bodyType.normal": "Normal",
+    "bodyType.obese": "Obese",
+    "bodyType.overweight": "Overweight",
+    "bodyType.thin": "Thin"
   },
   "region": "Région / état",
   "religion": {
@@ -442,5 +471,18 @@
   },
   "support": "Support",
   "tagline": "Mieux matcher. Aimer plus intelligemment. 💘",
-  "terms": "Conditions"
+  "terms": "Conditions",
+  "overview": {
+    "error": "Failed to load conversations"
+  },
+  "select_language_label": "Select language",
+  "settings": {
+    "dangerDescription": "When you delete your account, all your data will be permanently removed.",
+    "dangerTitle": "Danger zone",
+    "deleteButton": "Delete my account",
+    "deleteConfirm": "Are you sure you want to permanently delete your account?",
+    "deleteErrorAlert": "Account deletion failed. Please try again later.",
+    "deleteErrorConsole": "Account deletion failed:",
+    "title": "Account settings"
+  }
 }

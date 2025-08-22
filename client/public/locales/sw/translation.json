@@ -102,7 +102,25 @@
     "Suomi": "Finland",
     "Ukraina": "Ukraine",
     "Venäjä": "Russia",
-    "Yhdysvallat": "United States"
+    "Yhdysvallat": "United States",
+    "Brazil": "Brazil",
+    "Spain": "Spain",
+    "India": "India",
+    "United Kingdom": "United Kingdom",
+    "Italy": "Italy",
+    "Japan": "Japan",
+    "Canada": "Canada",
+    "Kazakhstan": "Kazakhstan",
+    "China": "China",
+    "Norway": "Norway",
+    "Portugal": "Portugal",
+    "France": "France",
+    "Sweden": "Sweden",
+    "Germany": "Germany",
+    "Finland": "Finland",
+    "Ukraine": "Ukraine",
+    "Russia": "Russia",
+    "United States": "United States"
   },
   "country": "Nchi",
   "discover": {
@@ -136,7 +154,8 @@
     "superliked": "Superlike!",
     "title": "Gundua watumiaji",
     "username": "Username",
-    "viewProfile": "Tazama wasifu"
+    "viewProfile": "Tazama wasifu",
+    "error": "Failed to load users."
   },
   "download": "Pakua",
   "error": {
@@ -177,7 +196,12 @@
   },
   "home": {
     "subtitle": "Swipe kidogo, mechi bora — jamii ya uchumba wa maana.",
-    "title": "Pata mahusiano ya kweli"
+    "title": "Pata mahusiano ya kweli",
+    "texts": [
+      "Find love that lasts.",
+      "Meet people who share your values.",
+      "Your next match is one click away."
+    ]
   },
   "home.subtitle": "Swipe kidogo, mechi bora — jamii ya uchumba wa maana.",
   "home.title": "Pata mahusiano ya kweli",
@@ -415,7 +439,12 @@
     "username": "Jina la mtumiaji",
     "veryImportant": "Muhimu sana",
     "weight": "Uzito (kg)",
-    "weightUnit": "Weight unit"
+    "weightUnit": "Weight unit",
+    "bodyType.athletic": "Athletic",
+    "bodyType.normal": "Normal",
+    "bodyType.obese": "Obese",
+    "bodyType.overweight": "Overweight",
+    "bodyType.thin": "Thin"
   },
   "region": "Mkoa / jimbo",
   "religion": {
@@ -444,5 +473,18 @@
   },
   "support": "Usaidizi",
   "tagline": "Linganishwa vizuri. Penda kwa akili. 💘",
-  "terms": "Masharti"
+  "terms": "Masharti",
+  "overview": {
+    "error": "Failed to load conversations"
+  },
+  "select_language_label": "Select language",
+  "settings": {
+    "dangerDescription": "When you delete your account, all your data will be permanently removed.",
+    "dangerTitle": "Danger zone",
+    "deleteButton": "Delete my account",
+    "deleteConfirm": "Are you sure you want to permanently delete your account?",
+    "deleteErrorAlert": "Account deletion failed. Please try again later.",
+    "deleteErrorConsole": "Account deletion failed:",
+    "title": "Account settings"
+  }
 }

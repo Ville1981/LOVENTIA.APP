@@ -93,7 +93,25 @@
     "Suomi": "Finland",
     "Ukraina": "Ukraina",
     "Venäjä": "Ryssland",
-    "Yhdysvallat": "USA"
+    "Yhdysvallat": "USA",
+    "Brazil": "Brazil",
+    "Spain": "Spain",
+    "India": "India",
+    "United Kingdom": "United Kingdom",
+    "Italy": "Italy",
+    "Japan": "Japan",
+    "Canada": "Canada",
+    "Kazakhstan": "Kazakhstan",
+    "China": "China",
+    "Norway": "Norway",
+    "Portugal": "Portugal",
+    "France": "France",
+    "Sweden": "Sweden",
+    "Germany": "Germany",
+    "Finland": "Finland",
+    "Ukraine": "Ukraine",
+    "Russia": "Russia",
+    "United States": "United States"
   },
   "country": "Land",
   "discover": {
@@ -127,7 +145,8 @@
     "superliked": "Superlike!",
     "title": "Upptäck användare",
     "username": "Username",
-    "viewProfile": "Visa profil"
+    "viewProfile": "Visa profil",
+    "error": "Failed to load users."
   },
   "download": "Ladda ner",
   "error": {
@@ -168,7 +187,12 @@
   },
   "home": {
     "subtitle": "Mindre swipande, bättre matcher — gå med i en meningsfull gemenskap.",
-    "title": "Hitta äkta kontakter"
+    "title": "Hitta äkta kontakter",
+    "texts": [
+      "Find love that lasts.",
+      "Meet people who share your values.",
+      "Your next match is one click away."
+    ]
   },
   "home.subtitle": "Mindre swipande, bättre matcher — gå med i en meningsfull gemenskap.",
   "home.title": "Hitta äkta kontakter",
@@ -406,7 +430,12 @@
     "username": "Username",
     "veryImportant": "Mycket viktig",
     "weight": "Vikt (kg)",
-    "weightUnit": "Weight unit"
+    "weightUnit": "Weight unit",
+    "bodyType.athletic": "Athletic",
+    "bodyType.normal": "Normal",
+    "bodyType.obese": "Obese",
+    "bodyType.overweight": "Overweight",
+    "bodyType.thin": "Thin"
   },
   "region": "Region / län",
   "religion": {
@@ -435,5 +464,18 @@
   },
   "support": "Support",
   "tagline": "Bättre matchningar. Älska smartare. 💘",
-  "terms": "Villkor"
+  "terms": "Villkor",
+  "overview": {
+    "error": "Failed to load conversations"
+  },
+  "select_language_label": "Select language",
+  "settings": {
+    "dangerDescription": "When you delete your account, all your data will be permanently removed.",
+    "dangerTitle": "Danger zone",
+    "deleteButton": "Delete my account",
+    "deleteConfirm": "Are you sure you want to permanently delete your account?",
+    "deleteErrorAlert": "Account deletion failed. Please try again later.",
+    "deleteErrorConsole": "Account deletion failed:",
+    "title": "Account settings"
+  }
 }

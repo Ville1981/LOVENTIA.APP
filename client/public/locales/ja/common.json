@@ -22,5 +22,16 @@
     "register": "登録",
     "logout": "Logout",
     "admin": "管理"
+  },
+  "other": "Other",
+  "religion": {
+    "christianity": "Christianity",
+    "islam": "Islam",
+    "hinduism": "Hinduism",
+    "buddhism": "Buddhism",
+    "folk": "Folk religion",
+    "none": "None",
+    "other": "Other",
+    "atheism": "Atheism"
   }
 }
