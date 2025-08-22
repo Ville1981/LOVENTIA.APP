@@ -52,46 +52,46 @@ const professionCategories = [
 
 // --- REPLACE START: add key maps so we can translate reliably even with spaces/camelCase ---
 const PROF_KEY_BY_LABEL = {
-  "Administration": "administration",
-  "Finance": "finance",
-  "Military": "military",
-  "Technical": "technical",
-  "Healthcare": "healthcare",
-  "Education": "education",
-  "Entrepreneur": "entrepreneur",
-  "Law": "law",
+  Administration: "administration",
+  Finance: "finance",
+  Military: "military",
+  Technical: "technical",
+  Healthcare: "healthcare",
+  Education: "education",
+  Entrepreneur: "entrepreneur",
+  Law: "law",
   "Farmer/Forest worker": "farmerForestWorker",
   "Theologian/Priest": "theologianPriest",
-  "Service": "service",
-  "Artist": "artist",
-  "DivineServant": "divineServant",
-  "Homeparent": "homeparent",
-  "FoodIndustry": "foodIndustry",
-  "Retail": "retail",
-  "Arts": "arts",
-  "Government": "government",
-  "Retired": "retired",
-  "Athlete": "athlete",
-  "Other": "other",
+  Service: "service",
+  Artist: "artist",
+  DivineServant: "divineServant",
+  Homeparent: "homeparent",
+  FoodIndustry: "foodIndustry",
+  Retail: "retail",
+  Arts: "arts",
+  Government: "government",
+  Retired: "retired",
+  Athlete: "athlete",
+  Other: "other",
 };
 
 const POL_KEY_BY_LABEL = {
-  "Left": "left",
-  "Centre": "centre",
-  "Right": "right",
-  "Conservatism": "conservatism",
-  "Liberalism": "liberalism",
-  "Socialism": "socialism",
-  "Communism": "communism",
-  "Fascism": "fascism",
-  "Environmentalism": "environmentalism",
-  "Anarchism": "anarchism",
-  "Nationalism": "nationalism",
-  "Populism": "populism",
-  "Progressivism": "progressivism",
-  "Libertarianism": "libertarianism",
-  "Democracy": "democracy",
-  "Other": "other",
+  Left: "left",
+  Centre: "centre",
+  Right: "right",
+  Conservatism: "conservatism",
+  Liberalism: "liberalism",
+  Socialism: "socialism",
+  Communism: "communism",
+  Fascism: "fascism",
+  Environmentalism: "environmentalism",
+  Anarchism: "anarchism",
+  Nationalism: "nationalism",
+  Populism: "populism",
+  Progressivism: "progressivism",
+  Libertarianism: "libertarianism",
+  Democracy: "democracy",
+  Other: "other",
 };
 // --- REPLACE END ---
 
@@ -338,7 +338,7 @@ export default function ProfileForm({
       ...current,
       nutritionPreferences: Array.isArray(user.nutritionPreferences)
         ? user.nutritionPreferences[0]
-        : (current.nutritionPreferences ?? user.nutritionPreferences ?? ""),
+        : current.nutritionPreferences ?? user.nutritionPreferences ?? "",
       extraImages: current.extraImages ?? user.extraImages ?? [],
       profilePhoto: current.profilePhoto ?? user.profilePicture ?? "",
       politicalIdeology:
@@ -391,7 +391,7 @@ export default function ProfileForm({
       profilePhoto: data.profilePhoto,
     };
 
-    console.log((`[ProfileForm] Submitting payload (normalized):`, payload));
+    console.log("[ProfileForm] Submitting payload (normalized):", payload);
     await onSubmitProp?.(payload);
   };
 
@@ -422,7 +422,7 @@ export default function ProfileForm({
     return () => clearInterval(iv);
   }, [slideshowImages]);
 
-  // --- REPLACE START: helpers to translate with both key styles (space/camelCase) ---
+  // --- REPLACE START: helpers to translate with both key styles (space/camelCase) and prefer options.* ---
   const tProfessionLabel = () => {
     return (
       t("profile:Profession category", { defaultValue: "" }) ||
@@ -435,6 +435,9 @@ export default function ProfileForm({
   const tProfessionOption = (opt) => {
     const key = PROF_KEY_BY_LABEL[opt] || opt.toLowerCase();
     return (
+      // Prefer the canonical options.* namespace first
+      t(`profile:options.professionCategory.${key}`, { defaultValue: "" }) ||
+      // Fallbacks for older keys kept intentionally
       t(`profile:Profession category.${key}`, { defaultValue: "" }) ||
       t(`profile:professionCategory.${key}`, { defaultValue: "" }) ||
       opt
@@ -451,7 +454,14 @@ export default function ProfileForm({
 
   const tPoliticalOption = (opt) => {
     const key = POL_KEY_BY_LABEL[opt] || opt.toLowerCase();
-    return t(`profile:Political ideology.${key}`, { defaultValue: opt });
+    return (
+      // Prefer the canonical options.* namespace first
+      t(`profile:options.politicalIdeology.${key}`, { defaultValue: "" }) ||
+      // Fallbacks for older keys kept intentionally
+      t(`profile:Political ideology.${key}`, { defaultValue: opt }) ||
+      t(`profile:politicalIdeology.${key}`, { defaultValue: opt }) ||
+      opt
+    );
   };
   // --- REPLACE END ---
 

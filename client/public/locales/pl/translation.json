@@ -93,7 +93,25 @@
     "Suomi": "Finlandia",
     "Ukraina": "Ukraina",
     "Venäjä": "Rosja",
-    "Yhdysvallat": "Stany Zjednoczone"
+    "Yhdysvallat": "Stany Zjednoczone",
+    "Brazil": "Brazil",
+    "Spain": "Spain",
+    "India": "India",
+    "United Kingdom": "United Kingdom",
+    "Italy": "Italy",
+    "Japan": "Japan",
+    "Canada": "Canada",
+    "Kazakhstan": "Kazakhstan",
+    "China": "China",
+    "Norway": "Norway",
+    "Portugal": "Portugal",
+    "France": "France",
+    "Sweden": "Sweden",
+    "Germany": "Germany",
+    "Finland": "Finland",
+    "Ukraine": "Ukraine",
+    "Russia": "Russia",
+    "United States": "United States"
   },
   "country": "Kraj",
   "discover": {
@@ -127,7 +145,8 @@
     "superliked": "Superlike!",
     "title": "Odkryj użytkowników",
     "username": "Username",
-    "viewProfile": "Zobacz profil"
+    "viewProfile": "Zobacz profil",
+    "error": "Failed to load users."
   },
   "download": "Pobierz",
   "error": {
@@ -168,7 +187,12 @@
   },
   "home": {
     "subtitle": "Mniej swipe’ów, lepsze dopasowania — społeczność dla poważnych relacji.",
-    "title": "Znajdź prawdziwe relacje"
+    "title": "Znajdź prawdziwe relacje",
+    "texts": [
+      "Find love that lasts.",
+      "Meet people who share your values.",
+      "Your next match is one click away."
+    ]
   },
   "home.subtitle": "Mniej swipe’ów, lepsze dopasowania — społeczność dla poważnych relacji.",
   "home.title": "Znajdź prawdziwe relacje",
@@ -406,7 +430,12 @@
     "username": "Nazwa użytkownika",
     "veryImportant": "Bardzo ważna",
     "weight": "Waga (kg)",
-    "weightUnit": "Weight unit"
+    "weightUnit": "Weight unit",
+    "bodyType.athletic": "Athletic",
+    "bodyType.normal": "Normal",
+    "bodyType.obese": "Obese",
+    "bodyType.overweight": "Overweight",
+    "bodyType.thin": "Thin"
   },
   "region": "Region / województwo",
   "religion": {
@@ -435,5 +464,18 @@
   },
   "support": "Wsparcie",
   "tagline": "Dopasuj się lepiej. Kochaj mądrzej. 💘",
-  "terms": "Warunki"
+  "terms": "Warunki",
+  "overview": {
+    "error": "Failed to load conversations"
+  },
+  "select_language_label": "Select language",
+  "settings": {
+    "dangerDescription": "When you delete your account, all your data will be permanently removed.",
+    "dangerTitle": "Danger zone",
+    "deleteButton": "Delete my account",
+    "deleteConfirm": "Are you sure you want to permanently delete your account?",
+    "deleteErrorAlert": "Account deletion failed. Please try again later.",
+    "deleteErrorConsole": "Account deletion failed:",
+    "title": "Account settings"
+  }
 }

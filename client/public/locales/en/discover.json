@@ -14,11 +14,9 @@
     "aboutMe": "About me",
     "lookingFor": "Looking for"
   },
-
   "placeholders": {
     "select": "Please select"
   },
-
   "options": {
     "gender": {
       "male": "Male",
@@ -71,26 +69,19 @@
       "other": "Other"
     }
   },
-
   "instructions": "Choose filters to find matching profiles",
-
   "ageRange": "Age range",
   "username": "Username",
-
   "gender.label": "Gender",
   "orientation.label": "❤️ Orientation",
-
   "location.country": "🌍 Country",
   "location.region": "🗺 Region/State",
   "location.city": "🏩 City",
-
   "education.label": "🎓 Education",
   "profession": "💼 Profession",
-
   "religion.label": "🕊 Religion",
   "religionImportance": "Religion importance",
   "politicalIdeology": "🗳 Political ideology",
-
   "children": "👶 Children",
   "pets": "🐾 Pets",
   "lifestyle": "Lifestyle",
@@ -99,29 +90,23 @@
   "drugs": "Drugs",
   "diet": "Diet",
   "exercise": "Exercise",
-
   "aboutMe": "📄 About me",
   "goals": "🎯 Goals",
   "lookingFor": "🔍 Looking for",
-
   "height": "Height",
   "weight": "Weight",
   "cm": "cm",
   "kg": "kg",
-
   "filters": {
     "professionCategory": "💼 Profession category",
     "politicalIdeology": "🗳 Political ideology",
     "pets": "🐾 Pets"
   },
-
   "professionCategory": "💼 Profession category",
-
   "actions": {
     "apply": "Apply filters",
     "clear": "Reset filters"
   },
-
   "state": {
     "noResults": "No matching profiles found.",
     "loading": "Loading…"

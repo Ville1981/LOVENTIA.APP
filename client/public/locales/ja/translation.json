@@ -93,7 +93,25 @@
     "Suomi": "フィンランド",
     "Ukraina": "ウクライナ",
     "Venäjä": "ロシア",
-    "Yhdysvallat": "アメリカ合衆国"
+    "Yhdysvallat": "アメリカ合衆国",
+    "Brazil": "Brazil",
+    "Spain": "Spain",
+    "India": "India",
+    "United Kingdom": "United Kingdom",
+    "Italy": "Italy",
+    "Japan": "Japan",
+    "Canada": "Canada",
+    "Kazakhstan": "Kazakhstan",
+    "China": "China",
+    "Norway": "Norway",
+    "Portugal": "Portugal",
+    "France": "France",
+    "Sweden": "Sweden",
+    "Germany": "Germany",
+    "Finland": "Finland",
+    "Ukraine": "Ukraine",
+    "Russia": "Russia",
+    "United States": "United States"
   },
   "country": "国",
   "discover": {
@@ -127,7 +145,8 @@
     "superliked": "スーパーライク！",
     "title": "ユーザーを探す",
     "username": "Username",
-    "viewProfile": "プロフィールを見る"
+    "viewProfile": "プロフィールを見る",
+    "error": "Failed to load users."
   },
   "download": "ダウンロード",
   "error": {
@@ -168,7 +187,12 @@
   },
   "home": {
     "subtitle": "スワイプは少なく、マッチはより良く。意味ある出会いのコミュニティへ.",
-    "title": "本当のつながりを見つけよう"
+    "title": "本当のつながりを見つけよう",
+    "texts": [
+      "Find love that lasts.",
+      "Meet people who share your values.",
+      "Your next match is one click away."
+    ]
   },
   "home.subtitle": "スワイプは少なく、マッチはより良く。意味ある出会いのコミュニティへ.",
   "home.title": "本当のつながりを見つけよう",
@@ -406,7 +430,12 @@
     "username": "Username",
     "veryImportant": "非常に重要",
     "weight": "体重 (kg)",
-    "weightUnit": "Weight unit"
+    "weightUnit": "Weight unit",
+    "bodyType.athletic": "Athletic",
+    "bodyType.normal": "Normal",
+    "bodyType.obese": "Obese",
+    "bodyType.overweight": "Overweight",
+    "bodyType.thin": "Thin"
   },
   "region": "地域 / 都道府県",
   "religion": {
@@ -435,5 +464,18 @@
   },
   "support": "サポート",
   "tagline": "より良いマッチング。賢く愛そう。💘",
-  "terms": "利用規約"
+  "terms": "利用規約",
+  "overview": {
+    "error": "Failed to load conversations"
+  },
+  "select_language_label": "Select language",
+  "settings": {
+    "dangerDescription": "When you delete your account, all your data will be permanently removed.",
+    "dangerTitle": "Danger zone",
+    "deleteButton": "Delete my account",
+    "deleteConfirm": "Are you sure you want to permanently delete your account?",
+    "deleteErrorAlert": "Account deletion failed. Please try again later.",
+    "deleteErrorConsole": "Account deletion failed:",
+    "title": "Account settings"
+  }
 }

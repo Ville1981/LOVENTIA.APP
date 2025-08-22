@@ -93,7 +93,25 @@
     "Suomi": "פינלנד",
     "Ukraina": "אוקראינה",
     "Venäjä": "רוסיה",
-    "Yhdysvallat": "ארצות הברית"
+    "Yhdysvallat": "ארצות הברית",
+    "Brazil": "Brazil",
+    "Spain": "Spain",
+    "India": "India",
+    "United Kingdom": "United Kingdom",
+    "Italy": "Italy",
+    "Japan": "Japan",
+    "Canada": "Canada",
+    "Kazakhstan": "Kazakhstan",
+    "China": "China",
+    "Norway": "Norway",
+    "Portugal": "Portugal",
+    "France": "France",
+    "Sweden": "Sweden",
+    "Germany": "Germany",
+    "Finland": "Finland",
+    "Ukraine": "Ukraine",
+    "Russia": "Russia",
+    "United States": "United States"
   },
   "country": "מדינה",
   "discover": {
@@ -127,7 +145,8 @@
     "superliked": "סופר לייק נשלח!",
     "title": "גלה משתמשים",
     "username": "Username",
-    "viewProfile": "הצג פרופיל"
+    "viewProfile": "הצג פרופיל",
+    "error": "Failed to load users."
   },
   "download": "הורדה",
   "error": {
@@ -168,7 +187,12 @@
   },
   "home": {
     "subtitle": "פחות סווייפים, יותר התאמות — קהילה למערכות יחסים משמעותיות.",
-    "title": "מצאו קשרים אמיתיים"
+    "title": "מצאו קשרים אמיתיים",
+    "texts": [
+      "Find love that lasts.",
+      "Meet people who share your values.",
+      "Your next match is one click away."
+    ]
   },
   "home.subtitle": "פחות סווייפים, יותר התאמות — קהילה למערכות יחסים משמעותיות.",
   "home.title": "מצאו קשרים אמיתיים",
@@ -406,7 +430,12 @@
     "username": "שם משתמש",
     "veryImportant": "חשוב מאוד",
     "weight": "משקל (ק\"ג)",
-    "weightUnit": "Weight unit"
+    "weightUnit": "Weight unit",
+    "bodyType.athletic": "Athletic",
+    "bodyType.normal": "Normal",
+    "bodyType.obese": "Obese",
+    "bodyType.overweight": "Overweight",
+    "bodyType.thin": "Thin"
   },
   "region": "אזור / מדינה",
   "religion": {
@@ -435,5 +464,18 @@
   },
   "support": "תמיכה",
   "tagline": "התאימו טוב יותר. תאהבו חכם יותר. 💘",
-  "terms": "תנאים"
+  "terms": "תנאים",
+  "overview": {
+    "error": "Failed to load conversations"
+  },
+  "select_language_label": "Select language",
+  "settings": {
+    "dangerDescription": "When you delete your account, all your data will be permanently removed.",
+    "dangerTitle": "Danger zone",
+    "deleteButton": "Delete my account",
+    "deleteConfirm": "Are you sure you want to permanently delete your account?",
+    "deleteErrorAlert": "Account deletion failed. Please try again later.",
+    "deleteErrorConsole": "Account deletion failed:",
+    "title": "Account settings"
+  }
 }

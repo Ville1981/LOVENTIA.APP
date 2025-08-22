@@ -22,5 +22,16 @@
     "register": "Εγγραφή",
     "logout": "Logout",
     "admin": "Διαχειριστής"
+  },
+  "other": "Other",
+  "religion": {
+    "christianity": "Christianity",
+    "islam": "Islam",
+    "hinduism": "Hinduism",
+    "buddhism": "Buddhism",
+    "folk": "Folk religion",
+    "none": "None",
+    "other": "Other",
+    "atheism": "Atheism"
   }
 }

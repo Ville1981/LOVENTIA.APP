@@ -93,7 +93,25 @@
     "Suomi": "Suomi",
     "Ukraina": "Ukraina",
     "Venäjä": "Venäjä",
-    "Yhdysvallat": "Yhdysvallat"
+    "Yhdysvallat": "Yhdysvallat",
+    "Brazil": "Brazil",
+    "Spain": "Spain",
+    "India": "India",
+    "United Kingdom": "United Kingdom",
+    "Italy": "Italy",
+    "Japan": "Japan",
+    "Canada": "Canada",
+    "Kazakhstan": "Kazakhstan",
+    "China": "China",
+    "Norway": "Norway",
+    "Portugal": "Portugal",
+    "France": "France",
+    "Sweden": "Sweden",
+    "Germany": "Germany",
+    "Finland": "Finland",
+    "Ukraine": "Ukraine",
+    "Russia": "Russia",
+    "United States": "United States"
   },
   "country": "Maa",
   "discover": {
@@ -129,7 +147,8 @@
     "title": "Löydä käyttäjiä",
     "upgradeNow": "Päivitä nyt",
     "username": "Username",
-    "viewProfile": "Näytä profiili"
+    "viewProfile": "Näytä profiili",
+    "error": "Failed to load users."
   },
   "download": "Lataa",
   "error": {
@@ -170,7 +189,12 @@
   },
   "home": {
     "subtitle": "Vähemmän swippausta, parempia osumia — liity merkitykselliseen yhteisöön.",
-    "title": "Löydä aitoja yhteyksiä"
+    "title": "Löydä aitoja yhteyksiä",
+    "texts": [
+      "Find love that lasts.",
+      "Meet people who share your values.",
+      "Your next match is one click away."
+    ]
   },
   "home.subtitle": "Vähemmän swippausta, parempia osumia — liity merkitykselliseen yhteisöön.",
   "home.title": "Löydä aitoja yhteyksiä",
@@ -399,7 +423,12 @@
     "username": "Käyttäjänimi",
     "veryImportant": "Erittäin tärkeä",
     "weight": "Paino (kg)",
-    "weightUnit": "Painoyksikkö"
+    "weightUnit": "Painoyksikkö",
+    "bodyType.athletic": "Athletic",
+    "bodyType.normal": "Normal",
+    "bodyType.obese": "Obese",
+    "bodyType.overweight": "Overweight",
+    "bodyType.thin": "Thin"
   },
   "region": "Alue / lääni",
   "religion": {
@@ -428,5 +457,18 @@
   },
   "support": "Tuki",
   "tagline": "Match better. Love smarter. 💘",
-  "terms": "Käyttöehdot"
+  "terms": "Käyttöehdot",
+  "overview": {
+    "error": "Failed to load conversations"
+  },
+  "select_language_label": "Select language",
+  "settings": {
+    "dangerDescription": "When you delete your account, all your data will be permanently removed.",
+    "dangerTitle": "Danger zone",
+    "deleteButton": "Delete my account",
+    "deleteConfirm": "Are you sure you want to permanently delete your account?",
+    "deleteErrorAlert": "Account deletion failed. Please try again later.",
+    "deleteErrorConsole": "Account deletion failed:",
+    "title": "Account settings"
+  }
 }

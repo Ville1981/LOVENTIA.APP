@@ -1,6 +1,5 @@
 {
   "appName": "Loventia",
-
   "select": "Bitte wählen",
   "all": "Alle",
   "other": "Andere",
@@ -11,14 +10,11 @@
   "update": "Aktualisieren",
   "close": "Schließen",
   "language": "Sprache",
-
   "fixErrors": "Bitte beheben Sie die markierten Felder.",
-
   "home": {
     "title": "Willkommen bei Loventia.site!",
     "subtitle": "Finde einfach und sicher bedeutungsvolle Verbindungen."
   },
-
   "nav": {
     "home": "Startseite",
     "discover": "Entdecken",
@@ -28,7 +24,6 @@
     "logout": "Abmelden",
     "admin": "Admin"
   },
-
   "religion": {
     "christianity": "Christentum",
     "islam": "Islam",

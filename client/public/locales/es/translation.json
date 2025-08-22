@@ -93,7 +93,25 @@
     "Suomi": "Finlandia",
     "Ukraina": "Ucrania",
     "Venäjä": "Rusia",
-    "Yhdysvallat": "Estados Unidos"
+    "Yhdysvallat": "Estados Unidos",
+    "Brazil": "Brazil",
+    "Spain": "Spain",
+    "India": "India",
+    "United Kingdom": "United Kingdom",
+    "Italy": "Italy",
+    "Japan": "Japan",
+    "Canada": "Canada",
+    "Kazakhstan": "Kazakhstan",
+    "China": "China",
+    "Norway": "Norway",
+    "Portugal": "Portugal",
+    "France": "France",
+    "Sweden": "Sweden",
+    "Germany": "Germany",
+    "Finland": "Finland",
+    "Ukraine": "Ukraine",
+    "Russia": "Russia",
+    "United States": "United States"
   },
   "country": "País",
   "discover": {
@@ -127,7 +145,8 @@
     "superliked": "¡Superlike!",
     "title": "Descubrir usuarios",
     "username": "Username",
-    "viewProfile": "Ver perfil"
+    "viewProfile": "Ver perfil",
+    "error": "Failed to load users."
   },
   "download": "Descargar",
   "error": {
@@ -168,7 +187,12 @@
   },
   "home": {
     "subtitle": "Menos deslizamientos, mejores matches — una comunidad para citas con sentido.",
-    "title": "Encuentra conexiones reales"
+    "title": "Encuentra conexiones reales",
+    "texts": [
+      "Find love that lasts.",
+      "Meet people who share your values.",
+      "Your next match is one click away."
+    ]
   },
   "home.subtitle": "Menos deslizamientos, mejores matches — una comunidad para citas con sentido.",
   "home.title": "Encuentra conexiones reales",
@@ -406,7 +430,12 @@
     "username": "Username",
     "veryImportant": "Muy importante",
     "weight": "Peso (kg)",
-    "weightUnit": "Weight unit"
+    "weightUnit": "Weight unit",
+    "bodyType.athletic": "Athletic",
+    "bodyType.normal": "Normal",
+    "bodyType.obese": "Obese",
+    "bodyType.overweight": "Overweight",
+    "bodyType.thin": "Thin"
   },
   "region": "Región / estado",
   "religion": {
@@ -435,5 +464,18 @@
   },
   "support": "Soporte",
   "tagline": "Mejores coincidencias. Ama con inteligencia 💘",
-  "terms": "Términos"
+  "terms": "Términos",
+  "overview": {
+    "error": "Failed to load conversations"
+  },
+  "select_language_label": "Select language",
+  "settings": {
+    "dangerDescription": "When you delete your account, all your data will be permanently removed.",
+    "dangerTitle": "Danger zone",
+    "deleteButton": "Delete my account",
+    "deleteConfirm": "Are you sure you want to permanently delete your account?",
+    "deleteErrorAlert": "Account deletion failed. Please try again later.",
+    "deleteErrorConsole": "Account deletion failed:",
+    "title": "Account settings"
+  }
 }

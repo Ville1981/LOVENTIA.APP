@@ -14,11 +14,9 @@
     "aboutMe": "Über mich",
     "lookingFor": "Wonach ich suche"
   },
-
   "placeholders": {
     "select": "Bitte wählen"
   },
-
   "options": {
     "gender": {
       "male": "Männlich",
@@ -71,26 +69,19 @@
       "other": "Andere"
     }
   },
-
   "instructions": "Wähle Filter, um passende Profile zu finden",
-
   "ageRange": "Altersbereich",
   "username": "Benutzername",
-
   "gender.label": "Geschlecht",
   "orientation.label": "❤️ Orientierung",
-
   "location.country": "🌍 Land",
   "location.region": "🗺 Region/Bundesland",
   "location.city": "🏩 Stadt",
-
   "education.label": "🎓 Bildung",
   "profession": "💼 Beruf",
-
   "religion.label": "🕊 Religion",
   "religionImportance": "Wichtigkeit der Religion",
   "politicalIdeology": "🗳 Politische Einstellung",
-
   "children": "👶 Kinder",
   "pets": "🐾 Haustiere",
   "lifestyle": "Lebensstil",
@@ -99,29 +90,23 @@
   "drugs": "Drogen",
   "diet": "Ernährung",
   "exercise": "Bewegung",
-
   "aboutMe": "📄 Über mich",
   "goals": "🎯 Ziele",
   "lookingFor": "🔍 Wonach ich suche",
-
   "height": "Größe",
   "weight": "Gewicht",
   "cm": "cm",
   "kg": "kg",
-
   "filters": {
     "professionCategory": "💼 Berufskategorie",
     "politicalIdeology": "🗳 Politische Einstellung",
     "pets": "🐾 Haustiere"
   },
-
   "professionCategory": "💼 Berufskategorie",
-
   "actions": {
     "apply": "Filter anwenden",
     "clear": "Filter zurücksetzen"
   },
-
   "state": {
     "noResults": "Keine passenden Profile gefunden.",
     "loading": "Laden…"

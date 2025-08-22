@@ -30,11 +30,9 @@
     "lookingFor": "Wonach ich suche",
     "childrenPets": "🐾 Haustiere"
   },
-
   "placeholders": {
     "select": "Bitte wählen"
   },
-
   "options": {
     "gender": {
       "male": "Männlich",
@@ -122,39 +120,29 @@
       "none": "Keine"
     }
   },
-
   "age": "Alter",
   "username": "Benutzername",
   "email": "E-Mail",
-
   "gender.label": "Geschlecht",
   "orientation.label": "❤️ Orientierung",
-
   "height": "Größe",
   "height.label": "Größe",
   "heightUnit": "Größeneinheit",
   "cm": "cm",
-
   "weight": "Gewicht",
   "weight.label": "Gewicht",
   "weightUnit": "Gewichtseinheit",
   "kg": "kg",
-
   "bodyType.label": "Körperbau",
-
   "location.country": "🌍 Land",
   "location.region": "🗺 Region/Bundesland",
   "location.city": "🏩 Stadt",
-
   "education.label": "🎓 Bildung",
-
   "professionCategory": "💼 Berufskategorie",
   "professionCategory.label": "💼 Berufskategorie",
   "profession": "💼 Beruf",
   "professionPlaceholder": "Berufsbezeichnung…",
-
   "religion.label": "🕊 Religion",
-
   "religionImportance": {
     "label": "Wichtigkeit der Religion",
     "notImportant": "Nicht wichtig",
@@ -162,9 +150,7 @@
     "veryImportant": "Sehr wichtig",
     "essential": "Unverzichtbar"
   },
-
   "politicalIdeology": "🗳 Politische Einstellung",
-
   "children": "Kinder",
   "pets": "🐾 Haustiere",
   "lifestyle": "Lebensstil",
@@ -176,11 +162,9 @@
   "aboutMe": "📄 Über mich",
   "goals": "🎯 Ziele",
   "lookingFor": "🔍 Wonach ich suche",
-
   "male": "Männlich",
   "female": "Weiblich",
   "other": "Andere",
-
   "education": {
     "label": "Bildung",
     "secondary": "Abitur / Gymnasium",
@@ -188,7 +172,6 @@
     "higher": "Hochschule / Universität",
     "phd": "Promotion / Forschung"
   },
-
   "religion": {
     "label": "Religion",
     "christianity": "Christentum",
@@ -200,11 +183,9 @@
     "other": "Andere",
     "atheism": "Atheismus"
   },
-
   "common": {
     "other": "Andere"
   },
-
   "interests": {
     "movies": "Filme",
     "music": "Musik",
@@ -212,7 +193,6 @@
     "sports": "Sport",
     "travel": "Reisen"
   },
-
   "profile": {
     "bi": "Bi",
     "female": "Weiblich",
@@ -224,9 +204,7 @@
     "other": "Andere",
     "religion": "Religion"
   },
-
   "searchingFor": "Ich suche",
-
   "looking": {
     "friendship": "Freundschaft",
     "gettingToKnow": "Kennenlernen",
@@ -238,7 +216,6 @@
     "casual": "Unverbindlich",
     "undecided": "Unentschieden"
   },
-
   "bodyType": {
     "slim": "Schlank",
     "normal": "Normal",
@@ -246,11 +223,9 @@
     "overweight": "Übergewichtig",
     "obese": "Adipös"
   },
-
   "childrenYes": "Ja",
   "childrenNo": "Nein",
   "childrenAdult": "Erwachsene Kinder",
-
   "fields": {
     "professionCategory": "💼 Berufskategorie",
     "politicalIdeology": "🗳 Politische Einstellung",
@@ -271,7 +246,6 @@
     "politicalIdeology": "🗳 Politische Einstellung",
     "pets": "🐾 Haustiere"
   },
-
   "managePhotos": "Fotos verwalten",
   "save": "Speichern",
   "saveSuccess": "Profil gespeichert."
