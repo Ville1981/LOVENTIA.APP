@@ -1,3 +1,5 @@
+// client/src/utils/axiosInstance.js
+
 // --- REPLACE START: resilient Axios instance with refresh + credentials ---
 import axios from "axios";
 
@@ -180,3 +182,4 @@ api.interceptors.response.use(
 
 export default api;
 // --- REPLACE END ---
+

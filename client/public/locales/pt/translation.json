@@ -476,6 +476,21 @@
     "deleteConfirm": "Are you sure you want to permanently delete your account?",
     "deleteErrorAlert": "Account deletion failed. Please try again later.",
     "deleteErrorConsole": "Account deletion failed:",
-    "title": "Account settings"
+    "title": "Account settings",
+    "hideTitle": "Hide account",
+    "hideDescription": "Temporarily hide your profile from Discover, search and suggestions. You can unhide anytime.",
+    "hideDurationLabel": "Duration",
+    "hideIndefinite": "Indefinitely",
+    "hideIndefiniteHint": "Your profile stays hidden until you manually unhide it.",
+    "resumeOnLoginLabel": "Automatically unhide on next login (if duration is over)",
+    "hidingNow": "Hiding…",
+    "hideNowButton": "Hide now",
+    "unhiding": "Unhiding…",
+    "unhideButton": "Unhide",
+    "hideSuccess": "Your account is now hidden.",
+    "hideError": "Failed to hide your account.",
+    "unhideSuccess": "Your account is visible again.",
+    "unhideError": "Failed to unhide your account.",
+    "signedInAs": "Signed in as"
   }
 }

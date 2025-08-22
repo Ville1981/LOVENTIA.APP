@@ -1,3 +1,5 @@
+// server/models/User.js
+
 // --- REPLACE START: ESM wrapper that default-exports the CommonJS User model ---
 //
 // Why this file exists:

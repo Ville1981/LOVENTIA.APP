@@ -27,7 +27,16 @@ const {
   deletePhotoSlot,
   forgotPassword,
   resetPassword,
+  // NEW: visibility handlers from controller
+  setVisibilityMe,
+  unhideMe,
 } = UserControllerModule.default || UserControllerModule;
+
+// Alias to requested route handler names (keep your wording)
+// PATCH /users/me/hide  -> hideAccount
+// PATCH /users/me/unhide -> unhideAccount
+const hideAccount = setVisibilityMe;
+const unhideAccount = unhideMe;
 // --- REPLACE END ---
 
 // --- REPLACE START: stronger auth (header/cookie/query + multiple secrets) ---
@@ -314,6 +323,22 @@ router.get("/profile", authenticateToken, getMe);
 // ✅ Current user profile via /me (kept)
 router.get("/me", authenticateToken, getMe);
 
+// --- REPLACE START: NEW visibility routes (hide / unhide my account) ---
+/**
+ * PATCH /users/me/hide
+ * Body: { hidden: true, minutes?: number, resumeOnLogin?: boolean }
+ * → Delegates to controller.hideAccount (alias of setVisibilityMe)
+ */
+router.patch("/me/hide", authenticateToken, hideAccount);
+
+/**
+ * PATCH /users/me/unhide
+ * Body: (optional) {}
+ * → Delegates to controller.unhideAccount (alias of unhideMe)
+ */
+router.patch("/me/unhide", authenticateToken, unhideAccount);
+// --- REPLACE END ---
+
 // 💎 Premium upgrade (alt path kept for compatibility)
 router.post("/upgrade-premium", authenticateToken, upgradeToPremium);
 router.post("/premium", authenticateToken, upgradeToPremium);
@@ -508,4 +533,3 @@ router.get("/:id", async (req, res) => {
 // --- REPLACE START: ESM export default router ---
 export default router;
 // --- REPLACE END ---
-

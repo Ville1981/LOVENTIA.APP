@@ -1,4 +1,4 @@
-// --- REPLACE START: Discover controller with robust filters, optional age, includeSelf, pagination, and safe image URL normalization ---
+// --- REPLACE START: Discover controller with robust filters, optional age, includeSelf, pagination, hide filter, and safe image URL normalization ---
 'use strict';
 
 /* =============================================================================
@@ -122,7 +122,7 @@ function normalizeImageArray(arr) {
 }
 
 /** Map request query to Mongo filters with whitelist and field mapping */
-function buildFiltersFromQuery(query, currentUserId, { allowSelf }) {
+function buildFiltersFromQuery(query, currentUserId, { allowSelf, includeHidden }) {
   const filters = {};
 
   // Apply whitelist filters from query string
@@ -150,6 +150,12 @@ function buildFiltersFromQuery(query, currentUserId, { allowSelf }) {
   // Exclude current user unless explicitly included
   if (currentUserId && !allowSelf) {
     filters._id = { $ne: currentUserId };
+  }
+
+  // Exclude hidden accounts by default (unless explicitly allowed via includeHidden=1 for admin/debug)
+  if (!includeHidden) {
+    // Match undefined or false
+    filters.$or = [{ hidden: { $exists: false } }, { hidden: { $ne: true } }];
   }
 
   return filters;
@@ -218,8 +224,14 @@ export async function getDiscover(req, res) {
 
     // includeSelf toggle for dev/testing
     const includeSelf = isTruthy(req.query.includeSelf);
+    // Allow admins/dev to include hidden explicitly (not exposed in UI)
+    const includeHidden = isTruthy(req.query.includeHidden);
+
     // Build filters from query
-    let filters = buildFiltersFromQuery(req.query, currentUserId, { allowSelf: includeSelf });
+    let filters = buildFiltersFromQuery(req.query, currentUserId, {
+      allowSelf: includeSelf,
+      includeHidden,
+    });
     // Apply age filter only when explicitly provided
     filters = applyOptionalAgeFilter(filters, req.query);
 
@@ -335,3 +347,4 @@ export async function handleAction(req, res) {
 }
 
 // --- REPLACE END ---
+
