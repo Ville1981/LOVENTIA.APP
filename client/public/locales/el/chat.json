@@ -1,1 +1,20 @@
-{}
+{
+  "title": "Chat",
+  "placeholder": "Type a message…",
+  "send": "Send",
+  "typing": "typing…",
+  "online": "Online",
+  "offline": "Offline",
+  "lastSeen": "Last seen",
+  "newMessage": "New message",
+  "searchUsers": "Search users",
+  "noMessagesYet": "No messages yet.",
+  "loadMore": "Load more",
+  "delete": "Delete",
+  "edit": "Edit",
+  "save": "Save",
+  "cancel": "Cancel",
+  "report": "Report",
+  "block": "Block",
+  "unblock": "Unblock"
+}

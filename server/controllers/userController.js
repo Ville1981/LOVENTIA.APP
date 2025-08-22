@@ -1,6 +1,4 @@
-// server/controllers/userController.js
-
-// --- REPLACE START: controller with real forgot/reset password flow + email sending ---
+// --- REPLACE START: controller with real forgot/reset password flow + email sending + hide/unhide support (keeps structure & length close to original) ---
 import 'dotenv/config';
 import path from 'path';
 import fs from 'fs';
@@ -184,6 +182,29 @@ export async function loginUser(req, res) {
     const ok = await bcrypt.compare(password, user.password || '');
     if (!ok) return res.status(401).json({ error: 'Invalid credentials.' });
 
+    // --- REPLACE START: auto-unhide-on-login (if hiddenUntil has passed or resumeOnLogin flag is set & past due) ---
+    try {
+      const now = new Date();
+      const hidden = Boolean(user.hidden);
+      const until  = user.hiddenUntil ? new Date(user.hiddenUntil) : null;
+      const resume = user.resumeOnLogin === true;
+
+      if (hidden) {
+        const shouldUnhideByTime = until && now >= until;
+        const shouldUnhideByFlag = resume && (!until || now >= until);
+        if (shouldUnhideByTime || shouldUnhideByFlag) {
+          user.hidden = false;
+          user.hiddenUntil = undefined;
+          // Keep resumeOnLogin as-is (so user’s preference persists), or clear:
+          // user.resumeOnLogin = undefined;
+          await user.save().catch(() => {});
+        }
+      }
+    } catch {
+      /* keep login flow even if unhide fails silently */
+    }
+    // --- REPLACE END ---
+
     const payload = buildJwtPayload(user);
 
     // Support both JWT_SECRET and ACCESS_TOKEN_SECRET (whichever is set)
@@ -358,7 +379,10 @@ export async function updateProfile(req, res) {
       'profession','professionCategory','education','religion','religionImportance','children','pets',
       'nutritionPreferences','activityLevel','healthInfo','smoke','drink','drugs','latitude','longitude',
       'profilePhoto','extraImages','politicalIdeology','location','name','bodyType','preferredGender',
-      'preferredMinAge','preferredMaxAge','preferredInterests','interests','status'
+      'preferredMinAge','preferredMaxAge','preferredInterests','interests','status',
+      // --- REPLACE START: allow hide/unhide fields through profile update when used internally ---
+      'hidden','hiddenUntil','resumeOnLogin'
+      // --- REPLACE END ---
     ];
     const patch = {};
     for (const k of allowed) if (k in (req.body || {})) patch[k] = req.body[k];
@@ -493,6 +517,82 @@ export async function deleteMeUser(req, res) {
   }
 }
 
+/* ──────────────────────────────────────────────────────────────────────────────
+   Hide / Unhide my account
+   - PATCH /api/users/me/visibility { hidden: true, minutes?: number, resumeOnLogin?: boolean }
+   - POST  /api/users/me/unhide (force visible immediately)
+   Server-side only – discoverController already filters hidden by default.
+────────────────────────────────────────────────────────────────────────────── */
+
+// --- REPLACE START: hide/unhide endpoints (server-side) ---
+export async function setVisibilityMe(req, res) {
+  try {
+    const uid = req.user?.id || req.user?._id || req.user?.userId;
+    if (!uid || !mongoose.Types.ObjectId.isValid(String(uid))) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { hidden, minutes, resumeOnLogin } = req.body || {};
+    if (typeof hidden !== 'boolean') {
+      return res.status(400).json({ error: 'Field "hidden" (boolean) is required.' });
+    }
+
+    const user = await User.findById(String(uid));
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    user.hidden = hidden;
+
+    // Optional end time
+    if (hidden) {
+      const mins = Number.isFinite(+minutes) ? Math.max(0, Math.min(365 * 24 * 60, +minutes)) : 0;
+      if (mins > 0) {
+        user.hiddenUntil = new Date(Date.now() + mins * 60 * 1000);
+      } else {
+        user.hiddenUntil = undefined;
+      }
+    } else {
+      user.hiddenUntil = undefined;
+    }
+
+    // Optional preference
+    if (typeof resumeOnLogin === 'boolean') {
+      user.resumeOnLogin = resumeOnLogin;
+    }
+
+    await user.save();
+    return res.status(200).json({
+      ok: true,
+      hidden: Boolean(user.hidden),
+      hiddenUntil: user.hiddenUntil || null,
+      resumeOnLogin: user.resumeOnLogin === true,
+    });
+  } catch (err) {
+    console.error('setVisibilityMe error:', err);
+    return res.status(500).json({ error: 'Failed to update visibility' });
+  }
+}
+
+export async function unhideMe(req, res) {
+  try {
+    const uid = req.user?.id || req.user?._id || req.user?.userId;
+    if (!uid || !mongoose.Types.ObjectId.isValid(String(uid))) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const user = await User.findById(String(uid));
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    user.hidden = false;
+    user.hiddenUntil = undefined;
+    await user.save();
+
+    return res.status(200).json({ ok: true, hidden: false, hiddenUntil: null });
+  } catch (err) {
+    console.error('unhideMe error:', err);
+    return res.status(500).json({ error: 'Failed to unhide account' });
+  }
+}
+// --- REPLACE END ---
+
 // Default export for easier destructuring in routes
 export default {
   registerUser,
@@ -507,6 +607,10 @@ export default {
   uploadPhotoStep,
   deletePhotoSlot,
   deleteMeUser,
+  // --- REPLACE START: export hide/unhide ---
+  setVisibilityMe,
+  unhideMe,
+  // --- REPLACE END ---
 };
 // --- REPLACE END ---
 

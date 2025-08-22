@@ -1,3 +1,5 @@
+// server/routes/discover.js
+
 // --- REPLACE START: ES module route compatible with "type": "module" ---
 import express from 'express';
 

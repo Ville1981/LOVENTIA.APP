@@ -1,3 +1,5 @@
+// server/models/User.cjs
+
 // --- REPLACE START: Convert to CommonJS + add missing fields + location virtuals (kept original structure) ---
 'use strict';
 
@@ -10,6 +12,7 @@ const bcrypt = require('bcryptjs');
  * - Adds missing fields used by the client (e.g., politicalIdeology, location, lifestyle, preferences)
  * - Provides virtuals for legacy aliases and convenience (country/region/city ↔ location.*, photos ↔ extraImages, etc.)
  * - Preserves CommonJS exports for maximum compatibility with existing code
+ * - NEW: Visibility fields for hide/unhide (isHidden, hiddenUntil, hideIndefinite, resumeOnLogin)
  */
 
 // Transform function to hide sensitive fields in JSON output.
@@ -118,6 +121,12 @@ const userSchema = new mongoose.Schema(
     // ✅ Password reset fields
     passwordResetToken:   { type: String, trim: true },
     passwordResetExpires: { type: Date },
+
+    // ✅ Visibility / hide-unhide
+    isHidden:        { type: Boolean, default: false },
+    hiddenUntil:     { type: Date, default: null },         // null = no timed hide
+    hideIndefinite:  { type: Boolean, default: false },     // true = hidden without end
+    resumeOnLogin:   { type: Boolean, default: true },      // auto-unhide on next login if time over
   },
   {
     timestamps: true,
@@ -215,6 +224,12 @@ try {
   userSchema.index({ gender: 1, age: 1 }, { name: 'idx_user_gender_age' });
   // Keep separate numeric indexes for potential range queries
   userSchema.index({ latitude: 1, longitude: 1 }, { name: 'idx_user_lat_lng' });
+
+  // Helpful query for Discover visibility
+  userSchema.index(
+    { isHidden: 1, hideIndefinite: 1, hiddenUntil: 1 },
+    { name: 'idx_user_visibility' }
+  );
 } catch {
   /* noop */
 }

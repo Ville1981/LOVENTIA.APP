@@ -1,1 +1,20 @@
-{}
+{
+  "title": "Keskustelu",
+  "placeholder": "Kirjoita viesti…",
+  "send": "Lähetä",
+  "typing": "kirjoittaa…",
+  "online": "Online",
+  "offline": "Offline",
+  "lastSeen": "Viimeksi nähty",
+  "newMessage": "Uusi viesti",
+  "searchUsers": "Hae käyttäjiä",
+  "noMessagesYet": "Ei viestejä vielä.",
+  "loadMore": "Lataa lisää",
+  "delete": "Poista",
+  "edit": "Muokkaa",
+  "save": "Tallenna",
+  "cancel": "Peruuta",
+  "report": "Ilmoita",
+  "block": "Estä",
+  "unblock": "Poista esto"
+}
