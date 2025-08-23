@@ -41,7 +41,7 @@ export default defineConfig(({ mode }) => {
       // - we keep the /api prefix (no rewrite) because server mounts routes under /api/*
       // --- REPLACE START: robust proxy with optional runtime logging ---
       proxy: {
-        "/api": {
+        "^/api": {
           target: BACKEND,
           changeOrigin: true,
           secure: false,
@@ -54,7 +54,13 @@ export default defineConfig(({ mode }) => {
             }
           },
         },
-        "/uploads": {
+        "^/uploads": {
+          target: BACKEND,
+          changeOrigin: true,
+          secure: false,
+        },
+        // Optional: keep compatibility if some client calls /users/* without /api prefix
+        "^/users": {
           target: BACKEND,
           changeOrigin: true,
           secure: false,
@@ -64,3 +70,4 @@ export default defineConfig(({ mode }) => {
     },
   };
 });
+

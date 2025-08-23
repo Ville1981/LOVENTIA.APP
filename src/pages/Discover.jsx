@@ -1,12 +1,13 @@
-// client/src/pages/Discover.jsx
+// File: client/src/pages/Discover.jsx
 
-// --- REPLACE START: Discover page – add discover/common/profile/lifestyle namespaces + the rest unchanged ---
+// --- REPLACE START: Discover page – add discover/common/profile/lifestyle namespaces + HiddenStatusBanner render & robust hidden guard ---
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import ProfileCardList from "../components/discover/ProfileCardList";
 import DiscoverFilters from "../components/DiscoverFilters";
 import SkeletonCard from "../components/SkeletonCard"; // skeleton placeholder
+import HiddenStatusBanner from "../components/HiddenStatusBanner"; // <-- UI banner (shows "You are currently hidden..." + Unhide)
 import { useAuth } from "../contexts/AuthContext";
 import api from "../utils/axiosInstance";
 import { BACKEND_BASE_URL } from "../utils/config";
@@ -44,7 +45,6 @@ function absolutizeImage(pathOrUrl) {
 
   // Normalize backslashes and odd prefixes
   s = s.replace(/\\/g, "/").replace(/^\.\//, "");
-
   // Collapse multiple slashes
   s = s.replace(/\/+/g, "/");
 
@@ -99,16 +99,38 @@ const Discover = () => {
   const [minAge, setMinAge] = useState(18);
   const [maxAge, setMaxAge] = useState(120);
 
+  // Robust hidden guard – supports multiple shapes from backend
+  const isHidden =
+    authUser?.hidden === true ||
+    authUser?.isHidden === true ||
+    authUser?.visibility?.hidden === true ||
+    authUser?.visibility?.isHidden === true ||
+    (authUser?.visibility?.hiddenUntil &&
+      new Date(authUser.visibility.hiddenUntil) > new Date()) ||
+    authUser?.visibility?.status === "hidden";
+
   // On mount & when authUser/bootstrapped changes, load initial list
   useEffect(() => {
     if ("scrollRestoration" in window.history) {
       window.history.scrollRestoration = "manual";
     }
     if (bootstrapped) {
-      const initialParams = { ...(import.meta.env.DEV ? { includeSelf: 1 } : {}) };
+      // In dev, includeSelf only when NOT hidden
+      const initialParams = {
+        ...(import.meta.env.DEV && !isHidden ? { includeSelf: 1 } : {}),
+      };
       loadUsers(initialParams);
     }
-  }, [authUser, bootstrapped]);
+  }, [
+    authUser?.hidden,
+    authUser?.isHidden,
+    authUser?.visibility?.hidden,
+    authUser?.visibility?.isHidden,
+    authUser?.visibility?.hiddenUntil,
+    authUser?.visibility?.status,
+    bootstrapped,
+    isHidden,
+  ]);
 
   /**
    * Data load via GET /discover?...
@@ -148,6 +170,7 @@ const Discover = () => {
 
       setFilterKey(Date.now().toString());
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error("Error loading users:", err);
       setError(t("discover:error"));
       setUsers([bunnyUser]);
@@ -179,12 +202,13 @@ const Discover = () => {
    * Handle filter submit
    */
   const handleFilter = (formValues) => {
+    // In dev, includeSelf only when NOT hidden
     const query = {
       ...formValues,
       country: formValues.customCountry || formValues.country,
       region: formValues.customRegion || formValues.region,
       city: formValues.customCity || formValues.city,
-      ...(import.meta.env.DEV ? { includeSelf: 1 } : {}),
+      ...(import.meta.env.DEV && !isHidden ? { includeSelf: 1 } : {}),
     };
 
     Object.keys(query).forEach((k) => {
@@ -276,6 +300,9 @@ const Discover = () => {
         <aside className="hidden lg:block w-[200px] sticky top-[160px] space-y-6" />
 
         <main className="flex-1">
+          {/* Shows an informative banner if you are hidden; includes Unhide action */}
+          <HiddenStatusBanner />
+
           <div className="bg-white border rounded-lg shadow-md p-6 max-w-3xl mx-auto">
             <DiscoverFilters
               t={t}
@@ -290,12 +317,7 @@ const Discover = () => {
               {isLoading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 py-4">
                   {Array.from({ length: 6 }).map((_, i) => (
-                    <SkeletonCard
-                      key={i}
-                      width="w-full"
-                      height="h-60"
-                      lines={4}
-                    />
+                    <SkeletonCard key={i} width="w-full" height="h-60" lines={4} />
                   ))}
                 </div>
               ) : error ? (
@@ -326,4 +348,21 @@ const Discover = () => {
 
 export default Discover;
 // --- REPLACE END ---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

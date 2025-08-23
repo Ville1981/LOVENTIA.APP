@@ -1,3 +1,5 @@
+// server/controllers/authController.js
+
 // --- REPLACE START: ESM auth controller with username validation & robust cookieOptions + real forgot/reset password (email) ---
 /**
  * Auth Controller (ESM)
@@ -31,6 +33,7 @@ let cookieOptions = {
   sameSite: 'lax',
   secure: false,
   path: '/',
+  // MaxAge intentionally omitted here; set when we actually set the cookie.
 };
 try {
   const modURL = pathToFileURL(path.resolve(__dirname, '../../utils/cookieOptions.js'));
@@ -240,8 +243,8 @@ export async function register(req, res) {
     const at   = generateAccessToken({ userId: uid, role });
     const rt   = generateRefreshToken({ userId: uid, role });
 
-    // Set refresh cookie
-    res.cookie('refreshToken', rt, cookieOptions);
+    // Set refresh cookie (7 days)
+    res.cookie('refreshToken', rt, { ...cookieOptions, maxAge: 7 * 24 * 60 * 60 * 1000 });
 
     return res.status(201).json({
       accessToken: at,
@@ -299,7 +302,7 @@ export async function login(req, res) {
     const at   = generateAccessToken({ userId: uid, role });
     const rt   = generateRefreshToken({ userId: uid, role });
 
-    res.cookie('refreshToken', rt, cookieOptions);
+    res.cookie('refreshToken', rt, { ...cookieOptions, maxAge: 7 * 24 * 60 * 60 * 1000 });
 
     return res.json({
       accessToken: at,
@@ -314,7 +317,7 @@ export async function login(req, res) {
 /**
  * POST /api/auth/refresh
  * Cookie: refreshToken
- * Note: preflight OPTIONS is handled in the route file.
+ * MUST return: { accessToken }
  */
 export async function refreshToken(req, res) {
   try {
@@ -336,11 +339,12 @@ export async function refreshToken(req, res) {
       // Refresh rotation (best practice): set a new refresh token
       try {
         const rotated = generateRefreshToken({ userId: payload.userId, role: payload.role });
-        res.cookie('refreshToken', rotated, cookieOptions);
+        res.cookie('refreshToken', rotated, { ...cookieOptions, maxAge: 7 * 24 * 60 * 60 * 1000 });
       } catch (rotErr) {
         console.warn('[authController] Refresh rotation failed:', rotErr?.message || rotErr);
       }
 
+      // ✅ Return shape required by frontend: { accessToken }
       return res.json({ accessToken: at });
     });
   } catch (err) {
@@ -352,10 +356,12 @@ export async function refreshToken(req, res) {
 /**
  * POST /api/auth/logout
  * Clears refreshToken cookie
+ * Fix Express 5 warning: pass cookie options to clearCookie.
  */
 export function logout(_req, res) {
   try {
-    res.clearCookie('refreshToken', cookieOptions);
+    // ✅ Include options to avoid Express 5 warning
+    res.clearCookie('refreshToken', { ...cookieOptions, maxAge: 0 });
     return res.sendStatus(204);
   } catch (err) {
     console.error('Logout error:', err?.stack || err?.message || err);
@@ -496,9 +502,9 @@ export async function resetPassword(req, res) {
     user.passwordResetExpires = undefined;
     await user.save();
 
-    // Optional: clear refresh cookie after password change
+    // Optional: clear refresh cookie after password change (Express 5-safe)
     try {
-      res.clearCookie('refreshToken', cookieOptions);
+      res.clearCookie('refreshToken', { ...cookieOptions, maxAge: 0 });
     } catch {
       // noop
     }
@@ -524,3 +530,4 @@ const controller = {
 
 export default controller;
 // --- REPLACE END ---
+

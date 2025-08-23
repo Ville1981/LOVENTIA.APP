@@ -9,7 +9,9 @@ import { useAuth } from "../contexts/AuthContext";
 import api from "../utils/axiosInstance";
 
 export default function Settings() {
-  const { logout, user } = useAuth();
+  // --- REPLACE START: read optional updaters from context safely ---
+  const { logout, user, setUser, refreshUser, refreshMe } = useAuth() || {};
+  // --- REPLACE END ---
 
   // --- REPLACE START: i18n hook + document.title ---
   const { t } = useTranslation();
@@ -61,7 +63,7 @@ export default function Settings() {
         /* noop */
       }
 
-      logout();
+      if (typeof logout === "function") logout();
     } catch (err) {
       console.error(t("settings.deleteErrorConsole"), err);
       alert(t("settings.deleteErrorAlert"));
@@ -69,17 +71,41 @@ export default function Settings() {
     // --- REPLACE END ---
   };
 
-  // --- REPLACE START: hide/unhide handlers ---
+  // --- REPLACE START: helpers ---
+  const isHidden = !!user?.hidden;
+
+  // Prefer a real refresh from the server if context exposes it; fall back to optimistic update
+  const tryRefreshUser = async (nextHidden) => {
+    const refresh = typeof refreshUser === "function" ? refreshUser : refreshMe;
+    if (typeof refresh === "function") {
+      try {
+        await refresh();
+        return;
+      } catch {
+        // ignore and fall back
+      }
+    }
+    if (typeof setUser === "function") {
+      try {
+        setUser((prev) => (prev ? { ...prev, hidden: nextHidden } : prev));
+      } catch {
+        /* noop */
+      }
+    }
+  };
+  // --- REPLACE END ---
+
+  // --- REPLACE START: hide/unhide handlers (uses server PATCH /users/me/hide|unhide) ---
   const handleHide = async () => {
     setError("");
     setInfo("");
     setLoadingHide(true);
     try {
-      // API expects: { durationMinutes?: number, resumeOnLogin?: boolean }
-      await api.put("/users/visibility/hide", {
+      await api.patch("/users/me/hide", {
         durationMinutes: Number(durationMinutes) || 0,
         resumeOnLogin: Boolean(resumeOnLogin),
       });
+      await tryRefreshUser(true);
       setInfo(t("settings.hideSuccess"));
     } catch (e) {
       console.error("Hide error:", e);
@@ -94,7 +120,8 @@ export default function Settings() {
     setInfo("");
     setLoadingUnhide(true);
     try {
-      await api.put("/users/visibility/unhide");
+      await api.patch("/users/me/unhide");
+      await tryRefreshUser(false);
       setInfo(t("settings.unhideSuccess"));
     } catch (e) {
       console.error("Unhide error:", e);
@@ -119,6 +146,17 @@ export default function Settings() {
         <h2 className="text-lg font-semibold mb-2">
           {t("settings.hideTitle")}
         </h2>
+
+        {/* Current visibility info */}
+        <div className="mb-3 text-sm">
+          <span
+            className={`inline-block px-2 py-1 rounded ${
+              isHidden ? "bg-yellow-100 text-yellow-800" : "bg-green-100 text-green-800"
+            }`}
+          >
+            {isHidden ? t("settings.currentlyHidden") : t("settings.currentlyVisible")}
+          </span>
+        </div>
 
         <p className="text-sm text-gray-700 mb-4">
           {t("settings.hideDescription")}
@@ -159,7 +197,7 @@ export default function Settings() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
           <button
             onClick={handleHide}
-            disabled={loadingHide}
+            disabled={loadingHide || loadingUnhide}
             className={`w-full py-2 rounded border text-white ${
               loadingHide ? "bg-gray-400" : "bg-gray-700 hover:bg-gray-800"
             }`}
@@ -167,15 +205,15 @@ export default function Settings() {
             {loadingHide ? t("settings.hidingNow") : t("settings.hideNowButton")}
           </button>
 
-          <button
-            onClick={handleUnhide}
-            disabled={loadingUnhide}
-            className={`w-full py-2 rounded border text-white ${
-              loadingUnhide ? "bg-green-400" : "bg-green-600 hover:bg-green-700"
-            }`}
-          >
-            {loadingUnhide ? t("settings.unhiding") : t("settings.unhideButton")}
-          </button>
+        <button
+          onClick={handleUnhide}
+          disabled={loadingUnhide || loadingHide}
+          className={`w-full py-2 rounded border text-white ${
+            loadingUnhide ? "bg-green-400" : "bg-green-600 hover:bg-green-700"
+          }`}
+        >
+          {loadingUnhide ? t("settings.unhiding") : t("settings.unhideButton")}
+        </button>
         </div>
 
         {/* Info / Error */}
