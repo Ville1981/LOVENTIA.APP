@@ -1,3 +1,5 @@
+// client/src/contexts/AuthContext.jsx
+
 // --- REPLACE START: robust AuthContext with setAuthUser function ---
 import React, {
   createContext,
@@ -7,18 +9,48 @@ import React, {
   useState,
   useCallback,
 } from "react";
-import api, {
-  // Backward-compatible names from axiosInstance:
-  setAccessToken as attachAccessToken, // keep old call sites working
-  getAccessToken,
-} from "../services/api/axiosInstance";
+import api from "../utils/axiosInstance";
+
+/**
+ * Minimal helpers to attach/read the access token.
+ * We do not assume named exports exist in axiosInstance,
+ * so we set the Authorization header directly on the axios instance.
+ */
+function attachAccessToken(token) {
+  try {
+    if (token) {
+      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      try {
+        localStorage.setItem("accessToken", token);
+      } catch {
+        /* ignore storage errors */
+      }
+    } else {
+      delete api.defaults.headers.common["Authorization"];
+      try {
+        localStorage.removeItem("accessToken");
+      } catch {
+        /* ignore storage errors */
+      }
+    }
+  } catch {
+    /* noop */
+  }
+}
+function getAccessToken() {
+  try {
+    return localStorage.getItem("accessToken");
+  } catch {
+    return null;
+  }
+}
 
 /**
  * AuthContext value shape
  * - user: current user object (or null)
  * - setUser / setAuthUser: updater to avoid TypeError in existing pages
  * - accessToken: current access token (or null)
- * - login, register, logout, refreshMe: helpers
+ * - login, register, logout, refreshMe/refreshUser: helpers
  * - bootstrapped: indicates initial auth check completed
  */
 const AuthContext = createContext({
@@ -30,6 +62,7 @@ const AuthContext = createContext({
   register: async () => {},
   logout: async () => {},
   refreshMe: async () => {},
+  refreshUser: async () => {},
   bootstrapped: false,
 });
 
@@ -48,32 +81,49 @@ export function AuthProvider({ children }) {
   // Single setter exposed under two names for backward compat
   const setAuthUser = useCallback((u) => setUserState(u), []);
 
+  // Small helper: GET me from either /auth/me or /users/me (fallback)
+  const fetchMe = useCallback(async () => {
+    try {
+      const me = await api.get("/api/auth/me");
+      return me?.data?.user ?? me?.data ?? null;
+    } catch {
+      try {
+        const me2 = await api.get("/api/users/me");
+        return me2?.data?.user ?? me2?.data ?? null;
+      } catch {
+        return null;
+      }
+    }
+  }, []);
+
+  // Try to refresh token (cookie-based) then fetch /me
   const refreshMe = useCallback(async () => {
     try {
-      // IMPORTANT: send {} (not null) so body-parser doesn't choke in strict mode
-      const r = await api.post("/api/auth/refresh", {}, { withCredentials: true });
-      const next = r?.data?.accessToken;
-
-      // --- IMPORTANT FIX: attach the token immediately before calling /me ---
-      if (next) {
-        attachAccessToken(next);      // ensure subsequent calls include Bearer
-        setAccessTokenState(next);    // keep React state in sync
+      // Always attempt cookie-based refresh
+      try {
+        const r = await api.post("/api/auth/refresh", {}, { withCredentials: true });
+        const next = r?.data?.accessToken;
+        if (next) {
+          attachAccessToken(next);   // attach immediately
+          setAccessTokenState(next); // keep React state in sync
+        }
+      } catch {
+        // If refresh endpoint doesn't exist, continue and just call /me
       }
-      // --- END FIX ---
 
-      // then fetch /me (now goes out with Authorization: Bearer <token>)
-      const me = await api.get("/api/auth/me");
-      const current = me?.data?.user || null;
+      const current = await fetchMe();
       setUserState(current);
       return current;
     } catch {
-      // If refresh/me fails, clear local state but do not hard-crash UI
       setUserState(null);
       setAccessTokenState(null);
       attachAccessToken(null);
       return null;
     }
-  }, []);
+  }, [fetchMe]);
+
+  // Backward-compatible alias
+  const refreshUser = refreshMe;
 
   // Bootstrap on mount
   useEffect(() => {
@@ -83,43 +133,45 @@ export function AuthProvider({ children }) {
     })();
   }, [refreshMe]);
 
-  const login = useCallback(async (email, password) => {
-    // After a successful login, server returns accessToken and sets refresh cookie
-    const res = await api.post(
-      "/api/auth/login",
-      { email, password },
-      { withCredentials: true }
-    );
-    const token = res?.data?.accessToken;
-    if (token) {
-      setAccessTokenState(token);
-      attachAccessToken(token); // attach immediately so subsequent /me has Bearer
-    }
-    const me = await api.get("/api/auth/me");
-    const current = me?.data?.user || null;
-    setUserState(current);
-    return current;
-  }, []);
+  const login = useCallback(
+    async (email, password) => {
+      const res = await api.post(
+        "/api/auth/login",
+        { email, password },
+        { withCredentials: true }
+      );
+      const token = res?.data?.accessToken;
+      if (token) {
+        setAccessTokenState(token);
+        attachAccessToken(token);
+      }
+      const current = await fetchMe();
+      setUserState(current);
+      return current;
+    },
+    [fetchMe]
+  );
 
-  const register = useCallback(async (payload) => {
-    const res = await api.post("/api/auth/register", payload, {
-      withCredentials: true,
-    });
-    const token = res?.data?.accessToken;
-    if (token) {
-      setAccessTokenState(token);
-      attachAccessToken(token);
-    }
-    const me = await api.get("/api/auth/me");
-    const current = me?.data?.user || null;
-    setUserState(current);
-    return current;
-  }, []);
+  const register = useCallback(
+    async (payload) => {
+      const res = await api.post("/api/auth/register", payload, { withCredentials: true });
+      const token = res?.data?.accessToken;
+      if (token) {
+        setAccessTokenState(token);
+        attachAccessToken(token);
+      }
+      const current = await fetchMe();
+      setUserState(current);
+      return current;
+    },
+    [fetchMe]
+  );
 
   const logout = useCallback(async () => {
     try {
-      // Use {} instead of null to avoid strict JSON parser throwing
       await api.post("/api/auth/logout", {}, { withCredentials: true });
+    } catch {
+      // ignore network/logout endpoint errors
     } finally {
       setUserState(null);
       setAccessTokenState(null);
@@ -137,6 +189,7 @@ export function AuthProvider({ children }) {
       register,
       logout,
       refreshMe,
+      refreshUser, // alias for older call sites
       bootstrapped,
     }),
     [
@@ -148,6 +201,7 @@ export function AuthProvider({ children }) {
       register,
       logout,
       refreshMe,
+      refreshUser,
       bootstrapped,
     ]
   );

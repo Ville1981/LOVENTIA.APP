@@ -20,3 +20,13 @@ server/uploads/
 *.log
 .DS_Store
 client-dist/
+
+# build & caches
+node_modules/
+client/dist/
+server/client-dist/
+uploads/
+**/*.log
+.env
+server/.env
+client/.env
