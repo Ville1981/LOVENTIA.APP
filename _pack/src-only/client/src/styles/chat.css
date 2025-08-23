@@ -1,0 +1,175 @@
+// File: src/components/ConversationCard.jsx
+import React from 'react';
+import { Link } from 'react-router-dom'; // --- REPLACE START: import Link for navigation ---
+import { formatDistanceToNowStrict, parseISO } from 'date-fns';
+import { useTranslation } from 'react-i18next';
+// --- REPLACE END ---
+
+/**
+ * Displays a single conversation card with avatar, name, snippet, time, and unread badge.
+ */
+export default function ConversationCard({ convo, onClick }) {
+  const { t } = useTranslation();
+  const timestamp = convo.lastMessageTimestamp || convo.lastTimestamp;
+  const timeAgo = formatDistanceToNowStrict(
+    parseISO(timestamp),
+    { addSuffix: true }
+  );
+
+  // --- REPLACE START: determine wrapper element for link vs. click handler ---
+  const Wrapper = onClick
+    ? ({ children }) => (
+        <div
+          className="flex items-center p-4 bg-white rounded-lg shadow hover:bg-gray-50 cursor-pointer"
+          role="button"
+          tabIndex={0}
+          onClick={onClick}
+          onKeyDown={e => { if (e.key === 'Enter') onClick(); }}
+        >
+          {children}
+        </div>
+      )
+    : ({ children }) => (
+        <Link
+          to={`/chat/${convo.userId}`}
+          className="flex items-center p-4 bg-white rounded-lg shadow hover:bg-gray-50"
+        >
+          {children}
+        </Link>
+      );
+  // --- REPLACE END ---
+
+  return (
+    <Wrapper>
+      {/* --- REPLACE START: avatar with meaningful alt text & fallback on error --- */}
+      <img
+        src={convo.peerAvatarUrl || '/default-avatar.png'}
+        alt={
+          convo.peerName
+            ? `${convo.peerName}'s avatar`
+            : t('conversationCard.avatarAlt', 'User avatar')
+        }
+        className="w-12 h-12 rounded-full object-cover mr-4"
+        onError={e => { e.currentTarget.src = '/default-avatar.png'; }}
+      />
+      {/* --- REPLACE END --- */}
+
+      <div className="flex-1 overflow-hidden">
+        <div className="flex justify-between items-center">
+          <h3 className="font-medium text-gray-900 truncate">
+            {convo.peerName}
+          </h3>
+          <span className="text-xs text-gray-500">{timeAgo}</span>
+        </div>
+        <p className="text-sm text-gray-600 truncate">
+          {convo.lastMessage || convo.lastMessageSnippet}
+        </p>
+      </div>
+
+      {convo.unreadCount > 0 && (
+        <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold text-white bg-red-500 rounded-full">
+          {convo.unreadCount}
+        </span>
+      )}
+    </Wrapper>
+  );
+}
+
+// The replacement regions are marked between 
+// --- REPLACE START and // --- REPLACE END 
+// so you can verify exactly what changed.
+
+
+/* File: src/styles/chat.css */
+
+/* Container for messages */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  max-width: 600px;
+  margin: 0 auto;
+  height: calc(100vh - 100px);
+  padding: 16px;
+  background-color: #f7fafc; /* light gray */
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Scrollable message list */
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+/* Individual message bubble container */
+.message {
+  margin-bottom: 12px;
+  display: flex;
+}
+
+/* Outgoing message (align right) */
+.message.outgoing {
+  justify-content: flex-end;
+}
+
+/* Incoming message (align left) */
+.message.incoming {
+  justify-content: flex-start;
+}
+
+/* Bubble styling */
+.message .bubble {
+  max-width: 70%;
+  padding: 8px 12px;
+  border-radius: 16px;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+/* Outgoing bubble colors */
+.message.outgoing .bubble {
+  background-color: #3182ce; /* blue */
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+/* Incoming bubble colors */
+.message.incoming .bubble {
+  background-color: #e2e8f0; /* gray */
+  color: #2d3748;
+  border-bottom-left-radius: 4px;
+}
+
+/* Input area */
+.chat-input {
+  display: flex;
+  padding-top: 8px;
+  border-top: 1px solid #cbd5e0;
+  align-items: center;
+}
+
+.chat-input input {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+  margin-right: 8px;
+}
+
+.chat-input button {
+  padding: 8px 16px;
+  background-color: #3182ce;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.chat-input button:hover {
+  background-color: #2b6cb0;
+}
+
+/* The replacement region is marked between */
+/* // --- REPLACE START and // --- REPLACE END */
+/* so you can verify exactly what changed. */

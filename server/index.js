@@ -1,5 +1,3 @@
-// server/index.js
-
 // --- REPLACE START: load environment variables early ---
 import 'dotenv/config';
 // --- REPLACE END ---
@@ -46,7 +44,7 @@ const authRoutes = AuthPublicModule.default || AuthPublicModule;
 import * as AuthPrivateModule from './src/routes/authPrivateRoutes.js';
 const authPrivateRoutes = AuthPrivateModule.default || AuthPrivateModule;
 
-// ✅ FIX: import the existing users router from ./routes/users.js (plural, ESM-converted)
+// ✅ FIX: import the existing users router from ./routes/user.js (plural, ESM-converted)
  // --- REPLACE START: users route path fix (singular → plural) ---
 import * as UsersRouterModule from './routes/user.js';
 const userRoutes = UsersRouterModule.default || UsersRouterModule;
