@@ -1,0 +1,7 @@
+common:appName
+common:cancel
+common:close
+common:language
+common:save
+common:update
+profile:lookingFor

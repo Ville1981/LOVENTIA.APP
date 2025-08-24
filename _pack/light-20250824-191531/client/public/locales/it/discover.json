@@ -1,0 +1,144 @@
+{
+  "title": "Scopri",
+  "subtitle": "Regola i filtri per trovare le corrispondenze giuste.",
+  "filters": {
+    "age": "Età",
+    "minAge": "Età minima",
+    "maxAge": "Età massima",
+    "distance": "Distanza",
+    "maxDistance": "Distanza massima",
+    "location": "Località",
+    "gender": "Genere",
+    "orientation": "Orientation",
+    "lifestyle": "Stile di vita",
+    "interests": "Interessi",
+    "apply": "Applica filtri",
+    "reset": "Reimposta",
+    "clear": "Cancella tutto",
+    "professionCategory": "💼 Profession category",
+    "politicalIdeology": "🗳 Political ideology",
+    "pets": "🐾 Pets"
+  },
+  "results": {
+    "heading": "Risultati",
+    "empty": "Nessuna corrispondenza con i filtri attuali.",
+    "loadMore": "Carica altro"
+  },
+  "cards": {
+    "age": "Età",
+    "distance": "Distanza",
+    "view": "Vedi profilo"
+  },
+  "ageRange": "Fascia d'età",
+  "error": "Qualcosa è andato storto. Riprova.",
+  "gender": "Genere",
+  "instructions": "Set filters and click Filter to find people.",
+  "noResults": "Nessun risultato trovato.",
+  "orientation": "Orientamento sessuale",
+  "politicalIdeology": "Ideologia politica",
+  "profession": "Professione",
+  "religion": "Religione",
+  "religionImportance": "Importanza della religione",
+  "username": "Nome utente",
+  "labels": {
+    "header": "Discover",
+    "title": "Discover",
+    "ageRange": "Age range",
+    "username": "Username",
+    "gender": "Gender",
+    "orientation": "Orientation",
+    "education": "Education",
+    "profession": "Profession",
+    "religion": "Religion",
+    "height": "Height",
+    "weight": "Weight",
+    "aboutMe": "About me",
+    "lookingFor": "Looking for"
+  },
+  "placeholders": {
+    "select": "Please select"
+  },
+  "options": {
+    "gender": {
+      "male": "Male",
+      "female": "Female",
+      "nonbinary": "Non-binary",
+      "other": "Other",
+      "preferNot": "Prefer not to say"
+    },
+    "orientation": {
+      "straight": "Straight",
+      "gay": "Gay",
+      "lesbian": "Lesbian",
+      "bisexual": "Bisexual",
+      "asexual": "Asexual",
+      "pansexual": "Pansexual",
+      "queer": "Queer",
+      "questioning": "Questioning",
+      "other": "Other"
+    },
+    "education": {
+      "highschool": "High school",
+      "vocational": "Vocational training",
+      "bachelor": "Bachelor",
+      "master": "Master",
+      "doctorate": "Doctorate",
+      "other": "Other"
+    },
+    "religion": {
+      "agnostic": "Agnostic",
+      "atheist": "Atheist",
+      "buddhist": "Buddhist",
+      "christian": "Christian",
+      "hindu": "Hindu",
+      "jewish": "Jewish",
+      "muslim": "Muslim",
+      "spiritual": "Spiritual",
+      "other": "Other",
+      "preferNot": "Prefer not to say"
+    },
+    "profession": {
+      "student": "Student",
+      "it": "IT / Software",
+      "engineering": "Engineering",
+      "healthcare": "Healthcare",
+      "education": "Education",
+      "business": "Business / Finance",
+      "service": "Service / Retail",
+      "creative": "Creative / Media",
+      "public": "Public sector",
+      "other": "Other"
+    }
+  },
+  "gender.label": "Gender",
+  "orientation.label": "❤️ Orientation",
+  "location.country": "🌍 Country",
+  "location.region": "🗺 Region/State",
+  "location.city": "🏩 City",
+  "education.label": "🎓 Education",
+  "religion.label": "🕊 Religion",
+  "children": "👶 Children",
+  "pets": "🐾 Pets",
+  "lifestyle": "Lifestyle",
+  "smoke": "Smoke",
+  "drink": "Alcohol",
+  "drugs": "Drugs",
+  "diet": "Diet",
+  "exercise": "Exercise",
+  "aboutMe": "📄 About me",
+  "goals": "🎯 Goals",
+  "lookingFor": "🔍 Looking for",
+  "height": "Height",
+  "weight": "Weight",
+  "cm": "cm",
+  "kg": "kg",
+  "professionCategory": "💼 Profession category",
+  "actions": {
+    "apply": "Apply filters",
+    "clear": "Reset filters"
+  },
+  "state": {
+    "noResults": "No matching profiles found.",
+    "loading": "Loading…"
+  }
+}

@@ -1,0 +1,50 @@
+{
+  // TypeScript compiler options for the client app
+  "compilerOptions": {
+    // Language & module target
+    "target": "ESNext",
+    "module": "ESNext",
+
+    // --- REPLACE START: use bundler resolution for Vite (TS5+ recommendation) ---
+    "moduleResolution": "bundler",
+    // --- REPLACE END ---
+
+    "jsx": "react-jsx",
+
+    // CJS/ESM interoperability
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+
+    // JavaScript file support
+    "allowJs": true,
+    "checkJs": false,
+
+    // Type checking strictness
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+
+    // --- REPLACE START: explicitly clear inherited 'types' to stop tsserver forcing vite/client ---
+    "types": [],
+    // --- REPLACE END ---
+
+    // Source maps
+    "sourceMap": true,
+
+    // Paths & output
+    // RootDir points to the tsconfig.json location context: client/src
+    "rootDir": "src",
+    "outDir": "dist",
+
+    // Enable JSON module imports
+    "resolveJsonModule": true
+
+    // Note: typeRoots omitted so default lookup finds node_modules/@types
+  },
+
+  // Include all source files under client/src (js, jsx, ts, tsx) + vite-env.d.ts
+  "include": ["src/**/*", "src/vite-env.d.ts"],
+
+  // Typical excludes
+  "exclude": ["node_modules", "dist"]
+}

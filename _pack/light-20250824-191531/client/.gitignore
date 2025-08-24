@@ -1,0 +1,25 @@
+<<<<<<< HEAD
+node_modules
+=======
+# Node modules
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Build artifacts
+client/dist/
+dist/
+
+# Env files
+.env
+client/.env.local
+
+# Uploads (user content)
+server/uploads/
+
+# Editor & OS temp files
+.vscode/
+.idea/
+*.log
+.DS_Store
+>>>>>>> origin/main

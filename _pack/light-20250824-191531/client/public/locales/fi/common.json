@@ -1,0 +1,37 @@
+{
+  "appName": "Loventia",
+  "select": "Valitse",
+  "all": "Kaikki",
+  "filter": "Suodata",
+  "loading": "Ladataan",
+  "fixErrors": "Korjaa korostetut kentät ennen tallennusta.",
+  "save": "Tallenna",
+  "cancel": "Peruuta",
+  "update": "Päivitä",
+  "close": "Sulje",
+  "language": "Kieli",
+  "home": {
+    "title": "Löydä aitoja yhteyksiä",
+    "subtitle": "Vähemmän swippausta, parempia osumia — liity merkitykselliseen yhteisöön."
+  },
+  "nav": {
+    "home": "Etusivu",
+    "discover": "Löydä",
+    "profile": "Profiili",
+    "login": "Kirjaudu",
+    "register": "Rekisteröidy",
+    "logout": "Kirjaudu ulos",
+    "admin": "Ylläpito"
+  },
+  "other": "Other",
+  "religion": {
+    "christianity": "Christianity",
+    "islam": "Islam",
+    "hinduism": "Hinduism",
+    "buddhism": "Buddhism",
+    "folk": "Folk religion",
+    "none": "None",
+    "other": "Other",
+    "atheism": "Atheism"
+  }
+}
