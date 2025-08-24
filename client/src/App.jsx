@@ -11,6 +11,9 @@ import {
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
+// Subscriptions page (for /settings/subscriptions)
+import Subscriptions from "./pages/Subscriptions";
+
 // Context & Utilities
 import ErrorBoundary from "./components/ErrorBoundary";
 import { useAuth } from "./contexts/AuthContext";
@@ -37,7 +40,7 @@ import PremiumCancel from "./pages/PremiumCancel";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import ProfileHub from "./pages/ProfileHub";
 import Register from "./pages/Register";
-import Settings from "./pages/Settings";        // legacy
+import Settings from "./pages/Settings"; // legacy, kept for compatibility
 import Upgrade from "./pages/Upgrade";
 import WhoLikedMe from "./pages/WhoLikedMe";
 import SettingsPage from "./pages/SettingsPage"; // the actual /settings page
@@ -80,6 +83,7 @@ export default function App() {
         <Router>
           <Routes>
             <Route path="/" element={<MainLayout />}>
+              {/* Public routes */}
               <Route index element={<Etusivu />} />
               <Route path="discover" element={<Discover />} />
 
@@ -189,12 +193,20 @@ export default function App() {
                 }
               />
 
-              {/* Settings (protected) */}
+              {/* Settings (protected) - standalone siblings */}
               <Route
                 path="settings"
                 element={
                   <PrivateRoute>
                     <SettingsPage />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="settings/subscriptions"
+                element={
+                  <PrivateRoute>
+                    <Subscriptions />
                   </PrivateRoute>
                 }
               />

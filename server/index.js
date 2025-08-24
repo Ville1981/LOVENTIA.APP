@@ -1,6 +1,9 @@
+// File: server/index.js
+
 // --- REPLACE START: load environment variables early ---
 import 'dotenv/config';
 // --- REPLACE END ---
+import meRouter from "./routes/me.js";
 
 // --- REPLACE START: Sentry initialization ---
 import * as Sentry from '@sentry/node';
@@ -58,6 +61,11 @@ const messageRoutes = MessageModule.default || MessageModule;
 
 import * as DiscoverModule from './routes/discover.js';
 const discoverRoutes = DiscoverModule.default || DiscoverModule;
+
+// --- REPLACE START: Billing routes import (NEW, minimal addition) ---
+import * as BillingRouterModule from './routes/billing.js';
+const billingRoutes = BillingRouterModule.default || BillingRouterModule;
+// --- REPLACE END ---
 // --- REPLACE END ---
 
 // --- REPLACE START: Middleware ---
@@ -71,6 +79,7 @@ const app = express();
 app.use(Sentry.Handlers.requestHandler());
 app.use(Sentry.Handlers.tracingHandler());
 // --- REPLACE END ---
+app.use("/api", meRouter);
 
 // --- REPLACE START: Swagger setup ---
 const swaggerPath = path.join(__dirname, 'openapi.yaml');
@@ -188,6 +197,10 @@ app.use('/api/messages', authenticate, messageRoutes);
 app.use('/api/users', authenticate, userRoutes);
 app.use('/api/images', authenticate, imageRoutes);
 app.use('/api/discover', authenticate, discoverRoutes);
+
+// --- REPLACE START: Billing mount (NEW, minimal addition) ---
+app.use('/api/billing', authenticate, billingRoutes);
+// --- REPLACE END ---
 // --- REPLACE END ---
 
 // --- REPLACE START: Cookie helpers ---
