@@ -1,0 +1,47 @@
+name: Performance Tests
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 */6 * * *'  # Every 6 hours
+
+jobs:
+  performance-load:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install K6
+        run: sudo apt-get update && sudo apt-get install -y k6
+
+      - name: Run Load Test
+        # --- REPLACE START: use correct performance folder path
+        run: k6 run client/performance/load.test.js
+        # --- REPLACE END
+
+      - name: Upload K6 report
+        uses: actions/upload-artifact@v3
+        with:
+          name: k6-report
+          path: /tmp/k6-report*
+
+  performance-socket:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install Artillery
+        run: npm install -g artillery
+
+      - name: Run Socket Reconnect Test
+        # --- REPLACE START: correct path and include output flag
+        run: artillery run client/performance/socket-reconnect.test.js -o report.json
+        # --- REPLACE END
+
+      - name: Upload Artillery report
+        uses: actions/upload-artifact@v3
+        with:
+          name: artillery-report
+          path: report.json

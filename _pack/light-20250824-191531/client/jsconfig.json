@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": false,
+    "baseUrl": ".",            
+    "paths": {                 
+      "@/*": ["src/*"]
+    }
+  },
+  "include": [
+    "../server/**/*.cjs",       // projekti juuressa oleva server-kansio
+    "src/**/*.{js,jsx}"         // client/src -kansion tiedostot
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build"
+  ]
+}

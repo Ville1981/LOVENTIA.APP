@@ -1,0 +1,20 @@
+{
+  "title": "Chat",
+  "placeholder": "Schreibe eine Nachricht…",
+  "send": "Senden",
+  "typing": "schreibt…",
+  "online": "Online",
+  "offline": "Offline",
+  "lastSeen": "Zuletzt online",
+  "newMessage": "Neue Nachricht",
+  "searchUsers": "Nutzer suchen",
+  "noMessagesYet": "Noch keine Nachrichten.",
+  "loadMore": "Mehr laden",
+  "delete": "Löschen",
+  "edit": "Bearbeiten",
+  "save": "Speichern",
+  "cancel": "Abbrechen",
+  "report": "Melden",
+  "block": "Blockieren",
+  "unblock": "Blockierung aufheben"
+}

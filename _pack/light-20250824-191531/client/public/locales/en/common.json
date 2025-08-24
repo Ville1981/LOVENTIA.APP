@@ -1,0 +1,37 @@
+{
+  "appName": "Loventia",
+  "select": "Select",
+  "all": "All",
+  "other": "Other",
+  "filter": "Filter",
+  "loading": "Loading",
+  "save": "Save",
+  "cancel": "Cancel",
+  "update": "Update",
+  "close": "Close",
+  "language": "Language",
+  "fixErrors": "Please fix the highlighted fields.",
+  "home": {
+    "title": "Welcome to Loventia.site!",
+    "subtitle": "Find meaningful connections easily and safely."
+  },
+  "nav": {
+    "home": "Home",
+    "discover": "Discover",
+    "profile": "Profile",
+    "login": "Login",
+    "register": "Register",
+    "logout": "Logout",
+    "admin": "Admin"
+  },
+  "religion": {
+    "christianity": "Christianity",
+    "islam": "Islam",
+    "hinduism": "Hinduism",
+    "buddhism": "Buddhism",
+    "folk": "Folk religion",
+    "none": "None",
+    "other": "Other",
+    "atheism": "Atheism"
+  }
+}
