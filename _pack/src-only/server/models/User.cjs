@@ -1,3 +1,5 @@
+// File: server/models/User.js
+
 // --- REPLACE START: Convert to CommonJS + add missing fields + location + visibility sync (kept original structure) ---
 'use strict';
 
@@ -10,7 +12,8 @@ const bcrypt = require('bcryptjs');
  * - Adds missing fields used by the client (e.g., politicalIdeology, location, lifestyle, preferences)
  * - Provides virtuals for legacy aliases and convenience (country/region/city ↔ location.*, photos ↔ extraImages, etc.)
  * - Preserves CommonJS exports for maximum compatibility with existing code
- * - NEW: Visibility fields (visibility.*, isHidden/hidden virtuals, hiddenUntil, resumeOnLogin) + sync hooks
+ * - Visibility fields (visibility.*, isHidden/hidden virtuals, hiddenUntil, resumeOnLogin) + sync hooks
+ * - ✅ Billing fields aligned to plan: `premium` (Boolean) and `stripeCustomerId` (String)
  */
 
 // Transform function to hide sensitive fields in JSON output.
@@ -27,9 +30,10 @@ function safeTransform(_doc, ret) {
     const v = ret.visibility || {};
     const topIsHidden = typeof ret.isHidden === 'boolean' ? ret.isHidden : undefined;
     const visIsHidden = typeof v.isHidden === 'boolean' ? v.isHidden : undefined;
-    const resolvedHidden = typeof topIsHidden === 'boolean'
-      ? topIsHidden
-      : (typeof visIsHidden === 'boolean' ? visIsHidden : false);
+    const resolvedHidden =
+      typeof topIsHidden === 'boolean'
+        ? topIsHidden
+        : (typeof visIsHidden === 'boolean' ? visIsHidden : false);
 
     ret.isHidden = resolvedHidden;
     ret.hidden = resolvedHidden; // legacy convenience
@@ -38,9 +42,10 @@ function safeTransform(_doc, ret) {
     ret.visibility = {
       isHidden: resolvedHidden,
       hiddenUntil: resolvedUntil || null,
-      resumeOnLogin: typeof v.resumeOnLogin === 'boolean'
-        ? v.resumeOnLogin
-        : (typeof ret.resumeOnLogin === 'boolean' ? ret.resumeOnLogin : true),
+      resumeOnLogin:
+        typeof v.resumeOnLogin === 'boolean'
+          ? v.resumeOnLogin
+          : (typeof ret.resumeOnLogin === 'boolean' ? ret.resumeOnLogin : true),
     };
   } catch {
     // noop
@@ -56,7 +61,12 @@ const userSchema = new mongoose.Schema(
     email:              { type: String, required: true, unique: true, lowercase: true, trim: true },
     password:           { type: String, required: true }, // expects a bcrypt hash in prod
     role:               { type: String, enum: ['user', 'admin'], default: 'user' },
-    isPremium:          { type: Boolean, default: false },
+
+    // ✅ Premium flag (plan state)
+    premium:            { type: Boolean, default: false },
+
+    // ✅ Stripe Customer id (set by webhook on first successful checkout)
+    stripeCustomerId:   { type: String, default: null },
 
     // Profile details
     name:               { type: String, trim: true },
@@ -84,7 +94,7 @@ const userSchema = new mongoose.Schema(
     nutritionPreferences: { type: [String], default: [] },
     orientation:        { type: String, trim: true },
 
-    // ✅ New field persisted
+    // Field persisted (with legacy alias)
     politicalIdeology: {
       type: String,
       enum: [
@@ -127,8 +137,8 @@ const userSchema = new mongoose.Schema(
     drugs:              { type: String, trim: true },
 
     // Media
-    profilePicture:     { type: String, trim: true },  // canonical single avatar path
-    extraImages:        { type: [String], default: [] }, // gallery
+    profilePicture:     { type: String, trim: true },     // canonical single avatar path
+    extraImages:        { type: [String], default: [] },  // gallery
 
     // Social graph
     likes:        [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
@@ -136,11 +146,11 @@ const userSchema = new mongoose.Schema(
     superLikes:   [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 
-    // ✅ Password reset fields
+    // Password reset fields
     passwordResetToken:   { type: String, trim: true },
     passwordResetExpires: { type: Date },
 
-    // ✅ Visibility (both nested object and top-level helpers for compatibility)
+    // Visibility (both nested object and top-level helpers for compatibility)
     visibility: {
       isHidden:       { type: Boolean, default: false },
       hiddenUntil:    { type: Date, default: null },
@@ -198,7 +208,7 @@ userSchema.virtual('id').get(function () {
   try { return this._id ? this._id.toString() : undefined; } catch { return undefined; }
 });
 
-// 🧩 Compatibility virtuals with older routes / client fields:
+// Compatibility virtuals with older routes / client fields:
 // - `avatar` / `profilePhoto` ↔ profilePicture
 userSchema.virtual('avatar')
   .get(function () { return this.profilePicture; })
