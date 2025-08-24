@@ -1,8 +1,9 @@
+// --- REPLACE START: ensure Footer import is explicit and correct (.jsx) ---
 import React from "react";
 import { Outlet, useLocation } from "react-router-dom";
 
 import AdColumn from "../components/AdColumn";
-import Footer from "../components/Footer";
+import Footer from "../components/Footer.jsx";
 import HeroSection from "../components/HeroSection";
 import Navbar from "../components/Navbar";
 import "../styles/ads.css";
@@ -31,17 +32,16 @@ const MainLayout = () => {
       {/* HEADER AD (only on Home & Discover) */}
       {(isHome || isDiscover) && (
         <div className="w-full flex justify-center bg-white py-3 shadow">
-          {/* --- REPLACE START: use VITE env var for ad source --- */}
+          {/* use VITE env var for ad source */}
           <img
             src={import.meta.env.VITE_HEADER_AD_SRC || "/ads/header1.png"}
             alt="Main Header Ad"
             className="ad-header"
           />
-          {/* --- REPLACE END --- */}
         </div>
       )}
 
-      {/* MAIN 3‑COLUMN LAYOUT */}
+      {/* MAIN 3-COLUMN LAYOUT */}
       <div className="w-full flex justify-center bg-[#f9f9f9]">
         <div className="w-full max-w-[1400px] grid grid-cols-12 gap-4 px-2 py-6">
           {/* LEFT AD COLUMN (hidden on small screens) */}
@@ -71,3 +71,4 @@ const MainLayout = () => {
 };
 
 export default MainLayout;
+// --- REPLACE END ---

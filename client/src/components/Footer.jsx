@@ -1,17 +1,19 @@
-// --- REPLACE START: footer with nav.* labels for navigation items ---
+// --- REPLACE START: Footer shows Admin link only to admin users (client build) ---
 import PropTypes from "prop-types";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
 /**
- * Footer
- * - All navigation text is translated via i18n keys (nav.*)
- * - No hard-coded labels; every label uses t('common:nav.*') with defaultValue fallbacks
- * - Structure preserved; only internationalization adjustments
+ * Footer — layout
+ * Headings (Company, Conditions, Contact, Special) in one row.
+ * Links stacked vertically under each heading.
+ * Admin link is visible only to users with role === "admin".
  */
 const Footer = () => {
   const { t } = useTranslation();
+  const { user, bootstrapped } = useAuth();
 
   return (
     <footer
@@ -25,27 +27,17 @@ const Footer = () => {
       <div className="w-full px-8 max-w-none overflow-x-auto">
         <div
           className="text-left min-w-[800px] grid gap-8"
-          style={{ gridTemplateColumns: "repeat(5, 1fr)" }}
+          style={{ gridTemplateColumns: "repeat(4, 1fr)" }}
         >
           {/* Company */}
           <div>
-            <h4 className="font-bold uppercase text-xs mb-2">
+            <h4 className="font-bold uppercase text-xs mb-2 tracking-wide">
               {t("common:nav.company", { defaultValue: "Company" })}
             </h4>
-            <ul className="space-y-1">
+            <ul className="space-y-1 list-disc pl-4">
               <li>
                 <Link to="/about" className="hover:underline">
                   {t("common:nav.about", { defaultValue: "About" })}
-                </Link>
-              </li>
-              <li>
-                <Link to="/careers" className="hover:underline">
-                  {t("common:nav.careers", { defaultValue: "Careers" })}
-                </Link>
-              </li>
-              <li>
-                <Link to="/press" className="hover:underline">
-                  {t("common:nav.press", { defaultValue: "Press" })}
                 </Link>
               </li>
             </ul>
@@ -53,10 +45,10 @@ const Footer = () => {
 
           {/* Conditions */}
           <div>
-            <h4 className="font-bold uppercase text-xs mb-2">
+            <h4 className="font-bold uppercase text-xs mb-2 tracking-wide">
               {t("common:nav.conditions", { defaultValue: "Conditions" })}
             </h4>
-            <ul className="space-y-1">
+            <ul className="space-y-1 list-disc pl-4">
               <li>
                 <Link to="/privacy" className="hover:underline">
                   {t("common:nav.privacy", { defaultValue: "Privacy" })}
@@ -72,30 +64,15 @@ const Footer = () => {
                   {t("common:nav.cookies", { defaultValue: "Cookies" })}
                 </Link>
               </li>
-              <li>
-                <Link to="/community" className="hover:underline">
-                  {t("common:nav.community", { defaultValue: "Community" })}
-                </Link>
-              </li>
-              <li>
-                <Link to="/health-policy" className="hover:underline">
-                  {t("common:nav.health", { defaultValue: "Health Policy" })}
-                </Link>
-              </li>
-              <li>
-                <Link to="/colorado-policy" className="hover:underline">
-                  {t("common:nav.coInfo", { defaultValue: "Colorado Info" })}
-                </Link>
-              </li>
             </ul>
           </div>
 
           {/* Contact */}
           <div>
-            <h4 className="font-bold uppercase text-xs mb-2">
+            <h4 className="font-bold uppercase text-xs mb-2 tracking-wide">
               {t("common:nav.contact", { defaultValue: "Contact" })}
             </h4>
-            <ul className="space-y-1">
+            <ul className="space-y-1 list-disc pl-4">
               <li>
                 <Link to="/support" className="hover:underline">
                   {t("common:nav.support", { defaultValue: "Support" })}
@@ -103,87 +80,35 @@ const Footer = () => {
               </li>
               <li>
                 <Link to="/security" className="hover:underline">
-                  {t("common:nav.security", { defaultValue: "Security" })}
+                  {t("common:nav.security", {
+                    defaultValue: "Security (Safety Tips)",
+                  })}
                 </Link>
-              </li>
-              <li>
-                <Link to="/safety-tips" className="hover:underline">
-                  {t("common:nav.safety", { defaultValue: "Safety Tips" })}
-                </Link>
-              </li>
-              <li>
-                <Link to="/impressum" className="hover:underline">
-                  {t("common:nav.impressum", { defaultValue: "Impressum" })}
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Follow */}
-          <div>
-            <h4 className="font-bold uppercase text-xs mb-2">
-              {t("common:nav.follow", { defaultValue: "Follow" })}
-            </h4>
-            <ul className="space-y-1">
-              <li>
-                <Link to="/blog" className="hover:underline">
-                  {t("common:nav.blog", { defaultValue: "Blog" })}
-                </Link>
-              </li>
-              <li>
-                <a
-                  href="https://twitter.com"
-                  className="hover:underline"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Twitter
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://facebook.com"
-                  className="hover:underline"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Facebook
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://instagram.com"
-                  className="hover:underline"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Instagram
-                </a>
               </li>
             </ul>
           </div>
 
           {/* Special */}
           <div>
-            <h4 className="font-bold uppercase text-xs mb-2">
+            <h4 className="font-bold uppercase text-xs mb-2 tracking-wide">
               {t("common:nav.special", { defaultValue: "Special" })}
             </h4>
-            <ul className="space-y-1">
+            <ul className="space-y-1 list-disc pl-4">
               <li>
                 <Link to="/map" className="hover:underline">
                   {t("common:nav.map", { defaultValue: "Map" })}
                 </Link>
               </li>
-              <li>
-                <Link to="/admin" className="hover:underline">
-                  {t("common:nav.admin", { defaultValue: "Admin" })}
-                </Link>
-              </li>
-              <li>
-                <Link to="/download" className="hover:underline">
-                  {t("common:nav.download", { defaultValue: "Download" })}
-                </Link>
-              </li>
+
+              {/* Admin link only after auth bootstrap and for admin role */}
+              {bootstrapped && user?.role === "admin" && (
+                <li>
+                  <Link to="/admin" className="hover:underline">
+                    {t("common:nav.admin", { defaultValue: "Admin" })}
+                  </Link>
+                </li>
+              )}
+
               <li>
                 <Link to="/settings" className="hover:underline">
                   {t("common:nav.settings", { defaultValue: "Settings" })}
@@ -196,11 +121,14 @@ const Footer = () => {
         {/* Bottom text */}
         <div className="text-center text-gray-200 text-xs mt-10 leading-tight">
           <p>
-            © {new Date().getFullYear()} {t("site.brand", { defaultValue: "Loventia" })} —{" "}
+            © {new Date().getFullYear()}{" "}
+            {t("site.brand", { defaultValue: "Loventia" })} —{" "}
             {t("common:nav.rights", { defaultValue: "All rights reserved." })}
           </p>
           <p className="mt-1">
-            {t("common:nav.tagline", { defaultValue: "Match better. Love smarter. 💘" })}
+            {t("common:nav.tagline", {
+              defaultValue: "Match better. Love smarter. 💘",
+            })}
           </p>
         </div>
       </div>
@@ -214,4 +142,3 @@ Footer.propTypes = {
 
 export default Footer;
 // --- REPLACE END ---
-

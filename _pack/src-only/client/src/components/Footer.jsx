@@ -1,4 +1,4 @@
-// --- REPLACE START: footer with nav.* labels for navigation items ---
+// --- REPLACE START: cleaned footer for 5174 build (remove Careers, Press, Safety Tips, Download; keep About; merge Security+Safety Tips) ---
 import PropTypes from "prop-types";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -6,9 +6,13 @@ import { Link } from "react-router-dom";
 
 /**
  * Footer
- * - All navigation text is translated via i18n keys (nav.*)
- * - No hard-coded labels; every label uses t('common:nav.*') with defaultValue fallbacks
- * - Structure preserved; only internationalization adjustments
+ * - All navigation text is translated via i18n keys (common:nav.*) with English fallbacks.
+ * - Updated per requirements:
+ *   • Company: keep About only (remove Careers, Press)
+ *   • Conditions: keep all links as placeholders
+ *   • Contact: merge Safety Tips into Security; keep Support & Impressum
+ *   • Follow: keep Blog only (remove social links for now)
+ *   • Special: remove Download; keep Map, Admin, Settings
  */
 const Footer = () => {
   const { t } = useTranslation();
@@ -38,16 +42,7 @@ const Footer = () => {
                   {t("common:nav.about", { defaultValue: "About" })}
                 </Link>
               </li>
-              <li>
-                <Link to="/careers" className="hover:underline">
-                  {t("common:nav.careers", { defaultValue: "Careers" })}
-                </Link>
-              </li>
-              <li>
-                <Link to="/press" className="hover:underline">
-                  {t("common:nav.press", { defaultValue: "Press" })}
-                </Link>
-              </li>
+              {/* Removed: Careers, Press */}
             </ul>
           </div>
 
@@ -83,7 +78,7 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/colorado-policy" className="hover:underline">
+                <Link to="/colorado-info" className="hover:underline">
                   {t("common:nav.coInfo", { defaultValue: "Colorado Info" })}
                 </Link>
               </li>
@@ -103,14 +98,12 @@ const Footer = () => {
               </li>
               <li>
                 <Link to="/security" className="hover:underline">
-                  {t("common:nav.security", { defaultValue: "Security" })}
+                  {t("common:nav.security", {
+                    defaultValue: "Security (Safety Tips)",
+                  })}
                 </Link>
               </li>
-              <li>
-                <Link to="/safety-tips" className="hover:underline">
-                  {t("common:nav.safety", { defaultValue: "Safety Tips" })}
-                </Link>
-              </li>
+              {/* Removed: separate Safety Tips link (merged into Security) */}
               <li>
                 <Link to="/impressum" className="hover:underline">
                   {t("common:nav.impressum", { defaultValue: "Impressum" })}
@@ -130,36 +123,7 @@ const Footer = () => {
                   {t("common:nav.blog", { defaultValue: "Blog" })}
                 </Link>
               </li>
-              <li>
-                <a
-                  href="https://twitter.com"
-                  className="hover:underline"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Twitter
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://facebook.com"
-                  className="hover:underline"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Facebook
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://instagram.com"
-                  className="hover:underline"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Instagram
-                </a>
-              </li>
+              {/* Removed: Twitter, Facebook, Instagram */}
             </ul>
           </div>
 
@@ -179,11 +143,7 @@ const Footer = () => {
                   {t("common:nav.admin", { defaultValue: "Admin" })}
                 </Link>
               </li>
-              <li>
-                <Link to="/download" className="hover:underline">
-                  {t("common:nav.download", { defaultValue: "Download" })}
-                </Link>
-              </li>
+              {/* Removed: Download */}
               <li>
                 <Link to="/settings" className="hover:underline">
                   {t("common:nav.settings", { defaultValue: "Settings" })}
@@ -196,11 +156,14 @@ const Footer = () => {
         {/* Bottom text */}
         <div className="text-center text-gray-200 text-xs mt-10 leading-tight">
           <p>
-            © {new Date().getFullYear()} {t("site.brand", { defaultValue: "Loventia" })} —{" "}
+            © {new Date().getFullYear()}{" "}
+            {t("site.brand", { defaultValue: "Loventia" })} —{" "}
             {t("common:nav.rights", { defaultValue: "All rights reserved." })}
           </p>
           <p className="mt-1">
-            {t("common:nav.tagline", { defaultValue: "Match better. Love smarter. 💘" })}
+            {t("common:nav.tagline", {
+              defaultValue: "Match better. Love smarter. 💘",
+            })}
           </p>
         </div>
       </div>
@@ -214,4 +177,3 @@ Footer.propTypes = {
 
 export default Footer;
 // --- REPLACE END ---
-
