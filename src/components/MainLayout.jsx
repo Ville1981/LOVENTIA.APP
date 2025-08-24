@@ -2,7 +2,10 @@ import React from "react";
 import { Outlet, useLocation } from "react-router-dom";
 
 import AdColumn from "../components/AdColumn";
-import Footer from "../components/Footer";
+// --- REPLACE START: make Footer import explicit so resolver can’t pick anything else ---
+import Footer from "../components/Footer.jsx";
+// --- REPLACE END ---
+
 import HeroSection from "../components/HeroSection";
 import Navbar from "../components/Navbar";
 import "../styles/ads.css";

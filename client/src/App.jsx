@@ -1,6 +1,4 @@
-// File: client/src/App.jsx
-
-// --- REPLACE START: import grouping and PrivateRoute using context user+bootstrapped ---
+// --- REPLACE START: import grouping and PrivateRoute/AdminRoute using context user+bootstrapped ---
 import React, { useEffect, Suspense } from "react";
 import {
   BrowserRouter as Router,
@@ -39,32 +37,39 @@ import PremiumCancel from "./pages/PremiumCancel";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import ProfileHub from "./pages/ProfileHub";
 import Register from "./pages/Register";
-import Settings from "./pages/Settings";        // kept for backwards compatibility (not used by the route)
+import Settings from "./pages/Settings";        // legacy
 import Upgrade from "./pages/Upgrade";
 import WhoLikedMe from "./pages/WhoLikedMe";
-import SettingsPage from "./pages/SettingsPage"; // the actual /settings page we want
+import SettingsPage from "./pages/SettingsPage"; // the actual /settings page
 
-// PrivateRoute uses context user
+// Footer pages (public)
+import About from "./pages/About";
+import Support from "./pages/Support";
+import Security from "./pages/Security";
+import Terms from "./pages/Terms";
+import Cookies from "./pages/Cookies";
+
+// Private route gate
 function PrivateRoute({ children }) {
   const { user, bootstrapped } = useAuth();
-
-  // Wait until initial auth check finishes; do not redirect yet
-  if (!bootstrapped) {
-    return <div className="p-4">Loading...</div>;
-  }
-
-  // If authenticated, render; otherwise redirect to login
+  if (!bootstrapped) return <div className="p-4">Loading...</div>;
   return user ? children : <Navigate to="/login" replace />;
+}
+
+// Admin-only route gate
+function AdminRoute({ children }) {
+  const { user, bootstrapped } = useAuth();
+  if (!bootstrapped) return <div className="p-4">Loading...</div>;
+  if (!user) return <Navigate to="/login" replace />;
+  return user.role === "admin" ? children : <Navigate to="/" replace />;
 }
 // --- REPLACE END ---
 
 export default function App() {
   useEffect(() => {
-    // Prevent automatic scroll restoration on navigation
     if ("scrollRestoration" in window.history) {
       window.history.scrollRestoration = "manual";
     }
-    // Prevent Chrome scroll anchoring when DOM changes height
     document.documentElement.style.overflowAnchor = "none";
   }, []);
 
@@ -78,6 +83,15 @@ export default function App() {
               <Route index element={<Etusivu />} />
               <Route path="discover" element={<Discover />} />
 
+              {/* Public footer routes */}
+              <Route path="about" element={<About />} />
+              <Route path="support" element={<Support />} />
+              <Route path="security" element={<Security />} />
+              <Route path="privacy" element={<PrivacyPolicy />} />
+              <Route path="terms" element={<Terms />} />
+              <Route path="cookies" element={<Cookies />} />
+
+              {/* Auth-protected */}
               <Route
                 path="profile"
                 element={
@@ -102,7 +116,6 @@ export default function App() {
                   </PrivateRoute>
                 }
               />
-
               <Route
                 path="matches"
                 element={
@@ -135,18 +148,22 @@ export default function App() {
                   </PrivateRoute>
                 }
               />
+
+              {/* Admin-only */}
               <Route
                 path="admin"
                 element={
-                  <PrivateRoute>
+                  <AdminRoute>
                     <AdminPanel />
-                  </PrivateRoute>
+                  </AdminRoute>
                 }
               />
 
+              {/* Auth-free */}
               <Route path="login" element={<Login />} />
               <Route path="register" element={<Register />} />
 
+              {/* More protected routes */}
               <Route
                 path="upgrade"
                 element={
@@ -155,7 +172,6 @@ export default function App() {
                   </PrivateRoute>
                 }
               />
-              <Route path="privacy" element={<PrivacyPolicy />} />
               <Route
                 path="who-liked-me"
                 element={
@@ -173,8 +189,7 @@ export default function App() {
                 }
               />
 
-              {/* --- REPLACE START: single source of truth for /settings route
-                   Use SettingsPage (the one with hide/unhide UI) and protect it. --- */}
+              {/* Settings (protected) */}
               <Route
                 path="settings"
                 element={
@@ -183,10 +198,12 @@ export default function App() {
                   </PrivateRoute>
                 }
               />
-              {/* --- REPLACE END --- */}
 
+              {/* Password helpers */}
               <Route path="forgot-password" element={<ForgotPassword />} />
               <Route path="reset-password" element={<ResetPassword />} />
+
+              {/* 404 */}
               <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>

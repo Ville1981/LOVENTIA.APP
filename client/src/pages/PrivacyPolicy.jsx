@@ -1,43 +1,51 @@
+// --- REPLACE START: Privacy Policy page updated to English ---
+import React from "react";
+
+/**
+ * PrivacyPolicy
+ * This page explains what personal data is collected,
+ * how it is used, stored, and user rights.
+ */
 const PrivacyPolicy = () => {
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 text-sm text-gray-800">
-      <h1 className="text-2xl font-semibold mb-4">Tietosuojaseloste</h1>
-
+    <div className="max-w-3xl mx-auto p-6 bg-white shadow rounded">
+      <h1 className="text-2xl font-bold mb-4">Privacy Policy</h1>
       <p className="mb-4">
-        Tämä sivusto kerää ja käsittelee henkilötietoja tarjotakseen turvallisen
-        ja toimivan deittipalvelun. Kerättäviä tietoja ovat esimerkiksi nimi,
-        sähköposti, ikä, sijainti, kiinnostuksen kohteet ja viestit.
+        This site collects and processes personal data in order to provide a
+        safe and functional dating service. The data we collect may include:
+        name, email, age, location, interests, and messages.
       </p>
 
-      <p className="mb-4">Tietoja käytetään mm. seuraaviin tarkoituksiin:</p>
-      <ul className="list-disc pl-6 mb-4">
-        <li>Käyttäjäprofiilin näyttäminen ja hallinta</li>
-        <li>Matchien ja keskustelujen luominen</li>
-        <li>Premium-jäsenyyksien käsittely (Stripe)</li>
-        <li>Ylläpidon ja turvallisuuden takaaminen</li>
+      <h2 className="text-xl font-semibold mt-4 mb-2">Use of Information</h2>
+      <ul className="list-disc pl-6 mb-4 space-y-1">
+        <li>Displaying and managing user profiles</li>
+        <li>Creating matches and enabling conversations</li>
+        <li>Handling premium memberships (via Stripe)</li>
+        <li>Ensuring site maintenance and security</li>
       </ul>
 
+      <h2 className="text-xl font-semibold mt-4 mb-2">Sharing of Information</h2>
       <p className="mb-4">
-        Tietoja ei jaeta ulkopuolisille ilman suostumustasi, lukuun ottamatta
-        maksupalveluntarjoajaa (Stripe). Käytämme evästeitä sivuston toiminnan
-        ja käyttökokemuksen parantamiseksi.
+        We do not share your personal information with third parties without
+        your consent, except for our payment provider (Stripe). We use cookies
+        to improve functionality and enhance your experience on the site.
       </p>
 
+      <h2 className="text-xl font-semibold mt-4 mb-2">Account Deletion</h2>
       <p className="mb-4">
-        Voit koska tahansa poistaa tilisi asetuksista, jolloin kaikki tietosi
-        poistetaan palvelustamme.
+        You may delete your account at any time from the Settings page. When you
+        do so, all your personal data will be permanently removed from our
+        service.
       </p>
 
-      <p className="text-sm text-gray-500 mb-2">
-        Jos sinulla on kysyttävää tietosuojasta, voit ottaa yhteyttä:{" "}
-        tietosuoja@deittiapp.fi
-      </p>
+      
 
-      <p className="text-xs text-gray-400">
-        Päivitetty: {new Date().toLocaleDateString("fi-FI")}
+      <p className="text-sm text-gray-500">
+        Last updated: August 24, 2025
       </p>
     </div>
   );
 };
 
 export default PrivacyPolicy;
+// --- REPLACE END ---

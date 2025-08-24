@@ -1,4 +1,4 @@
-// --- REPLACE START: footer with nav.* labels for navigation items ---
+// --- REPLACE START: fixed JSX typo + cleaned links (no Careers/Press/Safety Tips/Download) ---
 import PropTypes from "prop-types";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -6,15 +6,19 @@ import { Link } from "react-router-dom";
 
 /**
  * Footer
- * - All navigation text is translated via i18n keys (nav.*)
- * - No hard-coded labels; every label uses t('common:nav.*') with defaultValue fallbacks
- * - Structure preserved; only internationalization adjustments
+ * - Navigation labels from i18n keys with English fallbacks.
+ * - Removed: Careers, Press, Safety Tips (merged into Security), Download, social links.
+ * - NOTE: Fixed JSX typo in the Cookies link (to="/cookies").
  */
 const Footer = () => {
   const { t } = useTranslation();
 
+  // Lightweight verification (safe to keep; remove later if desired)
+  console.log("FOOTER VERIFY >> mounted v2 (cleaned links)");
+
   return (
     <footer
+      data-footer-id="verify-v2"
       className="text-white py-12 text-sm w-screen"
       style={{
         backgroundImage: 'url("/Footer.png")',
@@ -38,16 +42,7 @@ const Footer = () => {
                   {t("common:nav.about", { defaultValue: "About" })}
                 </Link>
               </li>
-              <li>
-                <Link to="/careers" className="hover:underline">
-                  {t("common:nav.careers", { defaultValue: "Careers" })}
-                </Link>
-              </li>
-              <li>
-                <Link to="/press" className="hover:underline">
-                  {t("common:nav.press", { defaultValue: "Press" })}
-                </Link>
-              </li>
+              {/* Careers & Press removed */}
             </ul>
           </div>
 
@@ -68,6 +63,7 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
+                {/* FIX: proper JSX attribute (was: to "/cookies") */}
                 <Link to="/cookies" className="hover:underline">
                   {t("common:nav.cookies", { defaultValue: "Cookies" })}
                 </Link>
@@ -83,7 +79,7 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/colorado-policy" className="hover:underline">
+                <Link to="/colorado-info" className="hover:underline">
                   {t("common:nav.coInfo", { defaultValue: "Colorado Info" })}
                 </Link>
               </li>
@@ -103,14 +99,12 @@ const Footer = () => {
               </li>
               <li>
                 <Link to="/security" className="hover:underline">
-                  {t("common:nav.security", { defaultValue: "Security" })}
+                  {t("common:nav.security", {
+                    defaultValue: "Security (Safety Tips)",
+                  })}
                 </Link>
               </li>
-              <li>
-                <Link to="/safety-tips" className="hover:underline">
-                  {t("common:nav.safety", { defaultValue: "Safety Tips" })}
-                </Link>
-              </li>
+              {/* Safety Tips merged into Security; removed separate link */}
               <li>
                 <Link to="/impressum" className="hover:underline">
                   {t("common:nav.impressum", { defaultValue: "Impressum" })}
@@ -130,36 +124,7 @@ const Footer = () => {
                   {t("common:nav.blog", { defaultValue: "Blog" })}
                 </Link>
               </li>
-              <li>
-                <a
-                  href="https://twitter.com"
-                  className="hover:underline"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Twitter
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://facebook.com"
-                  className="hover:underline"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Facebook
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://instagram.com"
-                  className="hover:underline"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Instagram
-                </a>
-              </li>
+              {/* Social links removed until real profiles exist */}
             </ul>
           </div>
 
@@ -179,11 +144,7 @@ const Footer = () => {
                   {t("common:nav.admin", { defaultValue: "Admin" })}
                 </Link>
               </li>
-              <li>
-                <Link to="/download" className="hover:underline">
-                  {t("common:nav.download", { defaultValue: "Download" })}
-                </Link>
-              </li>
+              {/* Download removed */}
               <li>
                 <Link to="/settings" className="hover:underline">
                   {t("common:nav.settings", { defaultValue: "Settings" })}
@@ -196,11 +157,14 @@ const Footer = () => {
         {/* Bottom text */}
         <div className="text-center text-gray-200 text-xs mt-10 leading-tight">
           <p>
-            © {new Date().getFullYear()} {t("site.brand", { defaultValue: "Loventia" })} —{" "}
+            © {new Date().getFullYear()}{" "}
+            {t("site.brand", { defaultValue: "Loventia" })} —{" "}
             {t("common:nav.rights", { defaultValue: "All rights reserved." })}
           </p>
           <p className="mt-1">
-            {t("common:nav.tagline", { defaultValue: "Match better. Love smarter. 💘" })}
+            {t("common:nav.tagline", {
+              defaultValue: "Match better. Love smarter. 💘",
+            })}
           </p>
         </div>
       </div>
@@ -214,4 +178,3 @@ Footer.propTypes = {
 
 export default Footer;
 // --- REPLACE END ---
-
