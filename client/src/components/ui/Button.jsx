@@ -25,14 +25,15 @@ export default function Button({
   const baseClasses =
     "px-4 py-2 rounded-2xl shadow focus:outline-none transition";
 
-  // Color variants; orange added for Crop & Add
+  // Color variants; added "orange" and "yellow" to cover existing calls
   const variantClasses = {
     green: "bg-green-600 text-white hover:bg-green-700",
     purple: "bg-purple-600 text-white hover:bg-purple-700",
     red: "bg-red-600 text-white hover:bg-red-700",
-    gray: "bg-gray-100 text-gray-800 hover:bg-gray-200", // ← dark text on gray
+    gray: "bg-gray-100 text-gray-800 hover:bg-gray-200",
     blue: "bg-blue-500 text-white hover:bg-blue-600",
     orange: "bg-orange-500 text-white hover:bg-orange-600",
+    yellow: "bg-yellow-500 text-white hover:bg-yellow-600", // NEW: accept <Button variant="yellow" />
   };
 
   const composed = classNames(
@@ -75,6 +76,7 @@ Button.propTypes = {
     "gray",
     "blue",
     "orange",
+    "yellow", // NEW: supported to remove prop-type warnings
   ]),
   disabled: PropTypes.bool,
   as: PropTypes.elementType,
@@ -83,4 +85,3 @@ Button.propTypes = {
   onClick: PropTypes.func,
 };
 // --- REPLACE END ---
-
