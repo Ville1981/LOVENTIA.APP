@@ -1,6 +1,0 @@
-/mnt/data/i18n_fix_work/client_src/src\components\profileFields\FormBasicInfo.jsx
-/mnt/data/i18n_fix_work/client_src/src\components\EducationReligionImportanceFields.jsx
-/mnt/data/i18n_fix_work/client_src/src\components\profileFields\ProfileForm.jsx
-/mnt/data/i18n_fix_work/client_src/src\components\DiscoverFilters.jsx
-/mnt/data/i18n_fix_work/client_src/src\utils\filtersData.js
-/mnt/data/i18n_fix_work/client_src/src\pages\Discover.jsx
