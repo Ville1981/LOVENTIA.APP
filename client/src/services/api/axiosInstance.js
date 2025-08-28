@@ -101,16 +101,47 @@ function describeRequest(config) {
   return `${method} ${base}${url}`;
 }
 
-// Ensure Authorization header for every request if we have a token + lightweight logs
+/**
+ * Detect if the request is an auth endpoint where we must NOT send Authorization.
+ * Covers common variants: /auth/login, /auth/register, /auth/refresh, /login, /register, /refresh, /auth/forgot, /auth/reset
+ */
+function isAuthPath(urlLike) {
+  if (!urlLike) return false;
+  const u = String(urlLike).replace(/^\//, ""); // strip leading slash
+  return (
+    /^auth\/(login|register|refresh|forgot|reset)(\/|$)/i.test(u) ||
+    /^(login|register|refresh)(\/|$)/i.test(u)
+  );
+}
+
+// Ensure Authorization header for every request if we have a token,
+// BUT NEVER for auth endpoints (prevents 403 on login when expired token exists).
 api.interceptors.request.use(
   (config) => {
-    const token = getAccessToken();
-    if (token) {
-      config.headers = {
-        ...config.headers,
-        // Do NOT log this value anywhere
-        Authorization: `Bearer ${token}`,
-      };
+    // Avoid accidental '/api/api/*' duplication if someone passes urls beginning with '/api/'
+    if (
+      typeof config.url === "string" &&
+      config.url.startsWith("/api/") &&
+      String(api.defaults.baseURL || "").endsWith("/api")
+    ) {
+      config.url = config.url.replace(/^\/api\//, "/");
+    }
+
+    // Skip Authorization for auth endpoints
+    const urlForCheck = String(config.url || "");
+    if (!isAuthPath(urlForCheck)) {
+      const token = getAccessToken();
+      if (token) {
+        config.headers = {
+          ...config.headers,
+          Authorization: `Bearer ${token}`, // never log this
+        };
+      }
+    } else {
+      // Ensure we do NOT send any stale Authorization to login/register/refresh/etc
+      if (config.headers && "Authorization" in config.headers) {
+        delete config.headers.Authorization;
+      }
     }
 
     // Normalize Content-Type only for plain JSON bodies
@@ -119,15 +150,6 @@ api.interceptors.request.use(
         ...config.headers,
         "Content-Type": "application/json",
       };
-    }
-
-    // Avoid accidental '/api/api/*' duplication if someone passes urls beginning with '/api/'
-    if (
-      typeof config.url === "string" &&
-      config.url.startsWith("/api/") &&
-      String(api.defaults.baseURL || "").endsWith("/api")
-    ) {
-      config.url = config.url.replace(/^\/api\//, "/");
     }
 
     // Lightweight request log (no headers/tokens)
@@ -143,7 +165,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Refresh logic: try once on 401 responses
+// Refresh logic: try once on 401 responses (but never for auth endpoints)
 let refreshPromise = null;
 
 async function performRefresh() {
@@ -200,6 +222,12 @@ api.interceptors.response.use(
     if (!original) return Promise.reject(error);
 
     const status = error?.response?.status;
+
+    // Never attempt refresh for auth endpoints to avoid loops
+    if (isAuthPath(original.url || "")) {
+      return Promise.reject(error);
+    }
+
     if (status !== 401 || original._retry) {
       return Promise.reject(error);
     }

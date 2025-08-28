@@ -1,6 +1,6 @@
 // File: server/middleware/auth.js
 
-// --- REPLACE START: Hardened JWT auth — consistent 401/403 + req.user/req.userId wiring (ESM) ---
+// --- REPLACE START: Hardened JWT auth — ensureAuth & optionalAuth, consistent 401/403, req.user/req.userId wiring (ESM) ---
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 dotenv.config();
@@ -20,7 +20,7 @@ function getTokenFromRequest(req) {
     if (parts.length === 2 && /^Bearer$/i.test(parts[0])) {
       return parts[1];
     }
-    // Sometimes clients send the raw token in Authorization without "Bearer"
+    // Sometimes clients send the raw token without the "Bearer" prefix
     if (parts.length === 1 && authHeader.length > 20) {
       return authHeader.trim();
     }
@@ -47,28 +47,62 @@ function getTokenFromRequest(req) {
 }
 
 /**
- * authenticateToken middleware
+ * Verify a JWT and return its payload, or throw.
+ */
+function verifyToken(token) {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET missing');
+  }
+  return jwt.verify(token, secret);
+}
+
+/**
+ * Normalize and attach payload data to the request object.
+ * - req.user: full decoded payload (NOT a DB document)
+ * - req.auth: legacy alias to payload
+ * - req.userId: normalized id (userId | id | sub)
+ * - req.role, req.stripeCustomerId for convenience
+ */
+function attachPayloadToRequest(req, payload) {
+  const id =
+    payload?.userId ||
+    payload?.id ||
+    payload?.sub ||
+    null;
+
+  req.user = payload || null;
+  req.auth = payload || null; // legacy alias
+  req.userId = id;
+
+  req.role = payload?.role || payload?.userRole || undefined;
+  req.stripeCustomerId =
+    payload?.stripeCustomerId ||
+    payload?.customerId ||
+    payload?.stripe_customer_id ||
+    undefined;
+}
+
+/**
+ * ensureAuth (strict)
  * - 401 when token is missing
  * - 403 when token is invalid/expired
- * - Attaches payload to req.user, req.userId (and legacy aliases)
- * - Passes through CORS preflight (OPTIONS) without auth
+ * - Skips auth for CORS preflight (OPTIONS) with 204
  */
-function authenticateToken(req, res, next) {
+function ensureAuth(req, res, next) {
   // Preflight should not require auth
   if (req.method === 'OPTIONS') {
     return res.sendStatus(204);
   }
 
-  // Ensure we have a secret early (prevents confusing "jwt must be provided" messages)
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    console.error('[auth] Missing JWT_SECRET in environment.');
-    return res.status(500).json({ error: 'Server auth misconfiguration' });
+  let token;
+  try {
+    token = getTokenFromRequest(req);
+  } catch {
+    token = null;
   }
 
-  const token = getTokenFromRequest(req);
   if (!token) {
-    // Keep log concise; do not dump headers for security
     if (process.env.NODE_ENV !== 'production') {
       console.warn('[auth] No access token provided for', req.method, req.originalUrl);
     }
@@ -76,44 +110,84 @@ function authenticateToken(req, res, next) {
   }
 
   try {
-    const payload = jwt.verify(token, secret);
-
-    // Normalize common fields
-    const id =
-      payload.userId ||
-      payload.id ||
-      payload.sub || // JWT sub often holds user id
-      null;
-
-    // Attach for downstream handlers
-    req.user = payload;
-    req.auth = payload;      // legacy alias used by some routes
-    req.userId = id;
-
-    // Helpful mirrors for common props (tolerant if undefined)
-    req.role = payload.role || payload.userRole || undefined;
-    req.stripeCustomerId =
-      payload.stripeCustomerId ||
-      payload.customerId ||
-      payload.stripe_customer_id ||
-      undefined;
-
+    const payload = verifyToken(token);
+    attachPayloadToRequest(req, payload);
     return next();
   } catch (err) {
-    // Distinguish expiry vs invalid
-    const name = err && err.name;
+    const name = err?.name;
     if (name === 'TokenExpiredError') {
       if (process.env.NODE_ENV !== 'production') {
-        console.warn('[auth] Token expired at', err.expiredAt);
+        console.warn('[auth] Token expired at', err?.expiredAt);
       }
       return res.status(403).json({ error: 'Token expired' });
     }
-    console.error('[auth] JWT verification failed:', err && err.message ? err.message : err);
+    if (err?.message === 'JWT_SECRET missing') {
+      console.error('[auth] Missing JWT_SECRET in environment.');
+      return res.status(500).json({ error: 'Server auth misconfiguration' });
+    }
+    console.error('[auth] JWT verification failed:', err?.message || err);
     return res.status(403).json({ error: 'Invalid token' });
   }
 }
 
-// Export both default and named so imports will always match
+/**
+ * optionalAuth (lenient)
+ * - If token exists → verify and attach payload (same as ensureAuth)
+ * - If token missing/invalid → DO NOT error; just continue without req.user
+ *   (useful for endpoints that behave slightly better when user is known
+ *    but still work anonymously)
+ */
+function optionalAuth(req, _res, next) {
+  // Preflight should not require auth
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
+
+  let token;
+  try {
+    token = getTokenFromRequest(req);
+  } catch {
+    token = null;
+  }
+
+  if (!token) {
+    // Anonymous
+    req.user = null;
+    req.auth = null;
+    req.userId = null;
+    return next();
+  }
+
+  try {
+    const payload = verifyToken(token);
+    attachPayloadToRequest(req, payload);
+  } catch (err) {
+    // On optional path, swallow verification errors and continue anonymous
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('[auth] optionalAuth token invalid/expired for', req.originalUrl, '-', err?.message || err);
+    }
+    req.user = null;
+    req.auth = null;
+    req.userId = null;
+  }
+
+  return next();
+}
+
+/**
+ * Backwards-compatible alias. Some existing routes may import `authenticateToken`.
+ * Keep it equal to ensureAuth to avoid surprises.
+ */
+const authenticateToken = ensureAuth;
+
+// Export both default and named so imports will always match (ESM friendly)
 export default authenticateToken;
-export { authenticateToken };
+export {
+  authenticateToken,
+  ensureAuth,
+  optionalAuth,
+  getTokenFromRequest,
+  verifyToken,
+  attachPayloadToRequest,
+};
 // --- REPLACE END ---

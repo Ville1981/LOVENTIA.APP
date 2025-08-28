@@ -47,14 +47,9 @@ const authRoutes = AuthPublicModule.default || AuthPublicModule;
 import * as AuthPrivateModule from './src/routes/authPrivateRoutes.js';
 const authPrivateRoutes = AuthPrivateModule.default || AuthPrivateModule;
 
-// ✅ FIX: import the existing users router from ./routes/users.js (plural, ESM-converted)
-// File: server/index.js
-
-// --- REPLACE START: users route path fix (plural → singular) ---
-import * as UsersRouterModule from './routes/user.js'; // was: './routes/users.js'
+// ✅ users router (singular)
+import * as UsersRouterModule from './routes/user.js';
 const userRoutes = UsersRouterModule.default || UsersRouterModule;
-// --- REPLACE END ---
-
 
 import * as ImageModule from './routes/imageRoutes.js';
 const imageRoutes = ImageModule.default || ImageModule;
@@ -65,10 +60,23 @@ const messageRoutes = MessageModule.default || MessageModule;
 import * as DiscoverModule from './routes/discover.js';
 const discoverRoutes = DiscoverModule.default || DiscoverModule;
 
-// --- REPLACE START: Billing routes import (NEW, minimal addition) ---
+// Billing routes
 import * as BillingRouterModule from './routes/billing.js';
 const billingRoutes = BillingRouterModule.default || BillingRouterModule;
-// --- REPLACE END ---
+
+// ✅ NEW: premium feature routes (handle CommonJS OR ESM)
+import * as RewindModule from './routes/rewind.js';
+const rewindRoutes = RewindModule.default || RewindModule;
+
+import * as IntrosModule from './routes/intros.js';
+const introsRoutes = IntrosModule.default || IntrosModule;
+
+import * as DealbreakersModule from './routes/dealbreakers.js';
+const dealbreakersRoutes = DealbreakersModule.default || DealbreakersModule;
+
+// (Optional) If you have QA routes, import here (kept tolerant if file missing).
+// import * as QaModule from './routes/qa.js';
+// const qaRoutes = QaModule?.default || QaModule;
 // --- REPLACE END ---
 
 // --- REPLACE START: Middleware ---
@@ -82,7 +90,18 @@ const app = express();
 app.use(Sentry.Handlers.requestHandler());
 app.use(Sentry.Handlers.tracingHandler());
 // --- REPLACE END ---
+
+// Lightweight router already present
 app.use("/api", meRouter);
+
+// --- REPLACE START: Register feature routes under /api ---
+// These were previously mounted with require(); now mounted via ESM-friendly imports.
+app.use('/api', rewindRoutes);        // exposes POST /api/rewind
+app.use('/api', introsRoutes);        // GET /api/intros, POST /api/intros/start
+app.use('/api', dealbreakersRoutes);  // GET/PATCH /api/dealbreakers, POST /api/discover/search
+// If you have QA: uncomment next line
+// app.use('/api', qaRoutes);
+// --- REPLACE END ---
 
 // --- REPLACE START: Swagger setup ---
 const swaggerPath = path.join(__dirname, 'openapi.yaml');
