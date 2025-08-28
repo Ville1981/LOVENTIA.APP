@@ -76,6 +76,33 @@ function safeTransform(_doc, ret) {
         e.quotas = { superLikes: { used: 0, window: '' } };
       }
     }
+
+    // Ensure preferences container exists in output for client consistency
+    if (!ret.preferences || typeof ret.preferences !== 'object') {
+      ret.preferences = { dealbreakers: {
+        distanceKm: null,
+        ageMin: null,
+        ageMax: null,
+        mustHavePhoto: false,
+        nonSmokerOnly: false,
+        noDrugs: false,
+        petsOk: null,
+        religion: [],
+        education: [],
+      }};
+    } else if (!ret.preferences.dealbreakers) {
+      ret.preferences.dealbreakers = {
+        distanceKm: null,
+        ageMin: null,
+        ageMax: null,
+        mustHavePhoto: false,
+        nonSmokerOnly: false,
+        noDrugs: false,
+        petsOk: null,
+        religion: [],
+        education: [],
+      };
+    }
   } catch {
     // noop
   }
@@ -88,7 +115,31 @@ function ensure(obj, key, fallback) {
   return obj[key];
 }
 
-// Define User schema with all necessary fields.
+/* ----------------------- Preferences / Dealbreakers schemas ----------------------- */
+// Keeping these small and explicit ensures Mongoose persists values (fixes PATCH→GET mismatch)
+const DealbreakersSchema = new mongoose.Schema(
+  {
+    distanceKm:    { type: Number,  default: null },
+    ageMin:        { type: Number,  default: null },
+    ageMax:        { type: Number,  default: null },
+    mustHavePhoto: { type: Boolean, default: false },
+    nonSmokerOnly: { type: Boolean, default: false },
+    noDrugs:       { type: Boolean, default: false },
+    petsOk:        { type: Boolean, default: null }, // tri-state
+    religion:      { type: [String], default: [] },
+    education:     { type: [String], default: [] },
+  },
+  { _id: false }
+);
+
+const PreferencesSchema = new mongoose.Schema(
+  {
+    dealbreakers: { type: DealbreakersSchema, default: () => ({}) },
+  },
+  { _id: false }
+);
+
+/* ----------------------- Main User schema ----------------------- */
 // IMPORTANT: `politicalIdeology` replaces legacy `ideology`. A virtual alias is provided for backward compatibility.
 const userSchema = new mongoose.Schema(
   {
@@ -219,6 +270,9 @@ const userSchema = new mongoose.Schema(
     isHidden:        { type: Boolean, default: false },
     hiddenUntil:     { type: Date, default: null },
     resumeOnLogin:   { type: Boolean, default: true },
+
+    // ✅ NEW: preferences container (includes persisted dealbreakers)
+    preferences:     { type: PreferencesSchema, default: () => ({}) },
   },
   {
     timestamps: true,
@@ -434,6 +488,23 @@ userSchema.methods.reconcileFromStripeStatus = function (activeCount, latestActi
   }
 };
 
+/**
+ * ✅ New: instance method to ask "does this user have feature X?"
+ * Mirrors middleware logic; safe for server-side checks in services/controllers.
+ */
+userSchema.methods.hasFeature = function hasFeature(featureKey) {
+  if (!featureKey) return false;
+  const premium =
+    this.isPremium === true ||
+    this.premium === true ||
+    (this.entitlements && this.entitlements.tier === 'premium');
+
+  if (premium) return true;
+
+  const f = this.entitlements && this.entitlements.features ? this.entitlements.features : {};
+  return !!f[featureKey];
+};
+
 /* ----------------------- Indexes ----------------------- */
 
 try {
@@ -462,6 +533,12 @@ try {
   // Billing lookups
   userSchema.index({ stripeCustomerId: 1 }, { name: 'idx_user_stripe_customer' });
   userSchema.index({ subscriptionId: 1 }, { name: 'idx_user_subscription' });
+
+  // Preferences lookups (future-proofing for dealbreakers queries)
+  userSchema.index(
+    { 'preferences.dealbreakers.distanceKm': 1, 'preferences.dealbreakers.mustHavePhoto': 1 },
+    { name: 'idx_user_pref_dealbreakers_basic' }
+  );
 } catch {
   /* noop */
 }

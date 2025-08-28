@@ -1,5 +1,5 @@
 // File: client/src/pages/SettingsPage.jsx
-// --- REPLACE START: full file with Subscription Settings section + click diagnostics (structure preserved) ---
+// --- REPLACE START: full file with Dealbreakers section + Subscription Settings (structure preserved) ---
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -10,6 +10,8 @@ import Button from "../components/ui/Button";
 import ControlBar from "../components/ui/ControlBar";
 
 import api from "../utils/axiosInstance";
+// Dealbreakers UI panel (Premium-gated via internal FeatureGate)
+import DealbreakersPanel from "../components/DealbreakersPanel";
 
 export default function SettingsPage() {
   const { logout, user, setUser, refreshUser, refreshMe } = useAuth() || {};
@@ -234,8 +236,17 @@ export default function SettingsPage() {
         )}
       </section>
 
+      {/* ===================== DEALBREAKERS (NEW) ===================== */}
+      <section className="border rounded-md p-4 space-y-3">
+        <h2 className="text-lg font-semibold">Discover dealbreakers</h2>
+        <p className="text-sm text-gray-700">
+          Configure hard filters for matches. This is a Premium feature and will apply to Discover.
+        </p>
+        {/* Uses internal FeatureGate to show CTA for non-premium users */}
+        <DealbreakersPanel user={user} />
+      </section>
+
       {/* ===================== SUBSCRIPTION SETTINGS (NEW) ===================== */}
-      {/* --- REPLACE START: Subscription Settings section --- */}
       <section className="border rounded-md p-4 space-y-3">
         <h2 className="text-lg font-semibold">Subscription Settings</h2>
         <p className="text-sm text-gray-700">
@@ -268,7 +279,6 @@ export default function SettingsPage() {
           The next page uses our secure billing backend (Stripe/PayPal). We never store your card details.
         </p>
       </section>
-      {/* --- REPLACE END: Subscription Settings section --- */}
 
       {/* ===================== DANGER ZONE ===================== */}
       <div className="border-t pt-6">
@@ -284,3 +294,5 @@ export default function SettingsPage() {
   );
 }
 // --- REPLACE END ---
+
+  
