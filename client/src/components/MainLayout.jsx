@@ -1,3 +1,5 @@
+// client/src/components/MainLayout.jsx
+// --- REPLACE START: wrap ads with FeatureGate (noAds invert) ---
 import React from "react";
 import { Outlet, useLocation } from "react-router-dom";
 
@@ -5,12 +7,13 @@ import AdColumn from "../components/AdColumn";
 import Footer from "../components/Footer";
 import HeroSection from "../components/HeroSection";
 import Navbar from "../components/Navbar";
+import FeatureGate from "./FeatureGate"; // ✅ added import
 import "../styles/ads.css";
 
 /**
  * MainLayout
  * – Renders the Navbar at the top
- * – Shows a header ad on Home & Discover
+ * – Shows a header ad on Home & Discover (hidden if user has noAds entitlement)
  * – Lays out 3 columns: left ad, main content, right ad
  * – Renders routed page via <Outlet />
  * – Renders Footer at the bottom
@@ -28,25 +31,27 @@ const MainLayout = () => {
       {/* NAVBAR */}
       <Navbar />
 
-      {/* HEADER AD (only on Home & Discover) */}
+      {/* HEADER AD (only on Home & Discover, gated by noAds) */}
       {(isHome || isDiscover) && (
-        <div className="w-full flex justify-center bg-white py-3 shadow">
-          {/* --- REPLACE START: use VITE env var for ad source --- */}
-          <img
-            src={import.meta.env.VITE_HEADER_AD_SRC || "/ads/header1.png"}
-            alt="Main Header Ad"
-            className="ad-header"
-          />
-          {/* --- REPLACE END --- */}
-        </div>
+        <FeatureGate feature="noAds" invert>
+          <div className="w-full flex justify-center bg-white py-3 shadow">
+            <img
+              src={import.meta.env.VITE_HEADER_AD_SRC || "/ads/header1.png"}
+              alt="Main Header Ad"
+              className="ad-header"
+            />
+          </div>
+        </FeatureGate>
       )}
 
-      {/* MAIN 3‑COLUMN LAYOUT */}
+      {/* MAIN 3-COLUMN LAYOUT */}
       <div className="w-full flex justify-center bg-[#f9f9f9]">
         <div className="w-full max-w-[1400px] grid grid-cols-12 gap-4 px-2 py-6">
-          {/* LEFT AD COLUMN (hidden on small screens) */}
+          {/* LEFT AD COLUMN (hidden on small screens, gated by noAds) */}
           <aside className="hidden lg:flex col-span-2 ad-column left">
-            <AdColumn side="left" />
+            <FeatureGate feature="noAds" invert>
+              <AdColumn side="left" />
+            </FeatureGate>
           </aside>
 
           {/* CENTER CONTENT */}
@@ -57,9 +62,11 @@ const MainLayout = () => {
             <Outlet />
           </main>
 
-          {/* RIGHT AD COLUMN (hidden on small screens) */}
+          {/* RIGHT AD COLUMN (hidden on small screens, gated by noAds) */}
           <aside className="hidden lg:flex col-span-2 ad-column right">
-            <AdColumn side="right" />
+            <FeatureGate feature="noAds" invert>
+              <AdColumn side="right" />
+            </FeatureGate>
           </aside>
         </div>
       </div>
@@ -71,3 +78,5 @@ const MainLayout = () => {
 };
 
 export default MainLayout;
+// --- REPLACE END ---
+
