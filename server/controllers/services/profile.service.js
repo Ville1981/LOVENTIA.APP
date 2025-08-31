@@ -1,5 +1,7 @@
+// PATH: server/services/profileService.js
+
 // --- REPLACE START: profile service (ensure politicalIdeology persists + is returned by GET) ---
-import * as UserModule from '../../src/models/User.js';
+import * as UserModule from '../models/User.js';
 const User = UserModule.default || UserModule;
 
 import toPublic from '../utils/toPublic.js';
@@ -85,6 +87,7 @@ export async function getMeService(req, res) {
     const uid = getUserId(req);
     if (!uid) return res.status(401).json({ error: 'Unauthorized' });
 
+    // Ensure politicalIdeology is included if schema marks it select: false
     const user = await User.findById(uid).select('+politicalIdeology');
     if (!user) return res.status(404).json({ error: 'User not found' });
 
@@ -176,22 +179,30 @@ export async function updateProfileService(req, res) {
       delete update.location;
     }
 
-    // 3) coordinates
+    // 3) coordinates (accept both lat/lng and latitude/longitude)
     const hasLat = Object.prototype.hasOwnProperty.call(update, 'lat');
     const hasLng = Object.prototype.hasOwnProperty.call(update, 'lng');
     const hasLatitude = Object.prototype.hasOwnProperty.call(update, 'latitude');
     const hasLongitude = Object.prototype.hasOwnProperty.call(update, 'longitude');
 
     if (hasLat) {
-      update.latitude = Number(update.lat);
+      const n = Number(update.lat);
+      if (!Number.isNaN(n)) update.latitude = n;
       delete update.lat;
     }
     if (hasLng) {
-      update.longitude = Number(update.lng);
+      const n = Number(update.lng);
+      if (!Number.isNaN(n)) update.longitude = n;
       delete update.lng;
     }
-    if (hasLatitude) update.latitude = Number(update.latitude);
-    if (hasLongitude) update.longitude = Number(update.longitude);
+    if (hasLatitude) {
+      const n = Number(update.latitude);
+      if (!Number.isNaN(n)) update.latitude = n;
+    }
+    if (hasLongitude) {
+      const n = Number(update.longitude);
+      if (!Number.isNaN(n)) update.longitude = n;
+    }
 
     // 4) type coercions / clamps
     if (typeof update.age !== 'undefined') {

@@ -1,3 +1,5 @@
+// File: server/routes/authRoutes.js
+
 // --- REPLACE START: public authentication routes (no authenticate middleware) + forgot/reset-password wiring ---
 import express from 'express';
 import path from 'path';

@@ -1,3 +1,5 @@
+// File: client/src/contexts/AuthContext.jsx
+
 // --- REPLACE START: robust AuthContext with setAuthUser function ---
 import React, {
   createContext,

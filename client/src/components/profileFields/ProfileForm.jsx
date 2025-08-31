@@ -159,7 +159,8 @@ const schema = yup.object().shape({
     .min(18, "Must be at least 18")
     .required("Required"),
   gender: yup.string().required("Required"),
-  orientation: yup.string().required("Required"),
+  // Backend treats orientation as optional → make it optional on client
+  orientation: yup.string(),
 
   country: yup.string(),
   region: yup.string(),
@@ -170,10 +171,11 @@ const schema = yup.object().shape({
 
   education: yup.string(),
 
+  // Optional to mirror backend
   professionCategory: yup
     .string()
     .oneOf(["", ...professionCategories], "Invalid profession category"),
-  profession: yup.string().required("Required"),
+  profession: yup.string(), // optional to avoid false errors
 
   religion: yup.string().oneOf(religionOptions, "Invalid religion"),
   religionImportance: yup
@@ -339,6 +341,7 @@ export default function ProfileForm({
       nutritionPreferences: Array.isArray(user.nutritionPreferences)
         ? user.nutritionPreferences[0]
         : current.nutritionPreferences ?? user.nutritionPreferences ?? "",
+      // ✅ Preserve existing images when route omits them
       extraImages: current.extraImages ?? user.extraImages ?? [],
       profilePhoto: current.profilePhoto ?? user.profilePicture ?? "",
       politicalIdeology:
@@ -376,23 +379,106 @@ export default function ProfileForm({
 
     // Normalize units so backend always receives canonical values
     const normalizeHeightUnit = (u) =>
-      u === "cm" ? "Cm" : u === "ftin" ? "FtIn" : u;
+      u === "cm" ? "Cm" : u === "ftin" ? "FtIn" : u || "";
     const normalizeWeightUnit = (u) =>
-      u === "KG" ? "kg" : u === "LB" ? "lb" : u;
+      u === "KG" ? "kg" : u === "LB" ? "lb" : u || "";
 
-    const payload = {
+    // Helper: drop if "", null, undefined
+    const isEmptyish = (v) =>
+      v === "" || v === null || v === undefined;
+
+    // Helper: treat “None/—/-/N/A” as empty for selects
+    const isNoneLike = (v) => {
+      if (typeof v !== "string") return false;
+      const s = v.trim().toLowerCase();
+      return s === "" || s === "none" || s === "—" || s === "-" || s === "n/a" || s === "na";
+    };
+
+    // Start from current data + local images, normalize units up-front
+    const working = {
       ...data,
       heightUnit: normalizeHeightUnit(data.heightUnit),
       weightUnit: normalizeWeightUnit(data.weightUnit),
-      nutritionPreferences: data.nutritionPreferences
-        ? [data.nutritionPreferences]
-        : [],
+      nutritionPreferences: data.nutritionPreferences,
+      // ✅ Ensure we keep images unless explicitly changed
       extraImages: localExtraImages,
       profilePhoto: data.profilePhoto,
     };
 
-    console.log("[ProfileForm] Submitting payload (normalized):", payload);
-    await onSubmitProp?.(payload);
+    // Convert numeric fields if present (otherwise remove)
+    const numericFields = [
+      "age",
+      "height",
+      "weight",
+      "latitude",
+      "longitude",
+      "preferredMinAge",
+      "preferredMaxAge",
+    ];
+    numericFields.forEach((k) => {
+      if (isEmptyish(working[k])) {
+        delete working[k];
+        return;
+      }
+      const val = Number(working[k]);
+      if (Number.isFinite(val)) {
+        working[k] = val;
+      } else {
+        delete working[k];
+      }
+    });
+
+    // Drop empty string values across the board (avoids sending "")
+    Object.keys(working).forEach((k) => {
+      if (isEmptyish(working[k])) {
+        delete working[k];
+      }
+    });
+
+    // Drop “None/—” style selects instead of sending empty strings
+    [
+      "religion",
+      "religionImportance",
+      "politicalIdeology",
+      "professionCategory",
+      "children",
+      "pets",
+      "smoke",
+      "drink",
+      "drugs",
+      "bodyType",
+      "activityLevel",
+      "heightUnit",
+      "weightUnit",
+      "nutritionPreferences",
+      "country",
+      "region",
+      "city",
+    ].forEach((k) => {
+      if (isNoneLike(working[k])) {
+        delete working[k];
+      }
+    });
+
+    // Nutrition preferences: send as array only if a concrete value chosen
+    if (typeof working.nutritionPreferences !== "undefined") {
+      if (isNoneLike(working.nutritionPreferences)) {
+        delete working.nutritionPreferences;
+      } else {
+        working.nutritionPreferences = [working.nutritionPreferences];
+      }
+    }
+
+    // Clean up client-only custom location fields before submit
+    ["customCountry", "customRegion", "customCity"].forEach((k) => delete working[k]);
+
+    // ✅ Critical: do NOT send an empty array for images; omit to avoid wiping on routes that ignore it
+    if (Array.isArray(working.extraImages) && working.extraImages.length === 0) {
+      delete working.extraImages;
+    }
+
+    console.log("[ProfileForm] Submitting payload (normalized/cleaned):", working);
+    await onSubmitProp?.(working);
   };
 
   const slideshowImages = useMemo(() => {

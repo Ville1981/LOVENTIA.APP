@@ -1,6 +1,6 @@
-// server/routes/imageRoutes.js
+// PATH: server/routes/imageRoutes.js
 
-// --- REPLACE START: ESM imports & CJS interop (User/Image), keep existing behavior ---
+// --- REPLACE START: ESM imports & CJS interop (User/Image) + shared normalizers ---
 import express from 'express';
 import path from 'path';
 import fs from 'fs/promises';
@@ -10,14 +10,43 @@ import sharp from 'sharp';
 import authenticate from '../middleware/authenticate.js';
 import { upload } from '../config/multer.js';
 
-// Models
-// Interop for CommonJS-exported User (works whether it exports default or module.exports)
+// Models (interop both ESM default and CJS module.exports)
 import * as UserModule from '../models/User.js';
 const User = UserModule.default || UserModule;
 
-// Interop for Image model as well (avoids the same default import crash if it's CommonJS)
 import * as ImageModule from '../models/Image.js';
 const Image = ImageModule.default || ImageModule;
+
+/**
+ * Normalization helpers – keep identical logic/intent to user.js & controllers:
+ * - toWebPathStrict ensures forward slashes and leading '/'
+ * - normalizeUserOut mirrors photos/extraImages and normalizes avatar path
+ */
+function toWebPathStrict(p) {
+  if (!p) return '';
+  const s = String(p).replace(/\\/g, '/').replace(/^\/?/, '');
+  return `/${s}`;
+}
+
+function normalizeUserOut(u) {
+  if (!u) return u;
+  const plain = typeof u.toObject === 'function' ? u.toObject() : { ...u };
+
+  const photosIn = Array.isArray(plain.photos) ? plain.photos : null;
+  const extraIn  = Array.isArray(plain.extraImages) ? plain.extraImages : null;
+
+  let canonical = photosIn || extraIn || [];
+  if (photosIn && extraIn && extraIn.length > photosIn.length) canonical = extraIn;
+
+  const normalizedList = (canonical || []).filter(Boolean).map(toWebPathStrict);
+  plain.photos = normalizedList;
+  plain.extraImages = normalizedList;
+
+  if (plain.profilePicture) plain.profilePicture = toWebPathStrict(plain.profilePicture);
+  if (plain.profilePhoto)   plain.profilePhoto   = toWebPathStrict(plain.profilePhoto);
+
+  return plain;
+}
 // --- REPLACE END ---
 
 const router = express.Router();
@@ -30,6 +59,8 @@ router.options(
 
 /**
  * POST /api/users/:userId/upload-avatar
+ * - Replaces previous avatar, deletes files/records
+ * - Responds with { user: <normalized user> } for consistency with /api/users stack
  */
 router.post(
   '/:userId/upload-avatar',
@@ -38,30 +69,27 @@ router.post(
   async (req, res) => {
     try {
       const { userId } = req.params;
-      if (req.user.id !== userId) {
+      if (!req?.user?.id || req.user.id !== String(userId)) {
         return res.status(403).json({ error: 'Forbidden' });
       }
       if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
       }
 
-      // Remove old avatars
+      // Remove old avatars (db + fs) – best-effort
       const oldAvatars = await Image.find({ owner: userId, isAvatar: true });
       await Promise.all(
         oldAvatars.map(async (old) => {
-          const fileOnDisk = path.join(
-            process.cwd(),
-            old.url.replace(/^\//, '')
-          );
+          const fileOnDisk = path.join(process.cwd(), String(old.url || '').replace(/^\//, ''));
           await fs.unlink(fileOnDisk).catch((e) => {
-            if (e.code !== 'ENOENT') console.warn('Could not delete:', e);
+            if (e?.code !== 'ENOENT') console.warn('[avatar] delete warning:', e?.message || e);
           });
-          await Image.deleteOne({ _id: old._id });
+          await Image.deleteOne({ _id: old._id }).catch(() => {});
         })
       );
 
-      // Save new avatar
-      const avatarUrl = `/uploads/profiles/${req.file.filename}`;
+      // Save new avatar record
+      const avatarUrl = toWebPathStrict(req.file.path || `/uploads/avatars/${req.file.filename}`);
       await Image.create({
         owner: userId,
         url: avatarUrl,
@@ -69,12 +97,15 @@ router.post(
         isAvatar: true
       });
 
-      // Update user document
+      // Update user doc
       const user = await User.findById(userId);
+      if (!user) return res.status(404).json({ error: 'User not found' });
+
       user.profilePicture = avatarUrl;
       await user.save();
 
-      return res.status(200).json({ profilePicture: avatarUrl });
+      // ✅ Unified response
+      return res.status(200).json({ user: normalizeUserOut(user) });
     } catch (err) {
       console.error('Upload avatar error:', err);
       return res.status(500).json({ error: 'Avatar upload failed' });
@@ -84,6 +115,9 @@ router.post(
 
 /**
  * POST /api/users/:userId/photos
+ * - Bulk append to extraImages with maxSlots by tier
+ * - Creates Image docs for each
+ * - Responds with { user: <normalized user> } (unifies with user.js)
  */
 router.post(
   '/:userId/photos',
@@ -92,7 +126,7 @@ router.post(
   async (req, res) => {
     try {
       const { userId } = req.params;
-      if (req.user.id !== userId) {
+      if (!req?.user?.id || req.user.id !== String(userId)) {
         return res.status(403).json({ error: 'Forbidden' });
       }
 
@@ -102,25 +136,21 @@ router.post(
       }
 
       const maxSlots = user.isPremium ? 50 : 9;
-      const existing = Array.isArray(user.extraImages)
-        ? [...user.extraImages]
-        : [];
-      const files = req.files ?? [];
+      const existing = Array.isArray(user.extraImages) ? [...user.extraImages] : [];
+      const files = Array.isArray(req.files) ? req.files : [];
 
       if (existing.filter(Boolean).length + files.length > maxSlots) {
-        return res
-          .status(400)
-          .json({ error: `Max ${maxSlots} extra images allowed` });
+        return res.status(400).json({ error: `Max ${maxSlots} extra images allowed` });
       }
 
-      // Prepare slots
-      const updated = Array.from({ length: maxSlots }, (_, i) =>
-        existing[i] || null
-      );
+      // Prepare slots array up to maxSlots (preserve existing order)
+      const updated = Array.from({ length: maxSlots }, (_, i) => existing[i] || null);
+
       for (const file of files) {
-        const url = `/uploads/extra/${file.filename}`;
+        const url = toWebPathStrict(file.path || `/uploads/extra/${file.filename}`);
         const idx = updated.findIndex((slot) => !slot);
         if (idx === -1) break;
+
         updated[idx] = url;
         await Image.create({
           owner: userId,
@@ -132,7 +162,9 @@ router.post(
 
       user.extraImages = updated;
       await user.save();
-      return res.status(200).json({ extraImages: updated });
+
+      // ✅ Unified response
+      return res.status(200).json({ user: normalizeUserOut(user) });
     } catch (err) {
       console.error('Bulk upload error:', err);
       return res.status(500).json({ error: 'Photos upload failed' });
@@ -142,6 +174,8 @@ router.post(
 
 /**
  * POST /api/users/:userId/photos/upload-photo-step
+ * - One-by-one slot upload with optional crop
+ * - Responds with { user: <normalized user> }
  */
 router.post(
   '/:userId/photos/upload-photo-step',
@@ -150,21 +184,14 @@ router.post(
   async (req, res) => {
     try {
       const { userId } = req.params;
-      if (req.user.id !== userId) {
+      if (!req?.user?.id || req.user.id !== String(userId)) {
         return res.status(403).json({ error: 'Forbidden' });
       }
       if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
       }
 
-      const {
-        slot,
-        cropX,
-        cropY,
-        cropWidth,
-        cropHeight,
-        caption
-      } = req.body;
+      const { slot, cropX, cropY, cropWidth, cropHeight, caption } = req.body;
 
       const user = await User.findById(userId);
       if (!user) {
@@ -176,9 +203,9 @@ router.post(
         ? [...user.extraImages]
         : Array(maxSlots).fill(null);
 
-      // GIF bypass
+      // If GIF → bypass crop
       if (req.file.mimetype === 'image/gif') {
-        const gifUrl = `/uploads/extra/${req.file.filename}`;
+        const gifUrl = toWebPathStrict(req.file.path || `/uploads/extra/${req.file.filename}`);
         const idxGif =
           Number.isInteger(+slot) && +slot >= 0 && +slot < maxSlots
             ? +slot
@@ -194,32 +221,22 @@ router.post(
         });
         user.extraImages = arr;
         await user.save();
-        return res.status(200).json({ extraImages: arr });
+        return res.status(200).json({ user: normalizeUserOut(user) });
       }
 
-      // File paths
-      const inPath = path.join(
-        process.cwd(),
-        'uploads',
-        'extra',
-        req.file.filename
-      );
+      // Input/output file paths
+      const inPath  = path.join(process.cwd(), String(req.file.path || '').replace(/^\//, ''));
       const outName = `crop_${Date.now()}_${req.file.filename}`;
-      const outPath = path.join(
-        process.cwd(),
-        'uploads',
-        'extra',
-        outName
-      );
+      const outPath = path.join(process.cwd(), 'uploads', 'extra', outName);
 
-      // --- REPLACE START: bypass Sharp if no valid crop dims ---
+      // --- REPLACE START: bypass Sharp if no valid crop dims (consistent with controller) ---
       const hasCrop = cropWidth && cropHeight;
       if (!hasCrop || +cropWidth === 0 || +cropHeight === 0) {
         await fs.rename(inPath, outPath);
       } else {
-        const left = parseInt(cropX, 10) || 0;
-        const top = parseInt(cropY, 10) || 0;
-        const width = parseInt(cropWidth, 10);
+        const left   = parseInt(cropX, 10) || 0;
+        const top    = parseInt(cropY, 10) || 0;
+        const width  = parseInt(cropWidth, 10);
         const height = parseInt(cropHeight, 10);
 
         if (!width || !height) {
@@ -232,29 +249,21 @@ router.post(
             await fs.unlink(inPath).catch(() => {});
           } catch (e) {
             console.error('Error cropping:', e);
-            return res
-              .status(500)
-              .json({ error: 'Failed to crop image', details: e.message });
+            return res.status(500).json({ error: 'Failed to crop image', details: e.message });
           }
         }
       }
       // --- REPLACE END ---
 
       // Clean up if both exist
-      const inExists = await fs
-        .stat(inPath)
-        .then(() => true)
-        .catch(() => false);
-      const outExists = await fs
-        .stat(outPath)
-        .then(() => true)
-        .catch(() => false);
+      const inExists = await fs.stat(inPath).then(() => true).catch(() => false);
+      const outExists = await fs.stat(outPath).then(() => true).catch(() => false);
       if (inExists && outExists) {
         await fs.unlink(inPath).catch(() => {});
       }
 
       // Assign URL & save
-      const url = `/uploads/extra/${outName}`;
+      const url = toWebPathStrict(path.join('uploads', 'extra', outName));
       const idxCrop =
         Number.isInteger(+slot) && +slot >= 0 && +slot < maxSlots
           ? +slot
@@ -270,7 +279,9 @@ router.post(
       });
       user.extraImages = arr;
       await user.save();
-      return res.status(200).json({ extraImages: arr });
+
+      // ✅ Unified response
+      return res.status(200).json({ user: normalizeUserOut(user) });
     } catch (err) {
       console.error('Step upload error:', err);
       return res.status(500).json({ error: 'Step upload failed' });
@@ -280,6 +291,8 @@ router.post(
 
 /**
  * DELETE /api/users/:userId/photos/:slot
+ * - Clears a slot and deletes backing file + Image doc if present
+ * - Responds with { user: <normalized user> }
  */
 router.delete(
   '/:userId/photos/:slot',
@@ -287,7 +300,7 @@ router.delete(
   async (req, res) => {
     try {
       const { userId, slot } = req.params;
-      if (req.user.id !== userId) {
+      if (!req?.user?.id || req.user.id !== String(userId)) {
         return res.status(403).json({ error: 'Forbidden' });
       }
 
@@ -302,24 +315,23 @@ router.delete(
         ? [...user.extraImages]
         : Array(maxSlots).fill(null);
 
-      if (idx < 0 || idx >= maxSlots) {
+      if (!Number.isInteger(idx) || idx < 0 || idx >= maxSlots) {
         return res.status(400).json({ error: 'Invalid slot index' });
       }
 
       const imageUrl = arr[idx];
       if (imageUrl) {
-        const filePath = path.join(
-          process.cwd(),
-          imageUrl.replace(/^\//, '')
-        );
+        const filePath = path.join(process.cwd(), String(imageUrl).replace(/^\//, ''));
         await fs.unlink(filePath).catch(() => {});
-        await Image.deleteOne({ owner: userId, url: imageUrl });
+        await Image.deleteOne({ owner: userId, url: imageUrl }).catch(() => {});
       }
 
       arr[idx] = null;
       user.extraImages = arr;
       await user.save();
-      return res.status(200).json({ extraImages: arr });
+
+      // ✅ Unified response
+      return res.status(200).json({ user: normalizeUserOut(user) });
     } catch (err) {
       console.error('Delete slot error:', err);
       return res.status(500).json({ error: 'Failed to delete photo slot' });

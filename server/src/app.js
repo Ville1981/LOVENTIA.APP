@@ -1,3 +1,5 @@
+// File: server/app.js
+
 // --- REPLACE START: load environment variables and import alert helper ---
 require('dotenv').config();
 const { checkThreshold } = require('./utils/alertRules.js');
@@ -342,7 +344,7 @@ if (IS_TEST) {
   testAuth.post('/login', noValidate, (req, res) => {
     const { email } = req.body || {};
     const userId = '000000000000000000000001';
-    const role = 'user';
+    const role = 'user'; // ✅ FIX: replaced erroneous "the role" with valid declaration
 
     const accessToken = jwt.sign(
       { id: userId, userId, role, email },
@@ -491,6 +493,47 @@ if (!IS_TEST) {
     );
     app.use('/api/discover', authenticate, authorizeRoles('user'), discoverRoutes);
   } catch (_) {}
+
+  // --- REPLACE START: mount /api/notifications with ESM/CJS compatibility ---
+  (async () => {
+    try {
+      // Prefer ESM dynamic import (our notifications route is ESM)
+      const candidates = [
+        path.resolve(__dirname, './routes/notifications.js'),
+        path.resolve(__dirname, './src/routes/notifications.js'),
+        path.resolve(__dirname, '../routes/notifications.js'),
+      ];
+      let notificationsRouter = null;
+
+      for (const p of candidates) {
+        try {
+          // Try require first (works if CJS)
+          let mod = require(p);
+          notificationsRouter = mod && (mod.default || mod.router || mod);
+          if (notificationsRouter) break;
+        } catch (err) {
+          // Fallback to ESM dynamic import on ERR_REQUIRE_ESM or general import error
+          try {
+            const esm = await import(pathToFileURL(p).href);
+            notificationsRouter = esm && (esm.default || esm.router || esm);
+            if (notificationsRouter) break;
+          } catch {
+            // try next candidate
+          }
+        }
+      }
+
+      if (notificationsRouter && typeof notificationsRouter === 'function') {
+        app.use('/api/notifications', authenticate, notificationsRouter);
+        console.log('🔔 Mounted /api/notifications');
+      } else {
+        console.warn('⚠️ Notifications route not mounted (file missing or invalid export).');
+      }
+    } catch (e) {
+      console.warn('⚠️ Failed to mount /api/notifications:', e && e.message ? e.message : e);
+    }
+  })();
+  // --- REPLACE END: mount /api/notifications with ESM/CJS compatibility ---
 }
 
 /* ──────────────────────────────────────────────────────────────────────────────
@@ -575,3 +618,21 @@ if (!IS_TEST) {
 }
 
 module.exports = app;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
