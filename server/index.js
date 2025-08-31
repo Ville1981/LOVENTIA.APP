@@ -1,4 +1,4 @@
-// File: server/index.js
+// PATH: server/index.js
 
 // --- REPLACE START: load environment variables early ---
 import 'dotenv/config';
@@ -51,6 +51,8 @@ const authPrivateRoutes = AuthPrivateModule.default || AuthPrivateModule;
 import * as UsersRouterModule from './routes/user.js';
 const userRoutes = UsersRouterModule.default || UsersRouterModule;
 
+// ⚠️ imageRoutes imported but NOT mounted under /api to avoid duplicate stacks.
+//    We optionally mount it under /_dev/images for local testing only.
 import * as ImageModule from './routes/imageRoutes.js';
 const imageRoutes = ImageModule.default || ImageModule;
 
@@ -61,7 +63,9 @@ import * as DiscoverModule from './routes/discover.js';
 const discoverRoutes = DiscoverModule.default || DiscoverModule;
 
 // Billing routes
-import * as BillingRouterModule from './routes/billing.js';
+// NOTE: We mount this router at *both* /api/billing and /api/payment for backward compatibility.
+// The router file itself must NOT include an extra `/billing` prefix in its internal paths.
+import * as BillingRouterModule from './routes/payment.js';
 const billingRoutes = BillingRouterModule.default || BillingRouterModule;
 
 // ✅ NEW: premium feature routes (handle CommonJS OR ESM)
@@ -177,8 +181,36 @@ app.get('/api/health', (_req, res) => {
 app.head('/api/health', (_req, res) => res.sendStatus(200));
 // --- REPLACE END ---
 
-// Serve uploads directory
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// --- REPLACE START: static /uploads serving with process.cwd() (and ensure dir exists) ---
+/**
+ * Serve user-uploaded assets. Using process.cwd() makes this robust when the server
+ * is started from project root even if transpiled dirs differ from __dirname.
+ * Keep this AFTER CORS so GET /uploads/** inherits CORS headers.
+ *
+ * Also ensure common sub-directories exist to avoid Multer ENOENT issues.
+ */
+const uploadsAbs = path.join(process.cwd(), 'uploads');
+try {
+  if (!fs.existsSync(uploadsAbs)) fs.mkdirSync(uploadsAbs, { recursive: true });
+  // --- REPLACE START: ensure subdirectories exist (avatars, extra) ---
+  for (const sub of ['avatars', 'extra']) {
+    const dir = path.join(uploadsAbs, sub);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  }
+  // --- REPLACE END ---
+} catch (e) {
+  console.warn('⚠️ Could not ensure /uploads dir:', e?.message || e);
+}
+app.use('/uploads', express.static(uploadsAbs, {
+  // Optional caching; tweak if needed
+  maxAge: process.env.STATIC_MAX_AGE || '1d',
+  immutable: false,
+  setHeaders(res) {
+    // Make sure CORS is friendly for assets when behind CDN/dev
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  },
+}));
+// --- REPLACE END ---
 
 // --- REPLACE START: serve client-dist if exists ---
 const clientDistDir = path.join(__dirname, 'client-dist');
@@ -216,8 +248,20 @@ if (hasClientDist) {
 app.use('/api/auth', authRoutes);
 app.use('/api/auth', authPrivateRoutes);
 app.use('/api/messages', authenticate, messageRoutes);
+
+// ✅ Single image route stack: ONLY under /api/users (server/routes/user.js).
 app.use('/api/users', authenticate, userRoutes);
-app.use('/api/images', authenticate, imageRoutes);
+
+// ❌ Do NOT mount /api/images to avoid duplicate handlers:
+// app.use('/api/images', authenticate, imageRoutes);
+
+// ✅ Optional DEV-only mount for the old image router (helpful during testing)
+//    Toggle via env DEV_IMAGE_ROUTES=true
+if (String(process.env.DEV_IMAGE_ROUTES || '').toLowerCase() === 'true') {
+  console.warn('🔧 DEV: mounting legacy imageRoutes at /_dev/images (not for production)');
+  app.use('/_dev/images', authenticate, imageRoutes);
+}
+
 app.use('/api/discover', authenticate, discoverRoutes);
 
 // --- REPLACE START: Billing mount (NEW, minimal addition) ---

@@ -1,5 +1,3 @@
-// File: server/models/User.js
-
 // --- REPLACE START: Convert to CommonJS + add missing fields + location + visibility sync + entitlements (kept original structure) ---
 'use strict';
 
@@ -253,6 +251,10 @@ const userSchema = new mongoose.Schema(
     likes:        [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     passes:       [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     superLikes:   [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+
+    // ✅ ADDED: timestamps for superlike rate limiting (persisted)
+    superLikeTimestamps: [{ type: Date, default: undefined }],
+
     blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 
     // Password reset fields
@@ -424,7 +426,6 @@ function buildPremiumFeatures() {
     noAds:             true,
   };
 }
-
 /**
  * Start Premium: updates entitlements and legacy flags.
  */

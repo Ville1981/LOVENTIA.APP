@@ -1,28 +1,34 @@
-// File: client/src/pages/Photos.jsx
-
-// --- REPLACE START: use unified axios instance and server-compatible endpoints ---
-// --- REPLACE START: use centralized axios instance ---
-import api from '../services/api/axiosInstance';
-// --- REPLACE END ---
-// --- REPLACE END ---
+// --- REPLACE START: normalize paths + fix base URL + normalize arrays from user ---
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import api from "../services/api/axiosInstance";
 import { useAuth } from "../contexts/AuthContext";
 
 /**
- * Utility: normalize a relative image path to absolute URL if needed.
+ * Convert any path to a browser-friendly relative path:
+ * - Replace backslashes with forward slashes
+ */
+function toWebPath(p) {
+  return (p || "").replace(/\\/g, "/");
+}
+
+/**
+ * Build absolute URL to backend for relative assets.
+ * - Respects Vite env `VITE_BACKEND_ORIGIN` if present
+ * - Otherwise swaps dev ports 5173/5174 → 5000
  */
 function toAbsolute(src) {
   if (!src || typeof src !== "string") return "";
   if (/^https?:\/\//i.test(src)) return src;
-  const base =
-    (typeof window !== "undefined" && window.location?.origin) ||
-    // --- REPLACE START: removed leftover localhost string ---
-// --- REPLACE END ---
-  const backend = base.replace(/:5173|:5174/, ":5000");
-  const clean = src.startsWith("/") ? src : `/${src}`;
-  return `${backend}${clean}`;
+  const origin =
+    (import.meta.env && import.meta.env.VITE_BACKEND_ORIGIN) ||
+    (typeof window !== "undefined"
+      ? window.location.origin.replace(/:(5173|5174)$/, ":5000")
+      : "");
+  const cleanRel = toWebPath(src).replace(/^\/+/, ""); // no leading slashes
+  return `${origin}/${cleanRel}`;
 }
+// --- REPLACE END ---
 
 export default function Photos() {
   const { user } = useAuth();
@@ -39,15 +45,19 @@ export default function Photos() {
 
   const isOwner = !params.userId || params.userId === (user?._id || user?.id);
 
-  // Load current user profile (mainly to get extraImages)
+  // Load current user's photos (extraImages preferred, fallback to photos)
   useEffect(() => {
     async function load() {
       try {
-        // When viewing own profile, prefer /api/users/profile to avoid leaking ids
         const endpoint = isOwner ? "/api/users/profile" : `/api/users/${userId}`;
         const res = await api.get(endpoint);
         const u = res.data?.user || res.data || {};
-        setExtraImages(Array.isArray(u.extraImages) ? u.extraImages : []);
+        const images = Array.isArray(u.extraImages)
+          ? u.extraImages
+          : Array.isArray(u.photos)
+          ? u.photos
+          : [];
+        setExtraImages(images);
       } catch (e) {
         console.error("Failed to load user photos", e);
       }
@@ -59,6 +69,22 @@ export default function Photos() {
   const onSelectPhotos = (e) =>
     setPhotosFiles(Array.from(e.target.files || []).slice(0, 20));
 
+  const refreshImages = async () => {
+    try {
+      const endpoint = isOwner ? "/api/users/profile" : `/api/users/${userId}`;
+      const res = await api.get(endpoint);
+      const u = res.data?.user || res.data || {};
+      const images = Array.isArray(u.extraImages)
+        ? u.extraImages
+        : Array.isArray(u.photos)
+        ? u.photos
+        : [];
+      setExtraImages(images);
+    } catch (e) {
+      console.error("Refresh photos failed", e);
+    }
+  };
+
   const uploadAvatar = async () => {
     if (!avatarFile) return;
     try {
@@ -67,10 +93,8 @@ export default function Photos() {
       await api.post(`/api/users/${userId}/upload-avatar`, fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      // refresh
-      const res = await api.get(isOwner ? "/api/users/profile" : `/api/users/${userId}`);
-      const u = res.data?.user || res.data || {};
-      setExtraImages(Array.isArray(u.extraImages) ? u.extraImages : []);
+      await refreshImages();
+      setAvatarFile(null);
     } catch (e) {
       console.error("Avatar upload failed", e);
     }
@@ -84,8 +108,9 @@ export default function Photos() {
       const res = await api.post(`/api/users/${userId}/upload-photos`, fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      const next = res.data?.extraImages || [];
+      const next = res.data?.extraImages || res.data?.photos || [];
       setExtraImages(next);
+      setPhotosFiles([]);
     } catch (e) {
       console.error("Photos upload failed", e);
     }
@@ -94,12 +119,21 @@ export default function Photos() {
   const deleteSlot = async (idx) => {
     try {
       const res = await api.delete(`/api/users/${userId}/photos/${idx}`);
-      const next = res.data?.extraImages || [];
+      const next = res.data?.extraImages || res.data?.photos || [];
       setExtraImages(next);
     } catch (e) {
       console.error("Delete slot failed", e);
     }
   };
+
+  // --- REPLACE START: normalize paths before rendering and avoid duplicates ---
+  const normalizedImages = useMemo(() => {
+    const list = Array.isArray(extraImages) ? extraImages : [];
+    const normalized = list.map((p) => toAbsolute(p));
+    // De-duplicate while preserving order
+    return Array.from(new Set(normalized)).filter(Boolean);
+  }, [extraImages]);
+  // --- REPLACE END ---
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-6">
@@ -137,10 +171,10 @@ export default function Photos() {
       )}
 
       <div className="grid grid-cols-3 gap-4">
-        {(extraImages || []).map((src, i) => (
+        {normalizedImages.map((src, i) => (
           <div key={i} className="relative group">
             <img
-              src={toAbsolute(src)}
+              src={src}
               alt={`Extra ${i + 1}`}
               className="object-cover w-full h-48 rounded"
             />
@@ -166,16 +200,3 @@ export default function Photos() {
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

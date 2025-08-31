@@ -1,4 +1,4 @@
-// server/middleware/authenticate.js
+// File: server/middleware/authenticate.js
 
 // --- REPLACE START: JWT authenticate middleware (ESM) ---
 /**
@@ -6,7 +6,7 @@
  * - Looks for Authorization: Bearer <token>
  * - Also supports cookies (accessToken/jwt) and ?token= for Socket/legacy
  * - Verifies with JWT secret(s)
- * - Attaches a normalized user object to req.user
+ * - Attaches a normalized user object to req.user AND req.userId
  *
  * Compatible with setups using either JWT_SECRET or ACCESS_TOKEN_SECRET.
  * Keeps backward-compat by providing BOTH: req.user.userId and req.user.id.
@@ -19,7 +19,7 @@ import jwt from 'jsonwebtoken';
  * This is used to choose between multiple possible env vars.
  */
 function pickFirstDefined(...vals) {
-  for (const v of vals) if (v) return v;
+  for (const v of vals) if (v !== undefined && v !== null && v !== '') return v;
   return undefined;
 }
 
@@ -39,8 +39,8 @@ function getAccessTokenFromAuthHeader(req) {
  */
 function getAccessTokenFromCookies(req) {
   const c = req?.cookies || {};
-  // common cookie names: accessToken, jwt, token
-  return c.accessToken || c.jwt || c.token || null;
+  // common cookie names: accessToken, jwt, token, refreshToken
+  return c.accessToken || c.jwt || c.token || c.refreshToken || null;
 }
 
 /**
@@ -142,6 +142,8 @@ export default function authenticate(req, res, next) {
     // Maintain backward compatibility: provide both userId and id as strings.
     const userId = String(userIdRaw);
     req.user = { userId, id: userId, role, ...decoded };
+    // Also attach req.userId for routes that rely on it (back-compat)
+    req.userId = userId;
 
     return next();
   } catch (err) {

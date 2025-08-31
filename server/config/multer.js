@@ -1,4 +1,4 @@
-// server/config/multer.js
+// PATH: server/config/multer.js
 
 import multer from 'multer';
 import path from 'path';

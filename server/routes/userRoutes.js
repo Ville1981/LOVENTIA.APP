@@ -1,3 +1,5 @@
+// PATH: server/routes/userRoutes.js
+
 // --- REPLACE START: migrate file to ESM (imports instead of require) ---
 import express from "express";
 import jwt from "jsonwebtoken";
@@ -78,6 +80,49 @@ function authenticateToken(req, res, next) {
 }
 // --- REPLACE END ---
 
+// --- REPLACE START: outbound user normalizer (slashes + leading slash + mirrors) ---
+/**
+ * Normalize backslashes to forward slashes and ensure leading "/" for web.
+ */
+function toWebPath(p) {
+  if (!p || typeof p !== "string") return p;
+  let s = p.replace(/\\/g, "/");
+  if (!s.startsWith("/")) s = `/${s}`;
+  return s;
+}
+
+/**
+ * Create a plain JS object and normalize image fields consistently:
+ * - photos[] and extraImages[] are kept in sync when only one exists
+ * - paths use "/" and start with "/"
+ */
+function normalizeUserOut(u) {
+  if (!u) return u;
+  const plain = typeof u.toObject === "function" ? u.toObject() : { ...u };
+
+  // Mirror lists if only one exists (server returns varied shapes in different endpoints)
+  const photosIn = Array.isArray(plain.photos) ? plain.photos : null;
+  const extraIn = Array.isArray(plain.extraImages) ? plain.extraImages : null;
+
+  // Prefer the longer list, otherwise first non-null
+  let canonical = photosIn || extraIn || [];
+  if (photosIn && extraIn && extraIn.length > photosIn.length) canonical = extraIn;
+
+  // Normalize slashes + leading slash
+  const normalizedList = (canonical || []).map(toWebPath);
+
+  // Reflect to both keys so client always sees both
+  plain.photos = normalizedList;
+  plain.extraImages = normalizedList;
+
+  // Single paths
+  if (plain.profilePicture) plain.profilePicture = toWebPath(plain.profilePicture);
+  if (plain.profilePhoto) plain.profilePhoto = toWebPath(plain.profilePhoto);
+
+  return plain;
+}
+// --- REPLACE END ---
+
 // 🎯 JSON-body parser
 router.use(express.json());
 
@@ -111,6 +156,20 @@ function removeFile(filePath) {
     /* noop */
   }
 }
+
+// --- REPLACE START: require self (or admin) for user-scoped mutations ---
+function mustBeSelfOrAdmin(req, res, next) {
+  try {
+    const paramId = String(req.params?.id || "");
+    const myId = String(req.userId || req.user?.id || "");
+    const role = (req.user?.role || "").toLowerCase();
+    if (paramId && myId && (paramId === myId || role === "admin")) return next();
+    return res.status(403).json({ error: "Forbidden" });
+  } catch {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+}
+// --- REPLACE END ---
 
 /* ============================================================================
    PUBLIC AUTH ROUTES
@@ -325,10 +384,14 @@ router.put(
       if (req.files?.extraImages?.length) {
         (user.extraImages || []).forEach(removeFile);
         user.extraImages = req.files.extraImages.map((f) => f.path);
+        // Keep photos mirrored so outbound stays consistent across endpoints
+        user.photos = user.extraImages;
       }
 
       const updated = await user.save();
-      res.json(updated);
+      // --- REPLACE START: normalize outbound user payload ---
+      res.json(normalizeUserOut(updated));
+      // --- REPLACE END ---
     } catch (err) {
       console.error("Profile update error:", err);
       res.status(500).json({ error: "Profile update failed", details: err.message });
@@ -342,7 +405,6 @@ router.get("/me", authenticateToken, getMe);
 // 💎 Premium upgrade (alt path kept for compatibility)
 router.post("/upgrade-premium", authenticateToken, upgradeToPremium);
 router.post("/premium", authenticateToken, upgradeToPremium);
-
 // 👀 Who liked me (premium-only)
 router.get("/who-liked-me", authenticateToken, async (req, res) => {
   try {
@@ -350,7 +412,14 @@ router.get("/who-liked-me", authenticateToken, async (req, res) => {
     if (!me) return res.status(404).json({ error: "User not found" });
     if (!me.isPremium) return res.status(403).json({ error: "Premium only" });
     const likers = await User.find({ likes: req.userId }).select("username profilePicture");
-    res.json(likers);
+    // --- REPLACE START: normalize profilePicture path(s) in list ---
+    const out = (likers || []).map((lu) => {
+      const o = typeof lu.toObject === "function" ? lu.toObject() : { ...lu };
+      if (o.profilePicture) o.profilePicture = toWebPath(o.profilePicture);
+      return o;
+    });
+    res.json(out);
+    // --- REPLACE END ---
   } catch {
     res.status(500).json({ error: "Server error" });
   }
@@ -463,22 +532,26 @@ router.get("/matches", authenticateToken, getMatchesWithScore);
 /* ============================================================================
    IMAGES
 ============================================================================ */
+
+// --- REPLACE START: enforce self-or-admin + exact Multer fields per spec ---
+// Avatar upload (single)
 router.post(
   "/:id/upload-avatar",
   authenticateToken,
+  mustBeSelfOrAdmin,
   upload.single("profilePhoto"),
   async (req, res) => {
     try {
       const { id } = req.params;
-      if (req.userId !== id) return res.status(403).json({ error: "Forbidden" });
       const user = await User.findById(id);
       if (!user) return res.status(404).json({ error: "User not found" });
 
       removeFile(user.profilePicture);
-      user.profilePicture = req.file.path;
+      user.profilePicture = req.file?.path;
       await user.save();
 
-      res.json(user);
+      // Normalize outbound payload for client
+      res.json(normalizeUserOut(user));
     } catch (err) {
       console.error("upload-avatar error:", err);
       res.status(500).json({ error: "Avatar upload failed" });
@@ -486,9 +559,32 @@ router.post(
   }
 );
 
-router.post("/:id/upload-photos", authenticateToken, upload.array("photos", 20), uploadExtraPhotos);
-router.post("/:id/upload-photo-step", authenticateToken, upload.single("photo"), uploadPhotoStep);
-router.delete("/:id/photos/:slot", authenticateToken, deletePhotoSlot);
+// Photos upload (append) – MUST be array('photos', 8)
+router.post(
+  "/:id/upload-photos",
+  authenticateToken,
+  mustBeSelfOrAdmin,
+  upload.array("photos", 8),
+  uploadExtraPhotos
+);
+
+// Photo step (replace at index) – MUST be array('photos', 1)
+router.post(
+  "/:id/upload-photo-step",
+  authenticateToken,
+  mustBeSelfOrAdmin,
+  upload.array("photos", 1),
+  uploadPhotoStep
+);
+
+// Delete photo – DELETE /:id/photo  (index or path via query/body)
+router.delete(
+  "/:id/photo",
+  authenticateToken,
+  mustBeSelfOrAdmin,
+  deletePhotoSlot
+);
+// --- REPLACE END ---
 
 /* ============================================================================
    LISTS & PUBLIC PROFILES
@@ -519,7 +615,8 @@ router.get("/:id", async (req, res) => {
       "-password -email -likes -superLikes -blockedUsers"
     );
     if (!user) return res.status(404).json({ error: "User not found" });
-    res.json(user);
+    // Normalize outbound payload
+    res.json(normalizeUserOut(user));
   } catch (err) {
     console.error("Public profile fetch error:", err?.message || err);
     res.status(500).json({ error: "Server error" });

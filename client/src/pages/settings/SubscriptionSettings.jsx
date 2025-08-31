@@ -28,10 +28,13 @@ const SubscriptionSettings = () => {
   const [msg, setMsg] = useState("");
   const [success, setSuccess] = useState("");
 
-  // Infer premium state; prefer new field, fallback to legacy only if undefined
-  // --- REPLACE START: prefer new isPremium, fallback to legacy premium only if undefined ---
+  // --- REPLACE START: prefer isPremium; reconcile with entitlements.tier; fallback to legacy premium ---
   const isLoggedIn = !!user;
-  const isPremium = user?.isPremium ?? user?.premium ?? false;
+  const isPremium =
+    user?.isPremium ??
+    (user?.entitlements?.tier === "premium") ??
+    user?.premium ??
+    false;
   // --- REPLACE END ---
   const userEmail = user?.email ?? "";
 

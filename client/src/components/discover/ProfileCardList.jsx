@@ -1,3 +1,5 @@
+// File: client/src/components/discover/ProfileCardList.jsx
+
 // --- REPLACE START: ProfileCardList – stable ids, proper empty state, forced slider reset on data change ---
 import PropTypes from "prop-types";
 import React, { memo, useMemo, useRef, useEffect } from "react";
@@ -125,4 +127,3 @@ ProfileCardList.propTypes = {
 
 export default memo(ProfileCardList);
 // --- REPLACE END ---
-

@@ -1,3 +1,5 @@
+// PATH: server/controllers/userController.js
+
 // --- REPLACE START: controller with real forgot/reset password flow + email sending + hide/unhide support (keeps structure & length close to original) ---
 /**
  * User Controller
@@ -167,6 +169,34 @@ async function sendMail({ to, subject, text, html }) {
   return transporter.sendMail({ from, to, subject, text, html });
 }
 
+// --- REPLACE START: outbound normalizer (slash normalization + photos/extraImages mirroring) ---
+function toWebPath(p) {
+  if (!p || typeof p !== 'string') return p;
+  let s = p.replace(/\\/g, '/');
+  if (!s.startsWith('/')) s = `/${s}`;
+  return s;
+}
+function normalizeUserOut(u) {
+  if (!u) return u;
+  const plain = typeof u.toObject === 'function' ? u.toObject() : { ...u };
+
+  const photosIn = Array.isArray(plain.photos) ? plain.photos : null;
+  const extraIn  = Array.isArray(plain.extraImages) ? plain.extraImages : null;
+
+  let canonical = photosIn || extraIn || [];
+  if (photosIn && extraIn && extraIn.length > photosIn.length) canonical = extraIn;
+
+  const normalizedList = (canonical || []).filter(Boolean).map(toWebPath);
+  plain.photos = normalizedList;
+  plain.extraImages = normalizedList;
+
+  if (plain.profilePicture) plain.profilePicture = toWebPath(plain.profilePicture);
+  if (plain.profilePhoto)   plain.profilePhoto   = toWebPath(plain.profilePhoto);
+
+  return plain;
+}
+// --- REPLACE END ---
+
 /* ──────────────────────────────────────────────────────────────────────────────
    Auth / Account
 ────────────────────────────────────────────────────────────────────────────── */
@@ -244,16 +274,19 @@ export async function loginUser(req, res) {
 
       if (hidden) {
         const shouldUnhideByTime = until && now >= until;
-        const shouldUnhideByFlag = resume && (!until || now >= until);
-        if (shouldUnhideByTime || shouldUnhideByFlag) {
-          user.hidden = false;
-          user.hiddenUntil = undefined;
-          try {
-            if (!user.visibility || typeof user.visibility !== 'object') user.visibility = {};
-            user.visibility.isHidden = false;
-            user.visibility.hiddenUntil = undefined;
-          } catch { /* noop */ }
-          await user.save().catch(() => {});
+        // Use a labeled block to mirror the original structure without changing flow
+        theShouldUnhideFlag: {
+          const shouldUnhideByFlag = resume && (!until || now >= until);
+          if (shouldUnhideByTime || shouldUnhideByFlag) {
+            user.hidden = false;
+            user.hiddenUntil = undefined;
+            try {
+              if (!user.visibility || typeof user.visibility !== 'object') user.visibility = {};
+              user.visibility.isHidden = false;
+              user.visibility.hiddenUntil = undefined;
+            } catch { /* noop */ }
+            await user.save().catch(() => {});
+          }
         }
       }
     } catch {
@@ -390,7 +423,9 @@ export async function getMe(req, res) {
     if (!id || !mongoose.Types.ObjectId.isValid(String(id))) return res.status(401).json({ error: 'Unauthorized' });
     const user = await User.findById(String(id)).select('-password');
     if (!user) return res.status(404).json({ error: 'User not found' });
-    return res.json(user);
+    // --- REPLACE START: normalize outbound user (slashes + photos mirroring) ---
+    return res.json(normalizeUserOut(user));
+    // --- REPLACE END ---
   } catch (err) {
     console.error('getMe fallback error:', err);
     return res.status(500).json({ error: 'Failed to fetch user' });
@@ -436,9 +471,25 @@ export async function updateProfile(req, res) {
     const user = await User.findById(String(id));
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    Object.assign(user, patch);
+    // --- REPLACE START: allow clearing fields with null (treat null as unset/empty) ---
+    for (const [k, v] of Object.entries(patch)) {
+      if (v === null) {
+        // Arrays → empty array, primitives → undefined, objects → undefined
+        if (Array.isArray(user[k])) user[k] = [];
+        else user[k] = undefined;
+      } else if (typeof v === 'string' && v.trim() === '') {
+        // Empty strings should clear optional text fields
+        user[k] = undefined;
+      } else {
+        user[k] = v;
+      }
+    }
+    // --- REPLACE END ---
+
     const saved = await user.save();
-    return res.json({ user: saved });
+    // --- REPLACE START: normalize outbound user (slashes + photos mirroring) ---
+    return res.json({ user: normalizeUserOut(saved) });
+    // --- REPLACE END ---
   } catch (err) {
     console.error('updateProfile fallback error:', err);
     return res.status(500).json({ error: 'Profile update failed' });
@@ -466,21 +517,168 @@ export async function getMatchesWithScore(req, res) {
 /**
  * Images
  */
+// --- REPLACE START: images handlers with safe fallbacks (no more 501) ---
+/**
+ * Normalize Multer path → web path (/uploads/xxx.jpg)
+ */
+function toWebPathStrict(p) {
+  if (!p) return '';
+  const s = String(p).replace(/\\/g, '/').replace(/^\/?/, '');
+  return `/${s}`;
+}
+/**
+ * Resolve absolute FS path from a web path (/uploads/xxx.jpg)
+ */
+function absFromWebPath(webPath) {
+  const clean = String(webPath || '').replace(/^\//, '');
+  return path.resolve(process.cwd(), clean);
+}
+/**
+ * Resolve the target user:
+ * - Prefer req.params.id
+ * - Fallback to req.user._id
+ */
+async function getTargetUser(req) {
+  const id = req.params?.id || req.user?._id || req.user?.id || req.user?.userId;
+  if (!id || !mongoose.Types.ObjectId.isValid(String(id))) {
+    const e = new Error('User id not provided or invalid');
+    e.status = 400;
+    throw e;
+  }
+  const user = await User.findById(String(id));
+  if (!user) {
+    const e = new Error('User not found');
+    e.status = 404;
+    throw e;
+  }
+  return user;
+}
+/**
+ * Unified JSON response for FE compatibility.
+ * Always include normalized user object to keep responses consistent.
+ */
+function sendImagesOk(res, user) {
+  const list = Array.isArray(user.extraImages) ? user.extraImages : [];
+  const normalized = normalizeUserOut(user);
+  return res.status(200).json({
+    extraImages: list,
+    photos: list, // backward compatibility for older clients
+    userId: user._id,
+    user: normalized, // normalized user payload for all new clients
+  });
+}
+
 export async function uploadExtraPhotos(req, res) {
   const sv = await loadServices();
-  if (typeof sv.uploadExtraPhotosService === 'function') return sv.uploadExtraPhotosService(req, res);
-  return res.status(501).json({ error: 'Not implemented (images service missing)' });
+  if (typeof sv.uploadExtraPhotosService === 'function') {
+    return sv.uploadExtraPhotosService(req, res);
+  }
+  // Fallback: append uploaded files into user.extraImages
+  try {
+    const user = await getTargetUser(req);
+    const files = Array.isArray(req.files) ? req.files : (req.files?.photos || []);
+    const picked = (files || []).filter(Boolean);
+    if (!picked.length) return res.status(400).json({ message: 'No files uploaded' });
+
+    const newPaths = picked.map(f => toWebPathStrict(f.path || f.filename || ''));
+    user.extraImages = Array.isArray(user.extraImages) ? user.extraImages : [];
+
+    // Append + dedupe
+    const merged = Array.from(new Set([...user.extraImages, ...newPaths].filter(Boolean)));
+    user.extraImages = merged;
+
+    await user.save();
+    return sendImagesOk(res, user);
+  } catch (err) {
+    if (!err.status) err.status = 500;
+    return res.status(err.status).json({ message: err.message || 'Upload failed' });
+  }
 }
+
 export async function uploadPhotoStep(req, res) {
   const sv = await loadServices();
-  if (typeof sv.uploadPhotoStepService === 'function') return sv.uploadPhotoStepService(req, res);
-  return res.status(501).json({ error: 'Not implemented (images service missing)' });
+  if (typeof sv.uploadPhotoStepService === 'function') {
+    return sv.uploadPhotoStepService(req, res);
+  }
+  // Fallback: replace at index if provided, else append single file
+  try {
+    const user = await getTargetUser(req);
+    const files = Array.isArray(req.files) ? req.files : (req.files?.photos || []);
+    const file = files?.[0];
+    if (!file) return res.status(400).json({ message: 'No file uploaded' });
+
+    const idxRaw = req.query?.index ?? req.body?.index;
+    const index = (idxRaw !== undefined && idxRaw !== null && idxRaw !== '') ? Number(idxRaw) : null;
+
+    user.extraImages = Array.isArray(user.extraImages) ? user.extraImages : [];
+    const webPath = toWebPathStrict(file.path || file.filename || '');
+
+    if (Number.isInteger(index) && index >= 0) {
+      const prev = user.extraImages[index];
+      user.extraImages[index] = webPath;
+      // Try to remove replaced file from disk (best-effort)
+      if (prev && prev !== webPath) {
+        const absPrev = absFromWebPath(prev);
+        fs.promises.unlink(absPrev).catch(() => {});
+      }
+    } else {
+      if (!user.extraImages.includes(webPath)) user.extraImages.push(webPath);
+    }
+
+    await user.save();
+    return sendImagesOk(res, user);
+  } catch (err) {
+    if (!err.status) err.status = 500;
+    return res.status(err.status).json({ message: err.message || 'Upload step failed' });
+  }
 }
+
 export async function deletePhotoSlot(req, res) {
   const sv = await loadServices();
-  if (typeof sv.deletePhotoSlotService === 'function') return sv.deletePhotoSlotService(req, res);
-  return res.status(501).json({ error: 'Not implemented (images service missing)' });
+  if (typeof sv.deletePhotoSlotService === 'function') {
+    return sv.deletePhotoSlotService(req, res);
+  }
+  // Fallback: remove by index or exact path
+  try {
+    const user = await getTargetUser(req);
+    user.extraImages = Array.isArray(user.extraImages) ? user.extraImages : [];
+
+    const idxRaw = req.query?.index ?? req.body?.index;
+    const pathRaw = req.query?.path ?? req.body?.path;
+
+    let removed;
+    if (idxRaw !== undefined && idxRaw !== null && idxRaw !== '') {
+      const i = Number(idxRaw);
+      if (!Number.isInteger(i) || i < 0 || i >= user.extraImages.length) {
+        return res.status(400).json({ message: 'Invalid index' });
+      }
+      removed = user.extraImages.splice(i, 1)[0];
+    } else if (pathRaw) {
+      const web = toWebPathStrict(pathRaw);
+      const before = user.extraImages.length;
+      user.extraImages = user.extraImages.filter(p => toWebPathStrict(p) !== web);
+      if (user.extraImages.length === before) {
+        return res.status(404).json({ message: 'Image not found' });
+      }
+      removed = web;
+    } else {
+      return res.status(400).json({ message: 'Provide index or path to delete' });
+    }
+
+    await user.save();
+
+    if (removed) {
+      const abs = absFromWebPath(removed);
+      fs.promises.unlink(abs).catch(() => {});
+    }
+
+    return sendImagesOk(res, user);
+  } catch (err) {
+    if (!err.status) err.status = 500;
+    return res.status(err.status).json({ message: err.message || 'Delete failed' });
+  }
 }
+// --- REPLACE END: images handlers with safe fallbacks (no more 501) ---
 
 /* ──────────────────────────────────────────────────────────────────────────────
    Delete my account (cascade) – DELETE /api/users/me
@@ -735,13 +933,3 @@ export default {
   // --- REPLACE END ---
 };
 // --- REPLACE END ---
-
-
-
-
-
-
-
-
-
-
