@@ -79,13 +79,20 @@ const subscriptionSchema = new mongoose.Schema(
 
 // Helpful compound indexes
 try {
-  subscriptionSchema.index({ user: 1, provider: 1, createdAt: -1 }, { name: 'idx_sub_user_provider_created' });
-  subscriptionSchema.index({ provider: 1, customerId: 1 }, { name: 'idx_sub_provider_customer' });
+  subscriptionSchema.index(
+    { user: 1, provider: 1, createdAt: -1 },
+    { name: 'idx_sub_user_provider_created' }
+  );
+  subscriptionSchema.index(
+    { provider: 1, customerId: 1 },
+    { name: 'idx_sub_provider_customer' }
+  );
 } catch {
   /* noop */
 }
 
-const Subscription = mongoose.models.Subscription || mongoose.model('Subscription', subscriptionSchema);
+const Subscription =
+  mongoose.models.Subscription || mongoose.model('Subscription', subscriptionSchema);
+
 export default Subscription;
 // --- REPLACE END ---
-

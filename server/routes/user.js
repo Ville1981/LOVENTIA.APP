@@ -1,3 +1,5 @@
+// PATH: server/routes/user.js
+
 // --- REPLACE START: migrate file to ESM (imports instead of require) ---
 import express from "express";
 import jwt from "jsonwebtoken";
@@ -6,20 +8,19 @@ import pathFs from "path";
 import fs from "fs";
 import mongoose from "mongoose";
 import { body, validationResult } from "express-validator";
-
-// Interop for User model (ESM wrapper default-exporting the CJS model)
-import * as UserModule from "../models/User.js";
-const User = UserModule.default || UserModule;
 // --- REPLACE END ---
 
 const router = express.Router();
 
 // --- REPLACE START: load ESM controller via direct import (Jest/CJS compatible) ---
+import * as UserModule from "../models/User.js";
+const User = UserModule.default || UserModule;
+
 import * as UserControllerModule from "../controllers/userController.js";
 const {
   registerUser,
   loginUser,
-  getMe,
+  // getMe available in controller, but we inline the exact logic per requirements
   getMatchesWithScore,
   upgradeToPremium,
   uploadExtraPhotos,
@@ -27,17 +28,23 @@ const {
   deletePhotoSlot,
   forgotPassword,
   resetPassword,
-  // NEW: visibility handlers from controller
   setVisibilityMe,
   unhideMe,
 } = UserControllerModule.default || UserControllerModule;
 
-// Alias to requested route handler names (keep your wording)
-// PATCH /users/me/hide  -> hideAccount
-// PATCH /users/me/unhide -> unhideAccount
-const hideAccount = setVisibilityMe;
-const unhideAccount = unhideMe;
+import * as NotificationsControllerModule from "../controllers/notificationsController.js";
+const { create: createNotificationHelper } =
+  NotificationsControllerModule?.default || NotificationsControllerModule || {};
+
+import * as NotificationModelModule from "../models/Notification.js";
+const Notification = NotificationModelModule?.default || NotificationModelModule;
+
+import normalizeUserOutUtil from "../utils/normalizeUserOut.js";
 // --- REPLACE END ---
+
+/* =============================================================================
+   AUTH HELPERS
+============================================================================= */
 
 // --- REPLACE START: stronger auth (header/cookie/query + multiple secrets) ---
 function pickFirstDefined(...vals) {
@@ -79,13 +86,62 @@ function authenticateToken(req, res, next) {
     req.userId = id; // backward compat for existing routes
     req.user = { id, userId: id, role: decoded.role || "user", ...decoded }; // compat with controller
     return next();
-  } catch {
+  } catch (e) {
     return res.status(401).json({ error: "Invalid or expired token" });
   }
 }
 // --- REPLACE END ---
 
-// 🎯 JSON-body parser
+/* =============================================================================
+   UTILS
+============================================================================= */
+
+// --- REPLACE START: path normalizer for images ---
+function toWebPath(p) {
+  if (typeof p !== "string" || !p) return p;
+  let s = p.replace(/\\\\/g, "/").replace(/\\/g, "/");
+  if (!s.startsWith("/")) s = `/${s}`;
+  return s;
+}
+// --- REPLACE END ---
+
+// --- REPLACE START: quotas + time helpers ---
+const FREE_LIKES_PER_DAY = Number(process.env.FREE_LIKES_PER_DAY || 30);
+
+function startOfTodayUTC() {
+  const d = new Date();
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, 0, 0, 0));
+}
+function countLikesToday(u) {
+  const ts = Array.isArray(u?.likeTimestamps) ? u.likeTimestamps : [];
+  const start = startOfTodayUTC();
+  return ts.reduce((n, t) => (new Date(t) >= start ? n + 1 : n), 0);
+}
+// --- REPLACE END ---
+
+// --- REPLACE START: outbound user normalizer (delegate to shared util + path fixes) ---
+function normalizeUserOut(u) {
+  try {
+    const obj = u && typeof u.toObject === "function" ? u.toObject() : { ...(u || {}) };
+
+    if (obj && typeof obj === "object") {
+      if (obj.profilePicture) obj.profilePicture = toWebPath(obj.profilePicture);
+      if (Array.isArray(obj.photos)) obj.photos = obj.photos.map(toWebPath);
+      if (Array.isArray(obj.extraImages)) obj.extraImages = obj.extraImages.map(toWebPath);
+    }
+
+    return normalizeUserOutUtil(obj);
+  } catch {
+    return u && (typeof u.toObject === "function" ? u.toObject() : { ...u });
+  }
+}
+// --- REPLACE END ---
+
+/* =============================================================================
+   BODY / UPLOAD SETUP
+============================================================================= */
+
+// 🎯 JSON-body parser (keep first so JSON-only PUT works without forcing multipart)
 router.use(express.json());
 
 // --- REPLACE START: ensure uploads dir exists to avoid Multer ENOENT ---
@@ -103,10 +159,7 @@ const storage = multer.diskStorage({
   filename: (_req, file, cb) =>
     cb(
       null,
-      Date.now() +
-        "-" +
-        Math.round(Math.random() * 1e9) +
-        pathFs.extname(file.originalname)
+      Date.now() + "-" + Math.round(Math.random() * 1e9) + pathFs.extname(file.originalname)
     ),
 });
 const upload = multer({ storage });
@@ -119,28 +172,63 @@ function removeFile(filePath) {
   }
 }
 
-/* ============================================================================
-   PUBLIC AUTH ROUTES
-============================================================================ */
-router.post("/register", registerUser);
-router.post("/login", loginUser);
+// --- REPLACE START: conditional multer wrapper so JSON is fully supported ---
+/**
+ * maybeUpload(fields)
+ * - If Content-Type is multipart/form-data -> run the multer fields parser.
+ * - Otherwise -> no-op (do not force multipart).
+ */
+function maybeUpload(fields) {
+  const fieldsMw = upload.fields(fields);
+  return (req, res, next) => {
+    const ct = String(req.headers["content-type"] || "");
+    if (ct.toLowerCase().startsWith("multipart/form-data")) {
+      return fieldsMw(req, res, next);
+    }
+    // Not multipart → skip file parsing so JSON bodies work
+    return next();
+  };
+}
+// --- REPLACE END ---
+
+/* =============================================================================
+   AUTH PUBLIC ROUTES
+============================================================================= */
+
+// --- REPLACE START: sanitize auth bodies so premium cannot be set accidentally ---
+function stripPremiumFields(req, _res, next) {
+  if (req?.body && typeof req.body === "object") {
+    delete req.body.premium;
+    delete req.body.isPremium;
+    delete req.body.entitlements;
+    delete req.body.subscriptionId;
+    delete req.body.stripeCustomerId;
+  }
+  next();
+}
+// --- REPLACE END ---
+
+router.post("/register", stripPremiumFields, registerUser);
+router.post("/login", stripPremiumFields, loginUser);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
 
-/* ============================================================================
+/* =============================================================================
    PROFILE & ACCOUNT
-============================================================================ */
+============================================================================= */
 
 // =====================
-/* ✅ Profile update with validation */
+// ✅ Profile update (JSON OR multipart), no forced multipart
 // =====================
 router.put(
   "/profile",
   authenticateToken,
-  upload.fields([
+  // --- REPLACE START: allow JSON or multipart ---
+  maybeUpload([
     { name: "profilePhoto", maxCount: 1 },
     { name: "extraImages", maxCount: 20 },
   ]),
+  // --- REPLACE END ---
   [
     body("username").optional().notEmpty().withMessage("Username is required"),
     body("email").optional().isEmail().withMessage("Invalid email"),
@@ -149,8 +237,9 @@ router.put(
     body("orientation").optional().notEmpty().withMessage("Orientation is required"),
     body("height").optional().isNumeric().withMessage("Height must be a number"),
     body("weight").optional().isNumeric().withMessage("Weight must be a number"),
-    body("latitude").optional().isFloat({ min: -90, max: 90 }).withMessage("Invalid latitude"),
-    body("longitude").optional().isFloat({ min: -180, max: 180 }).withMessage("Invalid longitude"),
+    // lat/lon tolerant of empty strings
+    body("latitude").optional({ checkFalsy: true }).isFloat({ min: -90, max: 90 }).withMessage("Invalid latitude"),
+    body("longitude").optional({ checkFalsy: true }).isFloat({ min: -180, max: 180 }).withMessage("Invalid longitude"),
     body("professionCategory")
       .optional({ checkFalsy: true })
       .isIn([
@@ -169,7 +258,6 @@ router.put(
         "Artist",
         "DivineServant",
         "Homeparent",
-        "Service",
         "FoodIndustry",
         "Retail",
         "Arts",
@@ -180,11 +268,9 @@ router.put(
       ])
       .withMessage("Invalid profession category"),
     body("nutritionPreferences").optional().isArray().withMessage("Nutrition preferences must be an array"),
-    // --- REPLACE START: accept politicalIdeology input (trim/sanitize lightly) ---
+    // accept politicalIdeology and legacy ideology
     body("politicalIdeology").optional().trim().escape(),
-    // Also accept legacy 'ideology' and sanitize it (we map it below)
     body("ideology").optional().trim().escape(),
-    // --- REPLACE END ---
   ],
   (req, res, next) => {
     const errors = validationResult(req);
@@ -196,12 +282,7 @@ router.put(
       const user = await User.findById(req.userId);
       if (!user) return res.status(404).json({ error: "User not found" });
 
-      // --- REPLACE START: normalize ideology keys BEFORE whitelist copy ---
-      /**
-       * Robust mapping between UI key `politicalIdeology` and any legacy `ideology`.
-       * - If only `ideology` is present, copy it to `politicalIdeology`.
-       * - We do NOT persist `ideology` directly to avoid strict schema issues.
-       */
+      // Map legacy -> canonical key before updating
       if (
         (req.body.politicalIdeology === undefined ||
           req.body.politicalIdeology === null ||
@@ -213,9 +294,24 @@ router.put(
       if (Object.prototype.hasOwnProperty.call(req.body, "ideology")) {
         delete req.body.ideology;
       }
-      // --- REPLACE END ---
 
-      // Fields to update
+      // Coerce lat/lon from strings if needed
+      const latRaw = req.body.latitude;
+      const lonRaw = req.body.longitude;
+      if (typeof latRaw === "string") {
+        const s = latRaw.trim();
+        if (s === "") delete req.body.latitude;
+        else if (!Number.isNaN(parseFloat(s))) req.body.latitude = parseFloat(s);
+        else delete req.body.latitude;
+      }
+      if (typeof lonRaw === "string") {
+        const s = lonRaw.trim();
+        if (s === "") delete req.body.longitude;
+        else if (!Number.isNaN(parseFloat(s))) req.body.longitude = parseFloat(s);
+        else delete req.body.longitude;
+      }
+
+      // Whitelisted mutable fields
       const fields = [
         "username",
         "email",
@@ -259,9 +355,7 @@ router.put(
         "preferredEducation",
         "preferredProfession",
         "preferredChildren",
-        // --- REPLACE START: added missing field for political ideology ---
         "politicalIdeology",
-        // --- REPLACE END ---
       ];
 
       fields.forEach((field) => {
@@ -282,33 +376,35 @@ router.put(
         }
       });
 
-      // --- REPLACE START: map top-level country/region/city into nested location before save ---
-      if (
-        req.body.country !== undefined ||
-        req.body.region !== undefined ||
-        req.body.city !== undefined
-      ) {
+      // Keep nested location in sync (UI may send top-level fields)
+      if (req.body.country !== undefined || req.body.region !== undefined || req.body.city !== undefined) {
         user.location = user.location || {};
         if (req.body.country !== undefined) user.location.country = req.body.country;
         if (req.body.region !== undefined) user.location.region = req.body.region;
         if (req.body.city !== undefined) user.location.city = req.body.city;
       }
-      // --- REPLACE END ---
 
-      // Profile picture
+      // Handle files (only in multipart)
       if (req.files?.profilePhoto?.length) {
         removeFile(user.profilePicture);
         user.profilePicture = req.files.profilePhoto[0].path;
       }
-
-      // Extra images
       if (req.files?.extraImages?.length) {
         (user.extraImages || []).forEach(removeFile);
         user.extraImages = req.files.extraImages.map((f) => f.path);
       }
 
-      const updated = await user.save();
-      res.json(updated);
+      await user.save();
+
+      // Return FULL profile (exclude only sensitive fields), normalized
+      const full = await User.findById(user._id)
+        .select("-password -resetToken -passwordResetToken -passwordResetExpires -__v")
+        .lean();
+      if (full?.profilePicture) full.profilePicture = toWebPath(full.profilePicture);
+      if (Array.isArray(full?.photos)) full.photos = full.photos.map(toWebPath);
+      if (Array.isArray(full?.extraImages)) full.extraImages = full.extraImages.map(toWebPath);
+
+      return res.json(normalizeUserOut(full));
     } catch (err) {
       console.error("Profile update error:", err);
       res.status(500).json({ error: "Profile update failed", details: err.message });
@@ -316,165 +412,234 @@ router.put(
   }
 );
 
-// --- REPLACE START: add GET /profile alias for current user (fix 500 on /api/users/profile) ---
-router.get("/profile", authenticateToken, getMe);
+// --- REPLACE START: GET /profile returns FULL profile (no inclusive selects) ---
+router.get("/profile", authenticateToken, async (req, res) => {
+  try {
+    const doc = await User.findById(req.userId)
+      .select("-password -resetToken -passwordResetToken -passwordResetExpires -__v")
+      .lean();
+    if (!doc) return res.status(404).json({ error: "User not found" });
+
+    if (doc.profilePicture) doc.profilePicture = toWebPath(doc.profilePicture);
+    if (Array.isArray(doc.photos)) doc.photos = doc.photos.map(toWebPath);
+    if (Array.isArray(doc.extraImages)) doc.extraImages = doc.extraImages.map(toWebPath);
+
+    return res.json(normalizeUserOut(doc));
+  } catch (err) {
+    console.error("[GET /users/profile] error:", err?.message || err);
+    return res.status(500).json({ error: "Unable to fetch current user" });
+  }
+});
 // --- REPLACE END ---
 
-// ✅ Current user profile via /me (kept)
-router.get("/me", authenticateToken, getMe);
+// --- REPLACE START: GET /me returns FULL profile (no inclusive selects) ---
+router.get("/me", authenticateToken, async (req, res) => {
+  try {
+    // Controller getMe-equivalent: findById + exclude password + normalizeUserOut(user)
+    const doc = await User.findById(req.userId)
+      .select("-password -resetToken -passwordResetToken -passwordResetExpires -__v")
+      .lean();
+    if (!doc) return res.status(404).json({ error: "User not found" });
+
+    if (doc.profilePicture) doc.profilePicture = toWebPath(doc.profilePicture);
+    if (Array.isArray(doc.photos)) doc.photos = doc.photos.map(toWebPath);
+    if (Array.isArray(doc.extraImages)) doc.extraImages = doc.extraImages.map(toWebPath);
+
+    return res.json(normalizeUserOut(doc));
+  } catch (err) {
+    console.error("[GET /users/me] error:", err?.message || err);
+    return res.status(500).json({ error: "Unable to fetch current user" });
+  }
+});
+// --- REPLACE END ---
 
 // --- REPLACE START: NEW visibility routes (hide / unhide my account) ---
-/**
- * PATCH /users/me/hide
- * Body: { hidden: true, minutes?: number, resumeOnLogin?: boolean }
- * → Delegates to controller.hideAccount (alias of setVisibilityMe)
- */
-router.patch("/me/hide", authenticateToken, hideAccount);
-
-/**
- * PATCH /users/me/unhide
- * Body: (optional) {}
- * → Delegates to controller.unhideAccount (alias of unhideMe)
- */
-router.patch("/me/unhide", authenticateToken, unhideAccount);
+router.patch("/me/hide", authenticateToken, setVisibilityMe);
+router.patch("/me/unhide", authenticateToken, unhideMe);
 // --- REPLACE END ---
 
 // 💎 Premium upgrade (alt path kept for compatibility)
 router.post("/upgrade-premium", authenticateToken, upgradeToPremium);
 router.post("/premium", authenticateToken, upgradeToPremium);
 
-// 👀 Who liked me (premium-only)
-router.get("/who-liked-me", authenticateToken, async (req, res) => {
-  try {
-    const me = await User.findById(req.userId);
-    if (!me) return res.status(404).json({ error: "User not found" });
-    if (!me.isPremium) return res.status(403).json({ error: "Premium only" });
-    const likers = await User.find({ likes: req.userId }).select("username profilePicture");
-    res.json(likers);
-  } catch {
-    res.status(500).json({ error: "Server error" });
-  }
-});
+/* =============================================================================
+   LIKE / SUPERLIKE
+============================================================================= */
 
-// 📍 Nearby users (by coordinates)
-router.get("/nearby", authenticateToken, async (req, res) => {
-  try {
-    const user = await User.findById(req.userId);
-    const maxDistanceKm = 50;
-    if (!user || user.latitude == null || user.longitude == null) {
-      return res.status(400).json({ error: "User location is missing" });
-    }
-
-    const users = await User.find({
-      _id: { $ne: req.userId },
-      latitude: { $exists: true },
-      longitude: { $exists: true },
-    }).select("-password");
-
-    const toRad = (deg) => (deg * Math.PI) / 180;
-    const earthRadius = 6371;
-
-    const nearby = users.filter((u) => {
-      const dLat = toRad((u.latitude || 0) - user.latitude);
-      const dLon = toRad((u.longitude || 0) - user.longitude);
-      const a =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos(toRad(user.latitude)) * Math.cos(toRad(u.latitude || 0)) * Math.sin(dLon / 2) ** 2;
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      const d = earthRadius * c;
-      return d <= maxDistanceKm;
-    });
-
-    res.json(nearby);
-  } catch (err) {
-    console.error("Nearby error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-/* ============================================================================
-   SOCIAL GRAPH
-============================================================================ */
-
-// ❤️ Like
+// --- REPLACE START: ❤️ Like with FREE daily quota enforcement ---
 router.post("/like/:id", authenticateToken, async (req, res) => {
   try {
     const current = await User.findById(req.userId);
-    const target = req.params.id;
-    if (!current || !target) return res.status(400).json({ error: "Invalid request" });
-    if (!current.likes.includes(target)) {
-      current.likes.push(target);
-      await current.save();
+    const targetId = String(req.params.id || "");
+
+    if (!current || !mongoose.Types.ObjectId.isValid(targetId)) {
+      return res.status(400).json({ error: "Invalid request" });
     }
-    res.json({ message: "Liked successfully" });
-  } catch {
+    if (current._id.equals(targetId)) {
+      return res.status(400).json({ error: "Cannot like yourself" });
+    }
+
+    const isPremium =
+      !!(current.isPremium || current.premium || current?.entitlements?.tier === "premium");
+
+    // Quota: FREE only
+    if (!isPremium) {
+      const start = startOfTodayUTC();
+      current.likeTimestamps = (current.likeTimestamps || []).filter(
+        (ts) => new Date(ts) >= start
+      );
+      if (current.likeTimestamps.length >= FREE_LIKES_PER_DAY) {
+        return res.status(403).json({
+          error: "Daily like limit reached",
+          quota: {
+            limit: FREE_LIKES_PER_DAY,
+            used: current.likeTimestamps.length,
+            remaining: 0,
+          },
+        });
+      }
+    }
+
+    // Record like + timestamp
+    if (!Array.isArray(current.likes)) current.likes = [];
+    if (!current.likes.includes(targetId)) {
+      current.likes.push(targetId);
+    }
+    current.likeTimestamps = current.likeTimestamps || [];
+    current.likeTimestamps.push(new Date());
+
+    await current.save();
+
+    const remaining =
+      isPremium ? null : Math.max(0, FREE_LIKES_PER_DAY - (current.likeTimestamps || []).length);
+
+    return res.json({
+      message: "Liked successfully",
+      quota: {
+        limit: isPremium ? null : FREE_LIKES_PER_DAY,
+        used: isPremium ? null : (current.likeTimestamps || []).length,
+        remaining,
+      },
+    });
+  } catch (e) {
+    console.error("like error:", e?.message || e);
     res.status(500).json({ error: "Server error" });
   }
 });
+// --- REPLACE END ---
 
-// 🌟 Superlike (with premium limits)
+// --- REPLACE START: 🌟 Superlike (premium limits) + best-effort notification ---
 router.post("/superlike/:id", authenticateToken, async (req, res) => {
   try {
     const current = await User.findById(req.userId);
-    const target = req.params.id;
-    if (!current || !target) return res.status(400).json({ error: "Invalid request" });
+    const targetId = String(req.params.id || "");
+
+    if (!current || !mongoose.Types.ObjectId.isValid(targetId)) {
+      return res.status(400).json({ error: "Invalid request" });
+    }
+    if (current._id.equals(targetId)) {
+      return res.status(400).json({ error: "Cannot superlike yourself" });
+    }
 
     const now = new Date();
     current.superLikeTimestamps = (current.superLikeTimestamps || []).filter(
       (ts) => now - new Date(ts) < 48 * 60 * 60 * 1000
     );
-    const limit = current.isPremium ? 3 : 1;
+
+    const premium =
+      current.isPremium || current.premium || current?.entitlements?.tier === "premium";
+    const limit = premium ? 3 : 1;
+
     if (current.superLikeTimestamps.length >= limit) {
-      return res.status(403).json({ error: "Superlike limit reached" });
+      return res.status(403).json({
+        error: "Superlike limit reached",
+        window: "48h",
+        limit,
+        used: current.superLikeTimestamps.length,
+        remaining: Math.max(0, limit - current.superLikeTimestamps.length),
+      });
     }
-    if (!current.superLikes.includes(target)) {
-      current.superLikes.push(target);
+
+    if (!Array.isArray(current.superLikes)) current.superLikes = [];
+    if (!current.superLikes.includes(targetId)) {
+      current.superLikes.push(targetId);
       current.superLikeTimestamps.push(now);
       await current.save();
     }
-    res.json({ message: "Superliked successfully" });
-  } catch {
+
+    // Best-effort notification (non-blocking)
+    try {
+      const payload = {
+        toUser: targetId,
+        fromUser: req.userId,
+        type: "superlike",
+        message: "You got a Superlike!",
+      };
+      if (typeof createNotificationHelper === "function") {
+        await createNotificationHelper(payload);
+      } else if (Notification && typeof Notification.create === "function") {
+        await Notification.create(payload);
+      }
+    } catch (notifyErr) {
+      console.warn("[superlike] notification failed:", notifyErr?.message || notifyErr);
+    }
+
+    return res.json({
+      message: "Superliked successfully",
+      window: "48h",
+      limit,
+      used: current.superLikeTimestamps.length,
+      remaining: Math.max(0, limit - current.superLikeTimestamps.length),
+    });
+  } catch (e) {
+    console.error("superlike error:", e?.message || e);
     res.status(500).json({ error: "Server error" });
   }
 });
+// --- REPLACE END ---
+
+/* =============================================================================
+   BLOCK / MATCHES
+============================================================================= */
 
 // 🚫 Block user
 router.post("/block/:id", authenticateToken, async (req, res) => {
   try {
     const me = await User.findById(req.userId);
-    const blockId = req.params.id;
+    const blockId = String(req.params.id || "");
     if (!me) return res.status(404).json({ message: "User not found" });
+    if (!mongoose.Types.ObjectId.isValid(blockId))
+      return res.status(400).json({ message: "Invalid user ID" });
     if (me._id.equals(blockId)) return res.status(400).json({ message: "Cannot block yourself" });
+
+    if (!Array.isArray(me.blockedUsers)) me.blockedUsers = [];
     if (!me.blockedUsers.includes(blockId)) {
       me.blockedUsers.push(blockId);
       await me.save();
     }
     res.json({ message: "User blocked" });
-  } catch {
+  } catch (err) {
+    console.error("block error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-/* ============================================================================
-   MATCHES
-============================================================================ */
+// Matches
 router.get("/matches", authenticateToken, getMatchesWithScore);
 
-/* ============================================================================
-   PARAM VALIDATION (prevents /:id from matching non-ObjectId like "profile")
-============================================================================ */
-// --- REPLACE START: validate :id to avoid CastError/500 ---
+/* =============================================================================
+   PARAM VALIDATION (prevent non-ObjectId from hitting '/:id')
+============================================================================= */
 router.param("id", (req, res, next, id) => {
   if (!mongoose.Types.ObjectId.isValid(String(id))) {
     return res.status(400).json({ error: "Invalid user ID" });
   }
   return next();
 });
-// --- REPLACE END ---
 
-/* ============================================================================
+/* =============================================================================
    IMAGES
-============================================================================ */
+============================================================================= */
 router.post(
   "/:id/upload-avatar",
   authenticateToken,
@@ -487,10 +652,18 @@ router.post(
       if (!user) return res.status(404).json({ error: "User not found" });
 
       removeFile(user.profilePicture);
-      user.profilePicture = req.file.path;
+      user.profilePicture = req.file?.path || user.profilePicture;
       await user.save();
 
-      res.json(user);
+      const out = await User.findById(id)
+        .select("-password -resetToken -passwordResetToken -passwordResetExpires -__v")
+        .lean();
+      if (out) {
+        if (out.profilePicture) out.profilePicture = toWebPath(out.profilePicture);
+        if (Array.isArray(out.photos)) out.photos = out.photos.map(toWebPath);
+        if (Array.isArray(out.extraImages)) out.extraImages = out.extraImages.map(toWebPath);
+      }
+      return res.json(normalizeUserOut(out));
     } catch (err) {
       console.error("upload-avatar error:", err);
       res.status(500).json({ error: "Avatar upload failed" });
@@ -502,30 +675,49 @@ router.post("/:id/upload-photos", authenticateToken, upload.array("photos", 20),
 router.post("/:id/upload-photo-step", authenticateToken, upload.single("photo"), uploadPhotoStep);
 router.delete("/:id/photos/:slot", authenticateToken, deletePhotoSlot);
 
-/* ============================================================================
+/* =============================================================================
    LISTS & PUBLIC PROFILES
-============================================================================ */
+============================================================================= */
 
-// --- REPLACE START: fix route order (static before /:id to avoid conflicts) ---
+// --- REPLACE START: list all (except me) with safe exclusions only; avoid inclusive selects ---
 router.get("/users/all", authenticateToken, async (req, res) => {
   try {
-    const list = await User.find({ _id: { $ne: req.userId } }).select("username profilePicture");
-    res.json(list);
-  } catch {
+    const list = await User.find({ _id: { $ne: req.userId } })
+      .select("-password -resetToken -passwordResetToken -passwordResetExpires -__v")
+      .lean();
+
+    const out = (list || []).map((u) => {
+      if (u.profilePicture) u.profilePicture = toWebPath(u.profilePicture);
+      if (Array.isArray(u.photos)) u.photos = u.photos.map(toWebPath);
+      if (Array.isArray(u.extraImages)) u.extraImages = u.extraImages.map(toWebPath);
+      return normalizeUserOut(u);
+    });
+
+    res.json(out);
+  } catch (err) {
+    console.error("/users/all error:", err);
     res.status(401).json({ error: "Invalid token" });
   }
 });
 // --- REPLACE END ---
 
-// ✅ Public profile by ID
+// ✅ Public profile by ID (safe field exclusions only; no inclusive selects)
 router.get("/:id", async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select(
-      "-password -email -likes -superLikes -blockedUsers"
-    );
+    const user = await User.findById(req.params.id)
+      .select(
+        "-password -resetToken -passwordResetToken -passwordResetExpires -__v -email -likes -superLikes -blockedUsers"
+      )
+      .lean();
     if (!user) return res.status(404).json({ error: "User not found" });
-    res.json(user);
-  } catch {
+
+    if (user.profilePicture) user.profilePicture = toWebPath(user.profilePicture);
+    if (Array.isArray(user.photos)) user.photos = user.photos.map(toWebPath);
+    if (Array.isArray(user.extraImages)) user.extraImages = user.extraImages.map(toWebPath);
+
+    return res.json(normalizeUserOut(user));
+  } catch (err) {
+    console.error("public profile error:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -533,3 +725,17 @@ router.get("/:id", async (req, res) => {
 // --- REPLACE START: ESM export default router ---
 export default router;
 // --- REPLACE END ---
+
+/* =============================================================================
+   NOTES
+   - GET /me and GET /profile now return the FULL profile using:
+     findById().select("-password ...") + normalizeUserOut(user), as requested.
+   - normalizeUserForMe was intentionally removed from usage to avoid field limits.
+   - Ensured there are NO inclusive selects like .select("username email ...")
+     anywhere; only exclusive selects (minus sensitive fields) are used.
+   - Replacement regions are marked between // --- REPLACE START and // --- REPLACE END.
+============================================================================= */
+
+
+
+

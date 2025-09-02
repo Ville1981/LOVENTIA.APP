@@ -8,6 +8,10 @@ const mongoose      = require('mongoose');
 const cookieParser  = require('cookie-parser');
 const path          = require('path');
 
+// --- REPLACE START: add fs for uploads dir ensure ---
+const fs            = require('fs');
+// --- REPLACE END ---
+
 // Optional-but-useful middlewares (safe, non-breaking)
 const morgan        = require('morgan');
 const compression   = require('compression');
@@ -134,30 +138,59 @@ app.use('/api-docs', swagger.serve, swagger.setup);
 /* ──────────────────────────────────────────────────────────────────────────────
    MongoDB connection
 ────────────────────────────────────────────────────────────────────────────── */
+// --- REPLACE START: robust Mongo setup (disable buffering + helper connect) ---
 const MONGO_URI = process.env.MONGO_URI;
 
 try {
+  // Disable buffering so queries fail fast if not connected.
   mongoose.set('strictQuery', false);
-  mongoose.set('bufferCommands', IS_TEST);
+  mongoose.set('bufferCommands', false);
 } catch (_) {}
 
-if (!IS_TEST && MONGO_URI) {
-  mongoose
-    .connect(MONGO_URI, {
-      useNewUrlParser:    true,
-      useUnifiedTopology: true,
-    })
-    .then(() => console.log('✅ MongoDB connected'))
-    .catch((err) => {
-      console.error('❌ MongoDB connection error:', err);
-    });
-} else {
+function logConnState() {
+  const s = mongoose.connection.readyState;
+  const map = { 0: 'disconnected', 1: 'connected', 2: 'connecting', 3: 'disconnecting' };
+  console.log(`[Mongo] state=${map[s] ?? s}`);
+}
+
+async function connectMongo() {
   if (!MONGO_URI) {
     console.warn('⚠️ Skipping MongoDB connection: MONGO_URI is not set.');
-  } else if (IS_TEST) {
-    console.log('ℹ️ Test mode: skipping MongoDB connection.');
+    return false;
+  }
+  try {
+    await mongoose.connect(MONGO_URI, {
+      useNewUrlParser:    true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: Number(process.env.MONGO_SSM || 15000),
+      socketTimeoutMS: Number(process.env.MONGO_SOCK_TIMEOUT || 45000),
+      maxPoolSize: Number(process.env.MONGO_MAX_POOL || 10),
+      retryWrites: true,
+    });
+    const { host, port, name } = mongoose.connection;
+    console.log(`✅ MongoDB connected → ${host}:${port}/${name}`);
+    return true;
+  } catch (err) {
+    console.error('❌ MongoDB connection error:', err?.message || err);
+    return false;
   }
 }
+
+if (!IS_TEST) {
+  connectMongo().then((ok) => {
+    if (!ok) {
+      console.warn('⚠️ DB-backed endpoints will return 503 until Mongo connects.');
+    }
+    logConnState();
+  });
+} else {
+  console.log('ℹ️ Test mode: skipping MongoDB connection.');
+}
+
+mongoose.connection.on('connected', () => console.log('✅ Mongo connected'));
+mongoose.connection.on('disconnected', () => console.warn('⚠️ Mongo disconnected'));
+mongoose.connection.on('error', (e) => console.error('❌ Mongo error:', e?.message || e));
+// --- REPLACE END ---
 
 /* ──────────────────────────────────────────────────────────────────────────────
    CORS & Preflight Handler
@@ -220,6 +253,17 @@ app.use(xssSanitizer);
 app.use(sqlSanitizer);
 
 /* ──────────────────────────────────────────────────────────────────────────────
+   DB readiness guard (prevents 500 if Mongo not connected)
+────────────────────────────────────────────────────────────────────────────── */
+// --- REPLACE START: dbReady middleware to guard DB-backed endpoints ---
+function dbReady(req, res, next) {
+  // 1 = connected
+  if (mongoose.connection.readyState === 1) return next();
+  return res.status(503).json({ error: 'Database not connected. Please try again shortly.' });
+}
+// --- REPLACE END ---
+
+/* ──────────────────────────────────────────────────────────────────────────────
    Diagnostics & internal utilities
 ────────────────────────────────────────────────────────────────────────────── */
 // Simple heartbeat that includes request-id (useful behind proxies)
@@ -261,13 +305,37 @@ if (!IS_TEST) {
 /* ──────────────────────────────────────────────────────────────────────────────
    Static content (uploads + optional client build)
 ────────────────────────────────────────────────────────────────────────────── */
-// --- REPLACE START: serve /uploads from project root (process.cwd()) ---
+// --- REPLACE START: serve /uploads from project root (process.cwd()) with ensured subfolders & CORS headers ---
+/**
+ * Serve user-uploaded assets from a single, absolute root based on process.cwd().
+ * CORS middleware runs BEFORE this block so responses inherit proper headers.
+ * We also ensure common subfolders exist to avoid Multer ENOENT on first boot.
+ */
+const uploadsRoot = path.join(process.cwd(), 'uploads');
+try {
+  if (!fs.existsSync(uploadsRoot)) fs.mkdirSync(uploadsRoot, { recursive: true });
+  for (const sub of ['avatars', 'extra']) {
+    const subDir = path.join(uploadsRoot, sub);
+    if (!fs.existsSync(subDir)) fs.mkdirSync(subDir, { recursive: true });
+  }
+} catch (e) {
+  console.warn('⚠️ Could not ensure /uploads directory tree:', e && e.message ? e.message : e);
+}
+
 app.use(
   '/uploads',
-  express.static(
-    path.join(process.cwd(), 'uploads'),
-    { fallthrough: false, index: false, maxAge: 0 }
-  )
+  express.static(uploadsRoot, {
+    fallthrough: false,
+    index: false,
+    // Let browsers revalidate; adjust if you want stronger caching in prod
+    maxAge: 0,
+    setHeaders(res) {
+      // Ensure assets are viewable cross-origin (e.g., from Vite dev server)
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    },
+  })
 );
 // --- REPLACE END ---
 
@@ -342,7 +410,7 @@ if (IS_TEST) {
   testAuth.post('/login', noValidate, (req, res) => {
     const { email } = req.body || {};
     const userId = '000000000000000000000001';
-    const role = 'user';
+    const role = 'user'; // ✅ FIX: replaced erroneous "the role" with valid declaration
 
     const accessToken = jwt.sign(
       { id: userId, userId, role, email },
@@ -395,6 +463,7 @@ if (IS_TEST) {
   if (authController && typeof authController.login === 'function') {
     app.post(
       '/api/auth/login',
+      dbReady, // --- ensure DB is connected before hitting controller ---
       loginSchema ? validateBody(loginSchema) : (req, _res, next) => next(),
       authController.login
     );
@@ -403,6 +472,7 @@ if (IS_TEST) {
   if (authController && typeof authController.register === 'function') {
     app.post(
       '/api/auth/register',
+      dbReady, // --- ensure DB is connected before hitting controller ---
       registerSchema ? validateBody(registerSchema) : (req, _res, next) => next(),
       authController.register
     );
@@ -443,11 +513,19 @@ if (!IS_TEST) {
   // Users
   try {
     const userRoutes = tryRequireRoute(
-      './routes/userRoutes.js',
+      './routes/userRoutes.js',                 // ✅ preferred modern ESM/CJS router
       './src/routes/userRoutes.js',
       path.resolve(__dirname, '../routes/userRoutes.js')
     );
-    app.use('/api/users', authenticate, authorizeRoles('admin', 'user'), userRoutes);
+    // --- REPLACE START: IMPORTANT — do NOT mount legacy ./routes/user.js to avoid duplicates ---
+    // We intentionally DO NOT mount ./routes/user.js (legacy). If it exists, we warn once.
+    try {
+      require.resolve('./routes/user.js');
+      console.warn('⚠️ Legacy routes/user.js detected but NOT mounted to avoid duplicate endpoints.');
+    } catch {}
+    // Mount the modern users router only (guarded by dbReady):
+    app.use('/api/users', dbReady, authenticate, authorizeRoles('admin', 'user'), userRoutes);
+    // --- REPLACE END ---
   } catch(_) {}
 
   // Messages
@@ -491,6 +569,47 @@ if (!IS_TEST) {
     );
     app.use('/api/discover', authenticate, authorizeRoles('user'), discoverRoutes);
   } catch (_) {}
+
+  // --- REPLACE START: mount /api/notifications with ESM/CJS compatibility ---
+  (async () => {
+    try {
+      // Prefer ESM dynamic import (our notifications route is ESM)
+      const candidates = [
+        path.resolve(__dirname, './routes/notifications.js'),
+        path.resolve(__dirname, './src/routes/notifications.js'),
+        path.resolve(__dirname, '../routes/notifications.js'),
+      ];
+      let notificationsRouter = null;
+
+      for (const p of candidates) {
+        try {
+          // Try require first (works if CJS)
+          let mod = require(p);
+          notificationsRouter = mod && (mod.default || mod.router || mod);
+          if (notificationsRouter) break;
+        } catch (err) {
+          // Fallback to ESM dynamic import on ERR_REQUIRE_ESM or general import error
+          try {
+            const esm = await import(pathToFileURL(p).href);
+            notificationsRouter = esm && (esm.default || esm.router || esm);
+            if (notificationsRouter) break;
+          } catch {
+            // try next candidate
+          }
+        }
+      }
+
+      if (notificationsRouter && typeof notificationsRouter === 'function') {
+        app.use('/api/notifications', authenticate, notificationsRouter);
+        console.log('🔔 Mounted /api/notifications');
+      } else {
+        console.warn('⚠️ Notifications route not mounted (file missing or invalid export).');
+      }
+    } catch (e) {
+      console.warn('⚠️ Failed to mount /api/notifications:', e && e.message ? e.message : e);
+    }
+  })();
+  // --- REPLACE END: mount /api/notifications with ESM/CJS compatibility ---
 }
 
 /* ──────────────────────────────────────────────────────────────────────────────

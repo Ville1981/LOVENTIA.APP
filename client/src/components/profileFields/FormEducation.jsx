@@ -1,19 +1,16 @@
-// --- REPLACE START: i18n namespace fixes (ns.key -> ns:key), no logic removed ---
-// --- REPLACE END ---
-// src/components/profileFields/FormEducation.jsx
-
+// --- REPLACE START: enforce EN enum values for backend; keep labels localized ---
 import PropTypes from "prop-types";
 import React from "react";
 import { useFormContext } from "react-hook-form";
 
 /**
  * FormEducation
- * Lomakeosio: koulutus (vain)
- * Käyttää RHF-kontekstia kenttien rekisteröintiin ja virheiden näyttöön.
+ * Form section: education level (only)
+ * Uses RHF context for field registration and error display.
  *
  * Props:
- *   t: lokalisointifunktio (required)
- *   includeAllOption: lisää "All"–valinnan ylös (oletus: false)
+ *   t: i18n translate function (required)
+ *   includeAllOption: adds an "All" option at the top (default false)
  */
 const FormEducation = ({ t, includeAllOption = false }) => {
   const {
@@ -26,7 +23,7 @@ const FormEducation = ({ t, includeAllOption = false }) => {
       className="flex flex-col gap-4 w-full text-left"
       data-cy="FormEducation__section"
     >
-      {/* Koulutustaso */}
+      {/* Education level */}
       <div className="w-full">
         <label htmlFor="education" className="block font-medium mb-1">
           🎓 {t("profile:education.label")}
@@ -39,15 +36,16 @@ const FormEducation = ({ t, includeAllOption = false }) => {
         >
           {includeAllOption && <option value="">{t("common:all")}</option>}
           <option value="">{t("common:select")}</option>
-          <option value="Peruskoulu">{t("profile:education.basic")}</option>
-          <option value="Toinen aste">{t("profile:education.secondary")}</option>
-          <option value="Ammatillinen">{t("profile:education.vocational")}</option>
-          <option value="Korkeakoulu / yliopisto">
-            {t("profile:education.higher")}
-          </option>
-          <option value="Tohtori / tutkimus">{t("profile:education.phd")}</option>
-          <option value="Muu">{t("common:other")}</option>
+
+          {/* Values are EN enums expected by backend; labels are localized */}
+          <option value="primary">{t("profile:education.basic")}</option>
+          <option value="secondary">{t("profile:education.secondary")}</option>
+          <option value="vocational">{t("profile:education.vocational")}</option>
+          <option value="college_university">{t("profile:education.higher")}</option>
+          <option value="doctorate_research">{t("profile:education.phd")}</option>
+          <option value="other">{t("common:other")}</option>
         </select>
+
         {errors.education && (
           <p
             className="mt-1 text-sm text-red-600"
@@ -67,3 +65,4 @@ FormEducation.propTypes = {
 };
 
 export default FormEducation;
+// --- REPLACE END ---

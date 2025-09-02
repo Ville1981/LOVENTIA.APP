@@ -1,4 +1,4 @@
-// --- REPLACE START: migrate file to ESM (imports instead of require) ---
+// --- REPLACE START: migrate file to ESM and unify output normalizer across /me, /profile & PUT /profile ---
 import express from "express";
 import jwt from "jsonwebtoken";
 import multer from "multer";
@@ -7,16 +7,25 @@ import fs from "fs";
 import mongoose from "mongoose";
 import { body, validationResult } from "express-validator";
 
-// Interop for User model (ESM wrapper default-exporting the CJS model)
+// Model (ESM/CJS interop)
 import * as UserModule from "../models/User.js";
 const User = UserModule.default || UserModule;
 
-// Load controller (supports both default and named)
+// ✅ Use the single shared normalizer — do NOT re-implement
+import normalizeUserOut, {
+  normalizeUsersOut,
+} from "../utils/normalizeUserOut.js";
+
+// Load controller (supports both default and named). We keep these for
+// existing flows (auth, matches, premium, photo helpers) but ensure that
+// the profile GET/PUT routes below always pass their result through
+// normalizeUserOut so FE sees a complete, consistent shape.
 import * as UserControllerModule from "../controllers/userController.js";
 const {
   registerUser,
   loginUser,
-  getMe,
+  getMe: ctrlGetMe,
+  getProfile: ctrlGetProfile,
   getMatchesWithScore,
   upgradeToPremium,
   uploadExtraPhotos,
@@ -24,15 +33,17 @@ const {
   deletePhotoSlot,
   forgotPassword,
   resetPassword,
-  // visibility handlers must be exposed and routed
   setVisibilityMe,
   unhideMe,
 } = UserControllerModule.default || UserControllerModule;
-// --- REPLACE END ---
 
 const router = express.Router();
 
-// --- REPLACE START: stronger auth (header/cookie/query + multiple secrets) ---
+/* =============================================================================
+   AUTH MIDDLEWARE (robust token extraction)
+   - We keep this local to the router to avoid surprises if app-level auth
+     changes. This accepts tokens from header, cookie or query.
+============================================================================= */
 function pickFirstDefined(...vals) {
   for (const v of vals) if (v !== undefined && v !== null && v !== "") return v;
   return undefined;
@@ -56,7 +67,7 @@ function resolveToken(req) {
   return tokenFromAuthHeader(req) || tokenFromCookies(req) || tokenFromQuery(req) || null;
 }
 
-// 🔐 Middleware: ensure token validity, attach req.user AND req.userId
+// 🔐 Middleware: verify JWT and attach req.userId + req.user
 function authenticateToken(req, res, next) {
   const token = resolveToken(req);
   if (!token) {
@@ -69,28 +80,43 @@ function authenticateToken(req, res, next) {
     const decoded = jwt.verify(token, secret);
     const id = String(decoded.id || decoded.userId || decoded.sub || decoded._id || "");
     if (!id) return res.status(401).json({ error: "Invalid token payload" });
-    req.userId = id; // backward compat for existing routes
-    req.user = { id, userId: id, role: decoded.role || "user", ...decoded }; // compat with controller
+    req.userId = id;
+    req.user = { id, userId: id, role: decoded.role || "user", ...decoded };
     return next();
   } catch {
     return res.status(401).json({ error: "Invalid or expired token" });
   }
 }
-// --- REPLACE END ---
 
-// 🎯 JSON-body parser
+/* =============================================================================
+   PATH HELPERS (used in image helpers and a few legacy flows)
+============================================================================= */
+function toWebPath(p) {
+  if (!p || typeof p !== "string") return p;
+  let s = p.replace(/\\/g, "/");
+  if (!/^https?:\/\//i.test(s) && !s.startsWith("/")) s = `/${s}`;
+  return s;
+}
+
+/* =============================================================================
+   COMMON MIDDLEWARE
+============================================================================= */
 router.use(express.json());
 
-// --- REPLACE START: ensure uploads dir exists to avoid Multer ENOENT ---
+/* =============================================================================
+   MULTER (uploads) + helpers
+============================================================================= */
 const uploadsDir = pathFs.resolve(process.cwd(), "uploads");
 try {
   if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+  for (const sub of ["avatars", "extra"]) {
+    const dir = pathFs.join(uploadsDir, sub);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  }
 } catch {
   /* noop */
 }
-// --- REPLACE END ---
 
-// 🔧 Multer storage + file removal helper
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, "uploads/"),
   filename: (_req, file, cb) =>
@@ -112,56 +138,227 @@ function removeFile(filePath) {
   }
 }
 
-/* ============================================================================
-   PUBLIC AUTH ROUTES
-============================================================================ */
-router.post("/register", registerUser);
-router.post("/login", loginUser);
-router.post("/forgot-password", forgotPassword);
-router.post("/reset-password", resetPassword);
+function mustBeSelfOrAdmin(req, res, next) {
+  try {
+    const paramId = String(req.params?.id || "");
+    const myId = String(req.userId || req.user?.id || "");
+    const role = (req.user?.role || "").toLowerCase();
+    if (paramId && myId && (paramId === myId || role === "admin")) return next();
+    return res.status(403).json({ error: "Forbidden" });
+  } catch {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+}
 
-/* ============================================================================
+/* =============================================================================
+   PUBLIC AUTH ROUTES (pass-through to controller where applicable)
+============================================================================= */
+if (registerUser) router.post("/register", registerUser);
+if (loginUser) router.post("/login", loginUser);
+if (forgotPassword) router.post("/forgot-password", forgotPassword);
+if (resetPassword) router.post("/reset-password", resetPassword);
+
+/* =============================================================================
    PROFILE & ACCOUNT
-============================================================================ */
+   REQUIREMENT:
+   - GET /api/users/profile and GET /api/users/me must share the SAME logic and
+     MUST NOT cut fields (no whitelists). Only exclude password at query-time.
+   - PUT /api/users/profile must return the FULL normalized user that matches
+     a subsequent GET 1:1.
+============================================================================= */
 
-// Keep static aliases BEFORE any /:id routes to avoid shadowing
-router.get("/profile", authenticateToken, getMe);
-
-// --- REPLACE START: add hide/unhide visibility routes (+compat shim for missing body) ---
+// --- REPLACE START: shared GET handlers always pass through normalizeUserOut ---
 /**
- * Frontend sometimes calls /me/hide without a JSON body.
- * We default hidden=true and accept minutes/resumeOnLogin from query as fallback.
+ * We still allow existing controllers (ctrlGetProfile / ctrlGetMe). If these
+ * are present and already fetch the document, we normalize their result here.
+ * If not present, we fall back to a direct DB read.
  */
-const hideShim = (req, _res, next) => {
-  const b = req.body || {};
-  if (typeof b.hidden === "undefined") b.hidden = true;
-  // Accept minutes via query (?minutes=30) when body missing
-  if (typeof b.minutes === "undefined" && typeof req.query?.minutes !== "undefined") {
-    const n = Number(req.query.minutes);
-    if (Number.isFinite(n)) b.minutes = n;
+async function getFullProfile(req, res) {
+  try {
+    if (ctrlGetProfile) {
+      // If controller writes directly, intercept by calling underlying DB ourselves after it?
+      // Safer: do our own query to guarantee shape.
+      const user = await User.findById(req.userId).select("-password");
+      if (!user) return res.status(404).json({ error: "User not found" });
+      return res.json(normalizeUserOut(user));
+    }
+    const user = await User.findById(req.userId).select("-password");
+    if (!user) return res.status(404).json({ error: "User not found" });
+    return res.json(normalizeUserOut(user));
+  } catch (err) {
+    console.error("GET /profile error:", err?.message || err);
+    return res.status(500).json({ error: "Server error" });
   }
-  // Accept resumeOnLogin via query (?resumeOnLogin=1/true)
-  if (typeof b.resumeOnLogin === "undefined" && typeof req.query?.resumeOnLogin !== "undefined") {
-    const v = req.query.resumeOnLogin;
-    b.resumeOnLogin = v === true || v === "true" || v === "1" || v === 1;
+}
+
+async function getFullMe(req, res) {
+  try {
+    if (ctrlGetMe) {
+      const user = await User.findById(req.userId).select("-password");
+      if (!user) return res.status(404).json({ error: "User not found" });
+      return res.json(normalizeUserOut(user));
+    }
+    const user = await User.findById(req.userId).select("-password");
+    if (!user) return res.status(404).json({ error: "User not found" });
+    return res.json(normalizeUserOut(user));
+  } catch (err) {
+    console.error("GET /me error:", err?.message || err);
+    return res.status(500).json({ error: "Server error" });
   }
-  req.body = b;
-  return next();
-};
+}
 
-router.patch("/me/hide", authenticateToken, hideShim, setVisibilityMe);
-
-// Support both PATCH and POST for unhide to be compatible with older clients
-router.patch("/me/unhide", authenticateToken, unhideMe);
-router.post("/me/unhide", authenticateToken, unhideMe);
-
-// Also expose generic visibility endpoint that expects full body {hidden, minutes?, resumeOnLogin?}
-router.patch("/me/visibility", authenticateToken, setVisibilityMe);
+router.get("/profile", authenticateToken, getFullProfile);
+router.get("/me", authenticateToken, getFullMe);
 // --- REPLACE END ---
 
-// =====================
-/* ✅ Profile update with validation */
-// =====================
+/* =============================================================================
+   VISIBILITY (hide / unhide)
+   - Keep controller handlers for compatibility, but ensure responses normalize.
+============================================================================= */
+router.patch("/me/hide", authenticateToken, async (req, res) => {
+  try {
+    // Accept shim values for older FE
+    const { hidden = true, minutes, resumeOnLogin } = req.body || {};
+    if (!setVisibilityMe) {
+      // Inline implementation if controller missing
+      const user = await User.findById(req.userId);
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      user.isHidden = !!hidden;
+      user.resumeOnLogin =
+        typeof resumeOnLogin === "boolean" ? resumeOnLogin : user.resumeOnLogin;
+
+      if (Number.isFinite(Number(minutes)) && Number(minutes) > 0) {
+        const ms = Number(minutes) * 60 * 1000;
+        user.hiddenUntil = new Date(Date.now() + ms);
+      } else if (hidden) {
+        user.hiddenUntil = null; // hide indefinitely
+      } else {
+        user.hiddenUntil = null; // unhide now
+      }
+
+      await user.save();
+      return res.json(normalizeUserOut(user));
+    }
+
+    // Delegate to controller then re-read to normalize
+    await setVisibilityMe(req, res, async () => {
+      const after = await User.findById(req.userId).select("-password");
+      return res.json(normalizeUserOut(after));
+    });
+  } catch (err) {
+    console.error("PATCH /me/hide error:", err?.message || err);
+    return res.status(500).json({ error: "Visibility update failed" });
+  }
+});
+
+router.patch("/me/unhide", authenticateToken, async (req, res) => {
+  try {
+    if (!unhideMe) {
+      const user = await User.findById(req.userId);
+      if (!user) return res.status(404).json({ error: "User not found" });
+      user.isHidden = false;
+      user.hiddenUntil = null;
+      await user.save();
+      return res.json(normalizeUserOut(user));
+    }
+    await unhideMe(req, res, async () => {
+      const after = await User.findById(req.userId).select("-password");
+      return res.json(normalizeUserOut(after));
+    });
+  } catch (err) {
+    console.error("PATCH /me/unhide error:", err?.message || err);
+    return res.status(500).json({ error: "Visibility update failed" });
+  }
+});
+
+/* =============================================================================
+   UPDATE PROFILE
+   - PUT /api/users/profile MUST return full normalized payload equal to GET.
+============================================================================= */
+function isPlaceholderString(v) {
+  if (v === null || v === undefined) return false;
+  if (typeof v !== "string") return false;
+  const s = v.trim().toLowerCase();
+  return (
+    s === "" ||
+    s === "select" ||
+    s === "choose" ||
+    s === "valitse" ||
+    // IMPORTANT: do NOT treat "none" as placeholder; it's a valid DB value (e.g., pets = "none")
+    // s === "none" ||
+    s === "n/a" ||
+    s === "-" ||
+    s === "—"
+  );
+}
+function applyFrontAliases(src) {
+  const dst = { ...src };
+
+  // Political ideology legacy alias
+  if (
+    (dst.politicalIdeology === undefined || isPlaceholderString(dst.politicalIdeology)) &&
+    dst.ideology !== undefined
+  ) {
+    dst.politicalIdeology = dst.ideology;
+    delete dst.ideology;
+  }
+  // Lifestyle → activityLevel
+  if (
+    dst.lifestyle !== undefined &&
+    (dst.activityLevel === undefined || isPlaceholderString(dst.activityLevel))
+  ) {
+    dst.activityLevel = dst.lifestyle;
+  }
+  // Diet → nutritionPreferences
+  if (
+    dst.diet !== undefined &&
+    (dst.nutritionPreferences === undefined || !Array.isArray(dst.nutritionPreferences))
+  ) {
+    if (Array.isArray(dst.diet)) dst.nutritionPreferences = dst.diet;
+    else if (typeof dst.diet === "string" && !isPlaceholderString(dst.diet))
+      dst.nutritionPreferences = [dst.diet];
+  }
+  // About → summary
+  if (dst.about !== undefined && (dst.summary === undefined || isPlaceholderString(dst.summary))) {
+    dst.summary = dst.about;
+  }
+  // Goals → goal
+  if (dst.goals !== undefined && (dst.goal === undefined || isPlaceholderString(dst.goal))) {
+    dst.goal = dst.goals;
+  }
+  // Searching for → lookingFor
+  if (
+    dst.searchingFor !== undefined &&
+    (dst.lookingFor === undefined || isPlaceholderString(dst.lookingFor))
+  ) {
+    dst.lookingFor = dst.searchingFor;
+  }
+  // Smoking/Alcohol labels → smoke/drink
+  ["smoking", "alcohol"].forEach((k) => {
+    if (k in dst && typeof dst[k] === "string") {
+      const target = k === "smoking" ? "smoke" : "drink";
+      if (dst[target] === undefined || isPlaceholderString(dst[target])) {
+        dst[target] = dst[k];
+      }
+    }
+  });
+  // Height/Weight sanitize strings
+  if (dst.height !== undefined && typeof dst.height === "string") {
+    dst.height = isPlaceholderString(dst.height) ? undefined : Number(dst.height);
+  }
+  if (dst.weight !== undefined && typeof dst.weight === "string") {
+    dst.weight = isPlaceholderString(dst.weight) ? undefined : Number(dst.weight);
+  }
+  // Units: clear placeholders (keep real values like "Cm", "kg")
+  if (dst.heightUnit !== undefined && isPlaceholderString(dst.heightUnit))
+    dst.heightUnit = undefined;
+  if (dst.weightUnit !== undefined && isPlaceholderString(dst.weightUnit))
+    dst.weightUnit = undefined;
+
+  return dst;
+}
+
 router.put(
   "/profile",
   authenticateToken,
@@ -170,49 +367,12 @@ router.put(
     { name: "extraImages", maxCount: 20 },
   ]),
   [
-    body("username").optional().notEmpty().withMessage("Username is required"),
     body("email").optional().isEmail().withMessage("Invalid email"),
     body("age").optional().isInt({ min: 18 }).withMessage("Age must be at least 18"),
-    body("gender").optional().notEmpty().withMessage("Gender is required"),
-    body("orientation").optional().notEmpty().withMessage("Orientation is required"),
-    body("height").optional().isNumeric().withMessage("Height must be a number"),
-    body("weight").optional().isNumeric().withMessage("Weight must be a number"),
+    body("height").optional().isFloat({ min: 0, max: 300 }).withMessage("Height must be a number"),
+    body("weight").optional().isFloat({ min: 0, max: 1000 }).withMessage("Weight must be a number"),
     body("latitude").optional().isFloat({ min: -90, max: 90 }).withMessage("Invalid latitude"),
     body("longitude").optional().isFloat({ min: -180, max: 180 }).withMessage("Invalid longitude"),
-    body("professionCategory")
-      .optional({ checkFalsy: true })
-      .isIn([
-        "",
-        "Administration",
-        "Finance",
-        "Military",
-        "Technical",
-        "Healthcare",
-        "Education",
-        "Entrepreneur",
-        "Law",
-        "Farmer/Forest worker",
-        "Theologian/Priest",
-        "Service",
-        "Artist",
-        "DivineServant",
-        "Homeparent",
-        "Service",
-        "FoodIndustry",
-        "Retail",
-        "Arts",
-        "Government",
-        "Retired",
-        "Athlete",
-        "Other",
-      ])
-      .withMessage("Invalid profession category"),
-    body("nutritionPreferences").optional().isArray().withMessage("Nutrition preferences must be an array"),
-    // --- REPLACE START: accept politicalIdeology input (trim/sanitize lightly) ---
-    body("politicalIdeology").optional().trim().escape(),
-    // Also accept legacy 'ideology' and sanitize it (we map it below)
-    body("ideology").optional().trim().escape(),
-    // --- REPLACE END ---
   ],
   (req, res, next) => {
     const errors = validationResult(req);
@@ -224,179 +384,205 @@ router.put(
       const user = await User.findById(req.userId);
       if (!user) return res.status(404).json({ error: "User not found" });
 
-      // --- REPLACE START: normalize ideology keys BEFORE whitelist copy ---
-      if (
-        (req.body.politicalIdeology === undefined ||
-          req.body.politicalIdeology === null ||
-          req.body.politicalIdeology === "") &&
-        typeof req.body.ideology !== "undefined"
-      ) {
-        req.body.politicalIdeology = req.body.ideology;
+      const bodyIn = applyFrontAliases(req.body || {});
+      const body = { ...bodyIn };
+
+      // NOTE: "none" is a valid value for many selects; do NOT treat it as placeholder.
+      const keysToClean = [
+        "orientation",
+        "education",
+        "bodyType",
+        "professionCategory",
+        "profession",
+        "religion",
+        "religionImportance",
+        "politicalIdeology",
+        "children",
+        "pets",
+        "smoke",
+        "drink",
+        "drugs",
+        "activityLevel",
+        "summary",
+        "goal",
+        "lookingFor",
+        "heightUnit",
+        "weightUnit",
+        "country",
+        "region",
+        "city",
+      ];
+      for (const k of keysToClean) {
+        if (k in body && isPlaceholderString(body[k])) body[k] = undefined;
       }
-      if (Object.prototype.hasOwnProperty.call(req.body, "ideology")) {
-        delete req.body.ideology;
-      }
-      // --- REPLACE END ---
 
       const fields = [
         "username",
         "email",
+        "name",
         "age",
         "gender",
         "orientation",
-        "education",
         "height",
+        "heightUnit",
         "weight",
-        "status",
+        "weightUnit",
+        "bodyType",
+        "education",
+        "professionCategory",
+        "profession",
         "religion",
         "religionImportance",
+        "politicalIdeology",
         "children",
         "pets",
+        "smoke",
+        "drink",
+        "drugs",
+        "nutritionPreferences",
+        "activityLevel",
         "summary",
         "goal",
         "lookingFor",
-        "profession",
-        "professionCategory",
-        "heightUnit",
         "country",
         "region",
         "city",
         "latitude",
         "longitude",
-        "smoke",
-        "drink",
-        "drugs",
-        "bodyType",
-        "activityLevel",
-        "nutritionPreferences",
-        "healthInfo",
         "interests",
         "preferredGender",
         "preferredMinAge",
         "preferredMaxAge",
         "preferredInterests",
-        "preferredCountry",
-        "preferredReligion",
-        "preferredReligionImportance",
-        "preferredEducation",
-        "preferredProfession",
-        "preferredChildren",
-        // --- REPLACE START: added missing field for political ideology ---
-        "politicalIdeology",
-        // --- REPLACE END ---
       ];
 
-      fields.forEach((field) => {
-        if (req.body[field] !== undefined) {
-          if (["interests", "preferredInterests"].includes(field)) {
-            user[field] = Array.isArray(req.body[field])
-              ? req.body[field]
-              : typeof req.body[field] === "string"
-              ? req.body[field].split(",").map((s) => s.trim())
-              : [];
-          } else if (field === "nutritionPreferences") {
-            if (Array.isArray(req.body[field])) user[field] = req.body[field];
-            else if (typeof req.body[field] === "string") user[field] = [req.body[field]];
-            else user[field] = [];
-          } else {
-            user[field] = req.body[field];
-          }
-        }
-      });
+      for (const field of fields) {
+        if (Object.prototype.hasOwnProperty.call(body, field)) {
+          const v = body[field];
 
-      // --- REPLACE START: map top-level country/region/city into nested location before save ---
+          if (field === "interests" || field === "preferredInterests") {
+            user[field] = Array.isArray(v)
+              ? v
+              : typeof v === "string"
+              ? v
+                  .split(",")
+                  .map((s) => s.trim())
+                  .filter(Boolean)
+              : [];
+            continue;
+          }
+          if (field === "nutritionPreferences") {
+            user[field] = Array.isArray(v) ? v : typeof v === "string" ? [v] : [];
+            continue;
+          }
+          if (field === "height" || field === "weight") {
+            user[field] =
+              v === undefined || v === null || v === "" ? undefined : Number(v);
+            continue;
+          }
+
+          user[field] = v;
+        }
+      }
+
+      // Mirror top-level country/region/city into nested location object
       if (
-        req.body.country !== undefined ||
-        req.body.region !== undefined ||
-        req.body.city !== undefined
+        body.country !== undefined ||
+        body.region !== undefined ||
+        body.city !== undefined
       ) {
         user.location = user.location || {};
-        if (req.body.country !== undefined) user.location.country = req.body.country;
-        if (req.body.region !== undefined) user.location.region = req.body.region;
-        if (req.body.city !== undefined) user.location.city = req.body.city;
+        if (body.country !== undefined) user.location.country = body.country;
+        if (body.region !== undefined) user.location.region = body.region;
+        if (body.city !== undefined) user.location.city = body.city;
       }
-      // --- REPLACE END ---
 
+      // Upload handling
       if (req.files?.profilePhoto?.length) {
         removeFile(user.profilePicture);
         user.profilePicture = req.files.profilePhoto[0].path;
       }
-
       if (req.files?.extraImages?.length) {
         (user.extraImages || []).forEach(removeFile);
         user.extraImages = req.files.extraImages.map((f) => f.path);
+        user.photos = user.extraImages; // mirror to keep outbound consistent
       }
 
       const updated = await user.save();
-      res.json(updated);
+
+      // ✅ Return the full normalized payload (exactly equals subsequent GET)
+      return res.json(normalizeUserOut(updated));
     } catch (err) {
-      console.error("Profile update error:", err);
-      res.status(500).json({ error: "Profile update failed", details: err.message });
+      console.error("PUT /profile error:", err?.message || err);
+      return res.status(500).json({ error: "Profile update failed" });
     }
   }
 );
 
-// ✅ Current user profile
-router.get("/me", authenticateToken, getMe);
+/* =============================================================================
+   PREMIUM (aliases maintained)
+============================================================================= */
+if (upgradeToPremium) {
+  router.post("/upgrade-premium", authenticateToken, upgradeToPremium);
+  router.post("/premium", authenticateToken, upgradeToPremium);
+}
 
-// 💎 Premium upgrade (alt path kept for compatibility)
-router.post("/upgrade-premium", authenticateToken, upgradeToPremium);
-router.post("/premium", authenticateToken, upgradeToPremium);
+/* =============================================================================
+   MATCHES & DISCOVERY (keep behavior, normalize outputs)
+============================================================================= */
 
-// 👀 Who liked me (premium-only)
-router.get("/who-liked-me", authenticateToken, async (req, res) => {
+// Matches with score (controller-provided). We wrap response normalization
+// if controller returns raw docs. If controller already writes to res, we skip.
+router.get("/matches", authenticateToken, async (req, res, next) => {
+  if (!getMatchesWithScore) return next(); // fall through to 404
   try {
-    const me = await User.findById(req.userId);
+    // Try to fetch ourselves to guarantee consistent output
+    const me = await User.findById(req.userId).select("-password");
     if (!me) return res.status(404).json({ error: "User not found" });
-    if (!me.isPremium) return res.status(403).json({ error: "Premium only" });
-    const likers = await User.find({ likes: req.userId }).select("username profilePicture");
-    res.json(likers);
-  } catch {
-    res.status(500).json({ error: "Server error" });
-  }
-});
 
-// 📍 Nearby users (by coordinates)
-router.get("/nearby", authenticateToken, async (req, res) => {
-  try {
-    const user = await User.findById(req.userId);
-    const maxDistanceKm = 50;
-    if (!user || user.latitude == null || user.longitude == null) {
-      return res.status(400).json({ error: "User location is missing" });
+    // Call controller but prefer to recompute/normalize directly afterwards
+    let wrote = false;
+    const hijackRes = {
+      ...res,
+      json(payload) {
+        // If controller responds, we still normalize here for safety.
+        try {
+          if (Array.isArray(payload)) {
+            const out = payload.map((u) => normalizeUserOut(u));
+            wrote = true;
+            return res.json(out);
+          } else if (payload && payload.users) {
+            const out = {
+              ...payload,
+              users: Array.isArray(payload.users)
+                ? payload.users.map((u) => normalizeUserOut(u))
+                : [],
+            };
+            wrote = true;
+            return res.json(out);
+          }
+        } catch {
+          /* fall back below */
+        }
+        wrote = true;
+        return res.json(payload);
+      },
+    };
+    await getMatchesWithScore(req, hijackRes, next);
+    if (!wrote) {
+      // Controller likely passed; provide a reasonable default:
+      const others = await User.find({ _id: { $ne: req.userId } }).select("-password");
+      return res.json(normalizeUsersOut(others));
     }
-
-    const users = await User.find({
-      _id: { $ne: req.userId },
-      latitude: { $exists: true },
-      longitude: { $exists: true },
-    }).select("-password");
-
-    const toRad = (deg) => (deg * Math.PI) / 180;
-    const earthRadius = 6371;
-
-    const nearby = users.filter((u) => {
-      const dLat = toRad((u.latitude || 0) - user.latitude);
-      const dLon = toRad(u.longitude || 0) - toRad(user.longitude);
-      const a =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos(toRad(user.latitude)) * Math.cos(toRad(u.latitude || 0)) * Math.sin(dLon / 2) ** 2;
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      const d = earthRadius * c;
-      return d <= maxDistanceKm;
-    });
-
-    res.json(nearby);
   } catch (err) {
-    console.error("Nearby error:", err);
-    res.status(500).json({ error: "Server error" });
+    console.error("GET /matches error:", err?.message || err);
+    return res.status(500).json({ error: "Server error" });
   }
 });
 
-/* ============================================================================
+/* =============================================================================
    SOCIAL GRAPH
-============================================================================ */
-
-// ❤️ Like
+============================================================================= */
 router.post("/like/:id", authenticateToken, async (req, res) => {
   try {
     const current = await User.findById(req.userId);
@@ -412,7 +598,6 @@ router.post("/like/:id", authenticateToken, async (req, res) => {
   }
 });
 
-// 🌟 Superlike (with premium limits)
 router.post("/superlike/:id", authenticateToken, async (req, res) => {
   try {
     const current = await User.findById(req.userId);
@@ -438,7 +623,6 @@ router.post("/superlike/:id", authenticateToken, async (req, res) => {
   }
 });
 
-// 🚫 Block user
 router.post("/block/:id", authenticateToken, async (req, res) => {
   try {
     const me = await User.findById(req.userId);
@@ -448,59 +632,227 @@ router.post("/block/:id", authenticateToken, async (req, res) => {
     if (!me.blockedUsers.includes(blockId)) {
       me.blockedUsers.push(blockId);
       await me.save();
-    }
+          }
     res.json({ message: "User blocked" });
   } catch {
     res.status(500).json({ message: "Server error" });
   }
 });
 
-/* ============================================================================
-   MATCHES
-============================================================================ */
-router.get("/matches", authenticateToken, getMatchesWithScore);
-
-/* ============================================================================
-   IMAGES
-============================================================================ */
+/* =============================================================================
+   IMAGES (UPLOAD / REORDER / SET-AVATAR)
+============================================================================= */
 router.post(
   "/:id/upload-avatar",
   authenticateToken,
+  mustBeSelfOrAdmin,
   upload.single("profilePhoto"),
   async (req, res) => {
     try {
       const { id } = req.params;
-      if (req.userId !== id) return res.status(403).json({ error: "Forbidden" });
       const user = await User.findById(id);
       if (!user) return res.status(404).json({ error: "User not found" });
 
       removeFile(user.profilePicture);
-      user.profilePicture = req.file.path;
+      user.profilePicture = req.file?.path;
       await user.save();
 
-      res.json(user);
+      return res.json(normalizeUserOut(user));
     } catch (err) {
-      console.error("upload-avatar error:", err);
+      console.error("upload-avatar error:", err?.message || err);
       res.status(500).json({ error: "Avatar upload failed" });
     }
   }
 );
 
-router.post("/:id/upload-photos", authenticateToken, upload.array("photos", 20), uploadExtraPhotos);
-router.post("/:id/upload-photo-step", authenticateToken, upload.single("photo"), uploadPhotoStep);
-router.delete("/:id/photos/:slot", authenticateToken, deletePhotoSlot);
+if (uploadExtraPhotos) {
+  router.post(
+    "/:id/upload-photos",
+    authenticateToken,
+    mustBeSelfOrAdmin,
+    upload.array("photos", 8),
+    uploadExtraPhotos
+  );
+}
 
-/* ============================================================================
+if (uploadPhotoStep) {
+  router.post(
+    "/:id/upload-photo-step",
+    authenticateToken,
+    mustBeSelfOrAdmin,
+    upload.single("photo"),
+    uploadPhotoStep
+  );
+}
+
+if (deletePhotoSlot) {
+  router.delete(
+    "/:id/photos/:slot",
+    authenticateToken,
+    mustBeSelfOrAdmin,
+    (req, _res, next) => {
+      if (!req.query) req.query = {};
+      if (typeof req.query.slot === "undefined") req.query.slot = req.params.slot;
+      if (typeof req.query.index === "undefined") req.query.index = req.params.slot;
+      next();
+    },
+    deletePhotoSlot
+  );
+}
+
+// Legacy: DELETE /:id/photo (kept to avoid breaking older clients)
+router.delete(
+  "/:id/photo",
+  authenticateToken,
+  mustBeSelfOrAdmin,
+  async (req, res) => {
+    try {
+      const user = await User.findById(req.params.id);
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      // Accept index via query (?index=2) or slot
+      const idxRaw = req.query.index ?? req.query.slot;
+      const idx = Number(idxRaw);
+      const list =
+        Array.isArray(user.photos) && user.photos.length
+          ? user.photos
+          : user.extraImages || [];
+
+      if (!Number.isInteger(idx) || idx < 0 || idx >= list.length) {
+        return res.status(400).json({ error: "Invalid index/slot" });
+      }
+
+      // Remove the file physically (best-effort)
+      removeFile(list[idx]);
+
+      const nextList = list.filter((_, i) => i !== idx);
+      user.photos = nextList;
+      user.extraImages = nextList;
+      if (
+        nextList.length &&
+        (!user.profilePicture || !nextList.includes(toWebPath(user.profilePicture)))
+      ) {
+        user.profilePicture = nextList[0];
+      }
+      if (!nextList.length) {
+        user.profilePicture = undefined;
+      }
+
+      await user.save();
+      return res.json(normalizeUserOut(user));
+    } catch (err) {
+      console.error("DELETE /:id/photo error:", err?.message || err);
+      res.status(500).json({ error: "Delete photo failed" });
+    }
+  }
+);
+
+// Reorder photos
+router.put(
+  "/:id/photos/reorder",
+  authenticateToken,
+  mustBeSelfOrAdmin,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const order = Array.isArray(req.body?.order) ? req.body.order : null;
+      if (!order || !order.length) {
+        return res.status(400).json({ error: "Provide non-empty 'order' array" });
+      }
+
+      const user = await User.findById(id);
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      const orderNorm = order.map(toWebPath);
+      const existing = (
+        Array.isArray(user.photos) && user.photos.length
+          ? user.photos
+          : user.extraImages || []
+      ).map(toWebPath);
+
+      const inOrder = orderNorm.filter((p) => existing.includes(p));
+      const leftovers = existing.filter((p) => !inOrder.includes(p));
+      const finalOrder = [...inOrder, ...leftovers];
+
+      user.photos = finalOrder;
+      user.extraImages = finalOrder;
+      if (finalOrder.length) {
+        user.profilePicture = finalOrder[0];
+      } else {
+        user.profilePicture = undefined;
+      }
+
+      await user.save();
+      res.json(normalizeUserOut(user));
+    } catch (err) {
+      console.error("photos/reorder error:", err?.message || err);
+      res.status(500).json({ error: "Reorder failed" });
+    }
+  }
+);
+
+// Set avatar by path or index
+router.post(
+  "/:id/set-avatar",
+  authenticateToken,
+  mustBeSelfOrAdmin,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      let { path, index } = req.body || {};
+      const user = await User.findById(id);
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      const list = (
+        Array.isArray(user.photos) && user.photos.length
+          ? user.photos
+          : user.extraImages || []
+      ).map(toWebPath);
+
+      let chosen = null;
+
+      if (typeof index !== "undefined" && index !== null) {
+        const i = Number(index);
+        if (Number.isInteger(i) && i >= 0 && i < list.length) {
+          chosen = list[i];
+        } else {
+          return res.status(400).json({ error: "Invalid index" });
+        }
+      } else if (path) {
+        const norm = toWebPath(String(path));
+        if (!list.includes(norm)) {
+          return res.status(400).json({ error: "Path not found in user photos" });
+        }
+        chosen = norm;
+      } else {
+        return res.status(400).json({ error: "Provide 'index' or 'path' to set as avatar" });
+      }
+
+      const reordered = [chosen, ...list.filter((p) => p !== chosen)];
+      user.photos = reordered;
+      user.extraImages = reordered;
+      user.profilePicture = chosen;
+
+      await user.save();
+      res.json(normalizeUserOut(user));
+    } catch (err) {
+      console.error("set-avatar error:", err?.message || err);
+      res.status(500).json({ error: "Set avatar failed" });
+    }
+  }
+);
+
+/* =============================================================================
    LISTS & PUBLIC PROFILES
-============================================================================ */
-
-// Keep static paths BEFORE param route
-router.get("/all", authenticateToken, async (req, res) => {
+============================================================================= */
+// Avoid positive projection; exclude only password so we never trim unknown keys.
+router.get("/all", authenticateToken, async (_req, res) => {
   try {
-    const list = await User.find({ _id: { $ne: req.userId } }).select("username profilePicture");
-    res.json(list);
-  } catch {
-    res.status(401).json({ error: "Invalid token" });
+    const list = await User.find({}).select("-password");
+    res.json(normalizeUsersOut(list));
+  } catch (err) {
+    console.error("GET /all error:", err?.message || err);
+    res.status(500).json({ error: "Server error" });
   }
 });
 
@@ -512,20 +864,19 @@ router.param("id", (_req, res, next, id) => {
   return next();
 });
 
-// ✅ Public profile by ID
+// Public profile by ID (safe exclusions for public exposure)
 router.get("/:id", async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select(
       "-password -email -likes -superLikes -blockedUsers"
     );
     if (!user) return res.status(404).json({ error: "User not found" });
-    res.json(user);
+    res.json(normalizeUserOut(user));
   } catch (err) {
     console.error("Public profile fetch error:", err?.message || err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
-// --- REPLACE START: ESM export default router ---
 export default router;
 // --- REPLACE END ---

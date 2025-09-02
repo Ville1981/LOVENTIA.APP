@@ -1,14 +1,14 @@
-// File: src/services/NotificationService.js
+// File: client/src/services/NotificationService.js
 
 /**
  * NotificationService manages browser notifications and toast messages.
  */
 class NotificationService {
   constructor() {
-    // --- REPLACE START: Initialize toast container in DOM
+    // --- REPLACE START: Initialize toast container in DOM ---
     this.toastsContainer = null;
     this._initToastContainer();
-    // --- REPLACE END: Initialization
+    // --- REPLACE END: Initialization ---
   }
 
   /**
@@ -27,17 +27,21 @@ class NotificationService {
    * @param {{ title: string, options?: NotificationOptions }} config
    */
   async showBrowserNotification({ title, options = {} }) {
-    // --- REPLACE START: Browser notification flow
+    // --- REPLACE START: Browser notification flow ---
     if (!("Notification" in window)) return;
     if (Notification.permission === "granted") {
       new Notification(title, options);
     } else if (Notification.permission !== "denied") {
-      const permission = await Notification.requestPermission();
-      if (permission === "granted") {
-        new Notification(title, options);
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission === "granted") {
+          new Notification(title, options);
+        }
+      } catch {
+        // ignore permission errors
       }
     }
-    // --- REPLACE END: Browser notification
+    // --- REPLACE END: Browser notification ---
   }
 
   /**
@@ -45,18 +49,20 @@ class NotificationService {
    * @param {{ message: string, durationMs?: number }} config
    */
   showToast({ message, durationMs = 3000 }) {
-    // --- REPLACE START: Toast display logic
+    // --- REPLACE START: Toast display logic ---
     const toast = document.createElement("div");
     toast.className =
-      "bg-gray-800 text-white px-4 py-2 rounded shadow-lg animate-fade-in-out";
+      "bg-gray-800 text-white px-4 py-2 rounded shadow-lg transition-opacity duration-500 ease-in-out";
     toast.textContent = message;
     this.toastsContainer.appendChild(toast);
 
     setTimeout(() => {
       toast.classList.add("opacity-0");
-      toast.addEventListener("transitionend", () => toast.remove());
+      toast.addEventListener("transitionend", () => toast.remove(), {
+        once: true,
+      });
     }, durationMs);
-    // --- REPLACE END: Toast display logic
+    // --- REPLACE END: Toast display logic ---
   }
 }
 

@@ -548,6 +548,12 @@ router.post(
  *  - User(stripeCustomerId) by uid
  *  - Subscription(provider='stripe') by uid
  *  - STRIPE_TEST_CUSTOMER (env fallback for testing)
+ *
+ * ⚠️ IMPORTANT: We normalize ALL related fields atomically to avoid conflicts:
+ *   - user.isPremium
+ *   - user.premium (legacy mirror)
+ *   - user.entitlements.tier ('premium' | 'free')
+ *   - user.subscriptionId
  */
 router.post('/sync', authenticate, async (req, res) => {
   try {
@@ -606,28 +612,41 @@ router.post('/sync', authenticate, async (req, res) => {
     const active = (allSubs?.data || []).filter(
       (s) => s?.status === 'active' || s?.status === 'trialing'
     );
-    const isPremium = active.length > 0;
-    const subscriptionId = isPremium ? active[0]?.id : null;
 
-    // Persist to User if we know who we are
+    // Determine effective state
+    const effectiveIsPremium = active.length > 0;
+    // Prefer the newest active/trialing subscription id if multiple
+    const newestActive = active.slice().sort((a, b) => (a.created || 0) - (b.created || 0)).pop();
+    const effectiveSubId = newestActive ? newestActive.id : null;
+
+    // Snapshot for response
     let before = null;
     if (uid) {
       before = await User.findById(uid)
-        .select('isPremium subscriptionId stripeCustomerId')
+        .select('isPremium premium entitlements subscriptionId stripeCustomerId')
         .lean();
+    }
 
-      await User.findByIdAndUpdate(uid, {
-        isPremium,
-        subscriptionId,
-        stripeCustomerId: customerId,
-      });
+    // Persist all normalized premium fields atomically
+    if (uid) {
+      await User.findByIdAndUpdate(
+        uid,
+        {
+          isPremium: effectiveIsPremium,
+          premium: effectiveIsPremium, // legacy mirror
+          subscriptionId: effectiveSubId,
+          stripeCustomerId: customerId,
+          'entitlements.tier': effectiveIsPremium ? 'premium' : 'free',
+        },
+        { new: false }
+      );
     }
 
     return res.json({
       ok: true,
       customerId,
-      isPremium,
-      subscriptionId,
+      isPremium: effectiveIsPremium,
+      subscriptionId: effectiveSubId,
       counts: { all: allSubs?.data?.length || 0, active: active.length },
       before,
     });
