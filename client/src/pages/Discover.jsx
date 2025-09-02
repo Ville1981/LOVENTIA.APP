@@ -10,8 +10,8 @@ import SkeletonCard from "../components/SkeletonCard";
 import HiddenStatusBanner from "../components/HiddenStatusBanner";
 import PremiumGate from "../components/PremiumGate";
 import { useAuth } from "../contexts/AuthContext";
-import api from "../utils/axiosInstance";
-import { BACKEND_BASE_URL } from "../utils/config";
+import api from "../services/api/axiosInstance";
+import { BACKEND_BASE_URL } from "../config";
 import { getDealbreakers, updateDealbreakers } from "../api/dealbreakers";
 
 // Bunny placeholder for empty/error states
@@ -22,7 +22,11 @@ const bunnyUser = {
   age: 25,
   gender: "female",
   orientation: "straight",
-  photos: [{ url: "/assets/bunny1.jpg" }, { url: "/assets/bunny2.jpg" }, { url: "/assets/bunny3.jpg" }],
+  photos: [
+    { url: "/assets/bunny1.jpg" },
+    { url: "/assets/bunny2.jpg" },
+    { url: "/assets/bunny3.jpg" },
+  ],
   location: "Unknown",
   summary: "Hi, I'm Bunny! 🐰",
 };
@@ -32,7 +36,9 @@ function absolutizeImage(pathOrUrl) {
   let s = pathOrUrl.trim();
   if (s === "") return null;
   if (/^https?:\/\//i.test(s)) return s;
+  // Normalize slashes and leading dot segments
   s = s.replace(/\\/g, "/").replace(/^\.\//, "").replace(/\/+/g, "/");
+  // Common server upload roots
   if (s.startsWith("/uploads/")) s = s.replace(/^\/uploads\/uploads\//, "/uploads/");
   else if (s.startsWith("uploads/")) s = "/" + s;
   else if (!s.startsWith("/")) s = "/uploads/" + s;
@@ -87,7 +93,8 @@ const Discover = () => {
   const [showUpsell, setShowUpsell] = useState(false);
 
   useEffect(() => {
-    if ("scrollRestoration" in window.history) window.history.scrollRestoration = "manual";
+    if ("scrollRestoration" in window.history)
+      window.history.scrollRestoration = "manual";
     if (!bootstrapped) return;
 
     const isHidden =
@@ -118,8 +125,10 @@ const Discover = () => {
         if (!bootstrapped) return;
         const db = await getDealbreakers();
         if (!mounted || !db) return;
-        if (typeof db.ageMin === "number" && Number.isFinite(db.ageMin)) setMinAge(db.ageMin);
-        if (typeof db.ageMax === "number" && Number.isFinite(db.ageMax)) setMaxAge(db.ageMax);
+        if (typeof db.ageMin === "number" && Number.isFinite(db.ageMin))
+          setMinAge(db.ageMin);
+        if (typeof db.ageMax === "number" && Number.isFinite(db.ageMax))
+          setMaxAge(db.ageMax);
       } catch {
         /* silent */
       }
@@ -144,7 +153,8 @@ const Discover = () => {
                   return { url: absolutizeImage(raw) };
                 })
               : [];
-            const profilePicture = absolutizeImage(u.profilePicture) || photos?.[0]?.url || null;
+            const profilePicture =
+              absolutizeImage(u.profilePicture) || photos?.[0]?.url || null;
             return { ...u, id: u._id || u.id, profilePicture, photos };
           })
         : [];
@@ -297,7 +307,10 @@ const Discover = () => {
   };
 
   return (
-    <div className="w-full flex flex-col items-center bg-gray-100 min-h-screen" style={{ overflowAnchor: "none" }}>
+    <div
+      className="w-full flex flex-col items-center bg-gray-100 min-h-screen"
+      style={{ overflowAnchor: "none" }}
+    >
       <div className="w-full max-w-[1400px] flex flex-col lg:flex-row justify-between px-4 mt-6">
         <aside className="hidden lg:block w-[200px] sticky top-[160px] space-y-6" />
 
@@ -322,9 +335,15 @@ const Discover = () => {
               ) : (
                 <>
                   {/* ✅ Free users can browse; Like/Superlike blocked in handleAction when not premium */}
-                  <ProfileCardList key={filterKey} users={users} onAction={handleAction} />
+                  <ProfileCardList
+                    key={filterKey}
+                    users={users}
+                    onAction={handleAction}
+                  />
                   {users.length === 0 && (
-                    <div className="mt-12 text-center text-gray-500">🔍 {t("discover:noResults")}</div>
+                    <div className="mt-12 text-center text-gray-500">
+                      🔍 {t("discover:noResults")}
+                    </div>
                   )}
                 </>
               )}

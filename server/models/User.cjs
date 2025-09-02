@@ -1,3 +1,5 @@
+// PATH: server/models/User.cjs
+
 // --- REPLACE START: Convert to CommonJS + add missing fields + location + visibility sync + entitlements (kept original structure) ---
 'use strict';
 
@@ -12,7 +14,7 @@ const bcrypt = require('bcryptjs');
  * - Preserves CommonJS exports for maximum compatibility with existing code
  * - Visibility fields (visibility.*, isHidden/hidden virtuals, hiddenUntil, resumeOnLogin) + sync hooks
  * - ✅ Billing fields: `premium`, `isPremium`, `stripeCustomerId`, `subscriptionId`
- * - ✅ Entitlements block (tier/features/quotas) to support runbook §11 without breaking legacy flags
+ * - ✅ Entitlements block (tier/features/quotas) to support FE expectations while mirroring legacy flags
  */
 
 // Transform function to hide sensitive fields in JSON output.
@@ -75,7 +77,21 @@ function safeTransform(_doc, ret) {
       }
     }
 
-    // Ensure preferences container exists in output for client consistency
+    // ✅ ALWAYS return arrays for media fields
+    if (!Array.isArray(ret.extraImages)) ret.extraImages = ret.extraImages ? [ret.extraImages].filter(Boolean) : [];
+    if (!Array.isArray(ret.photos)) ret.photos = Array.isArray(ret.extraImages) ? ret.extraImages : [];
+
+    // Keep profilePicture as-is; do not auto-derive here to avoid surprises.
+    // (Upload endpoints ensure slot-0 mirror -> profilePicture.)
+
+    // ✅ Ensure location flatten fields exist in output (virtuals should already expose them,
+    // but in case of lean/plain objects, provide fallbacks)
+    const loc = ret.location && typeof ret.location === 'object' ? ret.location : {};
+    if (ret.country === undefined) ret.country = loc.country || ret.country || undefined;
+    if (ret.region === undefined)  ret.region  = loc.region  || ret.region  || undefined;
+    if (ret.city === undefined)    ret.city    = loc.city    || ret.city    || undefined;
+
+    // ✅ Ensure preferences container exists in output for client consistency
     if (!ret.preferences || typeof ret.preferences !== 'object') {
       ret.preferences = { dealbreakers: {
         distanceKm: null,
@@ -412,7 +428,7 @@ userSchema.statics.findByCredentials = async function (email, password) {
 
 /* ----------------------- Entitlements helpers (server-side feature toggles) ----------------------- */
 /**
- * Build default Premium features. Keep aligned with runbook §11.2.
+ * Build default Premium features.
  */
 function buildPremiumFeatures() {
   return {

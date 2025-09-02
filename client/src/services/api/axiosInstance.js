@@ -1,4 +1,6 @@
-// --- REPLACE START: resilient Axios instance with refresh + credentials ---
+// PATH: client/src/services/api/axiosInstance.js
+
+// --- REPLACE START: resilient Axios instance with refresh + credentials (adds "token unchanged" guard) ---
 import axios from "axios";
 
 /**
@@ -45,21 +47,39 @@ let accessToken =
     (localStorage.getItem("accessToken") || localStorage.getItem("token"))) ||
   null;
 
+/**
+ * Attach token to memory, storage, and axios default header.
+ * IMPORTANT: includes a "token unchanged" guard to avoid unnecessary state churn.
+ */
 export function attachAccessToken(token) {
-  accessToken = token || null;
+  // --- Token unchanged guard: if same value as current, do nothing (prevents re-render loops) ---
+  const next = token || null;
+  const curr =
+    accessToken ||
+    (typeof localStorage !== "undefined" &&
+      (localStorage.getItem("accessToken") || localStorage.getItem("token"))) ||
+    null;
+
+  // If both are strings and equal, skip writes & header mutations
+  if (typeof next === "string" && typeof curr === "string" && next === curr) {
+    return;
+  }
+
+  accessToken = next;
 
   if (typeof localStorage !== "undefined") {
-    if (token) {
-      localStorage.setItem("accessToken", token);
-      localStorage.setItem("token", token); // legacy key
+    if (next) {
+      localStorage.setItem("accessToken", next);
+      localStorage.setItem("token", next); // legacy key
     } else {
       localStorage.removeItem("accessToken");
       localStorage.removeItem("token");
     }
   }
 
-  if (token) {
-    api.defaults.headers.common.Authorization = `Bearer ${token}`;
+  if (next) {
+    // Set default Authorization only once here; requests can still override per-call
+    api.defaults.headers.common.Authorization = `Bearer ${next}`;
   } else {
     delete api.defaults.headers.common.Authorization;
   }
@@ -178,10 +198,20 @@ async function performRefresh() {
       for (const ep of tryEndpoints) {
         try {
           const res = await api.post(ep, {}, { withCredentials: true });
-          const next = res?.data?.accessToken || res?.data?.token;
-          if (!next) throw new Error("No accessToken in refresh response");
-          attachAccessToken(next);
-          return next;
+          const incoming =
+            res?.data?.accessToken || res?.data?.token || null;
+
+          if (!incoming) throw new Error("No accessToken in refresh response");
+
+          // --- Token unchanged guard on refresh: only update if different ---
+          const before = getAccessToken();
+          if (typeof incoming === "string" && incoming === before) {
+            // Token is identical; do not re-attach to avoid re-render churn
+            return incoming;
+          }
+
+          attachAccessToken(incoming);
+          return incoming;
         } catch {
           // try next endpoint
         }
@@ -189,6 +219,7 @@ async function performRefresh() {
       throw new Error("All refresh endpoints failed");
     })()
       .catch((err) => {
+        // Clear token on hard refresh failure
         attachAccessToken(null);
         throw err;
       })
@@ -237,7 +268,7 @@ api.interceptors.response.use(
 
     try {
       await performRefresh();
-      // Retrigger original request with the new token
+      // Retrigger original request with the (possibly) new token
       return api(original);
     } catch (refreshErr) {
       return Promise.reject(refreshErr);

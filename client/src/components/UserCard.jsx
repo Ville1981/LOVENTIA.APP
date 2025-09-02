@@ -26,7 +26,7 @@ function toAbsolute(src) {
     (typeof window !== "undefined"
       ? window.location.origin.replace(/:(5173|5174)$/, ":5000")
       : "");
-  const cleanRel = normalized.replace(/^\/+/, ""); // no leading slashes
+  const cleanRel = normalized.replace(/^\/+/, ""); // ensure exactly one slash when joining
   return `${origin}/${cleanRel}`;
 }
 
@@ -37,16 +37,20 @@ const UserCard = ({ user, onAction }) => {
   const displayName = user?.name || user?.username || "Unknown";
 
   // Source photos from user.extraImages preferred, fallback to user.photos, then three defaults.
-  // Normalize and de-duplicate while preserving order; keep at most 3.
-  const preferredList =
-    Array.isArray(user?.extraImages) && user.extraImages.length > 0
+  // Accept both strings and { url } items; normalize and de-duplicate while preserving order; keep at most 3.
+  const rawPreferredList =
+    (Array.isArray(user?.extraImages) && user.extraImages.length > 0
       ? user.extraImages
       : Array.isArray(user?.photos) && user.photos.length > 0
       ? user.photos
-      : ["/uploads/bunny1.jpg", "/uploads/bunny2.jpg", "/uploads/bunny3.jpg"];
+      : ["/uploads/bunny1.jpg", "/uploads/bunny2.jpg", "/uploads/bunny3.jpg"]) || [];
+
+  const normalizedPreferred = rawPreferredList
+    .map((p) => (typeof p === "string" ? p : p?.url || "")) // <-- handle both shapes
+    .filter(Boolean);
 
   const photos = Array.from(
-    new Set(preferredList.map((p) => toAbsolute(p)).filter(Boolean))
+    new Set(normalizedPreferred.map((p) => toAbsolute(p)).filter(Boolean))
   ).slice(0, 3);
 
   // Profile avatar fallbacks (accept both 'profilePicture' and 'profilePhoto')
@@ -322,8 +326,9 @@ UserCard.propTypes = {
     country: PropTypes.string,
     region: PropTypes.string,
     city: PropTypes.string,
-    photos: PropTypes.arrayOf(PropTypes.string),
-    extraImages: PropTypes.arrayOf(PropTypes.string),
+    // Accept both string and {url} arrays in runtime (we normalize in component)
+    photos: PropTypes.array,
+    extraImages: PropTypes.array,
     youPhoto: PropTypes.string,
     profilePhoto: PropTypes.string,
     profilePicture: PropTypes.string,

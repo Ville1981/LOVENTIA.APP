@@ -1,5 +1,3 @@
-// PATH: client/src/services/api/images.js
-
 // --- REPLACE START: switch to unified axios instance + align endpoints with server ---
 import api, { getAccessToken } from "../services/api/axiosInstance";
 
@@ -21,8 +19,8 @@ import api, { getAccessToken } from "../services/api/axiosInstance";
 function requireToken() {
   const token =
     getAccessToken() ||
-    localStorage.getItem("accessToken") ||
-    localStorage.getItem("token");
+    (typeof localStorage !== "undefined" &&
+      (localStorage.getItem("accessToken") || localStorage.getItem("token")));
   if (!token) throw new Error("You must be logged in to perform this action.");
   return token;
 }

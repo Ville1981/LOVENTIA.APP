@@ -1,5 +1,3 @@
-// src/components/profileFields/FormChildrenPets.jsx
-
 import PropTypes from "prop-types";
 import React from "react";
 import { useFormContext } from "react-hook-form";
@@ -37,10 +35,14 @@ const FormChildrenPets = ({ t, includeAllOption = false }) => {
         >
           {includeAllOption && <option value="">{t("common:all")}</option>}
           <option value="">{t("common:select")}</option>
-          <option value="Kyllä">{t("profile:childrenYes")}</option>
-          <option value="Ei">{t("profile:childrenNo")}</option>
-          <option value="Aikuisia lapsia">{t("profile:childrenAdult")}</option>
-          <option value="Muu">{t("common:other")}</option>
+
+          {/* --- REPLACE START: values are EN constants; labels can be localized --- */}
+          {/* Do NOT change these values; backend expects EN keys */}
+          <option value="yes">{t("profile:childrenYes")}</option>
+          <option value="no">{t("profile:childrenNo")}</option>
+          <option value="adult_kids">{t("profile:childrenAdult")}</option>
+          <option value="other">{t("common:other")}</option>
+          {/* --- REPLACE END --- */}
         </select>
         {errors.children && (
           <p
@@ -66,13 +68,12 @@ const FormChildrenPets = ({ t, includeAllOption = false }) => {
           {includeAllOption && <option value="">{t("common:all")}</option>}
           <option value="">{t("common:select")}</option>
 
-          {/* --- REPLACE START: unify i18n keys to profile:options.pets.* --- */}
-          {/* Use the options namespace so DE/EN map 1:1 and don't fallback. */}
-          <option value="Kissa">{t("profile:options.pets.cat")}</option>
-          <option value="Koira">{t("profile:options.pets.dog")}</option>
-          <option value="Molemmat">{t("profile:options.pets.both")}</option>
-          <option value="Muu">{t("common:other")}</option>
-          <option value="Ei lemmikkiä">{t("profile:options.pets.none")}</option>
+          {/* --- REPLACE START: unify to EN values; labels translated through i18n --- */}
+          <option value="cat">{t("profile:options.pets.cat")}</option>
+          <option value="dog">{t("profile:options.pets.dog")}</option>
+          <option value="both">{t("profile:options.pets.both")}</option>
+          <option value="other">{t("common:other")}</option>
+          <option value="none">{t("profile:options.pets.none")}</option>
           {/* --- REPLACE END --- */}
         </select>
         {errors.pets && (
@@ -94,3 +95,4 @@ FormChildrenPets.propTypes = {
 };
 
 export default FormChildrenPets;
+
