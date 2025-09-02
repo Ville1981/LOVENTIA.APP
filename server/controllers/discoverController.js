@@ -1,4 +1,4 @@
-// --- REPLACE START: Discover controller with robust filters, optional age, includeSelf, pagination, hide filter, and safe image URL normalization ---
+// --- REPLACE START: Discover controller with robust filters + dealbreakers age & lifestyle fallback (no unnecessary shortening) ---
 'use strict';
 
 /* =============================================================================
@@ -16,6 +16,9 @@ const User = UserModule.default || UserModule;
    ---------------------------------------------------------------------------
    Keep explicit and conservative. Top-level location fields are mapped
    to nested schema fields in the mapper below.
+   NOTE: we intentionally DO NOT include 'mustHavePhoto' or 'nonSmokerOnly'
+   in this whitelist, because they are toggles that translate into complex
+   filter expressions (handled separately below).
 ============================================================================= */
 const allowedFilters = [
   'username',
@@ -224,14 +227,112 @@ function hiddenExclusionClause(now = new Date()) {
 }
 
 /* =============================================================================
+   Lifestyle filter builders (mustHavePhoto & nonSmokerOnly)
+   ---------------------------------------------------------------------------
+   These are applied either explicitly (via query) or as a fallback from
+   the current user's dealbreakers, preserving "explicit beats fallback".
+============================================================================= */
+function buildMustHavePhotoClause() {
+  return {
+    $or: [
+      { profilePicture: { $exists: true, $ne: null, $ne: '' } },
+      { 'photos.0': { $exists: true } },
+      { 'extraImages.0': { $exists: true } },
+    ],
+  };
+}
+
+function buildNonSmokerClause() {
+  // Flexible: support either string field 'smoke' or boolean 'smoker'
+  return {
+    $or: [
+      { smoker: { $exists: true, $ne: true } }, // smoker !== true  (false/undefined treated as pass)
+      {
+        smoke: {
+          $in: [
+            'no',
+            'none',
+            'never',
+            'non-smoker',
+            'non smoker',
+            'nonsmoker',
+            'sober',
+            'clean',
+            'nope',
+            'no_smoke',
+            'does not smoke',
+          ],
+        },
+      },
+      { smoke: { $exists: true, $eq: false } }, // sometimes stored as boolean false
+    ],
+  };
+}
+
+/* =============================================================================
+   Utility: combine filters so that includeSelf bypasses lifestyle requirements
+   ---------------------------------------------------------------------------
+   - Self branch: respects hidden (unless includeHidden=1) and age, but IGNORES
+     mustHavePhoto / nonSmokerOnly.
+   - Others branch: applies all filters including lifestyle.
+============================================================================= */
+function buildCombinedFiltersForDiscover({
+  query,
+  currentUserId,
+  includeSelfRequested,
+  includeHidden,
+  appliedMustHavePhoto,
+  appliedNonSmokerOnly,
+}) {
+  // Base "others" branch: never include self here
+  let others = buildFiltersFromQuery(query, currentUserId, { allowSelf: false });
+  others = applyOptionalAgeFilter(others, query);
+
+  const branchClauses = [];
+
+  // Visibility clause (applied to both branches when includeHidden=0)
+  const visClause = !includeHidden ? hiddenExclusionClause(new Date()) : null;
+
+  // Lifestyle applied to OTHERS ONLY (explicit or fallback)
+  const lifestyleAnd = [];
+  if (appliedMustHavePhoto === true) lifestyleAnd.push(buildMustHavePhotoClause());
+  if (appliedNonSmokerOnly === true) lifestyleAnd.push(buildNonSmokerClause());
+
+  if (lifestyleAnd.length) {
+    others = { $and: [others, ...lifestyleAnd] };
+  }
+  if (visClause) {
+    others = { $and: [others, visClause] };
+  }
+  branchClauses.push(others);
+
+  // Optional SELF branch (bypasses lifestyle, but still respects age & visibility)
+  if (currentUserId && includeSelfRequested) {
+    let selfBranch = { _id: currentUserId };
+    // Respect age if client asked for it (includeSelf sanity tests send exact age)
+    selfBranch = applyOptionalAgeFilter(selfBranch, query);
+    if (visClause) {
+      selfBranch = { $and: [selfBranch, visClause] };
+    }
+    // Put self branch first for clarity (debug readability)
+    branchClauses.unshift(selfBranch);
+  }
+
+  // If self requested, OR(self, others). Otherwise just others.
+  return branchClauses.length > 1 ? { $or: branchClauses } : branchClauses[0];
+}
+
+/* =============================================================================
    GET /api/discover
    ---------------------------------------------------------------------------
    Retrieves a list of user profiles based on filters and excludes the current
-   user (unless includeSelf=1 AND the current user is NOT hidden).
-   Age filter is OPTIONAL. Images are normalized to server-relative paths;
-   client will absolutize with BACKEND_BASE_URL.
+   user by default. When includeSelf=1, own profile is included even if it
+   violates lifestyle dealbreakers, but still respects visibility (unless
+   includeHidden=1) and explicit age range.
+   Images are normalized to server-relative paths; client will absolutize with
+   BACKEND_BASE_URL.
 ============================================================================= */
-// --- REPLACE START: tighten JSON response + fix self-include guard (allow self when not hidden) ---
+// --- REPLACE START: tighten JSON response + fix self-include guard + dealbreakers age & lifestyle fallback + meta ---
 export async function getDiscover(req, res) {
   try {
     // Force JSON semantics & no cache (avoids HTML SPA fallbacks confusing fetch)
@@ -268,35 +369,67 @@ export async function getDiscover(req, res) {
     const includeSelfRequested = isTruthy(req.query.includeSelf);
     const includeHidden = isTruthy(req.query.includeHidden);
 
-    // Build base filters from whitelist (self may be allowed here)
-    let filters = buildFiltersFromQuery(req.query, currentUserId, {
-      allowSelf: includeSelfRequested,
+    // --- Dealbreakers fallback: age + lifestyle (only if missing in query) ---
+    let appliedMinAge = undefined;
+    let appliedMaxAge = undefined;
+    let appliedMustHavePhoto = undefined;
+    let appliedNonSmokerOnly = undefined;
+
+    try {
+      const explicitMin = Object.prototype.hasOwnProperty.call(req.query, 'minAge') && req.query.minAge !== '';
+      const explicitMax = Object.prototype.hasOwnProperty.call(req.query, 'maxAge') && req.query.maxAge !== '';
+      const explicitMHP = Object.prototype.hasOwnProperty.call(req.query, 'mustHavePhoto');
+      const explicitNSO = Object.prototype.hasOwnProperty.call(req.query, 'nonSmokerOnly');
+
+      if (currentUserId && User?.findById) {
+        const mePrefs = await User.findById(String(currentUserId))
+          .select('preferences.dealbreakers.ageMin preferences.dealbreakers.ageMax preferences.dealbreakers.mustHavePhoto preferences.dealbreakers.nonSmokerOnly')
+          .lean();
+
+        const dbMin = toNumberSafe(mePrefs?.preferences?.dealbreakers?.ageMin, undefined);
+        const dbMax = toNumberSafe(mePrefs?.preferences?.dealbreakers?.ageMax, undefined);
+        const dbMHP = !!mePrefs?.preferences?.dealbreakers?.mustHavePhoto;
+        const dbNSO = !!mePrefs?.preferences?.dealbreakers?.nonSmokerOnly;
+
+        if (!explicitMin && Number.isFinite(dbMin)) {
+          req.query.minAge = String(dbMin);
+          appliedMinAge = dbMin;
+        } else if (explicitMin) {
+          appliedMinAge = toNumberSafe(req.query.minAge, undefined);
+        }
+
+        if (!explicitMax && Number.isFinite(dbMax)) {
+          req.query.maxAge = String(dbMax);
+          appliedMaxAge = dbMax;
+        } else if (explicitMax) {
+          appliedMaxAge = toNumberSafe(req.query.maxAge, undefined);
+        }
+
+        if (explicitMHP) {
+          appliedMustHavePhoto = isTruthy(req.query.mustHavePhoto);
+        } else if (dbMHP) {
+          appliedMustHavePhoto = true;
+        }
+
+        if (explicitNSO) {
+          appliedNonSmokerOnly = isTruthy(req.query.nonSmokerOnly);
+        } else if (dbNSO) {
+          appliedNonSmokerOnly = true;
+        }
+      }
+    } catch {
+      // Silent fallback on any error
+    }
+
+    // Build COMBINED filters with self-branch bypassing lifestyle
+    const filters = buildCombinedFiltersForDiscover({
+      query: req.query,
+      currentUserId,
+      includeSelfRequested,
+      includeHidden,
+      appliedMustHavePhoto,
+      appliedNonSmokerOnly,
     });
-
-    // Optional age filter
-    filters = applyOptionalAgeFilter(filters, req.query);
-
-    // Exclude hidden accounts unless explicitly overridden
-    if (!includeHidden) {
-      filters = { $and: [filters, hiddenExclusionClause(new Date())] };
-    }
-
-    // --- REPLACE START: FIX – allow self when includeSelf=1 (and not hidden already by the clause above)
-    if (currentUserId && includeSelfRequested && !includeHidden) {
-      // Explicitly allow my own document to pass through.
-      filters = {
-        $and: [
-          filters,
-          {
-            $or: [
-              { _id: { $ne: currentUserId } },                                    // others
-              { $and: [{ _id: currentUserId }, hiddenExclusionClause(new Date())] } // me, if visible
-            ],
-          },
-        ],
-      };
-    }
-    // --- REPLACE END ---
 
     // Build query
     const { limit, skip, sort } = buildPagingAndSort(req.query);
@@ -310,7 +443,8 @@ export async function getDiscover(req, res) {
     if (sort) q = q.sort(sort);
 
     const rawUsers = await q;
-
+// --- REPLACE END ---
+// --- REPLACE START (continuation of getDiscover, Part 2/2) ---
     // Normalize result shape and image fields
     const users = rawUsers.map((u) => {
       // Compose photos: photos -> extraImages -> profilePicture
@@ -336,18 +470,35 @@ export async function getDiscover(req, res) {
       };
     });
 
+    // Build meta for client diagnostics
+    const meta = {
+      includeSelf: !!includeSelfRequested,
+      includeHidden: !!includeHidden,
+      appliedMinAge:
+        appliedMinAge !== undefined ? appliedMinAge : toNumberSafe(req.query.minAge, undefined),
+      appliedMaxAge:
+        appliedMaxAge !== undefined ? appliedMaxAge : toNumberSafe(req.query.maxAge, undefined),
+      appliedMustHavePhoto: appliedMustHavePhoto === true,
+      appliedNonSmokerOnly: appliedNonSmokerOnly === true,
+      page: toNumberSafe(req.query.page, 1) || 1,
+      limit: toNumberSafe(req.query.limit, 100) || 100,
+      sort: (typeof req.query.sort === 'string' && req.query.sort) || null,
+    };
+
     // One-line server debug
     try {
       const hasSelf = !!users.find(u => String(u._id || u.id) === String(currentUserId));
       console.log(
         `[discover] user=${currentUserId || 'anon'} vis=${JSON.stringify(meVis || {})} ` +
         `qs.includeSelf=${!!includeSelfRequested} qs.includeHidden=${!!includeHidden} ` +
+        `qs.minAge=${req.query.minAge ?? ''} qs.maxAge=${req.query.maxAge ?? ''} ` +
+        `applied.mhp=${meta.appliedMustHavePhoto} applied.nso=${meta.appliedNonSmokerOnly} ` +
         `result.count=${users.length} hasSelf=${hasSelf}`
       );
     } catch { /* noop */ }
 
-    // Respond with array for client (kept as { users } for compatibility)
-    return res.status(200).json({ users });
+    // Respond with array for client (kept as { users } for compatibility) + meta
+    return res.status(200).json({ users, meta });
   } catch (err) {
     console.error('getDiscover error:', err);
     // Ensure JSON even on error (prevents HTML fallback confusing the client)
@@ -421,4 +572,3 @@ export async function handleAction(req, res) {
   }
 }
 
-// --- REPLACE END ---

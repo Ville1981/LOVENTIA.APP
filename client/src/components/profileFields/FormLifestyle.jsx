@@ -1,9 +1,9 @@
-// --- REPLACE START: i18n namespace fixes (profile:/discover:/lifestyle:/common:) ---
+// --- REPLACE START: i18n-safe labels, EN enum values for backend (smoke/drink/drugs/diet/exercise) ---
 import PropTypes from "prop-types";
 import React from "react";
 import { useFormContext } from "react-hook-form";
 
-// Base options for smoke, drink, drugs
+// Base options for smoke, drink, drugs – values are EN enums expected by backend
 const baseOptions = [
   { value: "no", labelKey: "lifestyle:no" },
   { value: "little", labelKey: "lifestyle:little" },
@@ -12,7 +12,7 @@ const baseOptions = [
   { value: "sober", labelKey: "lifestyle:sober" },
 ];
 
-// Options for dietary preferences (single-select)
+// Dietary preferences (single-select) – EN enums
 const dietOptions = [
   { value: "omnivore", labelKey: "lifestyle:dietOmnivore" },
   { value: "vegetarian", labelKey: "lifestyle:dietVegetarian" },
@@ -22,7 +22,7 @@ const dietOptions = [
   { value: "other", labelKey: "common:other" },
 ];
 
-// New options for exercise habits
+// Exercise habits – EN enums
 const exerciseOptions = [
   { value: "never", labelKey: "lifestyle:exerciseNever" },
   { value: "occasionally", labelKey: "lifestyle:exerciseOccasionally" },
@@ -32,12 +32,12 @@ const exerciseOptions = [
 
 /**
  * FormLifestyle
- * Lomakeosio: tupakointi, alkoholi ja huumeet + ruokavalio ja liikuntatottumukset
- * Käyttää RHF-kontekstia kenttien rekisteröintiin ja virheiden näyttöön.
+ * Section: smoking, alcohol, drugs + diet & exercise
+ * Uses RHF context for field registration and error display.
  *
  * Props:
- *   t: lokalisointifunktio (required)
- *   includeAllOption: lisätään "All"–valinta ensimmäiseksi (default: false)
+ *   t: i18n translate function (required)
+ *   includeAllOption: add "All" option as the first item (default: false)
  */
 const FormLifestyle = ({ t, includeAllOption = false }) => {
   const {
@@ -45,10 +45,11 @@ const FormLifestyle = ({ t, includeAllOption = false }) => {
     formState: { errors },
   } = useFormContext();
 
-  // Kokoa vaihtoehdot: ensin "All" jos tarvitaan, sitten tyypilliset
-  const options = includeAllOption
-    ? [{ value: "", labelKey: "common:all" }, ...baseOptions]
-    : [{ value: "", labelKey: "common:select" }, ...baseOptions];
+  // Compose select options lists
+  const headOption = includeAllOption
+    ? { value: "", labelKey: "common:all" }
+    : { value: "", labelKey: "common:select" };
+  const triadOptions = [headOption, ...baseOptions];
 
   return (
     <div
@@ -74,7 +75,7 @@ const FormLifestyle = ({ t, includeAllOption = false }) => {
             className="w-full border rounded px-3 py-2 text-sm"
             data-cy="FormLifestyle__smokeSelect"
           >
-            {options.map((opt) => (
+            {triadOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {t(opt.labelKey)}
               </option>
@@ -103,7 +104,7 @@ const FormLifestyle = ({ t, includeAllOption = false }) => {
             className="w-full border rounded px-3 py-2 text-sm"
             data-cy="FormLifestyle__drinkSelect"
           >
-            {options.map((opt) => (
+            {triadOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {t(opt.labelKey)}
               </option>
@@ -132,7 +133,7 @@ const FormLifestyle = ({ t, includeAllOption = false }) => {
             className="w-full border rounded px-3 py-2 text-sm"
             data-cy="FormLifestyle__drugsSelect"
           >
-            {options.map((opt) => (
+            {triadOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {t(opt.labelKey)}
               </option>

@@ -1,43 +1,91 @@
-// --- REPLACE START: profile service (ensure politicalIdeology persists + is returned by GET) ---
-import * as UserModule from '../../src/models/User.js';
+// File: server/services/profileService.js
+
+// --- REPLACE START: profile service (ensure politicalIdeology + location fields persist, normalize outbound user) ---
+import * as UserModule from '../models/User.js';
 const User = UserModule.default || UserModule;
 
-import toPublic from '../utils/toPublic.js';
-import getUserId from '../utils/getUserId.js';
+// Use the shared normalizer so responses are consistent across controllers/routes
+import normalizeUserOut from '../utils/normalizeUserOut.js';
 
+/**
+ * Resolve authenticated user id from common places set by auth middleware.
+ * (Local helper to avoid hard dependency on a separate util file.)
+ */
+function getUserId(req) {
+  return (
+    req?.user?.id ||
+    req?.user?.userId ||
+    req?.user?._id ||
+    req?.userId ||
+    req?.auth?.userId ||
+    req?.auth?.id ||
+    null
+  );
+}
+
+const isPlainObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
+
+/** Treat placeholder-ish strings as empty (server-side safety net) */
+function isPlaceholderString(v) {
+  if (typeof v !== 'string') return false;
+  const s = v.trim().toLowerCase();
+  return s === '' || s === 'select' || s === 'choose' || s === 'none' || s === 'n/a' || s === '-';
+}
+
+/** Coerce value into array; drop empties/placeholders */
+function toArrayClean(v) {
+  const arr = Array.isArray(v) ? v : (typeof v === 'string' ? [v] : []);
+  return arr
+    .map((x) => (typeof x === 'string' ? x.trim() : x))
+    .filter((x) => x !== undefined && x !== null && x !== '' && !isPlaceholderString(String(x)));
+}
+
+/** Normalize optional numeric */
+function toNumOrUndefined(v) {
+  if (v === undefined || v === null || v === '' || isPlaceholderString(String(v))) return undefined;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+// Explicit allowlist of fields that can be updated by the profile PUT/PATCH.
+// Keep this list comprehensive to avoid Mongoose dropping fields or the API
+// returning legacy/old shapes.
 const UPDATABLE_FIELDS = [
-  // basic
+  // Identity / bio
   'name',
   'username',
-  'bio',                 // maps to summary internally
+  'bio',                 // legacy alias -> summary
   'summary',
   'age',
   'gender',
   'status',
   'orientation',
 
-  // IMPORTANT: persist using the actual model field name
+  // IMPORTANT: persist the actual model field name
   'politicalIdeology',
 
-  // top-level location convenience (mapped to nested location.*)
+  // Location (both convenience and nested allowed)
   'city',
   'region',
   'country',
+  'location',            // nested object { city, region, country }
 
-  // nested location object pass-through if client sends it
-  'location',
+  // Custom display labels
+  'customCity',
+  'customRegion',
+  'customCountry',
 
-  // profile/media
+  // Coordinates (accept both styles)
+  'lat',
+  'lng',
+  'latitude',
+  'longitude',
+
+  // Media (paths are normalized elsewhere; persisted here)
   'profilePicture',
   'bannerImage',
 
-  // discover/preferences
-  'preferredGender',
-  'preferredMinAge',
-  'preferredMaxAge',
-  'preferredInterests',
-
-  // lifestyle & profile extras
+  // Lifestyle & health
   'smoke',
   'drink',
   'drugs',
@@ -46,51 +94,50 @@ const UPDATABLE_FIELDS = [
   'heightUnit',
   'weight',
   'weightUnit',
+  'healthInfo',
+  'activityLevel',
+  'nutritionPreferences',
+
+  // Education, religion, family
   'education',
   'religion',
   'religionImportance',
   'children',
   'pets',
-  'healthInfo',
-  'activityLevel',
-  'nutritionPreferences',
+
+  // Work / goals
   'profession',
   'professionCategory',
   'lookingFor',
   'goal',
 
-  // interests & tags
+  // Interests & discover preferences
   'interests',
-
-  // coordinates for nearby search (accept both styles)
-  'lat',
-  'lng',
-  'latitude',
-  'longitude',
-
-  // custom location labels
-  'customCity',
-  'customRegion',
-  'customCountry',
+  'preferredGender',
+  'preferredMinAge',
+  'preferredMaxAge',
+  'preferredInterests',
 ];
 
-// Accept legacy payloads that might still send `ideology`;
+// Accept legacy payloads that might still send `ideology`
 const LEGACY_ACCEPTED_FIELDS = ['ideology'];
 
-const isPlainObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
-
-// ---------- READ (GET) ----------
+/* ──────────────────────────────────────────────────────────────────────────────
+   READ (GET)
+────────────────────────────────────────────────────────────────────────────── */
 export async function getMeService(req, res) {
   try {
     const uid = getUserId(req);
     if (!uid) return res.status(401).json({ error: 'Unauthorized' });
 
+    // Be explicit in case the schema marks some fields select:false in the future
     const user = await User.findById(uid).select('+politicalIdeology');
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    return res.json(toPublic(user));
+    return res.json(normalizeUserOut(user));
   } catch (err) {
-    console.error('getMe error:', err);
+    // eslint-disable-next-line no-console
+    console.error('[profileService] getMe error:', err);
     return res.status(500).json({ error: 'Server error fetching profile' });
   }
 }
@@ -103,14 +150,17 @@ export async function getUserByIdService(req, res) {
     const user = await User.findById(id).select('+politicalIdeology');
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    return res.json(toPublic(user));
+    return res.json(normalizeUserOut(user));
   } catch (err) {
-    console.error('getUserById error:', err);
+    // eslint-disable-next-line no-console
+    console.error('[profileService] getUserById error:', err);
     return res.status(500).json({ error: 'Server error fetching user' });
   }
 }
 
-// ---------- WRITE (PUT) ----------
+/* ──────────────────────────────────────────────────────────────────────────────
+   WRITE (PUT/PATCH)
+────────────────────────────────────────────────────────────────────────────── */
 export async function updateProfileService(req, res) {
   try {
     const uid = getUserId(req);
@@ -119,22 +169,22 @@ export async function updateProfileService(req, res) {
     const body = req.body || {};
     const update = {};
 
-    // Copy only allowed fields (modern set)
+    // 1) Copy only allowed fields (modern set)
     for (const key of UPDATABLE_FIELDS) {
       if (Object.prototype.hasOwnProperty.call(body, key)) {
         update[key] = body[key];
       }
     }
-    // Copy legacy fields that we normalize later
+    // 2) Copy legacy fields we normalize later
     for (const key of LEGACY_ACCEPTED_FIELDS) {
       if (Object.prototype.hasOwnProperty.call(body, key)) {
         update[key] = body[key];
       }
     }
 
-    // ---- Normalization (WRITE) ----
+    // --- Normalization (WRITE) ---
 
-    // 0) ideology (legacy) -> politicalIdeology
+    // (A) ideology (legacy) -> politicalIdeology
     if (
       Object.prototype.hasOwnProperty.call(update, 'ideology') &&
       !Object.prototype.hasOwnProperty.call(update, 'politicalIdeology')
@@ -143,13 +193,13 @@ export async function updateProfileService(req, res) {
     }
     delete update.ideology;
 
-    // 1) bio -> summary
+    // (B) bio -> summary (keep summary if provided)
     if (Object.prototype.hasOwnProperty.call(update, 'bio') && !update.summary) {
       update.summary = update.bio;
       delete update.bio;
     }
 
-    // 2) city/region/country to nested location.*
+    // (C) city/region/country → nested location.*
     const locationSet = {};
     if (Object.prototype.hasOwnProperty.call(update, 'city')) {
       locationSet['location.city'] = update.city;
@@ -176,50 +226,68 @@ export async function updateProfileService(req, res) {
       delete update.location;
     }
 
-    // 3) coordinates
+    // (D) coordinates (accept both lat/lng and latitude/longitude)
     const hasLat = Object.prototype.hasOwnProperty.call(update, 'lat');
     const hasLng = Object.prototype.hasOwnProperty.call(update, 'lng');
     const hasLatitude = Object.prototype.hasOwnProperty.call(update, 'latitude');
     const hasLongitude = Object.prototype.hasOwnProperty.call(update, 'longitude');
-
     if (hasLat) {
-      update.latitude = Number(update.lat);
+      const n = Number(update.lat);
+      if (!Number.isNaN(n)) update.latitude = n;
       delete update.lat;
     }
     if (hasLng) {
-      update.longitude = Number(update.lng);
+      const n = Number(update.lng);
+      if (!Number.isNaN(n)) update.longitude = n;
       delete update.lng;
     }
-    if (hasLatitude) update.latitude = Number(update.latitude);
-    if (hasLongitude) update.longitude = Number(update.longitude);
+    if (hasLatitude) {
+      const n = Number(update.latitude);
+      if (!Number.isNaN(n)) update.latitude = n;
+    }
+    if (hasLongitude) {
+      const n = Number(update.longitude);
+      if (!Number.isNaN(n)) update.longitude = n;
+    }
 
-    // 4) type coercions / clamps
+    // (E) numeric clamps (age + preferred ranges)
     if (typeof update.age !== 'undefined') {
       const n = Number(update.age);
-      if (!Number.isNaN(n)) update.age = Math.min(120, Math.max(18, n));
+      if (!Number.isNaN(n)) update.age = Math.min(130, Math.max(0, n));
     }
     if (typeof update.preferredMinAge !== 'undefined') {
       const n = Number(update.preferredMinAge);
-      if (!Number.isNaN(n)) update.preferredMinAge = Math.max(18, n);
+      if (!Number.isNaN(n)) update.preferredMinAge = Math.max(18, Math.min(120, n));
     }
     if (typeof update.preferredMaxAge !== 'undefined') {
       const n = Number(update.preferredMaxAge);
-      if (!Number.isNaN(n)) update.preferredMaxAge = Math.min(120, n);
+      if (!Number.isNaN(n)) update.preferredMaxAge = Math.max(18, Math.min(120, n));
     }
 
-    // Arrays that may arrive as JSON strings or comma-separated strings
-    const maybeArrayFields = [
-      'preferredInterests',
-      'interests',
-      'nutritionPreferences',
-    ];
+    // (F) Arrays that may arrive as JSON or comma-separated
+    const maybeArrayFields = ['interests', 'preferredInterests', 'nutritionPreferences'];
     for (const f of maybeArrayFields) {
       if (typeof update[f] === 'string') {
         const s = update[f].trim();
         if (s.startsWith('[')) {
-          try { update[f] = JSON.parse(s); } catch { /* keep as string if parse fails */ }
+          try { update[f] = JSON.parse(s); } catch { /* leave as string if parse fails */ }
         } else if (s.length) {
           update[f] = s.split(',').map((x) => x.trim()).filter(Boolean);
+        }
+      }
+      if (Array.isArray(update[f])) {
+        update[f] = toArrayClean(update[f]);
+      }
+    }
+
+    // (G) Trim strings and convert placeholders/empty strings to undefined (UNSET semantics)
+    for (const [k, v] of Object.entries(update)) {
+      if (typeof v === 'string') {
+        const trimmed = v.trim();
+        if (isPlaceholderString(trimmed) || trimmed === '') {
+          update[k] = undefined; // will UNSET in $set stage below via $unset map
+        } else {
+          update[k] = trimmed;
         }
       }
     }
@@ -231,66 +299,105 @@ export async function updateProfileService(req, res) {
       return res.status(400).json({ error: 'No updatable fields provided' });
     }
 
-    // Build final update with dot-notation for nested location
-    const finalUpdate = { ...update, ...locationSet };
+    // Build final update using $set / $unset to support “clear field” intent
+    const $set = {};
+    const $unset = {};
 
-    const user = await User.findByIdAndUpdate(uid, finalUpdate, {
+    // Apply normalized location first
+    for (const [k, v] of Object.entries(locationSet)) {
+      if (v === undefined || v === null || isPlaceholderString(String(v)) || v === '') {
+        $unset[k] = '';
+      } else {
+        $set[k] = v;
+      }
+    }
+
+    // Then other fields
+    for (const [k, v] of Object.entries(update)) {
+      if (v === undefined || v === null || (typeof v === 'string' && v === '')) {
+        // Arrays: clear to empty array (client expects []) – handled after findOneAndUpdate
+        // Scalars: UNSET
+        $unset[k] = '';
+      } else {
+        $set[k] = v;
+      }
+    }
+
+    const updateDoc = {};
+    if (Object.keys($set).length) updateDoc.$set = $set;
+    if (Object.keys($unset).length) updateDoc.$unset = $unset;
+
+    // Execute update
+    let user = await User.findByIdAndUpdate(uid, updateDoc, {
       new: true,
       runValidators: true,
     });
-
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    return res.json({ message: 'Profile updated', user: toPublic(user) });
+    // Post-fix: if some array fields were UNSET above, convert to [] for client consistency
+    const arrayFields = ['interests', 'preferredInterests', 'nutritionPreferences'];
+    for (const f of arrayFields) {
+      if (!Array.isArray(user[f])) {
+        user[f] = [];
+      }
+    }
+
+    // ✅ Always return a normalized user for the FE (single source of truth)
+    // IMPORTANT: keep shape consistent with controllers → return the user object directly
+    return res.json(normalizeUserOut(user));
   } catch (err) {
-    console.error('updateProfile error:', err);
+    // eslint-disable-next-line no-console
+    console.error('[profileService] updateProfile error:', err);
     return res.status(500).json({ error: 'Server error during profile update' });
   }
 }
 
-// ---------- PREMIUM ----------
+/* ──────────────────────────────────────────────────────────────────────────────
+   PREMIUM (kept minimal; mirrors earlier behavior)
+────────────────────────────────────────────────────────────────────────────── */
 export async function upgradeToPremiumService(req, res) {
   try {
     const uid = getUserId(req);
     if (!uid) return res.status(401).json({ error: 'Unauthorized' });
 
     const user = await User.findById(uid);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
     user.isPremium = true;
+    user.premium = true; // legacy mirror for older clients
+    if (typeof user.startPremium === 'function') user.startPremium(); // if model method exists, prefer it
     await user.save();
-    return res.json({ message: 'Premium status activated' });
+
+    return res.json(normalizeUserOut(user));
   } catch (err) {
-    console.error('Premium upgrade error:', err);
-    return res
-      .status(500)
-      .json({ error: 'Server error during premium upgrade' });
+    // eslint-disable-next-line no-console
+    console.error('[profileService] premium upgrade error:', err);
+    return res.status(500).json({ error: 'Server error during premium upgrade' });
   }
 }
 
-// ---------- MATCHES (unchanged logic) ----------
+/* ──────────────────────────────────────────────────────────────────────────────
+   MATCHES (unchanged high-level logic; not central to this task)
+────────────────────────────────────────────────────────────────────────────── */
 export async function getMatchesWithScoreService(req, res) {
   try {
     const uid = getUserId(req);
     if (!uid) return res.status(401).json({ error: 'Unauthorized' });
 
     const currentUser = await User.findById(uid);
-    if (!currentUser) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+    if (!currentUser) return res.status(404).json({ error: 'User not found' });
 
     const blockedByMe = (currentUser.blockedUsers || []).map(String);
-    const interests = currentUser.preferredInterests || [];
+    const interestsPref = currentUser.preferredInterests || [];
 
     const others = await User.find({ _id: { $ne: currentUser._id } });
 
     const matches = others
       .filter((u) => {
-        const blockedThem = (u.blockedUsers || []).map(String);
+        const theirBlocks = (u.blockedUsers || []).map(String);
         return (
-          !blockedByMe.includes(u._id.toString()) &&
-          !blockedThem.includes(currentUser._id.toString())
+          !blockedByMe.includes(String(u._id)) &&
+          !theirBlocks.includes(String(currentUser._id))
         );
       })
       .map((u) => {
@@ -300,8 +407,7 @@ export async function getMatchesWithScoreService(req, res) {
         if (
           currentUser.preferredGender === 'any' ||
           (u.gender &&
-            u.gender.toLowerCase() ===
-              String(currentUser.preferredGender || '').toLowerCase())
+            u.gender.toLowerCase() === String(currentUser.preferredGender || '').toLowerCase())
         ) {
           score += 20;
         }
@@ -318,19 +424,17 @@ export async function getMatchesWithScoreService(req, res) {
         }
 
         // Interest overlap
-        const common = (u.interests || []).filter((i) =>
-          (interests || []).includes(i)
-        );
+        const common = (u.interests || []).filter((i) => (interestsPref || []).includes(i));
         score += Math.min(common.length * 10, 60);
 
         return {
-          id: u._id.toString(),
+          id: String(u._id),
           username: u.username,
           email: u.email,
           age: u.age,
           gender: u.gender,
           profilePicture: u.profilePicture,
-          isPremium: Boolean(u.isPremium),
+          isPremium: Boolean(u.isPremium || u.premium),
           matchScore: score,
         };
       })
@@ -338,10 +442,10 @@ export async function getMatchesWithScoreService(req, res) {
 
     return res.json(matches);
   } catch (err) {
-    console.error('Match score error:', err);
-    return res
-      .status(500)
-      .json({ error: 'Server error during match search' });
+    // eslint-disable-next-line no-console
+    console.error('[profileService] match score error:', err);
+    return res.status(500).json({ error: 'Server error during match search' });
   }
 }
 // --- REPLACE END ---
+

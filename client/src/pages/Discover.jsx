@@ -1,18 +1,20 @@
 // File: client/src/pages/Discover.jsx
 
-// --- REPLACE START: Discover page – add discover/common/profile/lifestyle namespaces + includeSelf fix + hidden banner ---
-import React, { useState, useEffect } from "react";
+// --- REPLACE START: Discover page – free users can browse; gate only paid actions; premium always unlocked even if features missing ---
+import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import ProfileCardList from "../components/discover/ProfileCardList";
 import DiscoverFilters from "../components/DiscoverFilters";
-import SkeletonCard from "../components/SkeletonCard"; // skeleton placeholder
-import HiddenStatusBanner from "../components/HiddenStatusBanner"; // ← NEW: hidden status bar
+import SkeletonCard from "../components/SkeletonCard";
+import HiddenStatusBanner from "../components/HiddenStatusBanner";
+import PremiumGate from "../components/PremiumGate";
 import { useAuth } from "../contexts/AuthContext";
-import api from "../utils/axiosInstance";
-import { BACKEND_BASE_URL } from "../utils/config";
+import api from "../services/api/axiosInstance";
+import { BACKEND_BASE_URL } from "../config";
+import { getDealbreakers, updateDealbreakers } from "../api/dealbreakers";
 
-// Bunny placeholder user for empty/error states only
+// Bunny placeholder for empty/error states
 const bunnyUser = {
   id: "bunny",
   _id: "bunny",
@@ -29,51 +31,30 @@ const bunnyUser = {
   summary: "Hi, I'm Bunny! 🐰",
 };
 
-/**
- * Helper: absolutize an image URL or /uploads path using BACKEND_BASE_URL.
- * Accepts: absolute http(s) URL, /uploads/xxx, "uploads/xxx", or bare filename.
- * Also normalizes Windows slashes and removes accidental "/uploads/uploads" duplication.
- */
 function absolutizeImage(pathOrUrl) {
   if (!pathOrUrl || typeof pathOrUrl !== "string") return null;
-
   let s = pathOrUrl.trim();
   if (s === "") return null;
-
-  // Already absolute
   if (/^https?:\/\//i.test(s)) return s;
-
-  // Normalize backslashes and odd prefixes
-  s = s.replace(/\\/g, "/").replace(/^\.\//, "");
-  // Collapse multiple slashes
-  s = s.replace(/\/+/g, "/");
-
-  // Ensure single /uploads prefix (handles "uploads/...", "/uploads/...", "/uploads/uploads/...")
-  if (s.startsWith("/uploads/")) {
-    s = s.replace(/^\/uploads\/uploads\//, "/uploads/");
-  } else if (s.startsWith("uploads/")) {
-    s = "/" + s;
-  } else if (!s.startsWith("/")) {
-    s = "/uploads/" + s;
-  }
-
+  // Normalize slashes and leading dot segments
+  s = s.replace(/\\/g, "/").replace(/^\.\//, "").replace(/\/+/g, "/");
+  // Common server upload roots
+  if (s.startsWith("/uploads/")) s = s.replace(/^\/uploads\/uploads\//, "/uploads/");
+  else if (s.startsWith("uploads/")) s = "/" + s;
+  else if (!s.startsWith("/")) s = "/uploads/" + s;
   return `${BACKEND_BASE_URL}${s}`;
 }
 
 const Discover = () => {
-  // ✅ Load all namespaces used in this page & its child form components
   const { t } = useTranslation(["discover", "common", "profile", "lifestyle"]);
-
-  // IMPORTANT: wait until Auth has refreshed token & /auth/me has resolved
   const { user: authUser, bootstrapped } = useAuth();
 
-  // Main state
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [filterKey, setFilterKey] = useState("initial");
 
-  // Filter form fields state
+  // local filter states (unchanged)
   const [username, setUsername] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
@@ -99,26 +80,35 @@ const Discover = () => {
   const [minAge, setMinAge] = useState(18);
   const [maxAge, setMaxAge] = useState(120);
 
-  // --- REPLACE START: includeSelf only if NOT hidden (dev), and refresh when hidden state changes ---
-  useEffect(() => {
-    if ("scrollRestoration" in window.history) {
-      window.history.scrollRestoration = "manual";
-    }
-    if (bootstrapped) {
-      // If my account is hidden, never includeSelf (even in dev)
-      const isHidden =
-        authUser?.hidden === true ||
-        authUser?.isHidden === true ||
-        authUser?.visibility?.isHidden === true ||
-        (authUser?.visibility?.hiddenUntil &&
-          new Date(authUser.visibility.hiddenUntil) > new Date());
+  // 🔓 Premium detection (tier OR legacy flags)
+  const isPremium = useMemo(() => {
+    return (
+      authUser?.entitlements?.tier === "premium" ||
+      authUser?.isPremium === true ||
+      authUser?.premium === true
+    );
+  }, [authUser]);
 
-      const initialParams = {
-        ...(import.meta.env.DEV && !isHidden ? { includeSelf: 1 } : {}),
-      };
-      loadUsers(initialParams);
-    }
-    // Include hidden flags so list refreshes immediately after hide/unhide without reload
+  // Upsell modal state (shown when free user tries paid action)
+  const [showUpsell, setShowUpsell] = useState(false);
+
+  useEffect(() => {
+    if ("scrollRestoration" in window.history)
+      window.history.scrollRestoration = "manual";
+    if (!bootstrapped) return;
+
+    const isHidden =
+      authUser?.hidden === true ||
+      authUser?.isHidden === true ||
+      authUser?.visibility?.isHidden === true ||
+      (authUser?.visibility?.hiddenUntil &&
+        new Date(authUser.visibility.hiddenUntil) > new Date());
+
+    const initialParams = {
+      ...(import.meta.env.DEV && !isHidden ? { includeSelf: 1 } : {}),
+    };
+    loadUsers(initialParams);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     authUser?.hidden,
     authUser?.isHidden,
@@ -126,44 +116,49 @@ const Discover = () => {
     authUser?.visibility?.hiddenUntil,
     bootstrapped,
   ]);
-  // --- REPLACE END ---
 
-  /**
-   * Data load via GET /discover?...
-   */
+  // Seed min/max age from dealbreakers (if available)
+  useEffect(() => {
+    let mounted = true;
+    const seedFromDealbreakers = async () => {
+      try {
+        if (!bootstrapped) return;
+        const db = await getDealbreakers();
+        if (!mounted || !db) return;
+        if (typeof db.ageMin === "number" && Number.isFinite(db.ageMin))
+          setMinAge(db.ageMin);
+        if (typeof db.ageMax === "number" && Number.isFinite(db.ageMax))
+          setMaxAge(db.ageMax);
+      } catch {
+        /* silent */
+      }
+    };
+    seedFromDealbreakers();
+    return () => {
+      mounted = false;
+    };
+  }, [bootstrapped]);
+
   const loadUsers = async (params = {}) => {
     setIsLoading(true);
     setError("");
     try {
       const res = await api.get("/discover", { params });
       const data = res?.data?.users ?? res?.data ?? [];
-
       const normalized = Array.isArray(data)
         ? data.map((u) => {
-            const photos =
-              Array.isArray(u.photos) && u.photos.length
-                ? u.photos.map((p) => {
-                    const raw = typeof p === "string" ? p : p?.url;
-                    return { url: absolutizeImage(raw) };
-                  })
-                : [];
+            const photos = Array.isArray(u.photos)
+              ? u.photos.map((p) => {
+                  const raw = typeof p === "string" ? p : p?.url;
+                  return { url: absolutizeImage(raw) };
+                })
+              : [];
             const profilePicture =
               absolutizeImage(u.profilePicture) || photos?.[0]?.url || null;
-            return {
-              ...u,
-              id: u._id || u.id,
-              profilePicture,
-              photos,
-            };
+            return { ...u, id: u._id || u.id, profilePicture, photos };
           })
         : [];
-
-      if (normalized.length === 0) {
-        setUsers([bunnyUser]);
-      } else {
-        setUsers(normalized);
-      }
-
+      setUsers(normalized.length ? normalized : [bunnyUser]);
       setFilterKey(Date.now().toString());
     } catch (err) {
       // eslint-disable-next-line no-console
@@ -176,10 +171,12 @@ const Discover = () => {
     }
   };
 
-  /**
-   * Handle swipe actions
-   */
   const handleAction = (userId, actionType) => {
+    // 🚧 Free users: allow only "pass". Like/Superlike triggers upsell.
+    if (!isPremium && actionType !== "pass") {
+      setShowUpsell(true);
+      return;
+    }
     const currentScroll = window.scrollY;
     setUsers((prev) => prev.filter((u) => (u.id || u._id) !== userId));
     requestAnimationFrame(() => {
@@ -188,17 +185,14 @@ const Discover = () => {
       }, 0);
     });
     if (userId !== bunnyUser.id) {
-      api
-        .post(`/discover/${userId}/${actionType}`)
-        .catch((err) => console.error(`Error executing ${actionType}:`, err));
+      api.post(`/discover/${userId}/${actionType}`).catch((err) => {
+        // eslint-disable-next-line no-console
+        console.error(`Error executing ${actionType}:`, err);
+      });
     }
   };
 
-  /**
-   * Handle filter submit
-   */
-  const handleFilter = (formValues) => {
-    // --- REPLACE START: includeSelf guard in handleFilter (dev only if NOT hidden) ---
+  const handleFilter = async (formValues) => {
     const isHidden =
       authUser?.hidden === true ||
       authUser?.isHidden === true ||
@@ -213,7 +207,19 @@ const Discover = () => {
       city: formValues.customCity || formValues.city,
       ...(import.meta.env.DEV && !isHidden ? { includeSelf: 1 } : {}),
     };
-    // --- REPLACE END ---
+
+    // Mirror age fields to dealbreakers (non-fatal)
+    try {
+      const patch = {};
+      const parsedMin = Number(formValues.minAge);
+      const parsedMax = Number(formValues.maxAge);
+      if (Number.isFinite(parsedMin)) patch.ageMin = parsedMin;
+      if (Number.isFinite(parsedMax)) patch.ageMax = parsedMax;
+      if (Object.keys(patch).length > 0) await updateDealbreakers(patch);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn("updateDealbreakers failed (non-fatal):", e?.message || e);
+    }
 
     Object.keys(query).forEach((k) => {
       if (query[k] === "" || query[k] == null) delete query[k];
@@ -295,7 +301,6 @@ const Discover = () => {
     setMaxAge,
   };
 
-  // 🔔 When user unhides via the banner, reload list immediately
   const handleUnhiddenRefresh = () => {
     const params = { ...(import.meta.env.DEV ? { includeSelf: 1 } : {}) };
     loadUsers(params);
@@ -314,12 +319,7 @@ const Discover = () => {
           <HiddenStatusBanner user={authUser} onUnhidden={handleUnhiddenRefresh} />
 
           <div className="bg-white border rounded-lg shadow-md p-6 max-w-3xl mx-auto mt-4">
-            <DiscoverFilters
-              t={t}
-              values={values}
-              setters={setters}
-              handleFilter={handleFilter}
-            />
+            <DiscoverFilters values={values} handleFilter={handleFilter} />
           </div>
 
           <div className="mt-6 flex justify-center w-full">
@@ -334,6 +334,7 @@ const Discover = () => {
                 <div className="mt-12 text-center text-red-600">{error}</div>
               ) : (
                 <>
+                  {/* ✅ Free users can browse; Like/Superlike blocked in handleAction when not premium */}
                   <ProfileCardList
                     key={filterKey}
                     users={users}
@@ -352,6 +353,28 @@ const Discover = () => {
 
         <aside className="hidden lg:block w-[200px] sticky top-[160px] space-y-6" />
       </div>
+
+      {/* Upsell appears only when a free user tries a paid action */}
+      {showUpsell && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4">
+          <div className="w-full sm:max-w-xl">
+            <PremiumGate
+              mode="block"
+              requireFeature="unlimitedLikes"
+              onUpgraded={() => setShowUpsell(false)}
+            />
+            <div className="mt-2 flex justify-center">
+              <button
+                type="button"
+                onClick={() => setShowUpsell(false)}
+                className="px-4 py-2 rounded-md bg-white border text-gray-700 hover:bg-gray-50"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,3 +1,5 @@
+// File: server/middleware/authenticate.js
+
 // --- REPLACE START: Robust JWT authentication middleware with req.userId normalization ---
 import jwt from 'jsonwebtoken';
 import 'dotenv/config';

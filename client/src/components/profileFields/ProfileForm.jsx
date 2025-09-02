@@ -1,6 +1,9 @@
-// --- REPLACE START: keep structure, add Political Ideology field (validate lowercase units + normalize on submit + preserve edits on reset + debug) ---
+// PATH: client/src/components/profile/ProfileForm.jsx
+
+// --- REPLACE START: keep structure, enforce EN constants, FI→EN fallbacks, strict cleanup before submit, avoid forbidden fields, and expose debug payload in dev ---
+import PropTypes from "prop-types";
 import { yupResolver } from "@hookform/resolvers/yup";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { Link } from "react-router-dom";
 import * as yup from "yup";
@@ -15,17 +18,13 @@ import FormLookingFor from "./FormLookingFor";
 import MultiStepPhotoUploader from "./MultiStepPhotoUploader";
 import { BACKEND_BASE_URL } from "../../config";
 
-// --- REPLACE START: add i18n debug import (safe in dev only) ---
-import i18next from "i18next";
-// --- REPLACE END ---
-
-// Normalize Windows backslashes and ensure one leading slash
+// Normalize Windows backslashes and ensure a single leading slash
 const normalizePath = (p = "") =>
-  "/" + String(p).replace(/\\/g, "/").replace(/^\/+/, "");
+  "/" + String(p || "").replace(/\\/g, "/").replace(/^\/+/, "");
 
-// =============================================
-// Constants for selects
-// =============================================
+// ===================================================================================
+// EN constants for selects (values that backend expects)
+// ===================================================================================
 const professionCategories = [
   "Administration",
   "Finance",
@@ -50,7 +49,6 @@ const professionCategories = [
   "Other",
 ];
 
-// --- REPLACE START: add key maps so we can translate reliably even with spaces/camelCase ---
 const PROF_KEY_BY_LABEL = {
   Administration: "administration",
   Finance: "finance",
@@ -75,58 +73,6 @@ const PROF_KEY_BY_LABEL = {
   Other: "other",
 };
 
-const POL_KEY_BY_LABEL = {
-  Left: "left",
-  Centre: "centre",
-  Right: "right",
-  Conservatism: "conservatism",
-  Liberalism: "liberalism",
-  Socialism: "socialism",
-  Communism: "communism",
-  Fascism: "fascism",
-  Environmentalism: "environmentalism",
-  Anarchism: "anarchism",
-  Nationalism: "nationalism",
-  Populism: "populism",
-  Progressivism: "progressivism",
-  Libertarianism: "libertarianism",
-  Democracy: "democracy",
-  Other: "other",
-};
-// --- REPLACE END ---
-
-const dietOptions = [
-  "none",
-  "omnivore",
-  "vegetarian",
-  "vegan",
-  "pescatarian",
-  "flexitarian",
-  "keto",
-  "other",
-];
-
-const religionOptions = [
-  "",
-  "Christianity",
-  "Islam",
-  "Hinduism",
-  "Buddhism",
-  "Folk",
-  "None",
-  "Other",
-  "Atheism",
-];
-
-const religionImportanceOptions = [
-  "",
-  "Not at all important",
-  "Somewhat important",
-  "Very important",
-  "Essential",
-];
-
-// New: Political ideology options
 const politicalIdeologyOptions = [
   "",
   "Left",
@@ -147,19 +93,116 @@ const politicalIdeologyOptions = [
   "Other",
 ];
 
-// =============================================
+const POL_KEY_BY_LABEL = {
+  Left: "left",
+  Centre: "centre",
+  Right: "right",
+  Conservatism: "conservatism",
+  Liberalism: "liberalism",
+  Socialism: "socialism",
+  Communism: "communism",
+  Fascism: "fascism",
+  Environmentalism: "environmentalism",
+  Anarchism: "anarchism",
+  Nationalism: "nationalism",
+  Populism: "populism",
+  Progressivism: "progressivism",
+  Libertarianism: "libertarianism",
+  Democracy: "democracy",
+  Other: "other",
+};
+
+// Religion (EN constants)
+const religionOptions = [
+  "",
+  "Christianity",
+  "Islam",
+  "Hinduism",
+  "Buddhism",
+  "Folk",
+  "None",
+  "Other",
+  "Atheism",
+];
+
+const religionImportanceOptions = [
+  "",
+  "Not at all important",
+  "Somewhat important",
+  "Very important",
+  "Essential",
+];
+
+// Diet (single-select in UI, array in payload if chosen)
+const dietOptions = [
+  "none",
+  "omnivore",
+  "vegetarian",
+  "vegan",
+  "pescatarian",
+  "flexitarian",
+  "keto",
+  "other",
+];
+
+// ===================================================================================
+// FI → EN fallback maps (defensive; in case localized values slipped into state)
+// ===================================================================================
+const FI_EN_CHILDREN = {
+  "Kyllä": "yes",
+  "Ei": "no",
+  "Aikuisia lapsia": "adultChildren",
+  "Muu": "other",
+};
+const FI_EN_PETS = {
+  "Kissa": "cat",
+  "Koira": "dog",
+  "Molemmat": "both",
+  "Ei lemmikkiä": "none",
+  "Muu": "other",
+};
+const FI_EN_EDUCATION = {
+  "Peruskoulu": "Basic",
+  "Toinen aste": "Secondary",
+  "Ammatillinen": "Vocational",
+  "Korkeakoulu / yliopisto": "Higher",
+  "Tohtori / tutkimus": "PhD",
+  "Muu": "Other",
+};
+
+// Explicit list of fields we should NEVER forward to the backend from this form
+const FORBIDDEN_KEYS = new Set([
+  "photos",
+  "extraImages",
+  "entitlements",
+  "visibility",
+  "subscriptionId",
+  "stripeCustomerId",
+  "quotas",
+  "createdAt",
+  "updatedAt",
+  "__v",
+  "_id",
+  "id", // server derives/validates identity; avoid accidental mismatch
+]);
+
+// Utility: drop keys in place
+const dropForbiddenKeys = (obj) => {
+  FORBIDDEN_KEYS.forEach((k) => {
+    if (k in obj) delete obj[k];
+  });
+  return obj;
+};
+
+// ===================================================================================
 // Validation schema
-// =============================================
+// ===================================================================================
 const schema = yup.object().shape({
   username: yup.string().required("Required"),
   email: yup.string().email("Invalid email").required("Required"),
-  age: yup
-    .number()
-    .typeError("Age must be a number")
-    .min(18, "Must be at least 18")
-    .required("Required"),
+  age: yup.number().typeError("Age must be a number").min(18, "Must be at least 18").required("Required"),
   gender: yup.string().required("Required"),
-  orientation: yup.string().required("Required"),
+  orientation: yup.string(),
 
   country: yup.string(),
   region: yup.string(),
@@ -170,20 +213,13 @@ const schema = yup.object().shape({
 
   education: yup.string(),
 
-  professionCategory: yup
-    .string()
-    .oneOf(["", ...professionCategories], "Invalid profession category"),
-  profession: yup.string().required("Required"),
+  professionCategory: yup.string().oneOf(["", ...professionCategories], "Invalid profession category"),
+  profession: yup.string(),
 
   religion: yup.string().oneOf(religionOptions, "Invalid religion"),
-  religionImportance: yup
-    .string()
-    .oneOf(religionImportanceOptions, "Invalid importance"),
+  religionImportance: yup.string().oneOf(religionImportanceOptions, "Invalid importance"),
 
-  // New: Political ideology
-  politicalIdeology: yup
-    .string()
-    .oneOf(politicalIdeologyOptions, "Invalid political ideology"),
+  politicalIdeology: yup.string().oneOf(politicalIdeologyOptions, "Invalid political ideology"),
 
   children: yup.string(),
   pets: yup.string(),
@@ -192,16 +228,10 @@ const schema = yup.object().shape({
   drugs: yup.string(),
 
   height: yup.number().nullable().transform((v, o) => (o === "" ? null : v)),
-
-  // Accept both title- and lowercase; we normalize on submit
-  heightUnit: yup
-    .string()
-    .oneOf(["", "Cm", "FtIn", "cm", "ftin"], "Invalid unit"),
+  heightUnit: yup.string().oneOf(["", "Cm", "FtIn", "cm", "ftin"], "Invalid unit"),
 
   weight: yup.number().nullable().transform((v, o) => (o === "" ? null : v)),
-  weightUnit: yup
-    .string()
-    .oneOf(["", "kg", "lb", "KG", "LB"], "Invalid unit"),
+  weightUnit: yup.string().oneOf(["", "kg", "lb", "KG", "LB"], "Invalid unit"),
 
   bodyType: yup.string(),
   activityLevel: yup.string(),
@@ -218,6 +248,7 @@ const schema = yup.object().shape({
   latitude: yup.number().nullable().transform((v, o) => (o === "" ? null : v)),
   longitude: yup.number().nullable().transform((v, o) => (o === "" ? null : v)),
 
+  // Kept in state for UX; not submitted in this form payload
   extraImages: yup.array().of(yup.string()),
 });
 
@@ -233,39 +264,6 @@ export default function ProfileForm({
   hideAvatarSection = false,
   hidePhotoSection = false,
 }) {
-  // --- REPLACE START: i18n debug block for Profession category & Political ideology ---
-  if (process.env.NODE_ENV !== "production") {
-    try {
-      console.group("[i18n debug] ProfileForm – Profession & Politics");
-      console.log("lng:", i18next.language);
-      console.log("ns:", i18next.options?.ns);
-      const hasProfileNs =
-        i18next.language &&
-        i18next.hasResourceBundle(i18next.language, "profile");
-      console.log("has profile ns:", hasProfileNs);
-
-      const keysToTest = [
-        "profile:Profession category.administration",
-        "profile:options.professionCategory.administration",
-        "profile:professionCategory.administration",
-        "profile:Political ideology.left",
-        "profile:options.politicalIdeology.left",
-        "profile:politicalIdeology.left",
-        "profile:labels.professionCategory",
-        "profile:professionCategory.label",
-      ];
-
-      keysToTest.forEach((k) => {
-        const v = i18next.t(k, { defaultValue: "<MISS>" });
-        console.log(k, "=>", v);
-      });
-      console.groupEnd();
-    } catch (e) {
-      console.warn("[i18n debug] ProfileForm failed:", e);
-    }
-  }
-  // --- REPLACE END ---
-
   const methods = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
@@ -319,6 +317,7 @@ export default function ProfileForm({
       latitude: user.latitude ?? null,
       longitude: user.longitude ?? null,
 
+      // we keep it locally, but will NOT include in submit payload
       extraImages: user.extraImages || [],
     },
   });
@@ -328,9 +327,10 @@ export default function ProfileForm({
     reset,
     formState: { errors },
     getValues,
+    setValue,
   } = methods;
 
-  // Preserve edits when user object refreshes
+  // Keep edits while user object refetches
   useEffect(() => {
     const current = getValues();
     reset({
@@ -341,8 +341,7 @@ export default function ProfileForm({
         : current.nutritionPreferences ?? user.nutritionPreferences ?? "",
       extraImages: current.extraImages ?? user.extraImages ?? [],
       profilePhoto: current.profilePhoto ?? user.profilePicture ?? "",
-      politicalIdeology:
-        current.politicalIdeology ?? user.politicalIdeology ?? "",
+      politicalIdeology: current.politicalIdeology ?? user.politicalIdeology ?? "",
       heightUnit: current.heightUnit ?? user.heightUnit ?? "",
       weightUnit: current.weightUnit ?? user.weightUnit ?? "",
     });
@@ -357,7 +356,6 @@ export default function ProfileForm({
         : `${BACKEND_BASE_URL}${normalizePath(user.profilePicture)}`
       : null
   );
-
   useEffect(() => {
     if (user.profilePicture) {
       setAvatarPreview(
@@ -369,32 +367,132 @@ export default function ProfileForm({
       setAvatarPreview(null);
     }
   }, [user.profilePicture]);
-// --- REPLACE END ---
-// --- REPLACE START: continuation with Political Ideology field (normalize units on submit + log validation errors) ---
-  const onFormSubmit = async (data) => {
-    console.log("[ProfileForm] Submitting payload (raw):", data);
 
-    // Normalize units so backend always receives canonical values
-    const normalizeHeightUnit = (u) =>
-      u === "cm" ? "Cm" : u === "ftin" ? "FtIn" : u;
-    const normalizeWeightUnit = (u) =>
-      u === "KG" ? "kg" : u === "LB" ? "lb" : u;
-
-    const payload = {
-      ...data,
-      heightUnit: normalizeHeightUnit(data.heightUnit),
-      weightUnit: normalizeWeightUnit(data.weightUnit),
-      nutritionPreferences: data.nutritionPreferences
-        ? [data.nutritionPreferences]
-        : [],
-      extraImages: localExtraImages,
-      profilePhoto: data.profilePhoto,
+  // Guard helpers: force EN constants if user somehow selects localized values
+  const guardSelect =
+    (field, allowed) =>
+    (e) => {
+      const v = e?.target?.value ?? "";
+      if (allowed.includes(v) || v === "") {
+        setValue(field, v, { shouldValidate: true, shouldDirty: true });
+      } else {
+        const fallback =
+          allowed.find((x) => x.toLowerCase() === String(v).toLowerCase()) || "";
+        setValue(field, fallback, { shouldValidate: true, shouldDirty: true });
+      }
     };
 
-    console.log("[ProfileForm] Submitting payload (normalized):", payload);
-    await onSubmitProp?.(payload);
+  const onProfessionCategoryChange = useCallback(
+    guardSelect("professionCategory", professionCategories),
+    []
+  );
+  const onReligionChange = useCallback(guardSelect("religion", religionOptions), []);
+  const onImportanceChange = useCallback(
+    guardSelect("religionImportance", religionImportanceOptions),
+    []
+  );
+  const onPoliticalChange = useCallback(
+    guardSelect("politicalIdeology", politicalIdeologyOptions),
+    []
+  );
+
+  // ---------------------------------------------------------------------------------
+  // Submit cleanup:
+  // - FI→EN fallback for children/pets/education
+  // - Drop empty strings/null/undefined
+  // - nutritionPreferences → array only if selected (length > 0)
+  // - Do NOT include photos/extraImages/entitlements/visibility/billing etc.
+  // - Keep both flat and nested `location`
+  // - Include legacy alias `ideology` mirroring `politicalIdeology`
+  // - Expose last payload in dev for quick Network payload parity checks
+  // ---------------------------------------------------------------------------------
+  const onFormSubmit = async (data) => {
+    // Normalize measurement units
+    const normalizeHeightUnit = (u) =>
+      u === "cm" ? "Cm" : u === "ftin" ? "FtIn" : u || "";
+    const normalizeWeightUnit = (u) =>
+      u === "KG" ? "kg" : u === "LB" ? "lb" : u || "";
+
+    // Shallow copy
+    const working = { ...data };
+
+    // Apply unit normalization
+    working.heightUnit = normalizeHeightUnit(working.heightUnit);
+    working.weightUnit = normalizeWeightUnit(working.weightUnit);
+
+    // FI → EN fallbacks (defensive)
+    if (working.children && FI_EN_CHILDREN[working.children]) {
+      working.children = FI_EN_CHILDREN[working.children];
+    }
+    if (working.pets && FI_EN_PETS[working.pets]) {
+      working.pets = FI_EN_PETS[working.pets];
+    }
+    if (working.education && FI_EN_EDUCATION[working.education]) {
+      working.education = FI_EN_EDUCATION[working.education];
+    }
+
+    // Numbers → number or drop
+    ["age", "height", "weight", "latitude", "longitude"].forEach((k) => {
+      const raw = working[k];
+      if (raw === "" || raw == null) {
+        delete working[k];
+      } else {
+        const n = Number(raw);
+        if (!Number.isFinite(n)) delete working[k];
+        else working[k] = n;
+      }
+    });
+
+    // Remove empty strings/null/undefined
+    Object.keys(working).forEach((k) => {
+      if (working[k] === "" || working[k] == null) delete working[k];
+    });
+
+    // nutritionPreferences → array only if a choice exists
+    if (typeof working.nutritionPreferences !== "undefined") {
+      const v = String(working.nutritionPreferences || "").trim();
+      if (v) working.nutritionPreferences = [v];
+      else delete working.nutritionPreferences;
+    }
+
+    // Remove custom helper fields
+    delete working.customCountry;
+    delete working.customRegion;
+    delete working.customCity;
+
+    // Build nested location while keeping flat fields
+    const loc = {};
+    if (typeof working.country !== "undefined") loc.country = working.country;
+    if (typeof working.region !== "undefined") loc.region = working.region;
+    if (typeof working.city !== "undefined") loc.city = working.city;
+    if (Object.keys(loc).length) working.location = { ...(working.location || {}), ...loc };
+
+    // Provide legacy alias for compatibility
+    if (typeof working.politicalIdeology !== "undefined") {
+      working.ideology = working.politicalIdeology;
+    }
+
+    // Strictly avoid forbidden keys and arrays we must not send
+    dropForbiddenKeys(working);
+    if (Array.isArray(working.extraImages) && working.extraImages.length === 0) {
+      delete working.extraImages;
+    }
+
+    // Helpful debug visibility in dev: mirror what is going to backend
+    if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
+      // eslint-disable-next-line no-console
+      console.debug("[ProfileForm] Sanitized payload →", working);
+      // expose for quick comparisons with Network tab
+      window.__lastProfileSubmit = working;
+    }
+
+    // Finally submit to parent handler (axios PUT lives there)
+    await onSubmitProp?.(working);
   };
 
+  // ---------------------------------------------------------------------------------
+  // Small avatar + gallery preview (non-blocking, helps confirm what will show)
+  // ---------------------------------------------------------------------------------
   const slideshowImages = useMemo(() => {
     const arr = [];
     if (avatarPreview) arr.push(avatarPreview);
@@ -410,60 +508,49 @@ export default function ProfileForm({
   }, [avatarPreview, localExtraImages]);
 
   const [slideIndex, setSlideIndex] = useState(0);
-  useEffect(() => {
-    setSlideIndex(0);
-  }, [slideshowImages.length]);
-
+  useEffect(() => setSlideIndex(0), [slideshowImages.length]);
   useEffect(() => {
     if (slideshowImages.length < 2) return;
-    const iv = setInterval(() => {
-      setSlideIndex((i) => (i + 1) % slideshowImages.length);
-    }, 3000);
+    const iv = setInterval(() => setSlideIndex((i) => (i + 1) % slideshowImages.length), 3500);
     return () => clearInterval(iv);
   }, [slideshowImages]);
 
-  // --- REPLACE START: helpers to translate with both key styles (space/camelCase) and prefer options.* ---
-  const tProfessionLabel = () => {
-    return (
-      t("profile:Profession category", { defaultValue: "" }) ||
-      t("profile:professionCategory.label", { defaultValue: "" }) ||
-      t("profile:professionCategory", { defaultValue: "" }) ||
-      "Profession category"
-    );
-  };
+  const nextSlide = () =>
+    setSlideIndex((i) => (i + 1) % Math.max(slideshowImages.length, 1));
+  const prevSlide = () =>
+    setSlideIndex((i) => (i - 1 + Math.max(slideshowImages.length, 1)) % Math.max(slideshowImages.length, 1));
+
+  // i18n helpers (labels only, values remain EN constants)
+  const tProfessionLabel = () =>
+    t("profile:Profession category", { defaultValue: "" }) ||
+    t("profile:professionCategory.label", { defaultValue: "" }) ||
+    t("profile:professionCategory", { defaultValue: "" }) ||
+    "Profession category";
 
   const tProfessionOption = (opt) => {
     const key = PROF_KEY_BY_LABEL[opt] || opt.toLowerCase();
     return (
-      // Prefer the canonical options.* namespace first
       t(`profile:options.professionCategory.${key}`, { defaultValue: "" }) ||
-      // Fallbacks for older keys kept intentionally
       t(`profile:Profession category.${key}`, { defaultValue: "" }) ||
       t(`profile:professionCategory.${key}`, { defaultValue: "" }) ||
       opt
     );
   };
 
-  const tPoliticalLabel = () => {
-    return (
-      t("profile:politicalIdeology", { defaultValue: "" }) ||
-      t("profile:Political ideology", { defaultValue: "" }) ||
-      "Political ideology"
-    );
-  };
+  const tPoliticalLabel = () =>
+    t("profile:politicalIdeology", { defaultValue: "" }) ||
+    t("profile:Political ideology", { defaultValue: "" }) ||
+    "Political ideology";
 
   const tPoliticalOption = (opt) => {
     const key = POL_KEY_BY_LABEL[opt] || opt.toLowerCase();
     return (
-      // Prefer the canonical options.* namespace first
-      t(`profile:options.politicalIdeology.${key}`, { defaultValue: "" }) ||
-      // Fallbacks for older keys kept intentionally
+      t(`profile:options.politicalIdeology.${key}`, { defaultValue: opt }) ||
       t(`profile:Political ideology.${key}`, { defaultValue: opt }) ||
       t(`profile:politicalIdeology.${key}`, { defaultValue: opt }) ||
       opt
     );
   };
-  // --- REPLACE END ---
 
   return (
     <FormProvider {...methods}>
@@ -471,27 +558,45 @@ export default function ProfileForm({
         onSubmit={handleSubmit(
           onFormSubmit,
           (errs) => {
+            // eslint-disable-next-line no-console
             console.warn("[ProfileForm] Validation errors:", errs);
           }
         )}
         className="bg-white shadow rounded-lg p-6 space-y-6"
       >
+        {/* Keep this as a hidden field – allowed to submit if set */}
         <input type="hidden" {...methods.register("profilePhoto")} />
 
         {!hideAvatarSection && slideshowImages.length > 0 && (
           <div className="flex flex-col items-center space-y-2">
-            <img
-              src={slideshowImages[slideIndex]}
-              alt={`Avatar ${slideIndex + 1}`}
-              className="w-32 h-32 rounded-full object-cover cursor-pointer"
-              onMouseEnter={() =>
-                setSlideIndex((i) => (i + 1) % slideshowImages.length)
-              }
-            />
-            <Link
-              to="/profile/photos"
-              className="mt-2 text-blue-600 hover:underline"
-            >
+            <div className="relative">
+              <img
+                src={slideshowImages[slideIndex]}
+                alt={`Avatar ${slideIndex + 1}`}
+                className="w-32 h-32 rounded-full object-cover"
+              />
+              {slideshowImages.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={prevSlide}
+                    className="absolute left-0 top-1/2 -translate-y-1/2 bg-white/70 hover:bg-white px-2 py-1 rounded-l text-sm"
+                    aria-label="Previous"
+                  >
+                    ‹
+                  </button>
+                  <button
+                    type="button"
+                    onClick={nextSlide}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 bg-white/70 hover:bg-white px-2 py-1 rounded-r text-sm"
+                    aria-label="Next"
+                  >
+                    ›
+                  </button>
+                </>
+              )}
+            </div>
+            <Link to="/profile/photos" className="mt-2 text-blue-600 hover:underline">
               {t("profile:managePhotos") || "Manage Photos"}
             </Link>
           </div>
@@ -520,6 +625,7 @@ export default function ProfileForm({
             </label>
             <select
               {...methods.register("professionCategory")}
+              onChange={onProfessionCategoryChange}
               className="w-full border rounded px-3 py-2 text-sm"
             >
               <option value="">{t("common:select")}</option>
@@ -530,9 +636,7 @@ export default function ProfileForm({
               ))}
             </select>
             {errors.professionCategory && (
-              <p className="mt-1 text-red-600">
-                {errors.professionCategory.message}
-              </p>
+              <p className="mt-1 text-red-600">{errors.professionCategory.message}</p>
             )}
           </div>
 
@@ -546,9 +650,7 @@ export default function ProfileForm({
               className="w-full border rounded px-3 py-2 text-sm"
               placeholder={t("profile:professionPlaceholder")}
             />
-            {errors.profession && (
-              <p className="mt-1 text-red-600">{errors.profession.message}</p>
-            )}
+            {errors.profession && <p className="mt-1 text-red-600">{errors.profession.message}</p>}
           </div>
 
           <div>
@@ -557,19 +659,16 @@ export default function ProfileForm({
             </label>
             <select
               {...methods.register("religion")}
+              onChange={onReligionChange}
               className="w-full border rounded px-3 py-2 text-sm"
             >
               {religionOptions.map((opt) => (
                 <option key={opt} value={opt}>
-                  {opt
-                    ? t(`religion.${opt.toLowerCase()}`) || opt
-                    : t("common:select")}
+                  {opt ? t(`religion.${opt.toLowerCase()}`) || opt : t("common:select")}
                 </option>
               ))}
             </select>
-            {errors.religion && (
-              <p className="mt-1 text-red-600">{errors.religion.message}</p>
-            )}
+            {errors.religion && <p className="mt-1 text-red-600">{errors.religion.message}</p>}
           </div>
         </div>
 
@@ -579,6 +678,7 @@ export default function ProfileForm({
           </label>
           <select
             {...methods.register("religionImportance")}
+            onChange={onImportanceChange}
             className="w-full border rounded px-3 py-2 text-sm"
           >
             {religionImportanceOptions.map((opt) => (
@@ -588,19 +688,18 @@ export default function ProfileForm({
             ))}
           </select>
           {errors.religionImportance && (
-            <p className="mt-1 text-red-600">
-              {errors.religionImportance.message}
-            </p>
+            <p className="mt-1 text-red-600">{errors.religionImportance.message}</p>
           )}
         </div>
 
-        {/* New: Political Ideology */}
+        {/* Political Ideology (EN constants) */}
         <div>
           <label className="block text-sm font-medium mb-1">
             🗳 {tPoliticalLabel()}
           </label>
           <select
             {...methods.register("politicalIdeology")}
+            onChange={onPoliticalChange}
             className="w-full border rounded px-3 py-2 text-sm"
           >
             {politicalIdeologyOptions.map((opt) => (
@@ -610,9 +709,7 @@ export default function ProfileForm({
             ))}
           </select>
           {errors.politicalIdeology && (
-            <p className="mt-1 text-red-600">
-              {errors.politicalIdeology.message}
-            </p>
+            <p className="mt-1 text-red-600">{errors.politicalIdeology.message}</p>
           )}
         </div>
 
@@ -620,12 +717,7 @@ export default function ProfileForm({
 
         <FormLifestyle t={t} includeAllOption />
 
-        <FormGoalSummary
-          t={t}
-          errors={errors}
-          fieldName="goal"
-          summaryField="summary"
-        />
+        <FormGoalSummary t={t} errors={errors} fieldName="goal" summaryField="summary" />
 
         <FormLookingFor t={t} errors={errors} fieldName="lookingFor" />
 
@@ -647,35 +739,61 @@ export default function ProfileForm({
 
         {Object.keys(errors || {}).length > 0 && (
           <p className="text-sm mt-2 text-red-600">
-            {t("common:fixErrors") ||
-              "Please fix the highlighted fields before saving."}
+            {t("common:fixErrors") || "Please fix the highlighted fields before saving."}
           </p>
         )}
 
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-          >
+        <div className="flex items-center justify-between">
+          {slideshowImages.length > 1 ? (
+            <div className="flex items-center space-x-2 text-xs text-gray-500">
+              <button type="button" onClick={prevSlide} className="px-2 py-1 border rounded">
+                {t("common:prev") || "Prev"}
+              </button>
+              <span>
+                {slideIndex + 1}/{slideshowImages.length}
+              </span>
+              <button type="button" onClick={nextSlide} className="px-2 py-1 border rounded">
+                {t("common:next") || "Next"}
+              </button>
+            </div>
+          ) : (
+            <span className="text-xs text-gray-400">&nbsp;</span>
+          )}
+
+          <button type="submit" className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700">
             {t("profile:save")}
           </button>
         </div>
 
-        {success && (
-          <p className="text-center text-green-600">
-            {t("profile:saveSuccess")}
-          </p>
-        )}
-        {!success && message && (
-          <p className="text-center text-red-600">{message}</p>
-        )}
+        {success && <p className="text-center text-green-600">{t("profile:saveSuccess")}</p>}
+        {!success && message && <p className="text-center text-red-600">{message}</p>}
       </form>
     </FormProvider>
   );
 }
-// --- REPLACE END ---
 
-// --- REPLACE START: remove duplicate default export at end of file ---
-// (Removed to avoid "Only one default export allowed per module")
-// export default ProfileForm;
+ProfileForm.propTypes = {
+  userId: PropTypes.string,
+  user: PropTypes.object.isRequired,
+  isPremium: PropTypes.bool,
+  t: PropTypes.func.isRequired,
+  message: PropTypes.string,
+  success: PropTypes.bool,
+  onUserUpdate: PropTypes.func.isRequired,
+  onSubmit: PropTypes.func,
+  onSubmitProp: PropTypes.func, // used internally
+  hideAvatarSection: PropTypes.bool,
+  hidePhotoSection: PropTypes.bool,
+};
+
+ProfileForm.defaultProps = {
+  userId: undefined,
+  isPremium: false,
+  message: "",
+  success: false,
+  onSubmit: undefined,
+  onSubmitProp: undefined,
+  hideAvatarSection: false,
+  hidePhotoSection: false,
+};
 // --- REPLACE END ---
