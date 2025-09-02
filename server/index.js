@@ -1,5 +1,3 @@
-// PATH: server/index.js
-
 // --- REPLACE START: load environment variables early ---
 import 'dotenv/config';
 // --- REPLACE END ---
@@ -40,19 +38,18 @@ import paypalWebhookRouter from './routes/paypalWebhook.js';
 // --- REPLACE END ---
 
 // --- REPLACE START: App routes ---
-// Keep existing folder structure but FIX users route filename to match on-disk file.
+// Keep existing folder structure but FIX users route to the modern router (avoids legacy duplicates).
 import * as AuthPublicModule from './src/routes/authRoutes.js';
 const authRoutes = AuthPublicModule.default || AuthPublicModule;
 
 import * as AuthPrivateModule from './src/routes/authPrivateRoutes.js';
 const authPrivateRoutes = AuthPrivateModule.default || AuthPrivateModule;
 
-// ✅ users router (singular)
-import * as UsersRouterModule from './routes/user.js';
+// ✅ users router (modern ESM/CJS compatible)
+import * as UsersRouterModule from './routes/userRoutes.js'; // --- CHANGED from ./routes/user.js ---
 const userRoutes = UsersRouterModule.default || UsersRouterModule;
 
-// ⚠️ imageRoutes imported but NOT mounted under /api to avoid duplicate stacks.
-//    We optionally mount it under /_dev/images for local testing only.
+// ✅ imageRoutes are imported and WILL be mounted under /api/images for back-compat
 import * as ImageModule from './routes/imageRoutes.js';
 const imageRoutes = ImageModule.default || ImageModule;
 
@@ -90,6 +87,41 @@ const authenticate = AuthenticateModule.default || AuthenticateModule;
 
 const app = express();
 
+/* ──────────────────────────────────────────────────────────────────────────────
+   MongoDB connection (robust) + DB readiness guard
+────────────────────────────────────────────────────────────────────────────── */
+// --- REPLACE START: Robust Mongo config (disable buffering) + dbReady middleware ---
+try {
+  mongoose.set('strictQuery', true);
+  mongoose.set('bufferCommands', false); // prevent silent buffering timeouts
+} catch {}
+
+const MONGO_URI = process.env.MONGO_URI;
+if (!MONGO_URI) {
+  console.warn('⚠️ MONGO_URI is not set. The server will start without DB connection.');
+} else {
+  mongoose
+    .connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+    .then(() => {
+      const { host, port, name } = mongoose.connection;
+      console.log(`✅ MongoDB connected → ${host}:${port}/${name}`);
+    })
+    .catch((err) => {
+      console.error('❌ MongoDB connection error:', err?.message || err);
+    });
+}
+
+mongoose.connection.on('connected', () => console.log('✅ Mongo connected'));
+mongoose.connection.on('disconnected', () => console.warn('⚠️ Mongo disconnected'));
+mongoose.connection.on('error', (e) => console.error('❌ Mongo error:', e?.message || e));
+
+/** Guard DB-backed endpoints so we return 503 instead of Mongoose buffering timeouts. */
+function dbReady(_req, res, next) {
+  if (mongoose.connection.readyState === 1) return next(); // 1 = connected
+  return res.status(503).json({ error: 'Database not connected. Please try again shortly.' });
+}
+// --- REPLACE END ---
+
 // --- REPLACE START: Sentry request/tracing handlers ---
 app.use(Sentry.Handlers.requestHandler());
 app.use(Sentry.Handlers.tracingHandler());
@@ -107,6 +139,9 @@ app.use('/api', dealbreakersRoutes);  // GET/PATCH /api/dealbreakers, POST /api/
 // app.use('/api', qaRoutes);
 // --- REPLACE END ---
 
+/* ──────────────────────────────────────────────────────────────────────────────
+   Swagger
+────────────────────────────────────────────────────────────────────────────── */
 // --- REPLACE START: Swagger setup ---
 const swaggerPath = path.join(__dirname, 'openapi.yaml');
 if (fs.existsSync(swaggerPath)) {
@@ -224,53 +259,27 @@ if (hasClientDist) {
 }
 // --- REPLACE END ---
 
-// --- REPLACE START: Legacy/root aliases for /api ---
-// ❌ Disabled alias rewrites because they broke /api/auth/*
-// If you need root-level legacy paths later, re-enable here AFTER ensuring root routers exist.
-// import expressPkg from 'express';
-// const alias = expressPkg.Router();
-//
-// alias.post('/api/auth/register', (req, _res, next) => { req.url = '/register'; next(); });
-// alias.post('/api/auth/login',    (req, _res, next) => { req.url = '/login';    next(); });
-// alias.post('/api/auth/logout',   (req, _res, next) => { req.url = '/logout';   next(); });
-// alias.post('/api/auth/refresh',  (req, _res, next) => { req.url = '/refresh';  next(); });
-//
-// alias.get('/api/users/me',       (req, _res, next) => { req.url = '/me';       next(); });
-// alias.get('/api/users/profile',  (req, _res, next) => { req.url = '/profile';  next(); });
-// alias.put('/api/users/profile',  (req, _res, next) => { req.url = '/profile';  next(); });
-//
-// alias.get('/api/health',         (req, _res, next) => { req.url = '/api/health'; next(); });
-//
-// app.use(alias);
-// --- REPLACE END ---
+// --- REPLACE START: Mount routes (guard DB-backed stacks with dbReady) ---
+app.use('/api/auth', dbReady, authRoutes);
+app.use('/api/auth', dbReady, authPrivateRoutes);
+app.use('/api/messages', dbReady, authenticate, messageRoutes);
 
-// --- REPLACE START: Mount routes ---
-app.use('/api/auth', authRoutes);
-app.use('/api/auth', authPrivateRoutes);
-app.use('/api/messages', authenticate, messageRoutes);
+// ✅ Users route stack (modern router)
+app.use('/api/users', dbReady, authenticate, userRoutes);
 
-// ✅ Single image route stack: ONLY under /api/users (server/routes/user.js).
-app.use('/api/users', authenticate, userRoutes);
+// ✅ Back-compat: mount legacy image routes under /api/images
+//    FE uploaders that still use /api/images/* will continue to work.
+//    (If you later migrate FE to /api/users/:userId/*, you can keep this as an alias.)
+app.use('/api/images', dbReady, authenticate, imageRoutes);
 
-// ❌ Do NOT mount /api/images to avoid duplicate handlers:
-// app.use('/api/images', authenticate, imageRoutes);
+app.use('/api/discover', dbReady, authenticate, discoverRoutes);
 
-// ✅ Optional DEV-only mount for the old image router (helpful during testing)
-//    Toggle via env DEV_IMAGE_ROUTES=true
-if (String(process.env.DEV_IMAGE_ROUTES || '').toLowerCase() === 'true') {
-  console.warn('🔧 DEV: mounting legacy imageRoutes at /_dev/images (not for production)');
-  app.use('/_dev/images', authenticate, imageRoutes);
-}
+// Billing mount (both prefixes supported)
+app.use('/api/billing', dbReady, authenticate, billingRoutes);
+app.use('/api/payment', dbReady, authenticate, billingRoutes);
 
-app.use('/api/discover', authenticate, discoverRoutes);
-
-// --- REPLACE START: Billing mount (NEW, minimal addition) ---
-// Mount BOTH aliases so old and new client calls work:
-//  - /api/billing/*      (new UI)
-//  - /api/payment/*      (legacy UI / old buttons)
-app.use('/api/billing', authenticate, billingRoutes);
-app.use('/api/payment', authenticate, billingRoutes);
-// --- REPLACE END ---
+// Keep previously registered feature routers (already mounted above):
+// - /api/rewind, /api/intros, /api/dealbreakers
 // --- REPLACE END ---
 
 // --- REPLACE START: Cookie helpers ---
@@ -378,52 +387,25 @@ function printRoutes(appInstance) {
 }
 // --- REPLACE END ---
 
-// --- REPLACE START: DB connection ---
-mongoose.set('strictQuery', true);
+// --- REPLACE START: HTTP server start (port 5000 default) ---
 const PORT = process.env.PORT || 5000;
 
-console.log('[DB] MONGO_URI =', process.env.MONGO_URI ? '(set)' : '(missing)');
-console.log('[ENV] NODE_ENV =', process.env.NODE_ENV);
+printRoutes(app);
 
-const mongoUri = process.env.MONGO_URI;
-if (!mongoUri) {
-  console.warn('⚠️ MONGO_URI is not set. The server will start without DB connection.');
-}
+const server = app.listen(PORT, () => {
+  console.log(`✅ Server running on http://localhost:${PORT}`);
+});
 
-const startServer = () => {
-  printRoutes(app);
-  const server = app.listen(PORT, () => {
-    console.log(`✅ Server running on http://localhost:${PORT}`);
-  });
-
-  server.on('error', (err) => {
-    if (err?.code === 'EADDRINUSE') {
-      const nextPort = Number(PORT) + 1;
-      console.error(`⚠️ Port ${PORT} in use, retrying on ${nextPort}...`);
-      app.listen(nextPort, () => console.log(`✅ Server running on http://localhost:${nextPort}`));
-    } else {
-      console.error('❌ Server error:', err);
-      process.exit(1);
-    }
-  });
-};
-
-if (mongoUri) {
-  mongoose
-    .connect(mongoUri)
-    .then(() => {
-      console.log('✅ MongoDB connected');
-      startServer();
-    })
-    .catch((err) => {
-      console.error('❌ MongoDB connection error:', err?.message || err);
-      startServer();
-    });
-} else {
-  startServer();
-}
+server.on('error', (err) => {
+  if (err?.code === 'EADDRINUSE') {
+    const nextPort = Number(PORT) + 1;
+    console.error(`⚠️ Port ${PORT} in use, retrying on ${nextPort}...`);
+    app.listen(nextPort, () => console.log(`✅ Server running on http://localhost:${nextPort}`));
+  } else {
+    console.error('❌ Server error:', err);
+    process.exit(1);
+  }
+});
 // --- REPLACE END ---
 
-// --- REPLACE START: export app ---
 export default app;
-// --- REPLACE END ---

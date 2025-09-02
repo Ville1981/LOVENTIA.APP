@@ -8,20 +8,19 @@ import pathFs from "path";
 import fs from "fs";
 import mongoose from "mongoose";
 import { body, validationResult } from "express-validator";
-
-// Interop for User model (ESM wrapper default-exporting the CJS model)
-import * as UserModule from "../models/User.js";
-const User = UserModule.default || UserModule;
 // --- REPLACE END ---
 
 const router = express.Router();
 
 // --- REPLACE START: load ESM controller via direct import (Jest/CJS compatible) ---
+import * as UserModule from "../models/User.js";
+const User = UserModule.default || UserModule;
+
 import * as UserControllerModule from "../controllers/userController.js";
 const {
   registerUser,
   loginUser,
-  getMe, // (kept for other routes if your controller uses it elsewhere)
+  // getMe available in controller, but we inline the exact logic per requirements
   getMatchesWithScore,
   upgradeToPremium,
   uploadExtraPhotos,
@@ -29,25 +28,23 @@ const {
   deletePhotoSlot,
   forgotPassword,
   resetPassword,
-  // NEW: visibility handlers from controller
   setVisibilityMe,
   unhideMe,
 } = UserControllerModule.default || UserControllerModule;
 
-// Alias to requested route handler names (keep your wording)
-// PATCH /users/me/hide  -> hideAccount
-// PATCH /users/me/unhide -> unhideAccount
-const hideAccount = setVisibilityMe;
-const unhideAccount = unhideMe;
-// --- REPLACE END ---
-
-// --- REPLACE START: import notifications helper/model for superlike integration ---
 import * as NotificationsControllerModule from "../controllers/notificationsController.js";
 const { create: createNotificationHelper } =
   NotificationsControllerModule?.default || NotificationsControllerModule || {};
+
 import * as NotificationModelModule from "../models/Notification.js";
 const Notification = NotificationModelModule?.default || NotificationModelModule;
+
+import normalizeUserOutUtil from "../utils/normalizeUserOut.js";
 // --- REPLACE END ---
+
+/* =============================================================================
+   AUTH HELPERS
+============================================================================= */
 
 // --- REPLACE START: stronger auth (header/cookie/query + multiple secrets) ---
 function pickFirstDefined(...vals) {
@@ -89,18 +86,26 @@ function authenticateToken(req, res, next) {
     req.userId = id; // backward compat for existing routes
     req.user = { id, userId: id, role: decoded.role || "user", ...decoded }; // compat with controller
     return next();
-  } catch {
+  } catch (e) {
     return res.status(401).json({ error: "Invalid or expired token" });
   }
 }
 // --- REPLACE END ---
 
-// --- REPLACE START: helper to normalize /users/me like /api/me ---
-/**
- * Normalize user document to the exact shape used by /api/me.
- * Ensures isPremium, premium, and entitlements.tier are consistent.
- * Also exposes lightweight quota info for likes/superlikes.
- */
+/* =============================================================================
+   UTILS
+============================================================================= */
+
+// --- REPLACE START: path normalizer for images ---
+function toWebPath(p) {
+  if (typeof p !== "string" || !p) return p;
+  let s = p.replace(/\\\\/g, "/").replace(/\\/g, "/");
+  if (!s.startsWith("/")) s = `/${s}`;
+  return s;
+}
+// --- REPLACE END ---
+
+// --- REPLACE START: quotas + time helpers ---
 const FREE_LIKES_PER_DAY = Number(process.env.FREE_LIKES_PER_DAY || 30);
 
 function startOfTodayUTC() {
@@ -112,135 +117,31 @@ function countLikesToday(u) {
   const start = startOfTodayUTC();
   return ts.reduce((n, t) => (new Date(t) >= start ? n + 1 : n), 0);
 }
-function countSuperLikes48h(u) {
-  const ts = Array.isArray(u?.superLikeTimestamps) ? u.superLikeTimestamps : [];
-  const since = Date.now() - 48 * 60 * 60 * 1000;
-  return ts.reduce((n, t) => (new Date(t).getTime() >= since ? n + 1 : n), 0);
-}
-
-// --- REPLACE START: path normalizer for all image paths ---
-function normPath(p) {
-  if (typeof p !== "string" || !p) return p;
-  let s = p.replace(/\\\\/g, "/").replace(/\\/g, "/");
-  if (!s.startsWith("/")) s = `/${s}`; // ensure leading slash for web paths
-  return s;
-}
 // --- REPLACE END ---
 
-function normalizeUserForMe(u) {
-  if (!u) return null;
-
-  const ent = u.entitlements && typeof u.entitlements === "object" ? u.entitlements : {};
-  const legacyFlag = !!u.premium;
-  const newFlag = !!u.isPremium;
-  const entTier = ent.tier === "premium";
-
-  const isPremium = newFlag || legacyFlag || entTier;
-  const tier = isPremium ? "premium" : "free";
-
-  const visObj = u.visibility && typeof u.visibility === "object" ? u.visibility : {};
-  const visibility = {
-    isHidden: u.isHidden === true || visObj.isHidden === true || false,
-    hiddenUntil: u.hiddenUntil || visObj.hiddenUntil || null,
-    resumeOnLogin:
-      typeof visObj.resumeOnLogin === "boolean"
-        ? visObj.resumeOnLogin
-        : (typeof u.resumeOnLogin === "boolean" ? u.resumeOnLogin : true),
-  };
-
-  // --- REPLACE START: normalize photo arrays & profilePicture slashes ---
-  const rawPhotos =
-    Array.isArray(u.photos) ? u.photos :
-    (Array.isArray(u.extraImages) ? u.extraImages : []);
-  const photos = rawPhotos.map(normPath);
-  const profilePicture = normPath(u.profilePicture) || null;
-  // --- REPLACE END ---
-
-  // Quotas (likes reset daily for free users; superlikes rolling 48h)
-  const usedLikesToday = countLikesToday(u);
-  const usedSuperLikes48h = countSuperLikes48h(u);
-
-  return {
-    id: String(u._id || u.id),
-    email: u.email || null,
-    username: u.username || null,
-
-    // consistent premium signals
-    isPremium,
-    premium: isPremium,
-
-    entitlements: {
-      tier,
-      since: ent.since || null,
-      until: ent.until || null,
-      features: ent.features || undefined,
-      quotas: {
-        likesPerDay: {
-          limit: isPremium ? null : FREE_LIKES_PER_DAY,
-          used: usedLikesToday,
-          remaining: isPremium ? null : Math.max(0, FREE_LIKES_PER_DAY - usedLikesToday),
-        },
-        superLikes: {
-          window: "48h",
-          used: usedSuperLikes48h,
-          limit: isPremium ? 3 : 1,
-          remaining: Math.max(0, (isPremium ? 3 : 1) - usedSuperLikes48h),
-        },
-      },
-    },
-
-    stripeCustomerId: u.stripeCustomerId || null,
-    subscriptionId: u.subscriptionId || null,
-
-    visibility,
-
-    // --- REPLACE START: return normalized paths ---
-    profilePicture,
-    photos,
-    // --- REPLACE END ---
-    name: u.name || null,
-    age: u.age || null,
-    gender: u.gender || null,
-
-    country: (u.location && u.location.country) || u.country || null,
-    region: (u.location && u.location.region) || u.region || null,
-    city: (u.location && u.location.city) || u.city || null,
-
-    createdAt: u.createdAt || null,
-    updatedAt: u.updatedAt || null,
-  };
-}
-// --- REPLACE END ---
-
-// --- REPLACE START: outbound user normalizer for any generic user payload (photos/extraImages mirrored) ---
-function toWebPath(p) {
-  if (!p || typeof p !== "string") return p;
-  let s = p.replace(/\\\\/g, "/").replace(/\\/g, "/");
-  if (!s.startsWith("/")) s = `/${s}`;
-  return s;
-}
+// --- REPLACE START: outbound user normalizer (delegate to shared util + path fixes) ---
 function normalizeUserOut(u) {
-  if (!u) return u;
-  const plain = typeof u.toObject === "function" ? u.toObject() : { ...u };
+  try {
+    const obj = u && typeof u.toObject === "function" ? u.toObject() : { ...(u || {}) };
 
-  const photosIn = Array.isArray(plain.photos) ? plain.photos : null;
-  const extraIn  = Array.isArray(plain.extraImages) ? plain.extraImages : null;
+    if (obj && typeof obj === "object") {
+      if (obj.profilePicture) obj.profilePicture = toWebPath(obj.profilePicture);
+      if (Array.isArray(obj.photos)) obj.photos = obj.photos.map(toWebPath);
+      if (Array.isArray(obj.extraImages)) obj.extraImages = obj.extraImages.map(toWebPath);
+    }
 
-  let canonical = photosIn || extraIn || [];
-  if (photosIn && extraIn && extraIn.length > photosIn.length) canonical = extraIn;
-
-  const normalizedList = (canonical || []).filter(Boolean).map(toWebPath);
-  plain.photos = normalizedList;
-  plain.extraImages = normalizedList;
-
-  if (plain.profilePicture) plain.profilePicture = toWebPath(plain.profilePicture);
-  if (plain.profilePhoto)   plain.profilePhoto   = toWebPath(plain.profilePhoto);
-
-  return plain;
+    return normalizeUserOutUtil(obj);
+  } catch {
+    return u && (typeof u.toObject === "function" ? u.toObject() : { ...u });
+  }
 }
 // --- REPLACE END ---
 
-// 🎯 JSON-body parser
+/* =============================================================================
+   BODY / UPLOAD SETUP
+============================================================================= */
+
+// 🎯 JSON-body parser (keep first so JSON-only PUT works without forcing multipart)
 router.use(express.json());
 
 // --- REPLACE START: ensure uploads dir exists to avoid Multer ENOENT ---
@@ -258,10 +159,7 @@ const storage = multer.diskStorage({
   filename: (_req, file, cb) =>
     cb(
       null,
-      Date.now() +
-        "-" +
-        Math.round(Math.random() * 1e9) +
-        pathFs.extname(file.originalname)
+      Date.now() + "-" + Math.round(Math.random() * 1e9) + pathFs.extname(file.originalname)
     ),
 });
 const upload = multer({ storage });
@@ -274,13 +172,31 @@ function removeFile(filePath) {
   }
 }
 
-/* ============================================================================
-   PUBLIC AUTH ROUTES
-============================================================================ */
+// --- REPLACE START: conditional multer wrapper so JSON is fully supported ---
+/**
+ * maybeUpload(fields)
+ * - If Content-Type is multipart/form-data -> run the multer fields parser.
+ * - Otherwise -> no-op (do not force multipart).
+ */
+function maybeUpload(fields) {
+  const fieldsMw = upload.fields(fields);
+  return (req, res, next) => {
+    const ct = String(req.headers["content-type"] || "");
+    if (ct.toLowerCase().startsWith("multipart/form-data")) {
+      return fieldsMw(req, res, next);
+    }
+    // Not multipart → skip file parsing so JSON bodies work
+    return next();
+  };
+}
+// --- REPLACE END ---
+
+/* =============================================================================
+   AUTH PUBLIC ROUTES
+============================================================================= */
 
 // --- REPLACE START: sanitize auth bodies so premium cannot be set accidentally ---
 function stripPremiumFields(req, _res, next) {
-  // Remove any premium-related fields from inbound auth requests
   if (req?.body && typeof req.body === "object") {
     delete req.body.premium;
     delete req.body.isPremium;
@@ -297,20 +213,22 @@ router.post("/login", stripPremiumFields, loginUser);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
 
-/* ============================================================================
+/* =============================================================================
    PROFILE & ACCOUNT
-============================================================================ */
+============================================================================= */
 
 // =====================
-/* ✅ Profile update with validation */
+// ✅ Profile update (JSON OR multipart), no forced multipart
 // =====================
 router.put(
   "/profile",
   authenticateToken,
-  upload.fields([
+  // --- REPLACE START: allow JSON or multipart ---
+  maybeUpload([
     { name: "profilePhoto", maxCount: 1 },
     { name: "extraImages", maxCount: 20 },
   ]),
+  // --- REPLACE END ---
   [
     body("username").optional().notEmpty().withMessage("Username is required"),
     body("email").optional().isEmail().withMessage("Invalid email"),
@@ -319,16 +237,9 @@ router.put(
     body("orientation").optional().notEmpty().withMessage("Orientation is required"),
     body("height").optional().isNumeric().withMessage("Height must be a number"),
     body("weight").optional().isNumeric().withMessage("Weight must be a number"),
-    // --- REPLACE START: make lat/lon validators tolerant of empty strings ---
-    body("latitude")
-      .optional({ checkFalsy: true })
-      .isFloat({ min: -90, max: 90 })
-      .withMessage("Invalid latitude"),
-    body("longitude")
-      .optional({ checkFalsy: true })
-      .isFloat({ min: -180, max: 180 })
-      .withMessage("Invalid longitude"),
-    // --- REPLACE END ---
+    // lat/lon tolerant of empty strings
+    body("latitude").optional({ checkFalsy: true }).isFloat({ min: -90, max: 90 }).withMessage("Invalid latitude"),
+    body("longitude").optional({ checkFalsy: true }).isFloat({ min: -180, max: 180 }).withMessage("Invalid longitude"),
     body("professionCategory")
       .optional({ checkFalsy: true })
       .isIn([
@@ -347,7 +258,6 @@ router.put(
         "Artist",
         "DivineServant",
         "Homeparent",
-        "Service",
         "FoodIndustry",
         "Retail",
         "Arts",
@@ -358,11 +268,9 @@ router.put(
       ])
       .withMessage("Invalid profession category"),
     body("nutritionPreferences").optional().isArray().withMessage("Nutrition preferences must be an array"),
-    // --- REPLACE START: accept politicalIdeology input (trim/sanitize lightly) ---
+    // accept politicalIdeology and legacy ideology
     body("politicalIdeology").optional().trim().escape(),
-    // Also accept legacy 'ideology' and sanitize it (we map it below)
     body("ideology").optional().trim().escape(),
-    // --- REPLACE END ---
   ],
   (req, res, next) => {
     const errors = validationResult(req);
@@ -374,12 +282,7 @@ router.put(
       const user = await User.findById(req.userId);
       if (!user) return res.status(404).json({ error: "User not found" });
 
-      // --- REPLACE START: normalize ideology keys BEFORE whitelist copy ---
-      /**
-       * Robust mapping between UI key `politicalIdeology` and any legacy `ideology`.
-       * - If only `ideology` is present, copy it to `politicalIdeology`.
-       * - We do NOT persist `ideology` directly to avoid strict schema issues.
-       */
+      // Map legacy -> canonical key before updating
       if (
         (req.body.politicalIdeology === undefined ||
           req.body.politicalIdeology === null ||
@@ -391,9 +294,8 @@ router.put(
       if (Object.prototype.hasOwnProperty.call(req.body, "ideology")) {
         delete req.body.ideology;
       }
-      // --- REPLACE END ---
 
-      // --- REPLACE START: coerce or drop latitude/longitude when strings ---
+      // Coerce lat/lon from strings if needed
       const latRaw = req.body.latitude;
       const lonRaw = req.body.longitude;
       if (typeof latRaw === "string") {
@@ -408,9 +310,8 @@ router.put(
         else if (!Number.isNaN(parseFloat(s))) req.body.longitude = parseFloat(s);
         else delete req.body.longitude;
       }
-      // --- REPLACE END ---
 
-      // Fields to update
+      // Whitelisted mutable fields
       const fields = [
         "username",
         "email",
@@ -454,9 +355,7 @@ router.put(
         "preferredEducation",
         "preferredProfession",
         "preferredChildren",
-        // --- REPLACE START: added missing field for political ideology ---
         "politicalIdeology",
-        // --- REPLACE END ---
       ];
 
       fields.forEach((field) => {
@@ -477,36 +376,35 @@ router.put(
         }
       });
 
-      // --- REPLACE START: map top-level country/region/city into nested location before save ---
-      if (
-        req.body.country !== undefined ||
-        req.body.region !== undefined ||
-        req.body.city !== undefined
-      ) {
+      // Keep nested location in sync (UI may send top-level fields)
+      if (req.body.country !== undefined || req.body.region !== undefined || req.body.city !== undefined) {
         user.location = user.location || {};
         if (req.body.country !== undefined) user.location.country = req.body.country;
         if (req.body.region !== undefined) user.location.region = req.body.region;
         if (req.body.city !== undefined) user.location.city = req.body.city;
       }
-      // --- REPLACE END ---
 
-      // Profile picture
+      // Handle files (only in multipart)
       if (req.files?.profilePhoto?.length) {
         removeFile(user.profilePicture);
         user.profilePicture = req.files.profilePhoto[0].path;
       }
-
-      // Extra images
       if (req.files?.extraImages?.length) {
         (user.extraImages || []).forEach(removeFile);
         user.extraImages = req.files.extraImages.map((f) => f.path);
       }
 
-      const updated = await user.save();
-      // --- REPLACE START: normalize image paths in response too ---
-      const normalized = normalizeUserForMe(updated.toJSON ? updated.toJSON() : updated);
-      return res.json(normalized);
-      // --- REPLACE END ---
+      await user.save();
+
+      // Return FULL profile (exclude only sensitive fields), normalized
+      const full = await User.findById(user._id)
+        .select("-password -resetToken -passwordResetToken -passwordResetExpires -__v")
+        .lean();
+      if (full?.profilePicture) full.profilePicture = toWebPath(full.profilePicture);
+      if (Array.isArray(full?.photos)) full.photos = full.photos.map(toWebPath);
+      if (Array.isArray(full?.extraImages)) full.extraImages = full.extraImages.map(toWebPath);
+
+      return res.json(normalizeUserOut(full));
     } catch (err) {
       console.error("Profile update error:", err);
       res.status(500).json({ error: "Profile update failed", details: err.message });
@@ -514,143 +412,61 @@ router.put(
   }
 );
 
-// --- REPLACE START: add GET /profile alias for current user (fix 500 on /api/users/profile)
-// and normalize the payload identically to /api/me
+// --- REPLACE START: GET /profile returns FULL profile (no inclusive selects) ---
 router.get("/profile", authenticateToken, async (req, res) => {
   try {
-    const doc = await User.findById(req.userId).exec();
+    const doc = await User.findById(req.userId)
+      .select("-password -resetToken -passwordResetToken -passwordResetExpires -__v")
+      .lean();
     if (!doc) return res.status(404).json({ error: "User not found" });
-    const u = doc.toJSON ? doc.toJSON() : doc;
-    return res.json(normalizeUserForMe(u));
+
+    if (doc.profilePicture) doc.profilePicture = toWebPath(doc.profilePicture);
+    if (Array.isArray(doc.photos)) doc.photos = doc.photos.map(toWebPath);
+    if (Array.isArray(doc.extraImages)) doc.extraImages = doc.extraImages.map(toWebPath);
+
+    return res.json(normalizeUserOut(doc));
   } catch (err) {
-    console.error("[/api/users/profile] error:", err?.message || err);
+    console.error("[GET /users/profile] error:", err?.message || err);
     return res.status(500).json({ error: "Unable to fetch current user" });
   }
 });
 // --- REPLACE END ---
 
-// --- REPLACE START: Current user via /me but NORMALIZED like /api/me ---
+// --- REPLACE START: GET /me returns FULL profile (no inclusive selects) ---
 router.get("/me", authenticateToken, async (req, res) => {
   try {
-    const doc = await User.findById(req.userId).exec();
+    // Controller getMe-equivalent: findById + exclude password + normalizeUserOut(user)
+    const doc = await User.findById(req.userId)
+      .select("-password -resetToken -passwordResetToken -passwordResetExpires -__v")
+      .lean();
     if (!doc) return res.status(404).json({ error: "User not found" });
-    const u = doc.toJSON ? doc.toJSON() : doc;
-    return res.json(normalizeUserForMe(u));
+
+    if (doc.profilePicture) doc.profilePicture = toWebPath(doc.profilePicture);
+    if (Array.isArray(doc.photos)) doc.photos = doc.photos.map(toWebPath);
+    if (Array.isArray(doc.extraImages)) doc.extraImages = doc.extraImages.map(toWebPath);
+
+    return res.json(normalizeUserOut(doc));
   } catch (err) {
-    console.error("[/api/users/me] error:", err?.message || err);
+    console.error("[GET /users/me] error:", err?.message || err);
     return res.status(500).json({ error: "Unable to fetch current user" });
   }
 });
 // --- REPLACE END ---
 
 // --- REPLACE START: NEW visibility routes (hide / unhide my account) ---
-/**
- * PATCH /users/me/hide
- * Body: { hidden: true, minutes?: number, resumeOnLogin?: boolean }
- * → Delegates to controller.hideAccount (alias of setVisibilityMe)
- */
-router.patch("/me/hide", authenticateToken, hideAccount);
-
-/**
- * PATCH /users/me/unhide
- * Body: (optional) {}
- * → Delegates to controller.unhideAccount (alias of unhideMe)
- */
-router.patch("/me/unhide", authenticateToken, unhideAccount);
+router.patch("/me/hide", authenticateToken, setVisibilityMe);
+router.patch("/me/unhide", authenticateToken, unhideMe);
 // --- REPLACE END ---
 
 // 💎 Premium upgrade (alt path kept for compatibility)
 router.post("/upgrade-premium", authenticateToken, upgradeToPremium);
 router.post("/premium", authenticateToken, upgradeToPremium);
 
-// --- REPLACE START: likes quota helper endpoints (optional but useful for UI) ---
-/**
- * GET /likes/quota
- * Returns today's like quota usage/remaining for the authenticated user.
- */
-router.get("/likes/quota", authenticateToken, async (req, res) => {
-  try {
-    const me = await User.findById(req.userId).lean();
-    if (!me) return res.status(404).json({ error: "User not found" });
+/* =============================================================================
+   LIKE / SUPERLIKE
+============================================================================= */
 
-    const isPremium = !!(me.isPremium || me.premium || me?.entitlements?.tier === "premium");
-    const used = countLikesToday(me);
-    return res.json({
-      limit: isPremium ? null : FREE_LIKES_PER_DAY,
-      used,
-      remaining: isPremium ? null : Math.max(0, FREE_LIKES_PER_DAY - used),
-      isPremium,
-    });
-  } catch (e) {
-    return res.status(500).json({ error: "Unable to compute quota" });
-  }
-});
-// --- REPLACE END ---
-
-// 👀 Who liked me (premium-only)
-router.get("/who-liked-me", authenticateToken, async (req, res) => {
-  try {
-    const me = await User.findById(req.userId);
-    if (!me) return res.status(404).json({ error: "User not found" });
-    if (!me.isPremium) return res.status(403).json({ error: "Premium only" });
-
-    const likers = await User.find({ likes: req.userId }).select("username profilePicture");
-    // --- REPLACE START: normalize profilePicture paths in list ---
-    const out = (likers || []).map((doc) => {
-      const u = doc.toObject ? doc.toObject() : { ...doc };
-      return normalizeUserOut(u);
-    });
-    res.json(out);
-    // --- REPLACE END ---
-  } catch {
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-// 📍 Nearby users (by coordinates)
-router.get("/nearby", authenticateToken, async (req, res) => {
-  try {
-    const user = await User.findById(req.userId);
-    const maxDistanceKm = 50;
-    if (!user || user.latitude == null || user.longitude == null) {
-      return res.status(400).json({ error: "User location is missing" });
-    }
-
-    const users = await User.find({
-      _id: { $ne: req.userId },
-      latitude: { $exists: true },
-      longitude: { $exists: true },
-    }).select("-password");
-
-    const toRad = (deg) => (deg * Math.PI) / 180;
-    const earthRadius = 6371;
-
-    const nearby = users.filter((u) => {
-      const dLat = toRad((u.latitude || 0) - user.latitude);
-      const dLon = toRad((u.longitude || 0) - user.longitude);
-      const a =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos(toRad(user.latitude)) * Math.cos(toRad(u.latitude || 0)) * Math.sin(dLon / 2) ** 2;
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      const d = earthRadius * c;
-      return d <= maxDistanceKm;
-    });
-
-    res.json(nearby);
-  } catch (err) {
-    console.error("Nearby error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-/* ============================================================================
-   SOCIAL GRAPH
-============================================================================ */
-
-// --- REPLACE START: like endpoint with FREE daily quota enforcement ---
-/**
- * ❤️ Like (FREE users: 30/day; Premium unlimited)
- */
+// --- REPLACE START: ❤️ Like with FREE daily quota enforcement ---
 router.post("/like/:id", authenticateToken, async (req, res) => {
   try {
     const current = await User.findById(req.userId);
@@ -663,7 +479,8 @@ router.post("/like/:id", authenticateToken, async (req, res) => {
       return res.status(400).json({ error: "Cannot like yourself" });
     }
 
-    const isPremium = !!(current.isPremium || current.premium || current?.entitlements?.tier === "premium");
+    const isPremium =
+      !!(current.isPremium || current.premium || current?.entitlements?.tier === "premium");
 
     // Quota: FREE only
     if (!isPremium) {
@@ -684,6 +501,7 @@ router.post("/like/:id", authenticateToken, async (req, res) => {
     }
 
     // Record like + timestamp
+    if (!Array.isArray(current.likes)) current.likes = [];
     if (!current.likes.includes(targetId)) {
       current.likes.push(targetId);
     }
@@ -710,17 +528,12 @@ router.post("/like/:id", authenticateToken, async (req, res) => {
 });
 // --- REPLACE END ---
 
-// --- REPLACE START: superlike also creates a notification for the receiver ---
-/**
- * 🌟 Superlike (with premium limits) + notification to the target user
- * Integration requirement: after a successful superlike, create a notification:
- * { toUser: targetId, fromUser: req.userId, type: 'superlike', message: 'You got a Superlike!' }
- * We DO NOT alter existing superlike limit logic; notification is best-effort.
- */
+// --- REPLACE START: 🌟 Superlike (premium limits) + best-effort notification ---
 router.post("/superlike/:id", authenticateToken, async (req, res) => {
   try {
     const current = await User.findById(req.userId);
     const targetId = String(req.params.id || "");
+
     if (!current || !mongoose.Types.ObjectId.isValid(targetId)) {
       return res.status(400).json({ error: "Invalid request" });
     }
@@ -732,10 +545,10 @@ router.post("/superlike/:id", authenticateToken, async (req, res) => {
     current.superLikeTimestamps = (current.superLikeTimestamps || []).filter(
       (ts) => now - new Date(ts) < 48 * 60 * 60 * 1000
     );
-    const limit =
-      current.isPremium || current.premium || current?.entitlements?.tier === "premium"
-        ? 3
-        : 1;
+
+    const premium =
+      current.isPremium || current.premium || current?.entitlements?.tier === "premium";
+    const limit = premium ? 3 : 1;
 
     if (current.superLikeTimestamps.length >= limit) {
       return res.status(403).json({
@@ -747,14 +560,14 @@ router.post("/superlike/:id", authenticateToken, async (req, res) => {
       });
     }
 
-    // Perform superlike record update
+    if (!Array.isArray(current.superLikes)) current.superLikes = [];
     if (!current.superLikes.includes(targetId)) {
       current.superLikes.push(targetId);
       current.superLikeTimestamps.push(now);
       await current.save();
     }
 
-    // --- REPLACE START: Create Notification via controller helper (fallback to model) ---
+    // Best-effort notification (non-blocking)
     try {
       const payload = {
         toUser: targetId,
@@ -762,19 +575,15 @@ router.post("/superlike/:id", authenticateToken, async (req, res) => {
         type: "superlike",
         message: "You got a Superlike!",
       };
-
       if (typeof createNotificationHelper === "function") {
         await createNotificationHelper(payload);
       } else if (Notification && typeof Notification.create === "function") {
         await Notification.create(payload);
-      } else {
-        // No notification plumbing available; silently skip to avoid breaking core flow
       }
     } catch (notifyErr) {
-      // Non-fatal on purpose: do not block superlike if notifications fail
-      console.warn("[superlike] notification creation failed:", notifyErr?.message || notifyErr);
+      console.warn("[superlike] notification failed:", notifyErr?.message || notifyErr);
     }
-    // --- REPLACE END: Notification creation ---
+
     return res.json({
       message: "Superliked successfully",
       window: "48h",
@@ -789,43 +598,48 @@ router.post("/superlike/:id", authenticateToken, async (req, res) => {
 });
 // --- REPLACE END ---
 
+/* =============================================================================
+   BLOCK / MATCHES
+============================================================================= */
+
 // 🚫 Block user
 router.post("/block/:id", authenticateToken, async (req, res) => {
   try {
     const me = await User.findById(req.userId);
-    const blockId = req.params.id;
+    const blockId = String(req.params.id || "");
     if (!me) return res.status(404).json({ message: "User not found" });
+    if (!mongoose.Types.ObjectId.isValid(blockId))
+      return res.status(400).json({ message: "Invalid user ID" });
     if (me._id.equals(blockId)) return res.status(400).json({ message: "Cannot block yourself" });
+
+    if (!Array.isArray(me.blockedUsers)) me.blockedUsers = [];
     if (!me.blockedUsers.includes(blockId)) {
       me.blockedUsers.push(blockId);
       await me.save();
     }
     res.json({ message: "User blocked" });
-  } catch {
+  } catch (err) {
+    console.error("block error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-/* ============================================================================
-   MATCHES
-============================================================================ */
+// Matches
 router.get("/matches", authenticateToken, getMatchesWithScore);
 
-/* ============================================================================
-   PARAM VALIDATION (prevents /:id from matching non-ObjectId like "profile")
-============================================================================ */
-// --- REPLACE START: validate :id to avoid CastError/500 ---
+/* =============================================================================
+   PARAM VALIDATION (prevent non-ObjectId from hitting '/:id')
+============================================================================= */
 router.param("id", (req, res, next, id) => {
   if (!mongoose.Types.ObjectId.isValid(String(id))) {
     return res.status(400).json({ error: "Invalid user ID" });
   }
   return next();
 });
-// --- REPLACE END ---
 
-/* ============================================================================
+/* =============================================================================
    IMAGES
-============================================================================ */
+============================================================================= */
 router.post(
   "/:id/upload-avatar",
   authenticateToken,
@@ -838,13 +652,18 @@ router.post(
       if (!user) return res.status(404).json({ error: "User not found" });
 
       removeFile(user.profilePicture);
-      user.profilePicture = req.file.path;
+      user.profilePicture = req.file?.path || user.profilePicture;
       await user.save();
 
-      // --- REPLACE START: normalize avatar response (paths + photos mirroring) ---
-      const out = normalizeUserOut(user);
-      return res.json(out);
-      // --- REPLACE END ---
+      const out = await User.findById(id)
+        .select("-password -resetToken -passwordResetToken -passwordResetExpires -__v")
+        .lean();
+      if (out) {
+        if (out.profilePicture) out.profilePicture = toWebPath(out.profilePicture);
+        if (Array.isArray(out.photos)) out.photos = out.photos.map(toWebPath);
+        if (Array.isArray(out.extraImages)) out.extraImages = out.extraImages.map(toWebPath);
+      }
+      return res.json(normalizeUserOut(out));
     } catch (err) {
       console.error("upload-avatar error:", err);
       res.status(500).json({ error: "Avatar upload failed" });
@@ -856,33 +675,49 @@ router.post("/:id/upload-photos", authenticateToken, upload.array("photos", 20),
 router.post("/:id/upload-photo-step", authenticateToken, upload.single("photo"), uploadPhotoStep);
 router.delete("/:id/photos/:slot", authenticateToken, deletePhotoSlot);
 
-/* ============================================================================
+/* =============================================================================
    LISTS & PUBLIC PROFILES
-============================================================================ */
+============================================================================= */
 
-// --- REPLACE START: fix route order (static before /:id to avoid conflicts) ---
+// --- REPLACE START: list all (except me) with safe exclusions only; avoid inclusive selects ---
 router.get("/users/all", authenticateToken, async (req, res) => {
   try {
-    const list = await User.find({ _id: { $ne: req.userId } }).select("username profilePicture extraImages photos");
-    const out = (list || []).map((u) => normalizeUserOut(u));
+    const list = await User.find({ _id: { $ne: req.userId } })
+      .select("-password -resetToken -passwordResetToken -passwordResetExpires -__v")
+      .lean();
+
+    const out = (list || []).map((u) => {
+      if (u.profilePicture) u.profilePicture = toWebPath(u.profilePicture);
+      if (Array.isArray(u.photos)) u.photos = u.photos.map(toWebPath);
+      if (Array.isArray(u.extraImages)) u.extraImages = u.extraImages.map(toWebPath);
+      return normalizeUserOut(u);
+    });
+
     res.json(out);
-  } catch {
+  } catch (err) {
+    console.error("/users/all error:", err);
     res.status(401).json({ error: "Invalid token" });
   }
 });
 // --- REPLACE END ---
 
-// ✅ Public profile by ID
+// ✅ Public profile by ID (safe field exclusions only; no inclusive selects)
 router.get("/:id", async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select(
-      "-password -email -likes -superLikes -blockedUsers"
-    );
+    const user = await User.findById(req.params.id)
+      .select(
+        "-password -resetToken -passwordResetToken -passwordResetExpires -__v -email -likes -superLikes -blockedUsers"
+      )
+      .lean();
     if (!user) return res.status(404).json({ error: "User not found" });
-    // --- REPLACE START: normalize outbound user ---
+
+    if (user.profilePicture) user.profilePicture = toWebPath(user.profilePicture);
+    if (Array.isArray(user.photos)) user.photos = user.photos.map(toWebPath);
+    if (Array.isArray(user.extraImages)) user.extraImages = user.extraImages.map(toWebPath);
+
     return res.json(normalizeUserOut(user));
-    // --- REPLACE END ---
-  } catch {
+  } catch (err) {
+    console.error("public profile error:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -890,3 +725,17 @@ router.get("/:id", async (req, res) => {
 // --- REPLACE START: ESM export default router ---
 export default router;
 // --- REPLACE END ---
+
+/* =============================================================================
+   NOTES
+   - GET /me and GET /profile now return the FULL profile using:
+     findById().select("-password ...") + normalizeUserOut(user), as requested.
+   - normalizeUserForMe was intentionally removed from usage to avoid field limits.
+   - Ensured there are NO inclusive selects like .select("username email ...")
+     anywhere; only exclusive selects (minus sensitive fields) are used.
+   - Replacement regions are marked between // --- REPLACE START and // --- REPLACE END.
+============================================================================= */
+
+
+
+

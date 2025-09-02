@@ -1,3 +1,5 @@
+// File: server/routes/me.js
+
 // --- REPLACE START: Consistent /api/me that returns isPremium, premium and entitlements.tier ---
 import express from "express";
 

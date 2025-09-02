@@ -7,20 +7,24 @@ import Slider from "react-slick";
 
 import ProfileCard from "./ProfileCard";
 
-// Slick-carousel styles (kept to ensure styles are present regardless of App.jsx)
+// Slick-carousel styles (kept to ensure styles are present regardless of App mounting order)
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
 /**
  * Displays a carousel of profile cards (one at a time),
  * or a fallback message if there are no users.
+ * Notes:
+ * - Uses stable keys derived from normalized ids (id | _id)
+ * - Forces slider remount on dataset changes to avoid stale active index
+ * - Keeps behavior consistent with Discover and other pages
  */
 const ProfileCardList = ({ users = [], onAction }) => {
-  // --- REPLACE START: normalize users & stable ids; only show "no results" if truly empty ---
+  // --- Normalize ids and filter out invalid user entries (defensive) ---
   const normalizeId = (val) => {
     if (val == null) return null;
     try {
-      // Handle ObjectId-like objects
+      // If ObjectId-like instance
       if (typeof val === "object" && typeof val.toString === "function") {
         return val.toString();
       }
@@ -30,30 +34,33 @@ const ProfileCardList = ({ users = [], onAction }) => {
     }
   };
 
-  const safeUsers = Array.isArray(users)
-    ? users
-        .filter((u) => u && (u.id != null || u._id != null))
-        .map((u) => ({ ...u, id: normalizeId(u.id ?? u._id) }))
-    : [];
+  // Build a safe, normalized array that always has string `id`
+  const safeUsers = useMemo(() => {
+    if (!Array.isArray(users)) return [];
+    return users
+      .filter((u) => u && (u.id != null || u._id != null))
+      .map((u) => ({ ...u, id: normalizeId(u.id ?? u._id) }))
+      .filter((u) => !!u.id);
+  }, [users]);
 
+  // Empty state if no valid users
   if (safeUsers.length === 0) {
     return (
       <p className="text-center text-gray-500 mt-6">🔍 No results found</p>
     );
   }
-  // --- REPLACE END ---
 
   const sliderRef = useRef(null);
 
-  // --- REPLACE START: compute stable key from normalized ids and force slider remount on change ---
+  // Compute a stable content key: when user set changes, this string changes
   const userKey = safeUsers.map((u) => u.id).join("|");
-  // --- REPLACE END ---
 
+  // When dataset changes, jump back to the first slide without animation flicker
   useEffect(() => {
-    // Jump to first slide when the dataset changes to avoid stale index
     sliderRef.current?.slickGoTo(0, /* dontAnimate */ true);
   }, [userKey]);
 
+  // Slider settings (kept minimal and consistent with project defaults)
   const settings = useMemo(
     () => ({
       initialSlide: 0,
@@ -83,7 +90,7 @@ const ProfileCardList = ({ users = [], onAction }) => {
         className="mx-auto w-full max-w-[800px]"
         style={{ overflowAnchor: "none" }}
       >
-        {/* --- REPLACE START: add key to Slider so it fully resets when user set changes --- */}
+        {/* Key forces full remount when user set changes to reset internal state */}
         <Slider
           key={userKey}
           ref={sliderRef}
@@ -109,7 +116,6 @@ const ProfileCardList = ({ users = [], onAction }) => {
             );
           })}
         </Slider>
-        {/* --- REPLACE END --- */}
       </div>
     </div>
   );
