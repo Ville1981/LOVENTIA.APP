@@ -1,43 +1,40 @@
-// --- REPLACE START: load environment variables and import alert helper ---
+/**
+ * Application entrypoint (Express)
+ * - Hardens security headers and input sanitization
+ * - Robust Mongo connection with diagnostics
+ * - Correct Stripe webhook mounting order (raw body BEFORE json)
+ * - Mounts core API routes (auth, users, messages, payment, billing, admin, discover)
+ * - Mounts premium-related routes (likes, superlikes, rewind) and search with premium-only dealbreakers
+ * - Serves uploads, optional SPA client, and provides health endpoints
+ * - Initializes Socket.io (if socket.js present)
+ * - Graceful shutdown on SIGINT/SIGTERM
+ */
+
+'use strict';
+
 require('dotenv').config();
 const { checkThreshold } = require('./utils/alertRules.js');
-// --- REPLACE END ---
 
 const express       = require('express');
 const mongoose      = require('mongoose');
 const cookieParser  = require('cookie-parser');
 const path          = require('path');
-
-// --- REPLACE START: add fs for uploads dir ensure ---
 const fs            = require('fs');
-// --- REPLACE END ---
 
-// Optional-but-useful middlewares (safe, non-breaking)
 const morgan        = require('morgan');
 const compression   = require('compression');
 const responseTime  = require('response-time');
 const { v4: uuidv4} = require('uuid');
 
-// --- REPLACE START: use centralized CORS config instead of inline cors(...) ---
-const corsConfig    = require('./config/corsConfig.js');
-// --- REPLACE END ---
-
-// --- REPLACE START: import security headers middleware ---
+const corsConfig      = require('./config/corsConfig.js');
 const securityHeaders = require('./utils/securityHeaders.js');
-// --- REPLACE END ---
+const swagger         = require('./swagger-config.js');
 
-// --- REPLACE START: import centralized Swagger config ---
-const swagger = require('./swagger-config.js');
-// --- REPLACE END ---
-
-// --- REPLACE START: import XSS & SQL sanitizers ---
 const xssSanitizer = require('./middleware/xssSanitizer.js');
 const sqlSanitizer = require('./middleware/sqlSanitizer.js');
-// --- REPLACE END ---
 
-// --- REPLACE START: import request validators & schemas ---
 const { validateBody } = require('./middleware/validateRequest.js');
-// Prefer validators from src if present, else fallback to legacy location
+
 let loginSchema, registerSchema;
 try {
   ({ loginSchema, registerSchema } = require('./src/api/validators/authValidator.js'));
@@ -45,13 +42,11 @@ try {
   try {
     ({ loginSchema, registerSchema } = require('./validators/authValidator.js'));
   } catch (_e) {
-    // Schemas optional; /api/auth/login & /api/auth/register will still work without them.
+    // Optional: controllers will still validate server-side.
   }
 }
-// --- REPLACE END ---
 
-// *** FIXED PATH ***
-// --- REPLACE START: point to api/controllers/authController (prefer src, fallback legacy) ---
+// Prefer src/api/controllers; fallback to api/controllers; finally null (routes still work)
 let authController;
 try {
   authController = require('./src/api/controllers/authController.js');
@@ -62,12 +57,11 @@ try {
     authController = null;
   }
 }
-// --- REPLACE END ---
 
-// --- REPLACE START: import auth check & role-based authorization ---
 const authorizeRoles = require('./middleware/roleAuthorization.js');
 const { pathToFileURL } = require('url');
 
+// Dynamic import helper to support ESM/CJS for authenticate middleware
 const authenticateModuleURL = pathToFileURL(
   path.resolve(__dirname, './middleware/authenticate.js')
 ).href;
@@ -81,39 +75,35 @@ async function authenticate(req, res, next) {
     return next(err);
   }
 }
-// --- REPLACE END ---
 
-// --- REPLACE START: fix model import paths to actual location in ./models ---
+// Ensure core models are registered (safe to require even if not directly used here)
 try { require(path.resolve(__dirname, './models/User.js')); } catch(_) {}
 try { require(path.resolve(__dirname, './models/Message.js')); } catch (_) {}
 try { require(path.resolve(__dirname, './models/Payment.js')); } catch (_) {}
-// --- REPLACE END ---
 
+// ──────────────────────────────────────────────────────────────────────────────
+// App bootstrap
+// ──────────────────────────────────────────────────────────────────────────────
 const app = express();
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   App-level telemetry & utilities (non-breaking)
-────────────────────────────────────────────────────────────────────────────── */
 const IS_TEST = process.env.NODE_ENV === 'test';
 const IS_PROD = process.env.NODE_ENV === 'production';
 const IS_DEV  = !IS_TEST && !IS_PROD;
 
-// === i18n locales static (optional) ===
-// Serve /locales when USE_SERVER_LOCALES=true (client can also serve locales from its own public/ folder)
+// Optional i18n static (server-served locales). Client can also serve these.
 if (process.env.USE_SERVER_LOCALES === 'true') {
   app.use(
     '/locales',
     express.static(path.join(process.cwd(), 'public', 'locales'), {
       fallthrough: false,
       index: false,
-      maxAge: 0
+      maxAge: 0,
     })
   );
   console.log('[i18n] Serving locales from server at /locales');
 }
-// === end locales static ===
 
-// Attach a request-id for correlation
+// Attach a request-id for correlation & diagnostics
 app.use((req, _res, next) => {
   req.id = req.headers['x-request-id'] || uuidv4();
   next();
@@ -130,15 +120,12 @@ app.use(responseTime());
 // Gzip/deflate compression (safe for JSON & static)
 app.use(compression());
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   Swagger-UI Integration
-────────────────────────────────────────────────────────────────────────────── */
+// Swagger UI
 app.use('/api-docs', swagger.serve, swagger.setup);
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   MongoDB connection
-────────────────────────────────────────────────────────────────────────────── */
-// --- REPLACE START: robust Mongo setup (disable buffering + helper connect) ---
+// ──────────────────────────────────────────────────────────────────────────────
+/* MongoDB connection */
+// ──────────────────────────────────────────────────────────────────────────────
 const MONGO_URI = process.env.MONGO_URI;
 
 try {
@@ -190,11 +177,10 @@ if (!IS_TEST) {
 mongoose.connection.on('connected', () => console.log('✅ Mongo connected'));
 mongoose.connection.on('disconnected', () => console.warn('⚠️ Mongo disconnected'));
 mongoose.connection.on('error', (e) => console.error('❌ Mongo error:', e?.message || e));
-// --- REPLACE END ---
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   CORS & Preflight Handler
-────────────────────────────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────────────────────────
+/* CORS & Preflight */
+// ──────────────────────────────────────────────────────────────────────────────
 app.use(corsConfig);
 app.options('/api/auth/refresh', corsConfig, (req, res) => res.sendStatus(200));
 app.options(
@@ -202,21 +188,21 @@ app.options(
   corsConfig,
   (req, res) => res.sendStatus(200)
 );
-
-// --- REPLACE START: broaden preflight for auth + legacy root endpoints ---
-app.options(['/api/auth/*', '/register', '/login', '/logout', '/refresh', '/me', '/profile'], corsConfig, (req, res) =>
-  res.sendStatus(200)
+// broaden preflight for auth + legacy root endpoints
+app.options(
+  ['/api/auth/*', '/register', '/login', '/logout', '/refresh', '/me', '/profile'],
+  corsConfig,
+  (req, res) => res.sendStatus(200)
 );
-// --- REPLACE END ---
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   Security Headers
-────────────────────────────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────────────────────────
+/* Security headers */
+// ──────────────────────────────────────────────────────────────────────────────
 app.use(securityHeaders);
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   Cookies
-────────────────────────────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────────────────────────
+/* Cookies */
+// ──────────────────────────────────────────────────────────────────────────────
 let cookieOptions;
 try {
   ({ cookieOptions } = require('./src/utils/cookieOptions.js'));
@@ -230,43 +216,58 @@ try {
 app.set('trust proxy', 1);
 app.use(cookieParser());
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   HTTPS redirect in production (kept behind feature flag)
-────────────────────────────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────────────────────────
+/* HTTPS redirect in production (behind feature flag) */
+// ──────────────────────────────────────────────────────────────────────────────
 const FORCE_HTTPS = process.env.FORCE_HTTPS === 'true';
 if (IS_PROD && FORCE_HTTPS) {
   try {
     app.use(require('./middleware/httpsRedirect.js'));
-  } catch(_) {}
+  } catch(_) {
+    // Optional middleware
+  }
 }
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   Body parsers
-────────────────────────────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────────────────────────
+/* Webhooks — Stripe BEFORE body parsers (raw body required) */
+// ──────────────────────────────────────────────────────────────────────────────
+if (!IS_TEST) {
+  try {
+    // Router defines: POST /payment/stripe-webhook (express.raw)
+    const stripeWebhookRouter = require('./routes/stripeWebhook.js');
+    // Mount at '/api' so final path is /api/payment/stripe-webhook
+    app.use('/api', stripeWebhookRouter);
+    console.log('💳 Mounted Stripe webhook at /api/payment/stripe-webhook (pre-body-parser)');
+  } catch (e) {
+    console.warn('⚠️ Stripe webhook route not mounted:', e && e.message ? e.message : e);
+  }
+} else {
+  console.log('ℹ️ Test mode: skipping Stripe webhook mount.');
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+/* Body parsers */
+// ──────────────────────────────────────────────────────────────────────────────
 app.use(express.json({ limit: '1mb', strict: true, type: 'application/json' }));
 app.use(express.urlencoded({ extended: true }));
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   Sanitizers
-────────────────────────────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────────────────────────
+/* Sanitizers */
+// ──────────────────────────────────────────────────────────────────────────────
 app.use(xssSanitizer);
 app.use(sqlSanitizer);
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   DB readiness guard (prevents 500 if Mongo not connected)
-────────────────────────────────────────────────────────────────────────────── */
-// --- REPLACE START: dbReady middleware to guard DB-backed endpoints ---
+// ──────────────────────────────────────────────────────────────────────────────
+/* DB readiness guard */
+// ──────────────────────────────────────────────────────────────────────────────
 function dbReady(req, res, next) {
-  // 1 = connected
   if (mongoose.connection.readyState === 1) return next();
   return res.status(503).json({ error: 'Database not connected. Please try again shortly.' });
 }
-// --- REPLACE END ---
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   Diagnostics & internal utilities
-────────────────────────────────────────────────────────────────────────────── */
-// Simple heartbeat that includes request-id (useful behind proxies)
+// ──────────────────────────────────────────────────────────────────────────────
+/* Diagnostics & internal utilities */
+// ──────────────────────────────────────────────────────────────────────────────
 app.get('/healthcheck', (req, res) => {
   res.json({
     ok: true,
@@ -276,7 +277,6 @@ app.get('/healthcheck', (req, res) => {
   });
 });
 
-// Test alerts endpoint
 app.get('/test-alerts', async (req, res) => {
   try {
     await checkThreshold('Error Rate', 100, Number(process.env.ERROR_RATE_THRESHOLD));
@@ -286,31 +286,23 @@ app.get('/test-alerts', async (req, res) => {
   }
 });
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   Webhook routes (before body parsers if raw is needed)
-────────────────────────────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────────────────────────
+/* Webhook routes (legacy/paypal) — AFTER parsers (no raw body needed) */
+// ──────────────────────────────────────────────────────────────────────────────
 if (!IS_TEST) {
-  try {
-    const stripeWebhookRouter = require('./routes/stripeWebhook.js');
-    app.use('/api/payment/stripe-webhook', stripeWebhookRouter);
-  } catch(_) {}
   try {
     const paypalWebhookRouter = require('./routes/paypalWebhook.js');
     app.use('/api/payment/paypal-webhook', paypalWebhookRouter);
-  } catch(_) {}
+  } catch(_) {
+    // optional
+  }
 } else {
   console.log('ℹ️ Test mode: skipping webhook route mounts.');
 }
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   Static content (uploads + optional client build)
-────────────────────────────────────────────────────────────────────────────── */
-// --- REPLACE START: serve /uploads from project root (process.cwd()) with ensured subfolders & CORS headers ---
-/**
- * Serve user-uploaded assets from a single, absolute root based on process.cwd().
- * CORS middleware runs BEFORE this block so responses inherit proper headers.
- * We also ensure common subfolders exist to avoid Multer ENOENT on first boot.
- */
+// ──────────────────────────────────────────────────────────────────────────────
+/* Static content (uploads + optional client build) */
+// ──────────────────────────────────────────────────────────────────────────────
 const uploadsRoot = path.join(process.cwd(), 'uploads');
 try {
   if (!fs.existsSync(uploadsRoot)) fs.mkdirSync(uploadsRoot, { recursive: true });
@@ -327,7 +319,6 @@ app.use(
   express.static(uploadsRoot, {
     fallthrough: false,
     index: false,
-    // Let browsers revalidate; adjust if you want stronger caching in prod
     maxAge: 0,
     setHeaders(res) {
       // Ensure assets are viewable cross-origin (e.g., from Vite dev server)
@@ -337,7 +328,6 @@ app.use(
     },
   })
 );
-// --- REPLACE END ---
 
 // Optionally serve client build (controlled by env; harmless if not present)
 if (process.env.SERVE_CLIENT === 'true') {
@@ -349,7 +339,7 @@ if (process.env.SERVE_CLIENT === 'true') {
   let staticDir = null;
   for (const c of candidates) {
     try {
-      if (require('fs').existsSync(c)) {
+      if (fs.existsSync(c)) {
         staticDir = c;
         break;
       }
@@ -366,9 +356,9 @@ if (process.env.SERVE_CLIENT === 'true') {
   }
 }
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   Helper to try src route first, then fallback
-────────────────────────────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────────────────────────
+/* Helper to try src route first, then fallback */
+// ──────────────────────────────────────────────────────────────────────────────
 function tryRequireRoute(primary, ...candidates) {
   const attempts = [primary, ...candidates];
   for (const p of attempts) {
@@ -383,9 +373,9 @@ function tryRequireRoute(primary, ...candidates) {
   throw err;
 }
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   Health routes (alias endpoints for LB/proxy checks)
-────────────────────────────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────────────────────────
+/* Health routes (alias endpoints for LB/proxy checks) */
+// ──────────────────────────────────────────────────────────────────────────────
 try {
   const healthRoute = require('./routes/health.js');
   app.use('/api/health', healthRoute);
@@ -395,10 +385,11 @@ try {
   // If health route missing, keep the /healthcheck basic endpoint above
 }
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   Auth routes
-────────────────────────────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────────────────────────
+/* Auth routes */
+// ──────────────────────────────────────────────────────────────────────────────
 if (IS_TEST) {
+  // Minimal JWT auth for tests
   const jwt = require('jsonwebtoken');
   const testAuth = express.Router();
 
@@ -410,7 +401,7 @@ if (IS_TEST) {
   testAuth.post('/login', noValidate, (req, res) => {
     const { email } = req.body || {};
     const userId = '000000000000000000000001';
-    const role = 'user'; // ✅ FIX: replaced erroneous "the role" with valid declaration
+    const role = 'user';
 
     const accessToken = jwt.sign(
       { id: userId, userId, role, email },
@@ -463,7 +454,7 @@ if (IS_TEST) {
   if (authController && typeof authController.login === 'function') {
     app.post(
       '/api/auth/login',
-      dbReady, // --- ensure DB is connected before hitting controller ---
+      dbReady, // ensure DB is connected before hitting controller
       loginSchema ? validateBody(loginSchema) : (req, _res, next) => next(),
       authController.login
     );
@@ -472,7 +463,7 @@ if (IS_TEST) {
   if (authController && typeof authController.register === 'function') {
     app.post(
       '/api/auth/register',
-      dbReady, // --- ensure DB is connected before hitting controller ---
+      dbReady,
       registerSchema ? validateBody(registerSchema) : (req, _res, next) => next(),
       authController.register
     );
@@ -489,7 +480,9 @@ if (IS_TEST) {
   app.use('/api/auth', authRoutes);
 }
 
-// --- REPLACE START: add legacy root aliases that forward to /api/auth/* + /api/users/* ---
+// ──────────────────────────────────────────────────────────────────────────────
+/* Legacy root aliases that forward to /api/auth/* + /api/users/* */
+// ──────────────────────────────────────────────────────────────────────────────
 const alias = express.Router();
 
 // Auth root → /api/auth
@@ -504,29 +497,28 @@ alias.get('/profile',   (req, _res, next) => { req.url = '/api/users/profile'; r
 alias.put('/profile',   (req, _res, next) => { req.url = '/api/users/profile'; return next(); });
 
 app.use(alias);
-// --- REPLACE END ---
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   Feature routes (non-test)
-────────────────────────────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────────────────────────
+/* Feature routes (non-test) */
+// ──────────────────────────────────────────────────────────────────────────────
 if (!IS_TEST) {
   // Users
   try {
     const userRoutes = tryRequireRoute(
-      './routes/userRoutes.js',                 // ✅ preferred modern ESM/CJS router
+      './routes/userRoutes.js',                 // preferred modern router
       './src/routes/userRoutes.js',
       path.resolve(__dirname, '../routes/userRoutes.js')
     );
-    // --- REPLACE START: IMPORTANT — do NOT mount legacy ./routes/user.js to avoid duplicates ---
-    // We intentionally DO NOT mount ./routes/user.js (legacy). If it exists, we warn once.
+    // IMPORTANT — do NOT mount legacy ./routes/user.js to avoid duplicates
     try {
       require.resolve('./routes/user.js');
       console.warn('⚠️ Legacy routes/user.js detected but NOT mounted to avoid duplicate endpoints.');
     } catch {}
-    // Mount the modern users router only (guarded by dbReady):
+    // Mount the modern users router only (guarded by dbReady + auth)
     app.use('/api/users', dbReady, authenticate, authorizeRoles('admin', 'user'), userRoutes);
-    // --- REPLACE END ---
-  } catch(_) {}
+  } catch(_) {
+    // optional feature
+  }
 
   // Messages
   try {
@@ -537,7 +529,7 @@ if (!IS_TEST) {
     );
     app.use('/api/messages', authenticate, authorizeRoles('user'), messageRoutes);
   } catch (_) {
-    // Optional feature; skip if route file not present
+    // optional feature
   }
 
   // Payments
@@ -548,7 +540,23 @@ if (!IS_TEST) {
       path.resolve(__dirname, '../routes/paymentRoutes.js')
     );
     app.use('/api/payment', authenticate, authorizeRoles('user'), paymentRoutes);
-  } catch (_) {}
+  } catch (_) {
+    // optional
+  }
+
+  // Billing (Stripe Checkout/Portal/Synchronization)
+  try {
+    const billingRoutes = tryRequireRoute(
+      './routes/billing.js',
+      './src/routes/billing.js',
+      path.resolve(__dirname, '../routes/billing.js')
+    );
+    // Require auth for billing ops; DB must be ready for user lookups/updates
+    app.use('/api/billing', dbReady, authenticate, authorizeRoles('user'), billingRoutes);
+    console.log('🧾 Mounted /api/billing routes');
+  } catch (e) {
+    console.warn('⚠️ /api/billing not mounted (missing file or bad export):', e && e.message ? e.message : e);
+  }
 
   // Admin
   try {
@@ -558,7 +566,9 @@ if (!IS_TEST) {
       path.resolve(__dirname, '../routes/adminRoutes.js')
     );
     app.use('/api/admin', authenticate, authorizeRoles('admin'), adminRoutes);
-  } catch (_) {}
+  } catch (_) {
+    // optional
+  }
 
   // Discover
   try {
@@ -568,12 +578,61 @@ if (!IS_TEST) {
       path.resolve(__dirname, '../routes/discoverRoutes.js')
     );
     app.use('/api/discover', authenticate, authorizeRoles('user'), discoverRoutes);
-  } catch (_) {}
+  } catch (_) {
+    // optional
+  }
 
-  // --- REPLACE START: mount /api/notifications with ESM/CJS compatibility ---
+  // Likes (standard likes; server may enforce daily cap for non-premium)
+  try {
+    const likesRoutes = tryRequireRoute(
+      './routes/likes.js',
+      './src/routes/likes.js',
+      path.resolve(__dirname, '../routes/likes.js')
+    );
+    app.use('/api/likes', authenticate, authorizeRoles('user'), likesRoutes);
+  } catch(_) {
+    // optional
+  }
+
+  // Super Likes (feature-gated; client will block if no quota or not entitled)
+  try {
+    const superlikesRoutes = tryRequireRoute(
+      './routes/superlikes.js',
+      './src/routes/superlikes.js',
+      path.resolve(__dirname, '../routes/superlikes.js')
+    );
+    app.use('/api/superlikes', authenticate, authorizeRoles('user'), superlikesRoutes);
+  } catch(_) {
+    // optional
+  }
+
+  // Rewind (premium unlimited; non-premium limited/none)
+  try {
+    const rewindRoutes = tryRequireRoute(
+      './routes/rewind.js',
+      './src/routes/rewind.js',
+      path.resolve(__dirname, '../routes/rewind.js')
+    );
+    app.use('/api/rewind', authenticate, authorizeRoles('user'), rewindRoutes);
+  } catch(_) {
+    // optional
+  }
+
+  // Search / Discover query builder (dealbreakers premium-only)
+  try {
+    const searchRoutes = tryRequireRoute(
+      './routes/search.js',
+      './src/routes/search.js',
+      path.resolve(__dirname, '../routes/search.js')
+    );
+    app.use('/api/search', authenticate, authorizeRoles('user'), searchRoutes);
+  } catch(_) {
+    // optional
+  }
+
+  // Notifications (ESM/CJS compatibility)
   (async () => {
     try {
-      // Prefer ESM dynamic import (our notifications route is ESM)
       const candidates = [
         path.resolve(__dirname, './routes/notifications.js'),
         path.resolve(__dirname, './src/routes/notifications.js'),
@@ -609,19 +668,18 @@ if (!IS_TEST) {
       console.warn('⚠️ Failed to mount /api/notifications:', e && e.message ? e.message : e);
     }
   })();
-  // --- REPLACE END: mount /api/notifications with ESM/CJS compatibility ---
 }
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   Temporary mock users endpoint (kept for backward compatibility)
-────────────────────────────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────────────────────────
+/* Temporary mock users endpoint (kept for backward compatibility) */
+// ──────────────────────────────────────────────────────────────────────────────
 app.get('/api/users', (req, res) => {
   res.json([]);
 });
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   Multer error handler (payload too large / field limits)
-────────────────────────────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────────────────────────
+/* Multer error handler (payload too large / field limits) */
+// ──────────────────────────────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
   if (err && err.name === 'MulterError') {
     return res.status(413).json({ error: err.message });
@@ -629,25 +687,25 @@ app.use((err, req, res, next) => {
   return next(err);
 });
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   404 handler
-────────────────────────────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────────────────────────
+/* 404 handler */
+// ──────────────────────────────────────────────────────────────────────────────
 app.use((req, res) => {
   res.status(404).json({ error: 'Not Found' });
 });
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   Global error handler
-────────────────────────────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────────────────────────
+/* Global error handler */
+// ──────────────────────────────────────────────────────────────────────────────
 app.use((err, req, res, _next) => {
   const requestId = req.id || 'n/a';
   console.error(`[${requestId}]`, err && err.stack ? err.stack : err);
   res.status(500).json({ error: 'Server Error', requestId });
 });
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   SOCKET.IO INTEGRATION + server start (skipped in tests)
-────────────────────────────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────────────────────────
+/* SOCKET.IO INTEGRATION + server start (skipped in tests) */
+// ──────────────────────────────────────────────────────────────────────────────
 let httpServer = null;
 const PORT = process.env.PORT || 5000;
 
@@ -669,9 +727,9 @@ if (!IS_TEST) {
   console.log('ℹ️ Test mode: HTTP server is not started.');
 }
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   Graceful shutdown (SIGINT/SIGTERM)
-────────────────────────────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────────────────────────
+/* Graceful shutdown (SIGINT/SIGTERM) */
+// ──────────────────────────────────────────────────────────────────────────────
 async function shutdown(signal) {
   try {
     console.log(`\n${signal} received: closing server...`);

@@ -1,5 +1,6 @@
-// src/components/discover/SummaryAccordion.jsx
+// File: src/components/discover/SummaryAccordion.jsx
 
+// --- REPLACE START: robust, lint-clean accordion (fixes earlier syntax error) ---
 import PropTypes from "prop-types";
 import React, { useState } from "react";
 
@@ -29,9 +30,7 @@ const SummaryAccordion = ({ summary = "" }) => {
         style={{ overflowAnchor: "none" }}
       >
         <p
-          className={`text-gray-800 text-sm ${
-            !isExpanded ? "line-clamp-2" : ""
-          }`}
+          className={`text-gray-800 text-sm ${!isExpanded ? "line-clamp-2" : ""}`}
           style={{
             overflowAnchor: "none",
             // Maintain a two-line height when collapsed (approx. 3rem)
@@ -60,3 +59,5 @@ SummaryAccordion.propTypes = {
 };
 
 export default React.memo(SummaryAccordion);
+// --- REPLACE END ---
+

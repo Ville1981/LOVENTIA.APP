@@ -1,6 +1,10 @@
+// File: server/index.js
+
 // --- REPLACE START: load environment variables early ---
 import 'dotenv/config';
 // --- REPLACE END ---
+
+// Router that exposes lightweight /api/me endpoint
 import meRouter from "./routes/me.js";
 
 // --- REPLACE START: Sentry initialization ---
@@ -127,31 +131,6 @@ app.use(Sentry.Handlers.requestHandler());
 app.use(Sentry.Handlers.tracingHandler());
 // --- REPLACE END ---
 
-// Lightweight router already present
-app.use("/api", meRouter);
-
-// --- REPLACE START: Register feature routes under /api ---
-// These were previously mounted with require(); now mounted via ESM-friendly imports.
-app.use('/api', rewindRoutes);        // exposes POST /api/rewind
-app.use('/api', introsRoutes);        // GET /api/intros, POST /api/intros/start
-app.use('/api', dealbreakersRoutes);  // GET/PATCH /api/dealbreakers, POST /api/discover/search
-// If you have QA: uncomment next line
-// app.use('/api', qaRoutes);
-// --- REPLACE END ---
-
-/* ──────────────────────────────────────────────────────────────────────────────
-   Swagger
-────────────────────────────────────────────────────────────────────────────── */
-// --- REPLACE START: Swagger setup ---
-const swaggerPath = path.join(__dirname, 'openapi.yaml');
-if (fs.existsSync(swaggerPath)) {
-  const swaggerDocument = YAML.load(swaggerPath);
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-} else {
-  console.warn('ℹ️ openapi.yaml not found -> Swagger UI disabled.');
-}
-// --- REPLACE END ---
-
 /**
  * Webhooks must read the raw body for signature verification.
  * Keep BEFORE json/urlencoded parsers.
@@ -256,6 +235,32 @@ if (hasClientDist) {
   app.use(express.static(clientDistDir));
 } else {
   console.warn('⚠️  /client-dist not found -> skipping static client serving.');
+}
+// --- REPLACE END ---
+
+// --- REPLACE START: Register lightweight `/api/me` after CORS (fixes CORS header missing) ---
+app.use("/api", meRouter);
+// --- REPLACE END ---
+
+// --- REPLACE START: Register feature routes under /api ---
+// These were previously mounted with require(); now mounted via ESM-friendly imports.
+app.use('/api', rewindRoutes);        // exposes POST /api/rewind
+app.use('/api', introsRoutes);        // GET /api/intros, POST /api/intros/start
+app.use('/api', dealbreakersRoutes);  // GET/PATCH /api/dealbreakers, POST /api/discover/search
+// If you have QA: uncomment next line
+// app.use('/api', qaRoutes);
+// --- REPLACE END ---
+
+/* ──────────────────────────────────────────────────────────────────────────────
+   Swagger
+────────────────────────────────────────────────────────────────────────────── */
+// --- REPLACE START: Swagger setup ---
+const swaggerPath = path.join(__dirname, 'openapi.yaml');
+if (fs.existsSync(swaggerPath)) {
+  const swaggerDocument = YAML.load(swaggerPath);
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+} else {
+  console.warn('ℹ️ openapi.yaml not found -> Swagger UI disabled.');
 }
 // --- REPLACE END ---
 

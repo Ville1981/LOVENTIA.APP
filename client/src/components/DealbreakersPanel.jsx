@@ -1,4 +1,4 @@
-// client/src/components/DealbreakersPanel.jsx
+// File: client/src/components/DealbreakersPanel.jsx
 // --- REPLACE START: minimal Dealbreakers panel (uses API stub) ---
 import React, { useEffect, useState } from "react";
 import { getDealbreakers, updateDealbreakers } from "../api/dealbreakers";
@@ -13,8 +13,6 @@ export default function DealbreakersPanel({ user }) {
     nonSmokerOnly: false,
     noDrugs: false,
     petsOk: null,
-    religion: [],
-    education: [],
   });
   const [saving, setSaving] = useState(false);
   const [info, setInfo] = useState("");
@@ -175,3 +173,4 @@ export default function DealbreakersPanel({ user }) {
   );
 }
 // --- REPLACE END ---
+

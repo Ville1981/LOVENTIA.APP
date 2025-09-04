@@ -200,7 +200,11 @@ const dropForbiddenKeys = (obj) => {
 const schema = yup.object().shape({
   username: yup.string().required("Required"),
   email: yup.string().email("Invalid email").required("Required"),
-  age: yup.number().typeError("Age must be a number").min(18, "Must be at least 18").required("Required"),
+  age: yup
+    .number()
+    .typeError("Age must be a number")
+    .min(18, "Must be at least 18")
+    .required("Required"),
   gender: yup.string().required("Required"),
   orientation: yup.string(),
 
@@ -213,13 +217,19 @@ const schema = yup.object().shape({
 
   education: yup.string(),
 
-  professionCategory: yup.string().oneOf(["", ...professionCategories], "Invalid profession category"),
+  professionCategory: yup
+    .string()
+    .oneOf(["", ...professionCategories], "Invalid profession category"),
   profession: yup.string(),
 
   religion: yup.string().oneOf(religionOptions, "Invalid religion"),
-  religionImportance: yup.string().oneOf(religionImportanceOptions, "Invalid importance"),
+  religionImportance: yup
+    .string()
+    .oneOf(religionImportanceOptions, "Invalid importance"),
 
-  politicalIdeology: yup.string().oneOf(politicalIdeologyOptions, "Invalid political ideology"),
+  politicalIdeology: yup
+    .string()
+    .oneOf(politicalIdeologyOptions, "Invalid political ideology"),
 
   children: yup.string(),
   pets: yup.string(),
@@ -227,16 +237,28 @@ const schema = yup.object().shape({
   drink: yup.string(),
   drugs: yup.string(),
 
-  height: yup.number().nullable().transform((v, o) => (o === "" ? null : v)),
-  heightUnit: yup.string().oneOf(["", "Cm", "FtIn", "cm", "ftin"], "Invalid unit"),
+  height: yup
+    .number()
+    .nullable()
+    .transform((v, o) => (o === "" ? null : v)),
+  heightUnit: yup
+    .string()
+    .oneOf(["", "Cm", "FtIn", "cm", "ftin"], "Invalid unit"),
 
-  weight: yup.number().nullable().transform((v, o) => (o === "" ? null : v)),
-  weightUnit: yup.string().oneOf(["", "kg", "lb", "KG", "LB"], "Invalid unit"),
+  weight: yup
+    .number()
+    .nullable()
+    .transform((v, o) => (o === "" ? null : v)),
+  weightUnit: yup
+    .string()
+    .oneOf(["", "kg", "lb", "KG", "LB"], "Invalid unit"),
 
   bodyType: yup.string(),
   activityLevel: yup.string(),
 
-  nutritionPreferences: yup.string().oneOf(["", ...dietOptions], "Invalid diet"),
+  nutritionPreferences: yup
+    .string()
+    .oneOf(["", ...dietOptions], "Invalid diet"),
   healthInfo: yup.string(),
 
   summary: yup.string(),
@@ -245,20 +267,25 @@ const schema = yup.object().shape({
 
   profilePhoto: yup.string(),
 
-  latitude: yup.number().nullable().transform((v, o) => (o === "" ? null : v)),
-  longitude: yup.number().nullable().transform((v, o) => (o === "" ? null : v)),
+  latitude: yup
+    .number()
+    .nullable()
+    .transform((v, o) => (o === "" ? null : v)),
+  longitude: yup
+    .number()
+    .nullable()
+    .transform((v, o) => (o === "" ? null : v)),
 
   // Kept in state for UX; not submitted in this form payload
   extraImages: yup.array().of(yup.string()),
 });
-
 export default function ProfileForm({
   userId,
   user,
-  isPremium,
+  isPremium = false,
   t,
-  message,
-  success,
+  message = "",
+  success = false,
   onUserUpdate,
   onSubmit: onSubmitProp,
   hideAvatarSection = false,
@@ -317,7 +344,7 @@ export default function ProfileForm({
       latitude: user.latitude ?? null,
       longitude: user.longitude ?? null,
 
-      // we keep it locally, but will NOT include in submit payload
+      // local only
       extraImages: user.extraImages || [],
     },
   });
@@ -330,7 +357,7 @@ export default function ProfileForm({
     setValue,
   } = methods;
 
-  // Keep edits while user object refetches
+  // Reset when user changes
   useEffect(() => {
     const current = getValues();
     reset({
@@ -338,17 +365,22 @@ export default function ProfileForm({
       ...current,
       nutritionPreferences: Array.isArray(user.nutritionPreferences)
         ? user.nutritionPreferences[0]
-        : current.nutritionPreferences ?? user.nutritionPreferences ?? "",
+        : current.nutritionPreferences ??
+          user.nutritionPreferences ??
+          "",
       extraImages: current.extraImages ?? user.extraImages ?? [],
       profilePhoto: current.profilePhoto ?? user.profilePicture ?? "",
-      politicalIdeology: current.politicalIdeology ?? user.politicalIdeology ?? "",
+      politicalIdeology:
+        current.politicalIdeology ?? user.politicalIdeology ?? "",
       heightUnit: current.heightUnit ?? user.heightUnit ?? "",
       weightUnit: current.weightUnit ?? user.weightUnit ?? "",
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, reset]);
 
-  const [localExtraImages, setLocalExtraImages] = useState(user.extraImages || []);
+  const [localExtraImages, setLocalExtraImages] = useState(
+    user.extraImages || []
+  );
   const [avatarPreview, setAvatarPreview] = useState(
     user.profilePicture
       ? user.profilePicture.startsWith("http")
@@ -368,7 +400,7 @@ export default function ProfileForm({
     }
   }, [user.profilePicture]);
 
-  // Guard helpers: force EN constants if user somehow selects localized values
+  // Guard helpers
   const guardSelect =
     (field, allowed) =>
     (e) => {
@@ -377,8 +409,13 @@ export default function ProfileForm({
         setValue(field, v, { shouldValidate: true, shouldDirty: true });
       } else {
         const fallback =
-          allowed.find((x) => x.toLowerCase() === String(v).toLowerCase()) || "";
-        setValue(field, fallback, { shouldValidate: true, shouldDirty: true });
+          allowed.find(
+            (x) => x.toLowerCase() === String(v).toLowerCase()
+          ) || "";
+        setValue(field, fallback, {
+          shouldValidate: true,
+          shouldDirty: true,
+        });
       }
     };
 
@@ -386,7 +423,10 @@ export default function ProfileForm({
     guardSelect("professionCategory", professionCategories),
     []
   );
-  const onReligionChange = useCallback(guardSelect("religion", religionOptions), []);
+  const onReligionChange = useCallback(
+    guardSelect("religion", religionOptions),
+    []
+  );
   const onImportanceChange = useCallback(
     guardSelect("religionImportance", religionImportanceOptions),
     []
@@ -396,31 +436,18 @@ export default function ProfileForm({
     []
   );
 
-  // ---------------------------------------------------------------------------------
-  // Submit cleanup:
-  // - FI→EN fallback for children/pets/education
-  // - Drop empty strings/null/undefined
-  // - nutritionPreferences → array only if selected (length > 0)
-  // - Do NOT include photos/extraImages/entitlements/visibility/billing etc.
-  // - Keep both flat and nested `location`
-  // - Include legacy alias `ideology` mirroring `politicalIdeology`
-  // - Expose last payload in dev for quick Network payload parity checks
-  // ---------------------------------------------------------------------------------
+  // Submit cleanup
   const onFormSubmit = async (data) => {
-    // Normalize measurement units
     const normalizeHeightUnit = (u) =>
       u === "cm" ? "Cm" : u === "ftin" ? "FtIn" : u || "";
     const normalizeWeightUnit = (u) =>
       u === "KG" ? "kg" : u === "LB" ? "lb" : u || "";
 
-    // Shallow copy
     const working = { ...data };
 
-    // Apply unit normalization
     working.heightUnit = normalizeHeightUnit(working.heightUnit);
     working.weightUnit = normalizeWeightUnit(working.weightUnit);
 
-    // FI → EN fallbacks (defensive)
     if (working.children && FI_EN_CHILDREN[working.children]) {
       working.children = FI_EN_CHILDREN[working.children];
     }
@@ -431,7 +458,6 @@ export default function ProfileForm({
       working.education = FI_EN_EDUCATION[working.education];
     }
 
-    // Numbers → number or drop
     ["age", "height", "weight", "latitude", "longitude"].forEach((k) => {
       const raw = working[k];
       if (raw === "" || raw == null) {
@@ -443,56 +469,47 @@ export default function ProfileForm({
       }
     });
 
-    // Remove empty strings/null/undefined
     Object.keys(working).forEach((k) => {
       if (working[k] === "" || working[k] == null) delete working[k];
     });
 
-    // nutritionPreferences → array only if a choice exists
     if (typeof working.nutritionPreferences !== "undefined") {
       const v = String(working.nutritionPreferences || "").trim();
       if (v) working.nutritionPreferences = [v];
       else delete working.nutritionPreferences;
     }
 
-    // Remove custom helper fields
     delete working.customCountry;
     delete working.customRegion;
     delete working.customCity;
 
-    // Build nested location while keeping flat fields
     const loc = {};
     if (typeof working.country !== "undefined") loc.country = working.country;
     if (typeof working.region !== "undefined") loc.region = working.region;
     if (typeof working.city !== "undefined") loc.city = working.city;
-    if (Object.keys(loc).length) working.location = { ...(working.location || {}), ...loc };
+    if (Object.keys(loc).length)
+      working.location = { ...(working.location || {}), ...loc };
 
-    // Provide legacy alias for compatibility
     if (typeof working.politicalIdeology !== "undefined") {
       working.ideology = working.politicalIdeology;
     }
 
-    // Strictly avoid forbidden keys and arrays we must not send
     dropForbiddenKeys(working);
-    if (Array.isArray(working.extraImages) && working.extraImages.length === 0) {
+    if (Array.isArray(working.extraImages) && working.extraImages.length === 0)
       delete working.extraImages;
-    }
 
-    // Helpful debug visibility in dev: mirror what is going to backend
-    if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
-      // eslint-disable-next-line no-console
+    if (
+      typeof window !== "undefined" &&
+      process.env.NODE_ENV !== "production"
+    ) {
       console.debug("[ProfileForm] Sanitized payload →", working);
-      // expose for quick comparisons with Network tab
       window.__lastProfileSubmit = working;
     }
 
-    // Finally submit to parent handler (axios PUT lives there)
     await onSubmitProp?.(working);
   };
 
-  // ---------------------------------------------------------------------------------
-  // Small avatar + gallery preview (non-blocking, helps confirm what will show)
-  // ---------------------------------------------------------------------------------
+  // Slideshow
   const slideshowImages = useMemo(() => {
     const arr = [];
     if (avatarPreview) arr.push(avatarPreview);
@@ -511,16 +528,23 @@ export default function ProfileForm({
   useEffect(() => setSlideIndex(0), [slideshowImages.length]);
   useEffect(() => {
     if (slideshowImages.length < 2) return;
-    const iv = setInterval(() => setSlideIndex((i) => (i + 1) % slideshowImages.length), 3500);
+    const iv = setInterval(
+      () => setSlideIndex((i) => (i + 1) % slideshowImages.length),
+      3500
+    );
     return () => clearInterval(iv);
   }, [slideshowImages]);
 
   const nextSlide = () =>
     setSlideIndex((i) => (i + 1) % Math.max(slideshowImages.length, 1));
   const prevSlide = () =>
-    setSlideIndex((i) => (i - 1 + Math.max(slideshowImages.length, 1)) % Math.max(slideshowImages.length, 1));
+    setSlideIndex(
+      (i) =>
+        (i - 1 + Math.max(slideshowImages.length, 1)) %
+        Math.max(slideshowImages.length, 1)
+    );
 
-  // i18n helpers (labels only, values remain EN constants)
+  // i18n helpers
   const tProfessionLabel = () =>
     t("profile:Profession category", { defaultValue: "" }) ||
     t("profile:professionCategory.label", { defaultValue: "" }) ||
@@ -557,14 +581,10 @@ export default function ProfileForm({
       <form
         onSubmit={handleSubmit(
           onFormSubmit,
-          (errs) => {
-            // eslint-disable-next-line no-console
-            console.warn("[ProfileForm] Validation errors:", errs);
-          }
+          (errs) => console.warn("[ProfileForm] Validation errors:", errs)
         )}
         className="bg-white shadow rounded-lg p-6 space-y-6"
       >
-        {/* Keep this as a hidden field – allowed to submit if set */}
         <input type="hidden" {...methods.register("profilePhoto")} />
 
         {!hideAvatarSection && slideshowImages.length > 0 && (
@@ -581,7 +601,6 @@ export default function ProfileForm({
                     type="button"
                     onClick={prevSlide}
                     className="absolute left-0 top-1/2 -translate-y-1/2 bg-white/70 hover:bg-white px-2 py-1 rounded-l text-sm"
-                    aria-label="Previous"
                   >
                     ‹
                   </button>
@@ -589,14 +608,16 @@ export default function ProfileForm({
                     type="button"
                     onClick={nextSlide}
                     className="absolute right-0 top-1/2 -translate-y-1/2 bg-white/70 hover:bg-white px-2 py-1 rounded-r text-sm"
-                    aria-label="Next"
                   >
                     ›
                   </button>
                 </>
               )}
             </div>
-            <Link to="/profile/photos" className="mt-2 text-blue-600 hover:underline">
+            <Link
+              to="/profile/photos"
+              className="mt-2 text-blue-600 hover:underline"
+            >
               {t("profile:managePhotos") || "Manage Photos"}
             </Link>
           </div>
@@ -636,7 +657,9 @@ export default function ProfileForm({
               ))}
             </select>
             {errors.professionCategory && (
-              <p className="mt-1 text-red-600">{errors.professionCategory.message}</p>
+              <p className="mt-1 text-red-600">
+                {errors.professionCategory.message}
+              </p>
             )}
           </div>
 
@@ -650,7 +673,11 @@ export default function ProfileForm({
               className="w-full border rounded px-3 py-2 text-sm"
               placeholder={t("profile:professionPlaceholder")}
             />
-            {errors.profession && <p className="mt-1 text-red-600">{errors.profession.message}</p>}
+            {errors.profession && (
+              <p className="mt-1 text-red-600">
+                {errors.profession.message}
+              </p>
+            )}
           </div>
 
           <div>
@@ -664,11 +691,15 @@ export default function ProfileForm({
             >
               {religionOptions.map((opt) => (
                 <option key={opt} value={opt}>
-                  {opt ? t(`religion.${opt.toLowerCase()}`) || opt : t("common:select")}
+                  {opt
+                    ? t(`religion.${opt.toLowerCase()}`) || opt
+                    : t("common:select")}
                 </option>
               ))}
             </select>
-            {errors.religion && <p className="mt-1 text-red-600">{errors.religion.message}</p>}
+            {errors.religion && (
+              <p className="mt-1 text-red-600">{errors.religion.message}</p>
+            )}
           </div>
         </div>
 
@@ -688,11 +719,13 @@ export default function ProfileForm({
             ))}
           </select>
           {errors.religionImportance && (
-            <p className="mt-1 text-red-600">{errors.religionImportance.message}</p>
+            <p className="mt-1 text-red-600">
+              {errors.religionImportance.message}
+            </p>
           )}
         </div>
 
-        {/* Political Ideology (EN constants) */}
+        {/* Political Ideology */}
         <div>
           <label className="block text-sm font-medium mb-1">
             🗳 {tPoliticalLabel()}
@@ -709,16 +742,20 @@ export default function ProfileForm({
             ))}
           </select>
           {errors.politicalIdeology && (
-            <p className="mt-1 text-red-600">{errors.politicalIdeology.message}</p>
+            <p className="mt-1 text-red-600">
+              {errors.politicalIdeology.message}
+            </p>
           )}
         </div>
 
         <FormChildrenPets t={t} errors={errors} />
-
         <FormLifestyle t={t} includeAllOption />
-
-        <FormGoalSummary t={t} errors={errors} fieldName="goal" summaryField="summary" />
-
+        <FormGoalSummary
+          t={t}
+          errors={errors}
+          fieldName="goal"
+          summaryField="summary"
+        />
         <FormLookingFor t={t} errors={errors} fieldName="lookingFor" />
 
         {!hidePhotoSection && userId && (
@@ -739,20 +776,29 @@ export default function ProfileForm({
 
         {Object.keys(errors || {}).length > 0 && (
           <p className="text-sm mt-2 text-red-600">
-            {t("common:fixErrors") || "Please fix the highlighted fields before saving."}
+            {t("common:fixErrors") ||
+              "Please fix the highlighted fields before saving."}
           </p>
         )}
 
         <div className="flex items-center justify-between">
           {slideshowImages.length > 1 ? (
             <div className="flex items-center space-x-2 text-xs text-gray-500">
-              <button type="button" onClick={prevSlide} className="px-2 py-1 border rounded">
+              <button
+                type="button"
+                onClick={prevSlide}
+                className="px-2 py-1 border rounded"
+              >
                 {t("common:prev") || "Prev"}
               </button>
               <span>
                 {slideIndex + 1}/{slideshowImages.length}
               </span>
-              <button type="button" onClick={nextSlide} className="px-2 py-1 border rounded">
+              <button
+                type="button"
+                onClick={nextSlide}
+                className="px-2 py-1 border rounded"
+              >
                 {t("common:next") || "Next"}
               </button>
             </div>
@@ -760,13 +806,22 @@ export default function ProfileForm({
             <span className="text-xs text-gray-400">&nbsp;</span>
           )}
 
-          <button type="submit" className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+          <button
+            type="submit"
+            className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+          >
             {t("profile:save")}
           </button>
         </div>
 
-        {success && <p className="text-center text-green-600">{t("profile:saveSuccess")}</p>}
-        {!success && message && <p className="text-center text-red-600">{message}</p>}
+        {success && (
+          <p className="text-center text-green-600">
+            {t("profile:saveSuccess")}
+          </p>
+        )}
+        {!success && message && (
+          <p className="text-center text-red-600">{message}</p>
+        )}
       </form>
     </FormProvider>
   );
@@ -781,19 +836,8 @@ ProfileForm.propTypes = {
   success: PropTypes.bool,
   onUserUpdate: PropTypes.func.isRequired,
   onSubmit: PropTypes.func,
-  onSubmitProp: PropTypes.func, // used internally
+  onSubmitProp: PropTypes.func,
   hideAvatarSection: PropTypes.bool,
   hidePhotoSection: PropTypes.bool,
-};
-
-ProfileForm.defaultProps = {
-  userId: undefined,
-  isPremium: false,
-  message: "",
-  success: false,
-  onSubmit: undefined,
-  onSubmitProp: undefined,
-  hideAvatarSection: false,
-  hidePhotoSection: false,
 };
 // --- REPLACE END ---

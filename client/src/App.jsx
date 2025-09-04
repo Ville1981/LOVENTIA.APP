@@ -3,7 +3,7 @@
 // --- REPLACE START: import grouping and PrivateRoute/AdminRoute using context user+bootstrapped ---
 import React, { useEffect, Suspense } from "react";
 import {
-  BrowserRouter as Router,
+  BrowserRouter,
   Routes,
   Route,
   Navigate,
@@ -80,9 +80,14 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      {/* --- REPLACE START: assume AuthProvider wraps the app in main.jsx; no nested provider here --- */}
+      {/* --- REPLACE START: add React Router v7 future flags --- */}
       <Suspense fallback={<div className="p-4">Loading translations…</div>}>
-        <Router>
+        <BrowserRouter
+          future={{
+            v7_startTransition: true,
+            v7_relativeSplatPath: true,
+          }}
+        >
           <Routes>
             <Route path="/" element={<MainLayout />}>
               {/* Public routes */}
@@ -221,10 +226,9 @@ export default function App() {
               <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>
-        </Router>
+        </BrowserRouter>
       </Suspense>
       {/* --- REPLACE END --- */}
     </ErrorBoundary>
   );
 }
-

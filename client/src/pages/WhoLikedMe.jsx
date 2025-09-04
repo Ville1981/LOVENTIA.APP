@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 
 import FeatureGate from "../components/FeatureGate";
 import { useAuth } from "../contexts/AuthContext";
-import api from "../services/api/axiosInstance"; // ✅ use shared Axios wrapper (includes auth headers/interceptors)
+import api from "../services/api/axiosInstance"; // ✅ shared Axios wrapper (includes auth headers/interceptors)
 import { BACKEND_BASE_URL } from "../utils/config";
 import { hasFeature, isPremium } from "../utils/entitlements";
 
@@ -50,7 +50,7 @@ const WhoLikedMe = () => {
   const [error, setError] = useState("");
 
   // Only fetch when the user is entitled (prevents 403 spam in console)
-  const entitled = hasFeature(user, "seeLikedYou") || isPremium(user);
+  const entitled = hasFeature(user, "whoLikedMe") || isPremium(user);
 
   useEffect(() => {
     let mounted = true;
@@ -58,7 +58,7 @@ const WhoLikedMe = () => {
       if (!entitled) return;
       try {
         // Server route should be protected by middleware/entitlements
-        const res = await api.get("/wholikedme"); // ✅ aligned to server route
+        const res = await api.get("/wholikedme"); // ✅ align to your server route
         const list = Array.isArray(res?.data?.users)
           ? res.data.users
           : Array.isArray(res?.data)
@@ -90,7 +90,7 @@ const WhoLikedMe = () => {
       <h2 className="text-2xl font-semibold mb-4 text-center">👀 Who liked you</h2>
 
       {/* Gate the entire content; fallback shows Upgrade CTA */}
-      <FeatureGate feature="seeLikedYou" fallback={<UpgradeCTA />}>
+      <FeatureGate feature="whoLikedMe" fallback={<UpgradeCTA />}>
         {error && (
           <p className="text-center text-red-500 mb-4" role="alert">
             {error}
@@ -128,4 +128,3 @@ const WhoLikedMe = () => {
 
 export default WhoLikedMe;
 // --- REPLACE END ---
-
