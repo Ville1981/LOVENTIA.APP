@@ -9,6 +9,8 @@ import DiscoverFilters from "../components/DiscoverFilters";
 import SkeletonCard from "../components/SkeletonCard";
 import HiddenStatusBanner from "../components/HiddenStatusBanner";
 import PremiumGate from "../components/PremiumGate";
+import FeatureGate from "../components/FeatureGate"; // NEW: show feature visibility on the main card
+import AdBanner from "../components/AdBanner"; // NEW: render ads for free users (invert gate below)
 import { useAuth } from "../contexts/AuthContext";
 import api from "../services/api/axiosInstance";
 import { BACKEND_BASE_URL } from "../config";
@@ -319,7 +321,73 @@ const Discover = () => {
           <HiddenStatusBanner user={authUser} onUnhidden={handleUnhiddenRefresh} />
 
           <div className="bg-white border rounded-lg shadow-md p-6 max-w-3xl mx-auto mt-4">
+            {/* NEW: Top capability row – visibility via FeatureGate */}
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              {/* See who liked you */}
+              <FeatureGate
+                feature="seeLikedYou"
+                fallback={
+                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-600">
+                    <span role="img" aria-label="eyes">👀</span>
+                    <span>See who liked you</span>
+                    <span className="ml-1 text-[10px] text-amber-700">Premium</span>
+                  </span>
+                }
+              >
+                <a
+                  href="/who-liked-me"
+                  className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-emerald-600 text-white"
+                  title="Open 'Who liked me'"
+                >
+                  <span role="img" aria-label="eyes">👀</span>
+                  <span>Who liked you</span>
+                </a>
+              </FeatureGate>
+
+              {/* No ads – show badge for premium; show subtle “Ads” pill for free */}
+              <FeatureGate
+                feature="noAds"
+                invert={false}
+                fallback={
+                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-600">
+                    <span role="img" aria-label="ad">🪧</span>
+                    <span>Ads</span>
+                    <span className="ml-1 text-[10px] text-amber-700">Premium removes</span>
+                  </span>
+                }
+              >
+                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-indigo-600 text-white">
+                  <span role="img" aria-label="no-ads">🚫</span>
+                  <span>No ads</span>
+                </span>
+              </FeatureGate>
+
+              {/* Dealbreakers visibility */}
+              <FeatureGate
+                feature="dealbreakers"
+                fallback={
+                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-600">
+                    <span role="img" aria-label="filter">🧩</span>
+                    <span>Dealbreakers</span>
+                    <span className="ml-1 text-[10px] text-amber-700">Premium</span>
+                  </span>
+                }
+              >
+                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-pink-600 text-white">
+                  <span role="img" aria-label="filter">🧩</span>
+                  <span>Dealbreakers</span>
+                </span>
+              </FeatureGate>
+            </div>
+
             <DiscoverFilters values={values} handleFilter={handleFilter} />
+          </div>
+
+          {/* Render ad banner for free users (FeatureGate invert on noAds) */}
+          <div className="max-w-3xl mx-auto w-full">
+            <FeatureGate feature="noAds" invert fallback={null}>
+              <AdBanner />
+            </FeatureGate>
           </div>
 
           <div className="mt-6 flex justify-center w-full">

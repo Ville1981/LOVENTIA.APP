@@ -1,3 +1,5 @@
+// PATH: i18n.js
+
 // --- REPLACE START: robust i18n init with HttpBackend, detector, multi-namespaces, and helpers ---
 /* eslint-env browser */
 import i18n from "i18next";
@@ -14,6 +16,9 @@ import HttpBackend from "i18next-http-backend";
  *     1) persist to localStorage
  *     2) update <html lang=".."> and dir attribute
  *     3) trigger re-render of components using useTranslation()
+ *
+ * This file only affects UI copy. It does NOT influence Stripe Portal language.
+ * Keep texts like "Open Billing Portal" in English in your UI components if desired.
  */
 
 export const SUPPORTED_LANGS = [

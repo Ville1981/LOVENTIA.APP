@@ -1,15 +1,17 @@
 // File: client/src/components/DiscoverFilters.jsx
 
-// --- REPLACE START: DiscoverFilters wired for backend filters, stable options, identical lists with ProfileForm + dealbreakers section + premium gating (fieldset disabled for free) ---
+// --- REPLACE START: DiscoverFilters wired for backend filters, stable options, dealbreakers section + premium gating with UI block for non-premium submissions ---
 import PropTypes from "prop-types";
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useForm, FormProvider } from "react-hook-form";
-import { useEntitlements } from "../hooks/useEntitlements";
+import { Link } from "react-router-dom";
 
-// --- REPLACE START: restore FormBasicInfo import (kept unused for parity with ProfileForm) ---
+import { useAuth } from "../contexts/AuthContext";
+import { isPremium as isPremiumFlag } from "../utils/entitlements";
+
+// Keep parity with Profile form field groups (even if some are display-only here)
 import FormBasicInfo from "./profileFields/FormBasicInfo";
-// --- REPLACE END
 import FormChildrenPets from "./profileFields/FormChildrenPets";
 import FormEducation from "./profileFields/FormEducation";
 import FormGoalSummary from "./profileFields/FormGoalSummary";
@@ -18,14 +20,8 @@ import FormLocation from "./profileFields/FormLocation";
 import FormLookingFor from "./profileFields/FormLookingFor";
 
 /* =============================================================================
-   Stable option sources
-   -----------------------------------------------------------------------------
-   Kept in-code to ensure options never disappear if i18n keys are missing.
-   Labels are resolved via t(key) || fallbackLabel.
-   These are mirrored from ProfileForm to keep UX consistent.
+   Stable option sources (kept inline for resilience)
 ============================================================================= */
-
-// --- REPLACE START: fully-qualify i18n keys to avoid namespace mismatch and keep parity with ProfileForm ---
 const RELIGION_OPTIONS = [
   { value: "", key: "common:all", label: "" },
   { value: "christianity", key: "profile:religion.christianity", label: "Christianity" },
@@ -90,13 +86,10 @@ const EDUCATION_OPTIONS = [
   { value: "phd", key: "profile:education.phd", label: "PhD" },
   { value: "other", key: "profile:education.other", label: "Other" },
 ];
-// --- REPLACE END ---
 
 /* =============================================================================
-   Small presentational helpers (no external deps)
+   Small presentational helpers
 ============================================================================= */
-
-/** Inline badge used in section headings */
 function Badge({ children }) {
   return (
     <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs leading-none">
@@ -106,7 +99,6 @@ function Badge({ children }) {
 }
 Badge.propTypes = { children: PropTypes.node };
 
-/** Subtle hint line under disabled sections (ARIA-friendly) */
 function Hint({ id, children }) {
   return (
     <p id={id} className="mt-1 text-xs text-amber-700">
@@ -119,14 +111,19 @@ Hint.propTypes = { id: PropTypes.string, children: PropTypes.node };
 /* =============================================================================
    Component
 ============================================================================= */
-
 /**
  * DiscoverFilters
- * Search and filter component using React Hook Form.
- * Premium gating: the entire Dealbreakers fieldset is disabled for free users.
+ * - Provides search filters (base filters for everyone).
+ * - Dealbreakers section is visible but disabled for non-premium users.
+ * - If a non-premium user attempts to submit with dealbreakers set, the submit is blocked
+ *   and an upgrade CTA is shown inline.
  */
 const DiscoverFilters = ({ values, handleFilter }) => {
   const { t } = useTranslation(["discover", "profile", "lifestyle", "common"]);
+  const { user } = useAuth() || {};
+  const isPremium = isPremiumFlag(user);
+
+  const [blockedMsg, setBlockedMsg] = useState("");
 
   // React Hook Form
   const methods = useForm({
@@ -135,47 +132,70 @@ const DiscoverFilters = ({ values, handleFilter }) => {
     reValidateMode: "onSubmit",
     shouldFocusError: true,
   });
-  const { handleSubmit, register /*, formState*/ } = methods;
+  const { handleSubmit, register, getValues } = methods;
 
-  // Entitlements
-  const { isPremium } = useEntitlements();
-  const dealbreakersDisabled = !isPremium;
-
-  // Memoized mapped options
+  // Options with i18n fallback
   const mappedReligionOptions = useMemo(
-    () => RELIGION_OPTIONS.map((opt) => ({ ...opt, text: t(opt.key) || opt.label || t("common:select") })),
+    () => RELIGION_OPTIONS.map((o) => ({ ...o, text: t(o.key) || o.label || t("common:select") })),
     [t]
   );
   const mappedReligionImportanceOptions = useMemo(
-    () => RELIGION_IMPORTANCE_OPTIONS.map((opt) => ({ ...opt, text: t(opt.key) || opt.label || t("common:select") })),
+    () => RELIGION_IMPORTANCE_OPTIONS.map((o) => ({ ...o, text: t(o.key) || o.label || t("common:select") })),
     [t]
   );
   const mappedPoliticalOptions = useMemo(
-    () => POLITICAL_IDEOLOGY_OPTIONS.map((opt) => ({ ...opt, text: t(opt.key) || opt.label || t("common:select") })),
+    () => POLITICAL_IDEOLOGY_OPTIONS.map((o) => ({ ...o, text: t(o.key) || o.label || t("common:select") })),
     [t]
   );
   const mappedGenderOptions = useMemo(
-    () => GENDER_OPTIONS.map((opt) => ({ ...opt, text: t(opt.key) || opt.label || t("common:select") })),
+    () => GENDER_OPTIONS.map((o) => ({ ...o, text: t(o.key) || o.label || t("common:select") })),
     [t]
   );
   const mappedOrientationOptions = useMemo(
-    () => ORIENTATION_OPTIONS.map((opt) => ({ ...opt, text: t(opt.key) || opt.label || t("common:select") })),
+    () => ORIENTATION_OPTIONS.map((o) => ({ ...o, text: t(o.key) || o.label || t("common:select") })),
     [t]
   );
   const mappedEducationOptions = useMemo(
-    () => EDUCATION_OPTIONS.map((opt) => ({ ...opt, text: t(opt.key) || opt.label || t("common:select") })),
+    () => EDUCATION_OPTIONS.map((o) => ({ ...o, text: t(o.key) || o.label || t("common:select") })),
     [t]
   );
 
-  // ARIA helper id for the premium hint
   const hintId = "dealbreakers-premium-hint";
+  const dealbreakersDisabled = !isPremium;
+
+  // Submit wrapper: block non-premium if any dealbreakers are set
+  const onSubmit = (data) => {
+    setBlockedMsg("");
+    if (!isPremium) {
+      const hasDealbreakers =
+        data?.distanceKm ||
+        data?.mustHavePhoto ||
+        data?.nonSmokerOnly ||
+        data?.noDrugs ||
+        (Array.isArray(data?.religionList) && data.religionList.length > 0) ||
+        (Array.isArray(data?.educationList) && data.educationList.length > 0) ||
+        data?.petsOk === "true" ||
+        data?.petsOk === "false";
+      if (hasDealbreakers) {
+        setBlockedMsg(
+          t(
+            "discover:dealbreakers.blockedMessage",
+            "Dealbreakers are a Premium feature. Please upgrade to use these filters."
+          )
+        );
+        return; // Block submit
+      }
+    }
+    // Pass through to parent
+    handleFilter(data);
+  };
 
   return (
     <FormProvider {...methods}>
       <div className="w-full max-w-3xl mx-auto">
         <form
           data-cy="DiscoverFilters__form"
-          onSubmit={handleSubmit(handleFilter)}
+          onSubmit={handleSubmit(onSubmit)}
           className="flex flex-col gap-6"
           noValidate
         >
@@ -189,12 +209,12 @@ const DiscoverFilters = ({ values, handleFilter }) => {
             </p>
           </div>
 
-          {/* (Optional placeholder to preserve parity – not rendered content-wise here) */}
+          {/* Keep in sync with ProfileForm (placeholder) */}
           <div className="hidden">
             <FormBasicInfo t={t} />
           </div>
 
-          {/* Age range: minAge and maxAge */}
+          {/* Age range */}
           <div className="flex flex-col gap-2">
             <label htmlFor="minAge" className="font-medium">
               {t("discover:ageRange")}
@@ -225,7 +245,7 @@ const DiscoverFilters = ({ values, handleFilter }) => {
             </div>
           </div>
 
-          {/* Username (filter only) */}
+          {/* Username */}
           <div>
             <label className="block font-medium mb-1" htmlFor="username">
               {t("discover:username")}
@@ -254,7 +274,7 @@ const DiscoverFilters = ({ values, handleFilter }) => {
             </select>
           </div>
 
-          {/* Sexual orientation */}
+          {/* Orientation */}
           <div>
             <label className="block font-medium mb-1" htmlFor="orientation">
               {t("discover:orientation.label")}
@@ -268,7 +288,7 @@ const DiscoverFilters = ({ values, handleFilter }) => {
             </select>
           </div>
 
-          {/* Location (country/region/city + custom) */}
+          {/* Location */}
           <FormLocation
             t={t}
             countryFieldName="country"
@@ -280,21 +300,20 @@ const DiscoverFilters = ({ values, handleFilter }) => {
             includeAllOption
           />
 
-          {/* Education (single select for search filters; dealbreakers multi-select is below) */}
+          {/* Education (basic search filter) */}
           <FormEducation t={t} includeAllOption />
 
-          {/* Profession (placeholder select; mirror ProfileForm categories if exposed) */}
+          {/* Profession (placeholder; keep parity with ProfileForm if extended) */}
           <div>
             <label className="block font-medium mb-1" htmlFor="profession">
               {t("discover:profession")}
             </label>
             <select id="profession" {...register("profession")} className="w-full p-2 border rounded">
               <option value="">{t("common:all")}</option>
-              {/* Keep in sync with ProfileForm categories if you expose them here */}
             </select>
           </div>
 
-          {/* Religion & importance (search filters) */}
+          {/* Religion & importance */}
           <div>
             <label className="block font-medium mb-1" htmlFor="religion">
               🛐 {t("discover:religion.label")}
@@ -342,19 +361,19 @@ const DiscoverFilters = ({ values, handleFilter }) => {
             </select>
           </div>
 
-          {/* Children & pets (search filters) */}
+          {/* Children & pets */}
           <FormChildrenPets t={t} includeAllOption />
 
-          {/* Lifestyle (smoke/drink/drugs, etc.) */}
+          {/* Lifestyle */}
           <FormLifestyle t={t} includeAllOption />
 
           {/* Goals & summary */}
           <FormGoalSummary t={t} includeAllOption />
 
-          {/* What are you looking for? */}
+          {/* Looking for */}
           <FormLookingFor t={t} includeAllOption />
 
-          {/* --- Dealbreakers section (gated) -------------------------------------------------- */}
+          {/* --- Dealbreakers (premium-gated) -------------------------------------------------- */}
           <div className="mt-4 border-t pt-4">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-xl font-semibold" data-cy="DiscoverFilters__dealbreakersTitle">
@@ -373,9 +392,9 @@ const DiscoverFilters = ({ values, handleFilter }) => {
             </div>
 
             <fieldset
-              disabled={dealbreakersDisabled}
-              aria-describedby={dealbreakersDisabled ? hintId : undefined}
-              className={dealbreakersDisabled ? "opacity-60 select-none" : ""}
+              disabled={!isPremium}
+              aria-describedby={!isPremium ? hintId : undefined}
+              className={!isPremium ? "opacity-60 select-none" : ""}
             >
               {/* distanceKm */}
               <div className="mb-3">
@@ -395,12 +414,7 @@ const DiscoverFilters = ({ values, handleFilter }) => {
 
               {/* mustHavePhoto */}
               <div className="mb-3 flex items-center gap-2">
-                <input
-                  id="mustHavePhoto"
-                  type="checkbox"
-                  {...register("mustHavePhoto")}
-                  className="h-4 w-4"
-                />
+                <input id="mustHavePhoto" type="checkbox" {...register("mustHavePhoto")} className="h-4 w-4" />
                 <label htmlFor="mustHavePhoto" className="font-medium">
                   {t("discover:dealbreakers.mustHavePhoto", "Must have photo")}
                 </label>
@@ -408,12 +422,7 @@ const DiscoverFilters = ({ values, handleFilter }) => {
 
               {/* nonSmokerOnly */}
               <div className="mb-3 flex items-center gap-2">
-                <input
-                  id="nonSmokerOnly"
-                  type="checkbox"
-                  {...register("nonSmokerOnly")}
-                  className="h-4 w-4"
-                />
+                <input id="nonSmokerOnly" type="checkbox" {...register("nonSmokerOnly")} className="h-4 w-4" />
                 <label htmlFor="nonSmokerOnly" className="font-medium">
                   {t("discover:dealbreakers.nonSmokerOnly", "Non-smoker only")}
                 </label>
@@ -427,7 +436,7 @@ const DiscoverFilters = ({ values, handleFilter }) => {
                 </label>
               </div>
 
-              {/* petsOk: any / true / false */}
+              {/* petsOk */}
               <div className="mb-3">
                 <label className="block font-medium mb-1" htmlFor="petsOk">
                   {t("discover:dealbreakers.petsOk", "Pets OK")}
@@ -439,7 +448,7 @@ const DiscoverFilters = ({ values, handleFilter }) => {
                 </select>
               </div>
 
-              {/* religion[] (multi-select) */}
+              {/* religion[] */}
               <div className="mb-3">
                 <label className="block font-medium mb-1" htmlFor="religionList">
                   {t("discover:dealbreakers.religion", "Religion (required)")}
@@ -451,7 +460,7 @@ const DiscoverFilters = ({ values, handleFilter }) => {
                   className="w-full p-2 border rounded min-h-[120px]"
                 >
                   {mappedReligionOptions
-                    .filter((o) => o.value) // exclude "all"
+                    .filter((o) => o.value)
                     .map((o) => (
                       <option key={o.value} value={o.value}>
                         {o.text}
@@ -463,7 +472,7 @@ const DiscoverFilters = ({ values, handleFilter }) => {
                 </p>
               </div>
 
-              {/* education[] (multi-select) */}
+              {/* education[] */}
               <div className="mb-2">
                 <label className="block font-medium mb-1" htmlFor="educationList">
                   {t("discover:dealbreakers.education", "Education (required)")}
@@ -475,7 +484,7 @@ const DiscoverFilters = ({ values, handleFilter }) => {
                   className="w-full p-2 border rounded min-h-[120px]"
                 >
                   {mappedEducationOptions
-                    .filter((o) => o.value) // exclude "all"
+                    .filter((o) => o.value)
                     .map((o) => (
                       <option key={o.value} value={o.value}>
                         {o.text}
@@ -488,8 +497,7 @@ const DiscoverFilters = ({ values, handleFilter }) => {
               </div>
             </fieldset>
 
-            {/* Locked hint for free users (outside fieldset for readability) */}
-            {dealbreakersDisabled && (
+            {!isPremium && (
               <Hint id={hintId}>
                 {t(
                   "discover:dealbreakers.lockedHint",
@@ -498,9 +506,22 @@ const DiscoverFilters = ({ values, handleFilter }) => {
               </Hint>
             )}
           </div>
-          {/* --- END Dealbreakers section ------------------------------------------------------ */}
+          {/* --- END Dealbreakers -------------------------------------------------------------- */}
 
-          {/* Submit button */}
+          {/* Block banner if submission prevented */}
+          {blockedMsg && (
+            <div className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-center">
+              <p className="mb-2">{blockedMsg}</p>
+              <Link
+                to="/settings/subscriptions"
+                className="inline-flex items-center gap-2 rounded bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 font-semibold"
+              >
+                Upgrade to Premium
+              </Link>
+            </div>
+          )}
+
+          {/* Submit */}
           <div className="text-center pt-3">
             <button
               data-cy="DiscoverFilters__submitButton"
