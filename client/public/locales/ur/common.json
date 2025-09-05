@@ -1,4 +1,16 @@
 {
+  "appName": "Loventia",
+  "select": "Select",
+  "all": "All",
+  "other": "Other",
+  "filter": "Filter",
+  "loading": "Loading",
+  "save": "Save",
+  "cancel": "Cancel",
+  "update": "Update",
+  "close": "Close",
+  "language": "Language",
+  "fixErrors": "Please fix the highlighted fields.",
   "home": {
     "title": "حقیقی تعلقات تلاش کریں",
     "subtitle": "کم سوائپ، بہتر میچ — بامقصد ڈیٹنگ کے لیے کمیونٹی۔"
@@ -12,18 +24,6 @@
     "logout": "Logout",
     "admin": "ایڈمن"
   },
-  "appName": "Loventia",
-  "select": "Select",
-  "all": "All",
-  "other": "Other",
-  "filter": "Filter",
-  "loading": "Loading",
-  "save": "Save",
-  "cancel": "Cancel",
-  "update": "Update",
-  "close": "Close",
-  "language": "Language",
-  "fixErrors": "Please fix the highlighted fields.",
   "religion": {
     "christianity": "Christianity",
     "islam": "Islam",

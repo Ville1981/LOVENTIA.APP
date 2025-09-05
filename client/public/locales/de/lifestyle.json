@@ -1,10 +1,10 @@
 {
-  "title": "Lebensstil",
-  "smoke": "Rauchen",
+  "diet": "Ernährung",
   "drink": "Alkohol",
   "drugs": "Drogen",
   "exercise": "Bewegung",
-  "diet": "Ernährung",
+  "smoke": "Rauchen",
+  "title": "Lebensstil",
   "no": "Nein",
   "sober": "Nüchtern",
   "little": "Wenig",

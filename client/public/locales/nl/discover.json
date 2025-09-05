@@ -1,45 +1,4 @@
 {
-  "title": "Ontdekken",
-  "subtitle": "Pas je filters aan om de juiste matches te vinden.",
-  "filters": {
-    "age": "Leeftijd",
-    "minAge": "Minimumleeftijd",
-    "maxAge": "Maximumleeftijd",
-    "distance": "Afstand",
-    "maxDistance": "Maximale afstand",
-    "location": "Locatie",
-    "gender": "Geslacht",
-    "orientation": "Orientation",
-    "lifestyle": "Levensstijl",
-    "interests": "Interesses",
-    "apply": "Filters toepassen",
-    "reset": "Resetten",
-    "clear": "Alles wissen",
-    "professionCategory": "💼 Profession category",
-    "politicalIdeology": "🗳 Political ideology",
-    "pets": "🐾 Pets"
-  },
-  "results": {
-    "heading": "Resultaten",
-    "empty": "Geen overeenkomsten met de huidige filters.",
-    "loadMore": "Meer laden"
-  },
-  "cards": {
-    "age": "Leeftijd",
-    "distance": "Afstand",
-    "view": "Profiel bekijken"
-  },
-  "ageRange": "Leeftijdsbereik",
-  "error": "Er is iets misgegaan. Probeer het opnieuw.",
-  "gender": "Geslacht",
-  "instructions": "Set filters and click Filter to find people.",
-  "noResults": "Geen resultaten gevonden.",
-  "orientation": "Seksuele geaardheid",
-  "politicalIdeology": "Politieke ideologie",
-  "profession": "Beroep",
-  "religion": "Religie",
-  "religionImportance": "Belang van religie",
-  "username": "Gebruikersnaam",
   "labels": {
     "header": "Discover",
     "title": "Discover",
@@ -110,13 +69,19 @@
       "other": "Other"
     }
   },
+  "instructions": "Set filters and click Filter to find people.",
+  "ageRange": "Leeftijdsbereik",
+  "username": "Gebruikersnaam",
   "gender.label": "Gender",
   "orientation.label": "❤️ Orientation",
   "location.country": "🌍 Country",
   "location.region": "🗺 Region/State",
   "location.city": "🏩 City",
   "education.label": "🎓 Education",
+  "profession": "Beroep",
   "religion.label": "🕊 Religion",
+  "religionImportance": "Belang van religie",
+  "politicalIdeology": "Politieke ideologie",
   "children": "👶 Children",
   "pets": "🐾 Pets",
   "lifestyle": "Lifestyle",
@@ -132,6 +97,24 @@
   "weight": "Weight",
   "cm": "cm",
   "kg": "kg",
+  "filters": {
+    "professionCategory": "💼 Profession category",
+    "politicalIdeology": "🗳 Political ideology",
+    "pets": "🐾 Pets",
+    "age": "Leeftijd",
+    "minAge": "Minimumleeftijd",
+    "maxAge": "Maximumleeftijd",
+    "distance": "Afstand",
+    "maxDistance": "Maximale afstand",
+    "location": "Locatie",
+    "gender": "Geslacht",
+    "orientation": "Orientation",
+    "lifestyle": "Levensstijl",
+    "interests": "Interesses",
+    "apply": "Filters toepassen",
+    "reset": "Resetten",
+    "clear": "Alles wissen"
+  },
   "professionCategory": "💼 Profession category",
   "actions": {
     "apply": "Apply filters",
@@ -140,5 +123,22 @@
   "state": {
     "noResults": "No matching profiles found.",
     "loading": "Loading…"
-  }
+  },
+  "title": "Ontdekken",
+  "subtitle": "Pas je filters aan om de juiste matches te vinden.",
+  "results": {
+    "heading": "Resultaten",
+    "empty": "Geen overeenkomsten met de huidige filters.",
+    "loadMore": "Meer laden"
+  },
+  "cards": {
+    "age": "Leeftijd",
+    "distance": "Afstand",
+    "view": "Profiel bekijken"
+  },
+  "error": "Er is iets misgegaan. Probeer het opnieuw.",
+  "gender": "Geslacht",
+  "noResults": "Geen resultaten gevonden.",
+  "orientation": "Seksuele geaardheid",
+  "religion": "Religie"
 }

@@ -1,63 +1,4 @@
 {
-  "about": "Om meg",
-  "age": "Alder",
-  "bodyType": {
-    "slim": "Slim",
-    "normal": "Normal",
-    "athletic": "Athletic",
-    "overweight": "Overweight",
-    "obese": "Obese"
-  },
-  "children": "Barn",
-  "education": {
-    "label": "Education",
-    "secondary": "High school",
-    "vocational": "Vocational training",
-    "higher": "University",
-    "phd": "PhD / Research"
-  },
-  "gender": "Kjønn",
-  "goals": "Mål",
-  "height": "Høyde",
-  "heightUnit": "cm",
-  "location": {
-    "city": "By",
-    "country": "Land",
-    "manualCity": "Skriv inn by manuelt",
-    "manualCountry": "Skriv inn land manuelt",
-    "manualRegion": "Skriv inn region manuelt",
-    "region": "Region"
-  },
-  "lookingFor": "Ser etter",
-  "orientation": "Seksuell orientering",
-  "pets": "Kjæledyr",
-  "politicalIdeology": "Politisk ideologi",
-  "profession": "Yrke",
-  "professionCategory": "Yrkeskategori",
-  "religion": {
-    "label": "Religion",
-    "christianity": "Christianity",
-    "islam": "Islam",
-    "hinduism": "Hinduism",
-    "buddhism": "Buddhism",
-    "folk": "Folk religion",
-    "none": "None",
-    "other": "Other",
-    "atheism": "Atheism"
-  },
-  "religionImportance": {
-    "label": "Religion importance",
-    "notImportant": "Not important",
-    "somewhatImportant": "Somewhat important",
-    "veryImportant": "Very important",
-    "essential": "Essential"
-  },
-  "searchingFor": "Ser etter",
-  "weight": "Vekt",
-  "weightUnit": "kg",
-  "username": "Brukernavn",
-  "email": "E-post",
-  "save": "Lagre",
   "labels": {
     "header": "Profile",
     "age": "Age",
@@ -179,20 +120,39 @@
       "none": "None"
     }
   },
+  "age": "Alder",
+  "username": "Brukernavn",
+  "email": "E-post",
   "gender.label": "Gender",
   "orientation.label": "❤️ Orientation",
+  "height": "Høyde",
   "height.label": "Height",
+  "heightUnit": "cm",
   "cm": "cm",
+  "weight": "Vekt",
   "weight.label": "Weight",
+  "weightUnit": "kg",
   "kg": "kg",
   "bodyType.label": "Body type",
   "location.country": "🌍 Country",
   "location.region": "🗺 Region/State",
   "location.city": "🏩 City",
   "education.label": "🎓 Education",
+  "professionCategory": "Yrkeskategori",
   "professionCategory.label": "💼 Profession category",
+  "profession": "Yrke",
   "professionPlaceholder": "Enter profession…",
   "religion.label": "🕊 Religion",
+  "religionImportance": {
+    "label": "Religion importance",
+    "notImportant": "Not important",
+    "somewhatImportant": "Somewhat important",
+    "veryImportant": "Very important",
+    "essential": "Essential"
+  },
+  "politicalIdeology": "Politisk ideologi",
+  "children": "Barn",
+  "pets": "Kjæledyr",
   "lifestyle": "Lifestyle",
   "smoke": "Smoke",
   "drink": "Alcohol",
@@ -200,9 +160,29 @@
   "diet": "Diet",
   "exercise": "Exercise",
   "aboutMe": "📄 About me",
+  "goals": "Mål",
+  "lookingFor": "Ser etter",
   "male": "Male",
   "female": "Female",
   "other": "Other",
+  "education": {
+    "label": "Education",
+    "secondary": "High school",
+    "vocational": "Vocational training",
+    "higher": "University",
+    "phd": "PhD / Research"
+  },
+  "religion": {
+    "label": "Religion",
+    "christianity": "Christianity",
+    "islam": "Islam",
+    "hinduism": "Hinduism",
+    "buddhism": "Buddhism",
+    "folk": "Folk religion",
+    "none": "None",
+    "other": "Other",
+    "atheism": "Atheism"
+  },
   "common": {
     "other": "Other"
   },
@@ -224,6 +204,7 @@
     "other": "Other",
     "religion": "Religion"
   },
+  "searchingFor": "Ser etter",
   "looking": {
     "friendship": "Friendship",
     "gettingToKnow": "Getting to know",
@@ -234,6 +215,13 @@
     "chatOnly": "Chat only",
     "casual": "Casual",
     "undecided": "Undecided"
+  },
+  "bodyType": {
+    "slim": "Slim",
+    "normal": "Normal",
+    "athletic": "Athletic",
+    "overweight": "Overweight",
+    "obese": "Obese"
   },
   "childrenYes": "Yes",
   "childrenNo": "No",
@@ -259,5 +247,17 @@
     "pets": "🐾 Pets"
   },
   "managePhotos": "Manage photos",
-  "saveSuccess": "Profile saved."
+  "save": "Lagre",
+  "saveSuccess": "Profile saved.",
+  "about": "Om meg",
+  "gender": "Kjønn",
+  "location": {
+    "city": "By",
+    "country": "Land",
+    "manualCity": "Skriv inn by manuelt",
+    "manualCountry": "Skriv inn land manuelt",
+    "manualRegion": "Skriv inn region manuelt",
+    "region": "Region"
+  },
+  "orientation": "Seksuell orientering"
 }

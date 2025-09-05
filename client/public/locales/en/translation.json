@@ -295,12 +295,14 @@
     "addCaption": "Add a caption...",
     "basicEducation": "Basic education",
     "bi": "Bisexual",
-    "bodyType": "Body type",
-    "bodyType.athletic": "Athletic",
-    "bodyType.normal": "Normal",
-    "bodyType.obese": "Obese",
-    "bodyType.overweight": "Overweight",
-    "bodyType.thin": "Thin",
+    "bodyType": {
+      "_legacy": "Body type",
+      "athletic": "Athletic",
+      "normal": "Normal",
+      "obese": "Obese",
+      "overweight": "Overweight",
+      "thin": "Thin"
+    },
     "browse": "Browse...",
     "categories": {
       "Education": "Education",

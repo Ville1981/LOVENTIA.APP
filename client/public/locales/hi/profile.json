@@ -1,63 +1,4 @@
 {
-  "about": "मेरे बारे में",
-  "age": "उम्र",
-  "bodyType": {
-    "slim": "Slim",
-    "normal": "Normal",
-    "athletic": "Athletic",
-    "overweight": "Overweight",
-    "obese": "Obese"
-  },
-  "children": "बच्चे",
-  "education": {
-    "label": "Education",
-    "secondary": "High school",
-    "vocational": "Vocational training",
-    "higher": "University",
-    "phd": "PhD / Research"
-  },
-  "gender": "लिंग",
-  "goals": "लक्ष्य",
-  "height": "कद",
-  "heightUnit": "सेमी",
-  "location": {
-    "city": "शहर",
-    "country": "देश",
-    "manualCity": "Manual city",
-    "manualCountry": "Manual country",
-    "manualRegion": "Manual region / state",
-    "region": "Region / State"
-  },
-  "lookingFor": "खोज रहे हैं",
-  "orientation": "यौन अभिविन्यास",
-  "pets": "पालतू जानवर",
-  "politicalIdeology": "राजनैतिक विचारधारा",
-  "profession": "पेशा",
-  "professionCategory": "पेशा श्रेणी",
-  "religion": {
-    "label": "Religion",
-    "christianity": "Christianity",
-    "islam": "Islam",
-    "hinduism": "Hinduism",
-    "buddhism": "Buddhism",
-    "folk": "Folk religion",
-    "none": "None",
-    "other": "Other",
-    "atheism": "Atheism"
-  },
-  "religionImportance": {
-    "label": "Religion importance",
-    "notImportant": "Not important",
-    "somewhatImportant": "Somewhat important",
-    "veryImportant": "Very important",
-    "essential": "Essential"
-  },
-  "searchingFor": "खोज रहे हैं",
-  "weight": "वज़न",
-  "weightUnit": "किग्रा",
-  "username": "उपयोगकर्ता नाम",
-  "email": "ईमेल",
-  "save": "सहेजें",
   "labels": {
     "header": "Profile",
     "age": "Age",
@@ -179,20 +120,39 @@
       "none": "None"
     }
   },
+  "age": "उम्र",
+  "username": "उपयोगकर्ता नाम",
+  "email": "ईमेल",
   "gender.label": "Gender",
   "orientation.label": "❤️ Orientation",
+  "height": "कद",
   "height.label": "Height",
+  "heightUnit": "सेमी",
   "cm": "cm",
+  "weight": "वज़न",
   "weight.label": "Weight",
+  "weightUnit": "किग्रा",
   "kg": "kg",
   "bodyType.label": "Body type",
   "location.country": "🌍 Country",
   "location.region": "🗺 Region/State",
   "location.city": "🏩 City",
   "education.label": "🎓 Education",
+  "professionCategory": "पेशा श्रेणी",
   "professionCategory.label": "💼 Profession category",
+  "profession": "पेशा",
   "professionPlaceholder": "Enter profession…",
   "religion.label": "🕊 Religion",
+  "religionImportance": {
+    "label": "Religion importance",
+    "notImportant": "Not important",
+    "somewhatImportant": "Somewhat important",
+    "veryImportant": "Very important",
+    "essential": "Essential"
+  },
+  "politicalIdeology": "राजनैतिक विचारधारा",
+  "children": "बच्चे",
+  "pets": "पालतू जानवर",
   "lifestyle": "Lifestyle",
   "smoke": "Smoke",
   "drink": "Alcohol",
@@ -200,9 +160,29 @@
   "diet": "Diet",
   "exercise": "Exercise",
   "aboutMe": "📄 About me",
+  "goals": "लक्ष्य",
+  "lookingFor": "खोज रहे हैं",
   "male": "Male",
   "female": "Female",
   "other": "Other",
+  "education": {
+    "label": "Education",
+    "secondary": "High school",
+    "vocational": "Vocational training",
+    "higher": "University",
+    "phd": "PhD / Research"
+  },
+  "religion": {
+    "label": "Religion",
+    "christianity": "Christianity",
+    "islam": "Islam",
+    "hinduism": "Hinduism",
+    "buddhism": "Buddhism",
+    "folk": "Folk religion",
+    "none": "None",
+    "other": "Other",
+    "atheism": "Atheism"
+  },
   "common": {
     "other": "Other"
   },
@@ -224,6 +204,7 @@
     "other": "Other",
     "religion": "Religion"
   },
+  "searchingFor": "खोज रहे हैं",
   "looking": {
     "friendship": "Friendship",
     "gettingToKnow": "Getting to know",
@@ -234,6 +215,13 @@
     "chatOnly": "Chat only",
     "casual": "Casual",
     "undecided": "Undecided"
+  },
+  "bodyType": {
+    "slim": "Slim",
+    "normal": "Normal",
+    "athletic": "Athletic",
+    "overweight": "Overweight",
+    "obese": "Obese"
   },
   "childrenYes": "Yes",
   "childrenNo": "No",
@@ -259,5 +247,17 @@
     "pets": "🐾 Pets"
   },
   "managePhotos": "Manage photos",
-  "saveSuccess": "Profile saved."
+  "save": "सहेजें",
+  "saveSuccess": "Profile saved.",
+  "about": "मेरे बारे में",
+  "gender": "लिंग",
+  "location": {
+    "city": "शहर",
+    "country": "देश",
+    "manualCity": "Manual city",
+    "manualCountry": "Manual country",
+    "manualRegion": "Manual region / state",
+    "region": "Region / State"
+  },
+  "orientation": "यौन अभिविन्यास"
 }

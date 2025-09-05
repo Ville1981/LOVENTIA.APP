@@ -1,63 +1,4 @@
 {
-  "about": "Kuhusu mimi",
-  "age": "Umri",
-  "bodyType": {
-    "slim": "Slim",
-    "normal": "Normal",
-    "athletic": "Athletic",
-    "overweight": "Overweight",
-    "obese": "Obese"
-  },
-  "children": "Watoto",
-  "education": {
-    "label": "Education",
-    "secondary": "High school",
-    "vocational": "Vocational training",
-    "higher": "University",
-    "phd": "PhD / Research"
-  },
-  "gender": "Jinsia",
-  "goals": "Malengo",
-  "height": "Urefu",
-  "heightUnit": "cm",
-  "location": {
-    "city": "Jiji",
-    "country": "Nchi",
-    "manualCity": "Manual city",
-    "manualCountry": "Manual country",
-    "manualRegion": "Manual region / state",
-    "region": "Region / State"
-  },
-  "lookingFor": "Anatafuta",
-  "orientation": "Mwelekeo wa kijinsia",
-  "pets": "Wanyama wa kufugwa",
-  "politicalIdeology": "Itikadi ya kisiasa",
-  "profession": "Kazi",
-  "professionCategory": "Kategoria ya kazi",
-  "religion": {
-    "label": "Religion",
-    "christianity": "Christianity",
-    "islam": "Islam",
-    "hinduism": "Hinduism",
-    "buddhism": "Buddhism",
-    "folk": "Folk religion",
-    "none": "None",
-    "other": "Other",
-    "atheism": "Atheism"
-  },
-  "religionImportance": {
-    "label": "Religion importance",
-    "notImportant": "Not important",
-    "somewhatImportant": "Somewhat important",
-    "veryImportant": "Very important",
-    "essential": "Essential"
-  },
-  "searchingFor": "Anatafuta",
-  "weight": "Uzito",
-  "weightUnit": "kg",
-  "username": "Jina la mtumiaji",
-  "email": "Barua pepe",
-  "save": "Hifadhi",
   "labels": {
     "header": "Profile",
     "age": "Age",
@@ -179,20 +120,39 @@
       "none": "None"
     }
   },
+  "age": "Umri",
+  "username": "Jina la mtumiaji",
+  "email": "Barua pepe",
   "gender.label": "Gender",
   "orientation.label": "❤️ Orientation",
+  "height": "Urefu",
   "height.label": "Height",
+  "heightUnit": "cm",
   "cm": "cm",
+  "weight": "Uzito",
   "weight.label": "Weight",
+  "weightUnit": "kg",
   "kg": "kg",
   "bodyType.label": "Body type",
   "location.country": "🌍 Country",
   "location.region": "🗺 Region/State",
   "location.city": "🏩 City",
   "education.label": "🎓 Education",
+  "professionCategory": "Kategoria ya kazi",
   "professionCategory.label": "💼 Profession category",
+  "profession": "Kazi",
   "professionPlaceholder": "Enter profession…",
   "religion.label": "🕊 Religion",
+  "religionImportance": {
+    "label": "Religion importance",
+    "notImportant": "Not important",
+    "somewhatImportant": "Somewhat important",
+    "veryImportant": "Very important",
+    "essential": "Essential"
+  },
+  "politicalIdeology": "Itikadi ya kisiasa",
+  "children": "Watoto",
+  "pets": "Wanyama wa kufugwa",
   "lifestyle": "Lifestyle",
   "smoke": "Smoke",
   "drink": "Alcohol",
@@ -200,9 +160,29 @@
   "diet": "Diet",
   "exercise": "Exercise",
   "aboutMe": "📄 About me",
+  "goals": "Malengo",
+  "lookingFor": "Anatafuta",
   "male": "Male",
   "female": "Female",
   "other": "Other",
+  "education": {
+    "label": "Education",
+    "secondary": "High school",
+    "vocational": "Vocational training",
+    "higher": "University",
+    "phd": "PhD / Research"
+  },
+  "religion": {
+    "label": "Religion",
+    "christianity": "Christianity",
+    "islam": "Islam",
+    "hinduism": "Hinduism",
+    "buddhism": "Buddhism",
+    "folk": "Folk religion",
+    "none": "None",
+    "other": "Other",
+    "atheism": "Atheism"
+  },
   "common": {
     "other": "Other"
   },
@@ -224,6 +204,7 @@
     "other": "Other",
     "religion": "Religion"
   },
+  "searchingFor": "Anatafuta",
   "looking": {
     "friendship": "Friendship",
     "gettingToKnow": "Getting to know",
@@ -234,6 +215,13 @@
     "chatOnly": "Chat only",
     "casual": "Casual",
     "undecided": "Undecided"
+  },
+  "bodyType": {
+    "slim": "Slim",
+    "normal": "Normal",
+    "athletic": "Athletic",
+    "overweight": "Overweight",
+    "obese": "Obese"
   },
   "childrenYes": "Yes",
   "childrenNo": "No",
@@ -259,5 +247,17 @@
     "pets": "🐾 Pets"
   },
   "managePhotos": "Manage photos",
-  "saveSuccess": "Profile saved."
+  "save": "Hifadhi",
+  "saveSuccess": "Profile saved.",
+  "about": "Kuhusu mimi",
+  "gender": "Jinsia",
+  "location": {
+    "city": "Jiji",
+    "country": "Nchi",
+    "manualCity": "Manual city",
+    "manualCountry": "Manual country",
+    "manualRegion": "Manual region / state",
+    "region": "Region / State"
+  },
+  "orientation": "Mwelekeo wa kijinsia"
 }

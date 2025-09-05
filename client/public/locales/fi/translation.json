@@ -73,28 +73,9 @@
   },
   "cookies": "Evästeet",
   "countries": {
-    "Argentiina": "Argentiina",
     "Argentina": "Argentina",
-    "Brasilia": "Brasilia",
-    "Chile": "Chile",
-    "Espanja": "Espanja",
-    "Intia": "Intia",
-    "Iso-Britannia": "Iso-Britannia",
-    "Italia": "Italia",
-    "Japani": "Japani",
-    "Kanada": "Kanada",
-    "Kazakstan": "Kazakstan",
-    "Kiina": "Kiina",
-    "Norja": "Norja",
-    "Portugali": "Portugali",
-    "Ranska": "Ranska",
-    "Ruotsi": "Ruotsi",
-    "Saksa": "Saksa",
-    "Suomi": "Suomi",
-    "Ukraina": "Ukraina",
-    "Venäjä": "Venäjä",
-    "Yhdysvallat": "Yhdysvallat",
     "Brazil": "Brazil",
+    "Chile": "Chile",
     "Spain": "Spain",
     "India": "India",
     "United Kingdom": "United Kingdom",
@@ -111,13 +92,33 @@
     "Finland": "Finland",
     "Ukraine": "Ukraine",
     "Russia": "Russia",
-    "United States": "United States"
+    "United States": "United States",
+    "Argentiina": "Argentiina",
+    "Brasilia": "Brasilia",
+    "Espanja": "Espanja",
+    "Intia": "Intia",
+    "Iso-Britannia": "Iso-Britannia",
+    "Italia": "Italia",
+    "Japani": "Japani",
+    "Kanada": "Kanada",
+    "Kazakstan": "Kazakstan",
+    "Kiina": "Kiina",
+    "Norja": "Norja",
+    "Portugali": "Portugali",
+    "Ranska": "Ranska",
+    "Ruotsi": "Ruotsi",
+    "Saksa": "Saksa",
+    "Suomi": "Suomi",
+    "Ukraina": "Ukraina",
+    "Venäjä": "Venäjä",
+    "Yhdysvallat": "Yhdysvallat"
   },
   "country": "Maa",
   "discover": {
     "adAlt": "Mainostila – mainoksesi tähän",
     "ageRange": "Age range",
     "cityNotFound": "Sijaintiasi ei voitu tunnistaa kaupungin tasolla.",
+    "error": "Failed to load users.",
     "fetchError": "Virhe käyttäjien haussa.",
     "filter": "Suodata",
     "gender": "Gender",
@@ -134,7 +135,6 @@
     "orientation": "Sexual orientation",
     "politicalIdeology": "Political ideology",
     "premium": "Premium-käyttäjä",
-    "premiumText": "Näet kuka on tykännyt sinusta, käytä Superlike ja saa enemmän osumia.",
     "profession": "Profession",
     "professionCategory": "Profession category",
     "religion": "Religion or values",
@@ -145,10 +145,10 @@
     "superlikeLimit": "Superlike-raja (3/48h) saavutettu.",
     "superliked": "Superlike lähetetty!",
     "title": "Löydä käyttäjiä",
-    "upgradeNow": "Päivitä nyt",
     "username": "Username",
     "viewProfile": "Näytä profiili",
-    "error": "Failed to load users."
+    "premiumText": "Näet kuka on tykännyt sinusta, käytä Superlike ja saa enemmän osumia.",
+    "upgradeNow": "Päivitä nyt"
   },
   "download": "Lataa",
   "error": {
@@ -167,11 +167,11 @@
     "aloita": "Aloita nyt",
     "heroOtsikko": "Tervetuloa Loventia.siteen",
     "heroTeksti": "Löydä merkityksellisiä yhteyksiä helposti ja turvallisesti.",
-    "heroTekstit": [
-      "Löydä kestävä rakkaus.",
-      "Tapaa samanhenkisiä ihmisiä.",
-      "Seuraava mätsisi on vain klikkauksen päässä."
-    ],
+    "heroTekstit": {
+      "0": "Löydä kestävä rakkaus.",
+      "1": "Tapaa samanhenkisiä ihmisiä.",
+      "2": "Seuraava mätsisi on vain klikkauksen päässä."
+    },
     "katso_kayttajat": "Katso käyttäjiä",
     "kuvaus": "Löydä seuraa, ystäviä tai rakkautta helposti ja turvallisesti.",
     "lue_lisaa": "Lue lisää",
@@ -187,17 +187,17 @@
     "1": "Tapaa samanhenkisiä ihmisiä.",
     "2": "Seuraava mätsisi on vain klikkauksen päässä."
   },
-  "home": {
-    "subtitle": "Vähemmän swippausta, parempia osumia — liity merkitykselliseen yhteisöön.",
-    "title": "Löydä aitoja yhteyksiä",
-    "texts": [
-      "Find love that lasts.",
-      "Meet people who share your values.",
-      "Your next match is one click away."
-    ]
-  },
-  "home.subtitle": "Vähemmän swippausta, parempia osumia — liity merkitykselliseen yhteisöön.",
   "home.title": "Löydä aitoja yhteyksiä",
+  "home.subtitle": "Vähemmän swippausta, parempia osumia — liity merkitykselliseen yhteisöön.",
+  "home": {
+    "title": "Löydä aitoja yhteyksiä",
+    "subtitle": "Vähemmän swippausta, parempia osumia — liity merkitykselliseen yhteisöön.",
+    "texts": {
+      "0": "Find love that lasts.",
+      "1": "Meet people who share your values.",
+      "2": "Your next match is one click away."
+    }
+  },
   "impressum": "Julkaisija",
   "lifestyle": {
     "average": "Kohtalaisesti",
@@ -276,45 +276,14 @@
     "tagline": "Parempia osumia. Fiksumpaa rakkautta. 💘",
     "terms": "Käyttöehdot"
   },
-  "nav.about": "About",
-  "nav.admin": "Ylläpito",
-  "nav.blog": "Blogi",
-  "nav.careers": "Careers",
-  "nav.coInfo": "Colorado-info",
-  "nav.community": "Yhteisö",
-  "nav.company": "Yritys",
-  "nav.conditions": "Conditions",
-  "nav.contact": "Yhteys",
-  "nav.cookies": "Evästeet",
-  "nav.discover": "Löydä",
-  "nav.download": "Lataa",
-  "nav.follow": "Seuraa",
-  "nav.health": "Terveyskäytännöt",
-  "nav.home": "Etusivu",
-  "nav.impressum": "Impressum",
-  "nav.likes": "Tykkäykset",
-  "nav.login": "Kirjaudu",
-  "nav.map": "Kartta",
-  "nav.matches": "Parit",
-  "nav.messages": "Viestit",
-  "nav.premium": "Premium",
-  "nav.press": "Press",
-  "nav.privacy": "Tietosuoja",
-  "nav.profile": "Profiili",
-  "nav.register": "Rekisteröidy",
-  "nav.rights": "Kaikki oikeudet pidätetään.",
-  "nav.safety": "Turvavinkit",
-  "nav.security": "Turvallisuus",
-  "nav.settings": "Asetukset",
-  "nav.special": "Erikoiset",
-  "nav.support": "Tuki",
-  "nav.tagline": "Parempia osumia. Fiksumpaa rakkautta. 💘",
-  "nav.terms": "Käyttöehdot",
   "notifications": {
     "likeReceived": "{{username}} liked your profile",
     "matchFound": "You have a new match with {{username}}",
     "newMessage": "You have a new message from {{username}}",
     "superlikeReceived": "{{username}} superliked you"
+  },
+  "overview": {
+    "error": "Failed to load conversations"
   },
   "politics": {
     "anarchism": "Anarchism",
@@ -345,15 +314,16 @@
   "press": "Lehdistö",
   "profile": {
     "addCaption": "Lisää kuvateksti…",
-    "age": "Ikä",
     "basicEducation": "Peruskoulu",
     "bi": "Biseksuaali",
     "bodyType": {
+      "_legacy": "Body type  // TODO: translate",
       "athletic": "Urheilullinen",
       "normal": "Normaali",
       "obese": "Lihava",
       "overweight": "Ylipainoinen",
-      "thin": "Laiha"
+      "thin": "Laiha",
+      "_value": "Body type  // TODO: translate"
     },
     "browse": "Selaa…",
     "categories": {
@@ -370,7 +340,6 @@
     "delete": "Poista tili",
     "deleteAccount": "Poista tili",
     "education": "Koulutus",
-    "email": "Sähköposti",
     "extraImages": "Lisäkuvat (max 6)",
     "female": "Nainen",
     "gender": "Sukupuoli",
@@ -384,12 +353,10 @@
     "location": "Sijainti",
     "lookingFor": "Mitä etsit?",
     "lowerUni": "Alempi korkeakoulututkinto",
-    "mainImage": "Profiilikuva",
     "male": "Mies",
     "manualCity": "Kirjoita kaupunki (jos ei listassa)",
     "manualCountry": "Kirjoita maa (jos ei listassa)",
     "manualRegion": "Kirjoita alue (jos ei listassa)",
-    "name": "Nimi",
     "noFileChosen": "Ei valittua tiedostoa",
     "notImportant": "Ei tärkeä",
     "orientation": "Seksuaalinen suuntautuminen",
@@ -424,11 +391,10 @@
     "veryImportant": "Erittäin tärkeä",
     "weight": "Paino (kg)",
     "weightUnit": "Painoyksikkö",
-    "bodyType.athletic": "Athletic",
-    "bodyType.normal": "Normal",
-    "bodyType.obese": "Obese",
-    "bodyType.overweight": "Overweight",
-    "bodyType.thin": "Thin"
+    "age": "Ikä",
+    "email": "Sähköposti",
+    "mainImage": "Profiilikuva",
+    "name": "Nimi"
   },
   "region": "Alue / lääni",
   "religion": {
@@ -444,23 +410,6 @@
   "rights": "Kaikki oikeudet pidätetään.",
   "safety": "Turvavinkit",
   "security": "Turvallisuus",
-  "site": {
-    "title": "Loventia.site"
-  },
-  "special": "Erikoiset",
-  "subnav": {
-    "cupidsPicks": "Cupid's Picks",
-    "matchPercentage": "Match %",
-    "passport": "Passport",
-    "recommended": "Recommended",
-    "superlikes": "SuperLikes"
-  },
-  "support": "Tuki",
-  "tagline": "Match better. Love smarter. 💘",
-  "terms": "Käyttöehdot",
-  "overview": {
-    "error": "Failed to load conversations"
-  },
   "select_language_label": "Select language",
   "settings": {
     "dangerDescription": "When you delete your account, all your data will be permanently removed.",
@@ -485,5 +434,53 @@
     "unhideSuccess": "Your account is visible again.",
     "unhideError": "Failed to unhide your account.",
     "signedInAs": "Signed in as"
-  }
+  },
+  "site": {
+    "title": "Loventia.site"
+  },
+  "special": "Erikoiset",
+  "subnav": {
+    "cupidsPicks": "Cupid's Picks",
+    "matchPercentage": "Match %",
+    "passport": "Passport",
+    "recommended": "Recommended",
+    "superlikes": "SuperLikes"
+  },
+  "support": "Tuki",
+  "tagline": "Match better. Love smarter. 💘",
+  "terms": "Käyttöehdot",
+  "nav.about": "About",
+  "nav.admin": "Ylläpito",
+  "nav.blog": "Blogi",
+  "nav.careers": "Careers",
+  "nav.coInfo": "Colorado-info",
+  "nav.community": "Yhteisö",
+  "nav.company": "Yritys",
+  "nav.conditions": "Conditions",
+  "nav.contact": "Yhteys",
+  "nav.cookies": "Evästeet",
+  "nav.discover": "Löydä",
+  "nav.download": "Lataa",
+  "nav.follow": "Seuraa",
+  "nav.health": "Terveyskäytännöt",
+  "nav.home": "Etusivu",
+  "nav.impressum": "Impressum",
+  "nav.likes": "Tykkäykset",
+  "nav.login": "Kirjaudu",
+  "nav.map": "Kartta",
+  "nav.matches": "Parit",
+  "nav.messages": "Viestit",
+  "nav.premium": "Premium",
+  "nav.press": "Press",
+  "nav.privacy": "Tietosuoja",
+  "nav.profile": "Profiili",
+  "nav.register": "Rekisteröidy",
+  "nav.rights": "Kaikki oikeudet pidätetään.",
+  "nav.safety": "Turvavinkit",
+  "nav.security": "Turvallisuus",
+  "nav.settings": "Asetukset",
+  "nav.special": "Erikoiset",
+  "nav.support": "Tuki",
+  "nav.tagline": "Parempia osumia. Fiksumpaa rakkautta. 💘",
+  "nav.terms": "Käyttöehdot"
 }

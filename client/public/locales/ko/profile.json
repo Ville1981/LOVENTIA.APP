@@ -1,63 +1,4 @@
 {
-  "about": "자기소개",
-  "age": "나이",
-  "bodyType": {
-    "slim": "Slim",
-    "normal": "Normal",
-    "athletic": "Athletic",
-    "overweight": "Overweight",
-    "obese": "Obese"
-  },
-  "children": "자녀",
-  "education": {
-    "label": "Education",
-    "secondary": "High school",
-    "vocational": "Vocational training",
-    "higher": "University",
-    "phd": "PhD / Research"
-  },
-  "gender": "성별",
-  "goals": "목표",
-  "height": "키",
-  "heightUnit": "cm",
-  "location": {
-    "city": "도시",
-    "country": "국가",
-    "manualCity": "도시 직접 입력",
-    "manualCountry": "국가 직접 입력",
-    "manualRegion": "지역 직접 입력",
-    "region": "지역"
-  },
-  "lookingFor": "원하는 상대",
-  "orientation": "성적 지향",
-  "pets": "반려동물",
-  "politicalIdeology": "정치 성향",
-  "profession": "직업",
-  "professionCategory": "직업 분야",
-  "religion": {
-    "label": "Religion",
-    "christianity": "Christianity",
-    "islam": "Islam",
-    "hinduism": "Hinduism",
-    "buddhism": "Buddhism",
-    "folk": "Folk religion",
-    "none": "None",
-    "other": "Other",
-    "atheism": "Atheism"
-  },
-  "religionImportance": {
-    "label": "Religion importance",
-    "notImportant": "Not important",
-    "somewhatImportant": "Somewhat important",
-    "veryImportant": "Very important",
-    "essential": "Essential"
-  },
-  "searchingFor": "원하는 상대",
-  "weight": "체중",
-  "weightUnit": "kg",
-  "username": "사용자 이름",
-  "email": "이메일",
-  "save": "저장",
   "labels": {
     "header": "Profile",
     "age": "Age",
@@ -179,20 +120,39 @@
       "none": "None"
     }
   },
+  "age": "나이",
+  "username": "사용자 이름",
+  "email": "이메일",
   "gender.label": "Gender",
   "orientation.label": "❤️ Orientation",
+  "height": "키",
   "height.label": "Height",
+  "heightUnit": "cm",
   "cm": "cm",
+  "weight": "체중",
   "weight.label": "Weight",
+  "weightUnit": "kg",
   "kg": "kg",
   "bodyType.label": "Body type",
   "location.country": "🌍 Country",
   "location.region": "🗺 Region/State",
   "location.city": "🏩 City",
   "education.label": "🎓 Education",
+  "professionCategory": "직업 분야",
   "professionCategory.label": "💼 Profession category",
+  "profession": "직업",
   "professionPlaceholder": "Enter profession…",
   "religion.label": "🕊 Religion",
+  "religionImportance": {
+    "label": "Religion importance",
+    "notImportant": "Not important",
+    "somewhatImportant": "Somewhat important",
+    "veryImportant": "Very important",
+    "essential": "Essential"
+  },
+  "politicalIdeology": "정치 성향",
+  "children": "자녀",
+  "pets": "반려동물",
   "lifestyle": "Lifestyle",
   "smoke": "Smoke",
   "drink": "Alcohol",
@@ -200,9 +160,29 @@
   "diet": "Diet",
   "exercise": "Exercise",
   "aboutMe": "📄 About me",
+  "goals": "목표",
+  "lookingFor": "원하는 상대",
   "male": "Male",
   "female": "Female",
   "other": "Other",
+  "education": {
+    "label": "Education",
+    "secondary": "High school",
+    "vocational": "Vocational training",
+    "higher": "University",
+    "phd": "PhD / Research"
+  },
+  "religion": {
+    "label": "Religion",
+    "christianity": "Christianity",
+    "islam": "Islam",
+    "hinduism": "Hinduism",
+    "buddhism": "Buddhism",
+    "folk": "Folk religion",
+    "none": "None",
+    "other": "Other",
+    "atheism": "Atheism"
+  },
   "common": {
     "other": "Other"
   },
@@ -224,6 +204,7 @@
     "other": "Other",
     "religion": "Religion"
   },
+  "searchingFor": "원하는 상대",
   "looking": {
     "friendship": "Friendship",
     "gettingToKnow": "Getting to know",
@@ -234,6 +215,13 @@
     "chatOnly": "Chat only",
     "casual": "Casual",
     "undecided": "Undecided"
+  },
+  "bodyType": {
+    "slim": "Slim",
+    "normal": "Normal",
+    "athletic": "Athletic",
+    "overweight": "Overweight",
+    "obese": "Obese"
   },
   "childrenYes": "Yes",
   "childrenNo": "No",
@@ -259,5 +247,17 @@
     "pets": "🐾 Pets"
   },
   "managePhotos": "Manage photos",
-  "saveSuccess": "Profile saved."
+  "save": "저장",
+  "saveSuccess": "Profile saved.",
+  "about": "자기소개",
+  "gender": "성별",
+  "location": {
+    "city": "도시",
+    "country": "국가",
+    "manualCity": "도시 직접 입력",
+    "manualCountry": "국가 직접 입력",
+    "manualRegion": "지역 직접 입력",
+    "region": "지역"
+  },
+  "orientation": "성적 지향"
 }

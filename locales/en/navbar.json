@@ -1,1 +1,20 @@
-{}
+{
+  "//": "NAVIGATION – canonical keys used across the app",
+  "nav": {
+    "home": "Home",
+    "discover": "Discover",
+    "profile": "Profile",
+    "messages": "Messages",
+    "likes": "Likes",
+    "upgrade": "Upgrade",
+    "map": "Map",
+    "settings": "Settings",
+    "logout": "Logout"
+  },
+
+  "//overview": "Some views used nav:overview.title – keep it here to avoid 404 i18n",
+  "overview": {
+    "title": "Overview"
+  }
+}
+
