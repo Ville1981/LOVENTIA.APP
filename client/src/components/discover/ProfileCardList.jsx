@@ -18,13 +18,15 @@ import "slick-carousel/slick/slick-theme.css";
  * - Uses stable keys derived from normalized ids (id | _id)
  * - Forces slider remount on dataset changes to avoid stale active index
  * - Keeps behavior consistent with Discover and other pages
+ * - ❗ Fix: maintain hook order even when list becomes empty (no early-return before all hooks run)
  */
 const ProfileCardList = ({ users = [], onAction }) => {
+  const sliderRef = useRef(null);
+
   // --- Normalize ids and filter out invalid user entries (defensive) ---
   const normalizeId = (val) => {
     if (val == null) return null;
     try {
-      // If ObjectId-like instance
       if (typeof val === "object" && typeof val.toString === "function") {
         return val.toString();
       }
@@ -43,15 +45,6 @@ const ProfileCardList = ({ users = [], onAction }) => {
       .filter((u) => !!u.id);
   }, [users]);
 
-  // Empty state if no valid users
-  if (safeUsers.length === 0) {
-    return (
-      <p className="text-center text-gray-500 mt-6">🔍 No results found</p>
-    );
-  }
-
-  const sliderRef = useRef(null);
-
   // Compute a stable content key: when user set changes, this string changes
   const userKey = safeUsers.map((u) => u.id).join("|");
 
@@ -60,6 +53,7 @@ const ProfileCardList = ({ users = [], onAction }) => {
     sliderRef.current?.slickGoTo(0, /* dontAnimate */ true);
   }, [userKey]);
 
+  // ❗ IMPORTANT: Define all hooks before any conditional return to keep hook order stable.
   // Slider settings (kept minimal and consistent with project defaults)
   const settings = useMemo(
     () => ({
@@ -80,6 +74,13 @@ const ProfileCardList = ({ users = [], onAction }) => {
     }),
     []
   );
+
+  // Empty state if no valid users (after hooks so order never changes)
+  if (safeUsers.length === 0) {
+    return (
+      <p className="text-center text-gray-500 mt-6">🔍 No results found</p>
+    );
+  }
 
   return (
     <div

@@ -1,3 +1,5 @@
+// File: client/src/components/discover/ProfileCard.jsx
+
 // --- REPLACE START: ProfileCard – robust image URL normalization (BACKEND_BASE_URL), safe id/location, minimal changes ---
 import PropTypes from "prop-types";
 import React, { memo, useState, useEffect } from "react";
@@ -10,8 +12,9 @@ import StatsPanel from "./StatsPanel";
 import SummaryAccordion from "./SummaryAccordion";
 import { BACKEND_BASE_URL } from "../../utils/config";
 
-// Static fallback photos from public/assets (kept as-is; these are served by the client dev server)
-const FALLBACK_PHOTOS = [
+// Demo-only fallback photos (used when user.photos is empty). 
+// Bunny images are only used for demo/prototype purposes.
+const DEMO_FALLBACK_PHOTOS = [
   "/assets/bunny1.jpg",
   "/assets/bunny2.jpg",
   "/assets/bunny3.jpg",
@@ -54,13 +57,12 @@ const ProfileCard = ({ user, onPass, onLike, onSuperlike }) => {
     setLoading(true);
     setError(null);
     try {
-      // Prefer backend-provided photos, otherwise use fallback assets
+      // Prefer backend-provided photos, otherwise fall back to demo set
       const rawList =
         Array.isArray(user.photos) && user.photos.length > 0
           ? user.photos
-          : FALLBACK_PHOTOS;
+          : DEMO_FALLBACK_PHOTOS;
 
-      // Convert any item to string URL first, then normalize
       const urls = rawList
         .map((item) => {
           if (typeof item === "string") return item;
@@ -75,16 +77,15 @@ const ProfileCard = ({ user, onPass, onLike, onSuperlike }) => {
 
       setPhotos(urls);
     } catch (e) {
-      // eslint-disable-next-line no-console
       console.error(e);
       setError("Failed to load images");
     } finally {
       setLoading(false);
     }
-    // Only react to changes in user.photos reference
+    // React only when user.photos changes
   }, [user.photos]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Safe display name and id normalization (keep original behavior)
+  // Safe display name and id normalization
   const displayName = user.name || user.username || "Unknown";
   const id = (user.id || user._id || "").toString();
 
@@ -100,10 +101,10 @@ const ProfileCard = ({ user, onPass, onLike, onSuperlike }) => {
 
   return (
     <div className="relative bg-white border border-gray-200 rounded-lg shadow-md overflow-hidden w-full">
-      {/* Photo carousel: height is managed inside PhotoCarousel */}
+      {/* Photo carousel */}
       <PhotoCarousel photos={photos} />
 
-      {/* INTRO button (kept as given) */}
+      {/* INTRO button */}
       <button
         type="button"
         className="absolute bottom-2 right-2 bg-white text-blue-600 text-xs font-semibold py-1 px-2 rounded shadow-sm"
@@ -125,7 +126,7 @@ const ProfileCard = ({ user, onPass, onLike, onSuperlike }) => {
           </div>
         </div>
 
-        {/* Location: prefer nested user.location.*, fallback to top-level */}
+        {/* Location */}
         <LocationText
           city={user?.location?.city ?? user.city}
           region={user?.location?.region ?? user.region}
@@ -190,4 +191,3 @@ ProfileCard.propTypes = {
 
 export default memo(ProfileCard);
 // --- REPLACE END ---
-

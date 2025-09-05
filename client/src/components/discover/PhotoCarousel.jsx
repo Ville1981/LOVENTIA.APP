@@ -168,7 +168,7 @@ const PhotoCarousel = ({ photos = [], images /* deprecated alias, tolerated */ }
     dots: false,
     arrows: enableCarousel,
     infinite: enableCarousel,
-    autoplay: autoplayFinal, // <- respects user + system prefs
+    autoplay: autoplayFinal, // ← respects user + system prefs
     autoplaySpeed: 3000,
     speed: 300,
     slidesToShow,
@@ -275,23 +275,3 @@ PhotoCarousel.propTypes = {
 };
 
 export default memo(PhotoCarousel);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
