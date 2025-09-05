@@ -16,8 +16,13 @@
     "scan:zap": "zap.sh -cmd -configfile security/zap-config.json -quickurl http://localhost:5174 -quickout zap-report/zap-report.html",
     "scan:dep": "npm audit --audit-level=moderate",
     "lint": "eslint src --ext .js,.jsx",
-    "lint:fix": "eslint src --ext .js,.jsx --fix"
+    "lint:fix": "eslint src --ext .js,.jsx --fix",
+    "i18n:audit": "node scripts/i18nAudit.mjs",
+    "i18n:sync": "node scripts/i18nSync.mjs"
   },
+  
+
+
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
     "@tanstack/react-query": "^5.83.0",

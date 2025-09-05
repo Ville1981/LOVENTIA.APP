@@ -1,68 +1,4 @@
 {
-  "about": "Tietoa minusta",
-  "age": "Ikä",
-  "bodyType": {
-    "label": "Vartalotyyppi",
-    "slim": "Slim",
-    "normal": "Normal",
-    "athletic": "Athletic",
-    "overweight": "Overweight",
-    "obese": "Obese"
-  },
-  "children": "Lapset",
-  "education": {
-    "label": "Koulutus",
-    "secondary": "High school",
-    "vocational": "Vocational training",
-    "higher": "University",
-    "phd": "PhD / Research"
-  },
-  "gender": {
-    "label": "Sukupuoli"
-  },
-  "goals": "Tavoitteet",
-  "height": "Pituus",
-  "heightUnit": "cm",
-  "location": {
-    "city": "Kaupunki",
-    "country": "Maa",
-    "manualCity": "Syötä kaupunki käsin",
-    "manualCountry": "Syötä maa käsin",
-    "manualRegion": "Syötä alue käsin",
-    "region": "Maakunta / alue"
-  },
-  "lookingFor": "Mitä etsit",
-  "orientation": {
-    "label": "Suuntautuminen"
-  },
-  "pets": "Lemmikit",
-  "politicalIdeology": "Poliittinen ideologia",
-  "profession": "Ammatti",
-  "professionCategory": "Ammattikategoria",
-  "religion": {
-    "label": "Religion",
-    "christianity": "Christianity",
-    "islam": "Islam",
-    "hinduism": "Hinduism",
-    "buddhism": "Buddhism",
-    "folk": "Folk religion",
-    "none": "None",
-    "other": "Other",
-    "atheism": "Atheism"
-  },
-  "religionImportance": {
-    "label": "Religion importance",
-    "notImportant": "Not important",
-    "somewhatImportant": "Somewhat important",
-    "veryImportant": "Very important",
-    "essential": "Essential"
-  },
-  "searchingFor": "Etsin",
-  "weight": "Paino",
-  "weightUnit": "kg",
-  "username": "Käyttäjänimi",
-  "email": "Sähköposti",
-  "save": "Tallenna",
   "labels": {
     "header": "Profile",
     "age": "Age",
@@ -184,20 +120,39 @@
       "none": "None"
     }
   },
+  "age": "Ikä",
+  "username": "Käyttäjänimi",
+  "email": "Sähköposti",
   "gender.label": "Gender",
   "orientation.label": "❤️ Orientation",
+  "height": "Pituus",
   "height.label": "Height",
+  "heightUnit": "cm",
   "cm": "cm",
+  "weight": "Paino",
   "weight.label": "Weight",
+  "weightUnit": "kg",
   "kg": "kg",
   "bodyType.label": "Body type",
   "location.country": "🌍 Country",
   "location.region": "🗺 Region/State",
   "location.city": "🏩 City",
   "education.label": "🎓 Education",
+  "professionCategory": "Ammattikategoria",
   "professionCategory.label": "💼 Profession category",
+  "profession": "Ammatti",
   "professionPlaceholder": "Enter profession…",
   "religion.label": "🕊 Religion",
+  "religionImportance": {
+    "label": "Religion importance",
+    "notImportant": "Not important",
+    "somewhatImportant": "Somewhat important",
+    "veryImportant": "Very important",
+    "essential": "Essential"
+  },
+  "politicalIdeology": "Poliittinen ideologia",
+  "children": "Lapset",
+  "pets": "Lemmikit",
   "lifestyle": "Lifestyle",
   "smoke": "Smoke",
   "drink": "Alcohol",
@@ -205,9 +160,29 @@
   "diet": "Diet",
   "exercise": "Exercise",
   "aboutMe": "📄 About me",
+  "goals": "Tavoitteet",
+  "lookingFor": "Mitä etsit",
   "male": "Male",
   "female": "Female",
   "other": "Other",
+  "education": {
+    "label": "Koulutus",
+    "secondary": "High school",
+    "vocational": "Vocational training",
+    "higher": "University",
+    "phd": "PhD / Research"
+  },
+  "religion": {
+    "label": "Religion",
+    "christianity": "Christianity",
+    "islam": "Islam",
+    "hinduism": "Hinduism",
+    "buddhism": "Buddhism",
+    "folk": "Folk religion",
+    "none": "None",
+    "other": "Other",
+    "atheism": "Atheism"
+  },
   "common": {
     "other": "Other"
   },
@@ -229,6 +204,7 @@
     "other": "Other",
     "religion": "Religion"
   },
+  "searchingFor": "Etsin",
   "looking": {
     "friendship": "Friendship",
     "gettingToKnow": "Getting to know",
@@ -239,6 +215,14 @@
     "chatOnly": "Chat only",
     "casual": "Casual",
     "undecided": "Undecided"
+  },
+  "bodyType": {
+    "slim": "Slim",
+    "normal": "Normal",
+    "athletic": "Athletic",
+    "overweight": "Overweight",
+    "obese": "Obese",
+    "label": "Vartalotyyppi"
   },
   "childrenYes": "Yes",
   "childrenNo": "No",
@@ -264,5 +248,21 @@
     "pets": "🐾 Pets"
   },
   "managePhotos": "Manage photos",
-  "saveSuccess": "Profile saved."
+  "save": "Tallenna",
+  "saveSuccess": "Profile saved.",
+  "about": "Tietoa minusta",
+  "gender": {
+    "label": "Sukupuoli"
+  },
+  "location": {
+    "city": "Kaupunki",
+    "country": "Maa",
+    "manualCity": "Syötä kaupunki käsin",
+    "manualCountry": "Syötä maa käsin",
+    "manualRegion": "Syötä alue käsin",
+    "region": "Maakunta / alue"
+  },
+  "orientation": {
+    "label": "Suuntautuminen"
+  }
 }

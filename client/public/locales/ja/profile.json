@@ -1,63 +1,4 @@
 {
-  "about": "自己紹介",
-  "age": "年齢",
-  "bodyType": {
-    "slim": "Slim",
-    "normal": "Normal",
-    "athletic": "Athletic",
-    "overweight": "Overweight",
-    "obese": "Obese"
-  },
-  "children": "子ども",
-  "education": {
-    "label": "Education",
-    "secondary": "High school",
-    "vocational": "Vocational training",
-    "higher": "University",
-    "phd": "PhD / Research"
-  },
-  "gender": "性別",
-  "goals": "目標",
-  "height": "身長",
-  "heightUnit": "cm",
-  "location": {
-    "city": "市区町村",
-    "country": "国",
-    "manualCity": "市区町村を手動で入力",
-    "manualCountry": "国を手動で入力",
-    "manualRegion": "地域を手動で入力",
-    "region": "地域"
-  },
-  "lookingFor": "希望する相手",
-  "orientation": "性的指向",
-  "pets": "ペット",
-  "politicalIdeology": "政治的イデオロギー",
-  "profession": "職業",
-  "professionCategory": "職業カテゴリ",
-  "religion": {
-    "label": "Religion",
-    "christianity": "Christianity",
-    "islam": "Islam",
-    "hinduism": "Hinduism",
-    "buddhism": "Buddhism",
-    "folk": "Folk religion",
-    "none": "None",
-    "other": "Other",
-    "atheism": "Atheism"
-  },
-  "religionImportance": {
-    "label": "Religion importance",
-    "notImportant": "Not important",
-    "somewhatImportant": "Somewhat important",
-    "veryImportant": "Very important",
-    "essential": "Essential"
-  },
-  "searchingFor": "希望する相手",
-  "weight": "体重",
-  "weightUnit": "kg",
-  "username": "ユーザー名",
-  "email": "メール",
-  "save": "保存",
   "labels": {
     "header": "Profile",
     "age": "Age",
@@ -179,20 +120,39 @@
       "none": "None"
     }
   },
+  "age": "年齢",
+  "username": "ユーザー名",
+  "email": "メール",
   "gender.label": "Gender",
   "orientation.label": "❤️ Orientation",
+  "height": "身長",
   "height.label": "Height",
+  "heightUnit": "cm",
   "cm": "cm",
+  "weight": "体重",
   "weight.label": "Weight",
+  "weightUnit": "kg",
   "kg": "kg",
   "bodyType.label": "Body type",
   "location.country": "🌍 Country",
   "location.region": "🗺 Region/State",
   "location.city": "🏩 City",
   "education.label": "🎓 Education",
+  "professionCategory": "職業カテゴリ",
   "professionCategory.label": "💼 Profession category",
+  "profession": "職業",
   "professionPlaceholder": "Enter profession…",
   "religion.label": "🕊 Religion",
+  "religionImportance": {
+    "label": "Religion importance",
+    "notImportant": "Not important",
+    "somewhatImportant": "Somewhat important",
+    "veryImportant": "Very important",
+    "essential": "Essential"
+  },
+  "politicalIdeology": "政治的イデオロギー",
+  "children": "子ども",
+  "pets": "ペット",
   "lifestyle": "Lifestyle",
   "smoke": "Smoke",
   "drink": "Alcohol",
@@ -200,9 +160,29 @@
   "diet": "Diet",
   "exercise": "Exercise",
   "aboutMe": "📄 About me",
+  "goals": "目標",
+  "lookingFor": "希望する相手",
   "male": "Male",
   "female": "Female",
   "other": "Other",
+  "education": {
+    "label": "Education",
+    "secondary": "High school",
+    "vocational": "Vocational training",
+    "higher": "University",
+    "phd": "PhD / Research"
+  },
+  "religion": {
+    "label": "Religion",
+    "christianity": "Christianity",
+    "islam": "Islam",
+    "hinduism": "Hinduism",
+    "buddhism": "Buddhism",
+    "folk": "Folk religion",
+    "none": "None",
+    "other": "Other",
+    "atheism": "Atheism"
+  },
   "common": {
     "other": "Other"
   },
@@ -224,6 +204,7 @@
     "other": "Other",
     "religion": "Religion"
   },
+  "searchingFor": "希望する相手",
   "looking": {
     "friendship": "Friendship",
     "gettingToKnow": "Getting to know",
@@ -234,6 +215,13 @@
     "chatOnly": "Chat only",
     "casual": "Casual",
     "undecided": "Undecided"
+  },
+  "bodyType": {
+    "slim": "Slim",
+    "normal": "Normal",
+    "athletic": "Athletic",
+    "overweight": "Overweight",
+    "obese": "Obese"
   },
   "childrenYes": "Yes",
   "childrenNo": "No",
@@ -259,5 +247,17 @@
     "pets": "🐾 Pets"
   },
   "managePhotos": "Manage photos",
-  "saveSuccess": "Profile saved."
+  "save": "保存",
+  "saveSuccess": "Profile saved.",
+  "about": "自己紹介",
+  "gender": "性別",
+  "location": {
+    "city": "市区町村",
+    "country": "国",
+    "manualCity": "市区町村を手動で入力",
+    "manualCountry": "国を手動で入力",
+    "manualRegion": "地域を手動で入力",
+    "region": "地域"
+  },
+  "orientation": "性的指向"
 }

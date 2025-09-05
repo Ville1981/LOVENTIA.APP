@@ -1,4 +1,16 @@
 {
+  "appName": "Loventia",
+  "select": "Select",
+  "all": "All",
+  "other": "Other",
+  "filter": "Filter",
+  "loading": "Loading",
+  "save": "Save",
+  "cancel": "Cancel",
+  "update": "Update",
+  "close": "Close",
+  "language": "Language",
+  "fixErrors": "Please fix the highlighted fields.",
   "home": {
     "title": "Pata mahusiano ya kweli",
     "subtitle": "Swipe kidogo, mechi bora — jamii ya uchumba wa maana."
@@ -12,18 +24,6 @@
     "logout": "Logout",
     "admin": "Admin"
   },
-  "appName": "Loventia",
-  "select": "Select",
-  "all": "All",
-  "other": "Other",
-  "filter": "Filter",
-  "loading": "Loading",
-  "save": "Save",
-  "cancel": "Cancel",
-  "update": "Update",
-  "close": "Close",
-  "language": "Language",
-  "fixErrors": "Please fix the highlighted fields.",
   "religion": {
     "christianity": "Christianity",
     "islam": "Islam",

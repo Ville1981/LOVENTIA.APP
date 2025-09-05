@@ -1,45 +1,4 @@
 {
-  "title": "Odkrywaj",
-  "subtitle": "Dostosuj filtry, aby znaleźć odpowiednie dopasowania.",
-  "filters": {
-    "age": "Wiek",
-    "minAge": "Minimalny wiek",
-    "maxAge": "Maksymalny wiek",
-    "distance": "Dystans",
-    "maxDistance": "Maksymalny dystans",
-    "location": "Lokalizacja",
-    "gender": "Płeć",
-    "orientation": "Orientation",
-    "lifestyle": "Styl życia",
-    "interests": "Zainteresowania",
-    "apply": "Zastosuj filtry",
-    "reset": "Resetuj",
-    "clear": "Wyczyść wszystko",
-    "professionCategory": "💼 Profession category",
-    "politicalIdeology": "🗳 Political ideology",
-    "pets": "🐾 Pets"
-  },
-  "results": {
-    "heading": "Wyniki",
-    "empty": "Brak wyników dla bieżących filtrów.",
-    "loadMore": "Wczytaj więcej"
-  },
-  "cards": {
-    "age": "Wiek",
-    "distance": "Dystans",
-    "view": "Zobacz profil"
-  },
-  "ageRange": "Przedział wiekowy",
-  "error": "Coś poszło nie tak. Spróbuj ponownie.",
-  "gender": "Płeć",
-  "instructions": "Set filters and click Filter to find people.",
-  "noResults": "Nie znaleziono wyników.",
-  "orientation": "Orientacja seksualna",
-  "politicalIdeology": "Ideologia polityczna",
-  "profession": "Zawód",
-  "religion": "Religia",
-  "religionImportance": "Znaczenie religii",
-  "username": "Nazwa użytkownika",
   "labels": {
     "header": "Discover",
     "title": "Discover",
@@ -110,13 +69,19 @@
       "other": "Other"
     }
   },
+  "instructions": "Set filters and click Filter to find people.",
+  "ageRange": "Przedział wiekowy",
+  "username": "Nazwa użytkownika",
   "gender.label": "Gender",
   "orientation.label": "❤️ Orientation",
   "location.country": "🌍 Country",
   "location.region": "🗺 Region/State",
   "location.city": "🏩 City",
   "education.label": "🎓 Education",
+  "profession": "Zawód",
   "religion.label": "🕊 Religion",
+  "religionImportance": "Znaczenie religii",
+  "politicalIdeology": "Ideologia polityczna",
   "children": "👶 Children",
   "pets": "🐾 Pets",
   "lifestyle": "Lifestyle",
@@ -132,6 +97,24 @@
   "weight": "Weight",
   "cm": "cm",
   "kg": "kg",
+  "filters": {
+    "professionCategory": "💼 Profession category",
+    "politicalIdeology": "🗳 Political ideology",
+    "pets": "🐾 Pets",
+    "age": "Wiek",
+    "minAge": "Minimalny wiek",
+    "maxAge": "Maksymalny wiek",
+    "distance": "Dystans",
+    "maxDistance": "Maksymalny dystans",
+    "location": "Lokalizacja",
+    "gender": "Płeć",
+    "orientation": "Orientation",
+    "lifestyle": "Styl życia",
+    "interests": "Zainteresowania",
+    "apply": "Zastosuj filtry",
+    "reset": "Resetuj",
+    "clear": "Wyczyść wszystko"
+  },
   "professionCategory": "💼 Profession category",
   "actions": {
     "apply": "Apply filters",
@@ -140,5 +123,22 @@
   "state": {
     "noResults": "No matching profiles found.",
     "loading": "Loading…"
-  }
+  },
+  "title": "Odkrywaj",
+  "subtitle": "Dostosuj filtry, aby znaleźć odpowiednie dopasowania.",
+  "results": {
+    "heading": "Wyniki",
+    "empty": "Brak wyników dla bieżących filtrów.",
+    "loadMore": "Wczytaj więcej"
+  },
+  "cards": {
+    "age": "Wiek",
+    "distance": "Dystans",
+    "view": "Zobacz profil"
+  },
+  "error": "Coś poszło nie tak. Spróbuj ponownie.",
+  "gender": "Płeć",
+  "noResults": "Nie znaleziono wyników.",
+  "orientation": "Orientacja seksualna",
+  "religion": "Religia"
 }

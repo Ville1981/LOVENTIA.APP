@@ -1,4 +1,4 @@
-// PATH: i18n.js
+// PATH: client/src/i18n/index.js
 
 // --- REPLACE START: robust i18n init with HttpBackend, detector, multi-namespaces, and helpers ---
 /* eslint-env browser */
@@ -18,11 +18,11 @@ import HttpBackend from "i18next-http-backend";
  *     3) trigger re-render of components using useTranslation()
  *
  * This file only affects UI copy. It does NOT influence Stripe Portal language.
- * Keep texts like "Open Billing Portal" in English in your UI components if desired.
  */
 
 export const SUPPORTED_LANGS = [
-  "en","fi","sv","de","fr","es","it","pt","pl","ro","tr","nl","no","da","cs","sk","hu","et","lt","lv","bg","el","uk","ru","ja","ko","zh","ar","he","hi","sw","ur"
+  "en","fi","sv","de","fr","es","it","pt","pl","ro","tr","nl","no","da","cs","sk","hu",
+  "et","lt","lv","bg","el","uk","ru","ja","ko","zh","ar","he","hi","sw","ur"
 ];
 
 export const NAMESPACES = [
@@ -67,7 +67,7 @@ let persistedRaw = null;
 try {
   persistedRaw = window.localStorage ? localStorage.getItem(STORAGE_KEY) : null;
 } catch {
-  // ignore storage errors (e.g., privacy mode)
+  // ignore storage errors
 }
 const persisted = normalizeLang(persistedRaw) || FALLBACK_LANG;
 
@@ -92,21 +92,19 @@ i18n
 
     supportedLngs: SUPPORTED_LANGS,
     fallbackLng: FALLBACK_LANG,
-    lng: persisted, // start from persisted or fallback
+    lng: persisted,
     ns: NAMESPACES,
     defaultNS: "common",
     fallbackNS: ["common", "translation"],
     load: "currentOnly",
 
-    // Use "ns:key" in code and dotted paths in JSON
-    nsSeparator: ":",   // e.g. "profile:age"
-    keySeparator: ".",  // keep dotted keys for nested JSON
+    nsSeparator: ":",
+    keySeparator: ".",
 
     interpolation: { escapeValue: false },
 
     debug: Boolean(import.meta?.env?.DEV),
 
-    // Prefer showing the key over null/empty when missing
     returnNull: false,
     returnEmptyString: false,
     parseMissingKeyHandler: (key) => key,
@@ -121,26 +119,23 @@ i18n
     }
   })
   .then(() => {
-    // Normalize the effective language and apply to <html>
     const effective = normalizeLang(i18n.language);
     if (!i18n.language || i18n.language !== effective) {
-      // If detector returned "en-US" and we only have "en"
       i18n.changeLanguage(effective);
     }
     applyHtmlLang(effective);
 
-    // Keep <html lang> & localStorage in sync on language changes
     i18n.on("languageChanged", (lng) => {
       try {
         const norm = normalizeLang(lng);
         localStorage.setItem(STORAGE_KEY, norm);
         applyHtmlLang(norm);
       } catch {
-        // ignore storage errors
+        // ignore
       }
     });
 
-    // --- REPLACE START: expose i18n for console debugging (after init to avoid undefined lng) ---
+    // --- REPLACE START: expose i18n for console debugging ---
     if (typeof window !== "undefined" && window && !window.i18next) {
       window.i18next = i18n;
       window.t = i18n.t.bind(i18n);
@@ -151,7 +146,6 @@ i18n
         nsSeparator: i18n.options?.nsSeparator
       });
     }
-    // Optional: extra init log
     i18n.on("initialized", (opts) => {
       // eslint-disable-next-line no-console
       console.log("[i18n] initialized", opts, "current lang:", i18n.language);
@@ -189,3 +183,18 @@ export function isCurrentLanguageRtl() {
 
 export default i18n;
 // --- REPLACE END ---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

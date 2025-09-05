@@ -1,63 +1,4 @@
 {
-  "about": "Despre mine",
-  "age": "Vârstă",
-  "bodyType": {
-    "slim": "Slim",
-    "normal": "Normal",
-    "athletic": "Athletic",
-    "overweight": "Overweight",
-    "obese": "Obese"
-  },
-  "children": "Copii",
-  "education": {
-    "label": "Education",
-    "secondary": "High school",
-    "vocational": "Vocational training",
-    "higher": "University",
-    "phd": "PhD / Research"
-  },
-  "gender": "Gen",
-  "goals": "Obiective",
-  "height": "Înălțime",
-  "heightUnit": "cm",
-  "location": {
-    "city": "Oraș",
-    "country": "Țară",
-    "manualCity": "Introdu orașul manual",
-    "manualCountry": "Introdu țara manual",
-    "manualRegion": "Introdu regiunea manual",
-    "region": "Regiune"
-  },
-  "lookingFor": "Caut",
-  "orientation": "Orientare sexuală",
-  "pets": "Animale de companie",
-  "politicalIdeology": "Ideologie politică",
-  "profession": "Profesie",
-  "professionCategory": "Categorie profesională",
-  "religion": {
-    "label": "Religion",
-    "christianity": "Christianity",
-    "islam": "Islam",
-    "hinduism": "Hinduism",
-    "buddhism": "Buddhism",
-    "folk": "Folk religion",
-    "none": "None",
-    "other": "Other",
-    "atheism": "Atheism"
-  },
-  "religionImportance": {
-    "label": "Religion importance",
-    "notImportant": "Not important",
-    "somewhatImportant": "Somewhat important",
-    "veryImportant": "Very important",
-    "essential": "Essential"
-  },
-  "searchingFor": "Caut",
-  "weight": "Greutate",
-  "weightUnit": "kg",
-  "username": "Nume de utilizator",
-  "email": "E-mail",
-  "save": "Salvează",
   "labels": {
     "header": "Profile",
     "age": "Age",
@@ -179,20 +120,39 @@
       "none": "None"
     }
   },
+  "age": "Vârstă",
+  "username": "Nume de utilizator",
+  "email": "E-mail",
   "gender.label": "Gender",
   "orientation.label": "❤️ Orientation",
+  "height": "Înălțime",
   "height.label": "Height",
+  "heightUnit": "cm",
   "cm": "cm",
+  "weight": "Greutate",
   "weight.label": "Weight",
+  "weightUnit": "kg",
   "kg": "kg",
   "bodyType.label": "Body type",
   "location.country": "🌍 Country",
   "location.region": "🗺 Region/State",
   "location.city": "🏩 City",
   "education.label": "🎓 Education",
+  "professionCategory": "Categorie profesională",
   "professionCategory.label": "💼 Profession category",
+  "profession": "Profesie",
   "professionPlaceholder": "Enter profession…",
   "religion.label": "🕊 Religion",
+  "religionImportance": {
+    "label": "Religion importance",
+    "notImportant": "Not important",
+    "somewhatImportant": "Somewhat important",
+    "veryImportant": "Very important",
+    "essential": "Essential"
+  },
+  "politicalIdeology": "Ideologie politică",
+  "children": "Copii",
+  "pets": "Animale de companie",
   "lifestyle": "Lifestyle",
   "smoke": "Smoke",
   "drink": "Alcohol",
@@ -200,9 +160,29 @@
   "diet": "Diet",
   "exercise": "Exercise",
   "aboutMe": "📄 About me",
+  "goals": "Obiective",
+  "lookingFor": "Caut",
   "male": "Male",
   "female": "Female",
   "other": "Other",
+  "education": {
+    "label": "Education",
+    "secondary": "High school",
+    "vocational": "Vocational training",
+    "higher": "University",
+    "phd": "PhD / Research"
+  },
+  "religion": {
+    "label": "Religion",
+    "christianity": "Christianity",
+    "islam": "Islam",
+    "hinduism": "Hinduism",
+    "buddhism": "Buddhism",
+    "folk": "Folk religion",
+    "none": "None",
+    "other": "Other",
+    "atheism": "Atheism"
+  },
   "common": {
     "other": "Other"
   },
@@ -224,6 +204,7 @@
     "other": "Other",
     "religion": "Religion"
   },
+  "searchingFor": "Caut",
   "looking": {
     "friendship": "Friendship",
     "gettingToKnow": "Getting to know",
@@ -234,6 +215,13 @@
     "chatOnly": "Chat only",
     "casual": "Casual",
     "undecided": "Undecided"
+  },
+  "bodyType": {
+    "slim": "Slim",
+    "normal": "Normal",
+    "athletic": "Athletic",
+    "overweight": "Overweight",
+    "obese": "Obese"
   },
   "childrenYes": "Yes",
   "childrenNo": "No",
@@ -259,5 +247,17 @@
     "pets": "🐾 Pets"
   },
   "managePhotos": "Manage photos",
-  "saveSuccess": "Profile saved."
+  "save": "Salvează",
+  "saveSuccess": "Profile saved.",
+  "about": "Despre mine",
+  "gender": "Gen",
+  "location": {
+    "city": "Oraș",
+    "country": "Țară",
+    "manualCity": "Introdu orașul manual",
+    "manualCountry": "Introdu țara manual",
+    "manualRegion": "Introdu regiunea manual",
+    "region": "Regiune"
+  },
+  "orientation": "Orientare sexuală"
 }

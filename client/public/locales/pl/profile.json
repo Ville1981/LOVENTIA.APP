@@ -1,63 +1,4 @@
 {
-  "about": "O mnie",
-  "age": "Wiek",
-  "bodyType": {
-    "slim": "Slim",
-    "normal": "Normal",
-    "athletic": "Athletic",
-    "overweight": "Overweight",
-    "obese": "Obese"
-  },
-  "children": "Dzieci",
-  "education": {
-    "label": "Education",
-    "secondary": "High school",
-    "vocational": "Vocational training",
-    "higher": "University",
-    "phd": "PhD / Research"
-  },
-  "gender": "Płeć",
-  "goals": "Cele",
-  "height": "Wzrost",
-  "heightUnit": "cm",
-  "location": {
-    "city": "Miasto",
-    "country": "Kraj",
-    "manualCity": "Wpisz miasto ręcznie",
-    "manualCountry": "Wpisz kraj ręcznie",
-    "manualRegion": "Wpisz region ręcznie",
-    "region": "Region"
-  },
-  "lookingFor": "Szukam",
-  "orientation": "Orientacja seksualna",
-  "pets": "Zwierzęta",
-  "politicalIdeology": "Ideologia polityczna",
-  "profession": "Zawód",
-  "professionCategory": "Kategoria zawodowa",
-  "religion": {
-    "label": "Religion",
-    "christianity": "Christianity",
-    "islam": "Islam",
-    "hinduism": "Hinduism",
-    "buddhism": "Buddhism",
-    "folk": "Folk religion",
-    "none": "None",
-    "other": "Other",
-    "atheism": "Atheism"
-  },
-  "religionImportance": {
-    "label": "Religion importance",
-    "notImportant": "Not important",
-    "somewhatImportant": "Somewhat important",
-    "veryImportant": "Very important",
-    "essential": "Essential"
-  },
-  "searchingFor": "Szukam",
-  "weight": "Waga",
-  "weightUnit": "kg",
-  "username": "Nazwa użytkownika",
-  "email": "E-mail",
-  "save": "Zapisz",
   "labels": {
     "header": "Profile",
     "age": "Age",
@@ -179,20 +120,39 @@
       "none": "None"
     }
   },
+  "age": "Wiek",
+  "username": "Nazwa użytkownika",
+  "email": "E-mail",
   "gender.label": "Gender",
   "orientation.label": "❤️ Orientation",
+  "height": "Wzrost",
   "height.label": "Height",
+  "heightUnit": "cm",
   "cm": "cm",
+  "weight": "Waga",
   "weight.label": "Weight",
+  "weightUnit": "kg",
   "kg": "kg",
   "bodyType.label": "Body type",
   "location.country": "🌍 Country",
   "location.region": "🗺 Region/State",
   "location.city": "🏩 City",
   "education.label": "🎓 Education",
+  "professionCategory": "Kategoria zawodowa",
   "professionCategory.label": "💼 Profession category",
+  "profession": "Zawód",
   "professionPlaceholder": "Enter profession…",
   "religion.label": "🕊 Religion",
+  "religionImportance": {
+    "label": "Religion importance",
+    "notImportant": "Not important",
+    "somewhatImportant": "Somewhat important",
+    "veryImportant": "Very important",
+    "essential": "Essential"
+  },
+  "politicalIdeology": "Ideologia polityczna",
+  "children": "Dzieci",
+  "pets": "Zwierzęta",
   "lifestyle": "Lifestyle",
   "smoke": "Smoke",
   "drink": "Alcohol",
@@ -200,9 +160,29 @@
   "diet": "Diet",
   "exercise": "Exercise",
   "aboutMe": "📄 About me",
+  "goals": "Cele",
+  "lookingFor": "Szukam",
   "male": "Male",
   "female": "Female",
   "other": "Other",
+  "education": {
+    "label": "Education",
+    "secondary": "High school",
+    "vocational": "Vocational training",
+    "higher": "University",
+    "phd": "PhD / Research"
+  },
+  "religion": {
+    "label": "Religion",
+    "christianity": "Christianity",
+    "islam": "Islam",
+    "hinduism": "Hinduism",
+    "buddhism": "Buddhism",
+    "folk": "Folk religion",
+    "none": "None",
+    "other": "Other",
+    "atheism": "Atheism"
+  },
   "common": {
     "other": "Other"
   },
@@ -224,6 +204,7 @@
     "other": "Other",
     "religion": "Religion"
   },
+  "searchingFor": "Szukam",
   "looking": {
     "friendship": "Friendship",
     "gettingToKnow": "Getting to know",
@@ -234,6 +215,13 @@
     "chatOnly": "Chat only",
     "casual": "Casual",
     "undecided": "Undecided"
+  },
+  "bodyType": {
+    "slim": "Slim",
+    "normal": "Normal",
+    "athletic": "Athletic",
+    "overweight": "Overweight",
+    "obese": "Obese"
   },
   "childrenYes": "Yes",
   "childrenNo": "No",
@@ -259,5 +247,17 @@
     "pets": "🐾 Pets"
   },
   "managePhotos": "Manage photos",
-  "saveSuccess": "Profile saved."
+  "save": "Zapisz",
+  "saveSuccess": "Profile saved.",
+  "about": "O mnie",
+  "gender": "Płeć",
+  "location": {
+    "city": "Miasto",
+    "country": "Kraj",
+    "manualCity": "Wpisz miasto ręcznie",
+    "manualCountry": "Wpisz kraj ręcznie",
+    "manualRegion": "Wpisz region ręcznie",
+    "region": "Region"
+  },
+  "orientation": "Orientacja seksualna"
 }

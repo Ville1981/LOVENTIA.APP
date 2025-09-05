@@ -2,14 +2,15 @@
   "appName": "Loventia",
   "select": "Select",
   "all": "All",
+  "other": "Other",
   "filter": "Filter",
   "loading": "Loading",
-  "fixErrors": "Please fix the highlighted fields before saving.",
   "save": "Save",
   "cancel": "Cancel",
   "update": "Update",
   "close": "Close",
   "language": "Language",
+  "fixErrors": "Please fix the highlighted fields before saving.",
   "home": {
     "title": "Encuentra conexiones reales",
     "subtitle": "Menos deslizamientos, mejores matches — una comunidad para citas con sentido."
@@ -23,7 +24,6 @@
     "logout": "Logout",
     "admin": "Admin"
   },
-  "other": "Other",
   "religion": {
     "christianity": "Christianity",
     "islam": "Islam",

@@ -1,45 +1,4 @@
 {
-  "title": "Opdag",
-  "subtitle": "Juster dine filtre for at finde de rigtige matches.",
-  "filters": {
-    "age": "Alder",
-    "minAge": "Min. alder",
-    "maxAge": "Maks. alder",
-    "distance": "Afstand",
-    "maxDistance": "Maks. afstand",
-    "location": "Placering",
-    "gender": "Køn",
-    "orientation": "Orientation",
-    "lifestyle": "Livsstil",
-    "interests": "Interesser",
-    "apply": "Anvend filtre",
-    "reset": "Nulstil",
-    "clear": "Ryd alt",
-    "professionCategory": "💼 Profession category",
-    "politicalIdeology": "🗳 Political ideology",
-    "pets": "🐾 Pets"
-  },
-  "results": {
-    "heading": "Resultater",
-    "empty": "Ingen resultater med de nuværende filtre.",
-    "loadMore": "Indlæs mere"
-  },
-  "cards": {
-    "age": "Alder",
-    "distance": "Afstand",
-    "view": "Se profil"
-  },
-  "ageRange": "Aldersinterval",
-  "error": "Noget gik galt. Prøv igen.",
-  "gender": "Køn",
-  "instructions": "Set filters and click Filter to find people.",
-  "noResults": "Ingen resultater fundet.",
-  "orientation": "Seksuel orientering",
-  "politicalIdeology": "Politisk ideologi",
-  "profession": "Erhverv",
-  "religion": "Religion",
-  "religionImportance": "Religionens betydning",
-  "username": "Brugernavn",
   "labels": {
     "header": "Discover",
     "title": "Discover",
@@ -110,13 +69,19 @@
       "other": "Other"
     }
   },
+  "instructions": "Set filters and click Filter to find people.",
+  "ageRange": "Aldersinterval",
+  "username": "Brugernavn",
   "gender.label": "Gender",
   "orientation.label": "❤️ Orientation",
   "location.country": "🌍 Country",
   "location.region": "🗺 Region/State",
   "location.city": "🏩 City",
   "education.label": "🎓 Education",
+  "profession": "Erhverv",
   "religion.label": "🕊 Religion",
+  "religionImportance": "Religionens betydning",
+  "politicalIdeology": "Politisk ideologi",
   "children": "👶 Children",
   "pets": "🐾 Pets",
   "lifestyle": "Lifestyle",
@@ -132,6 +97,24 @@
   "weight": "Weight",
   "cm": "cm",
   "kg": "kg",
+  "filters": {
+    "professionCategory": "💼 Profession category",
+    "politicalIdeology": "🗳 Political ideology",
+    "pets": "🐾 Pets",
+    "age": "Alder",
+    "minAge": "Min. alder",
+    "maxAge": "Maks. alder",
+    "distance": "Afstand",
+    "maxDistance": "Maks. afstand",
+    "location": "Placering",
+    "gender": "Køn",
+    "orientation": "Orientation",
+    "lifestyle": "Livsstil",
+    "interests": "Interesser",
+    "apply": "Anvend filtre",
+    "reset": "Nulstil",
+    "clear": "Ryd alt"
+  },
   "professionCategory": "💼 Profession category",
   "actions": {
     "apply": "Apply filters",
@@ -140,5 +123,22 @@
   "state": {
     "noResults": "No matching profiles found.",
     "loading": "Loading…"
-  }
+  },
+  "title": "Opdag",
+  "subtitle": "Juster dine filtre for at finde de rigtige matches.",
+  "results": {
+    "heading": "Resultater",
+    "empty": "Ingen resultater med de nuværende filtre.",
+    "loadMore": "Indlæs mere"
+  },
+  "cards": {
+    "age": "Alder",
+    "distance": "Afstand",
+    "view": "Se profil"
+  },
+  "error": "Noget gik galt. Prøv igen.",
+  "gender": "Køn",
+  "noResults": "Ingen resultater fundet.",
+  "orientation": "Seksuel orientering",
+  "religion": "Religion"
 }

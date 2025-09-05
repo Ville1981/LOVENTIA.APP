@@ -11,5 +11,16 @@
     "register": "إنشاء حساب",
     "logout": "Logout",
     "admin": "مسؤول"
-  }
+  },
+  "appName": "Loventia  // TODO: translate",
+  "select": "Select  // TODO: translate",
+  "all": "All  // TODO: translate",
+  "filter": "Filter  // TODO: translate",
+  "loading": "Loading  // TODO: translate",
+  "fixErrors": "Please fix the highlighted fields before saving.  // TODO: translate",
+  "save": "Save  // TODO: translate",
+  "cancel": "Cancel  // TODO: translate",
+  "update": "Update  // TODO: translate",
+  "close": "Close  // TODO: translate",
+  "language": "Language  // TODO: translate"
 }
