@@ -72,14 +72,14 @@
   "instructions": "Set filters and click Filter to find people.",
   "ageRange": "Leeftijdsbereik",
   "username": "Gebruikersnaam",
-  "gender.label": "Gender",
-  "orientation.label": "❤️ Orientation",
-  "location.country": "🌍 Country",
-  "location.region": "🗺 Region/State",
-  "location.city": "🏩 City",
-  "education.label": "🎓 Education",
+  "gender.label": "Gender  // TODO: translate",
+  "orientation.label": "❤️ Orientation  // TODO: translate",
+  "location.country": "🌍 Country  // TODO: translate",
+  "location.region": "🗺 Region/State  // TODO: translate",
+  "location.city": "🏩 City  // TODO: translate",
+  "education.label": "🎓 Education  // TODO: translate",
   "profession": "Beroep",
-  "religion.label": "🕊 Religion",
+  "religion.label": "🕊 Religion  // TODO: translate",
   "religionImportance": "Belang van religie",
   "politicalIdeology": "Politieke ideologie",
   "children": "👶 Children",
@@ -100,20 +100,7 @@
   "filters": {
     "professionCategory": "💼 Profession category",
     "politicalIdeology": "🗳 Political ideology",
-    "pets": "🐾 Pets",
-    "age": "Leeftijd",
-    "minAge": "Minimumleeftijd",
-    "maxAge": "Maximumleeftijd",
-    "distance": "Afstand",
-    "maxDistance": "Maximale afstand",
-    "location": "Locatie",
-    "gender": "Geslacht",
-    "orientation": "Orientation",
-    "lifestyle": "Levensstijl",
-    "interests": "Interesses",
-    "apply": "Filters toepassen",
-    "reset": "Resetten",
-    "clear": "Alles wissen"
+    "pets": "🐾 Pets"
   },
   "professionCategory": "💼 Profession category",
   "actions": {
@@ -124,21 +111,21 @@
     "noResults": "No matching profiles found.",
     "loading": "Loading…"
   },
-  "title": "Ontdekken",
-  "subtitle": "Pas je filters aan om de juiste matches te vinden.",
-  "results": {
-    "heading": "Resultaten",
-    "empty": "Geen overeenkomsten met de huidige filters.",
-    "loadMore": "Meer laden"
+  "gender": {
+    "label": "Gender"
   },
-  "cards": {
-    "age": "Leeftijd",
-    "distance": "Afstand",
-    "view": "Profiel bekijken"
+  "orientation": {
+    "label": "❤️ Orientation"
   },
-  "error": "Er is iets misgegaan. Probeer het opnieuw.",
-  "gender": "Geslacht",
-  "noResults": "Geen resultaten gevonden.",
-  "orientation": "Seksuele geaardheid",
-  "religion": "Religie"
+  "location": {
+    "country": "🌍 Country",
+    "region": "🗺 Region/State",
+    "city": "🏩 City"
+  },
+  "education": {
+    "label": "🎓 Education"
+  },
+  "religion": {
+    "label": "🕊 Religion"
+  }
 }

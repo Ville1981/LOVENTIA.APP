@@ -72,14 +72,14 @@
   "instructions": "Choose filters to find matching profiles",
   "ageRange": "Age range",
   "username": "Username",
-  "gender.label": "Gender",
-  "orientation.label": "❤️ Orientation",
-  "location.country": "🌍 Country",
-  "location.region": "🗺 Region/State",
-  "location.city": "🏩 City",
-  "education.label": "🎓 Education",
+  "gender.label": "Gender  // TODO: translate",
+  "orientation.label": "❤️ Orientation  // TODO: translate",
+  "location.country": "🌍 Country  // TODO: translate",
+  "location.region": "🗺 Region/State  // TODO: translate",
+  "location.city": "🏩 City  // TODO: translate",
+  "education.label": "🎓 Education  // TODO: translate",
   "profession": "💼 Profession",
-  "religion.label": "🕊 Religion",
+  "religion.label": "🕊 Religion  // TODO: translate",
   "religionImportance": "Religion importance",
   "politicalIdeology": "🗳 Political ideology",
   "children": "👶 Children",
@@ -100,20 +100,7 @@
   "filters": {
     "professionCategory": "💼 Profession category",
     "politicalIdeology": "🗳 Political ideology",
-    "pets": "🐾 Pets",
-    "age": "Ikä",
-    "minAge": "Min ikä",
-    "maxAge": "Max ikä",
-    "distance": "Etäisyys",
-    "maxDistance": "Maksimi etäisyys",
-    "location": "Sijainti",
-    "gender": "Sukupuoli",
-    "orientation": "Suuntautuminen",
-    "lifestyle": "Elämäntyyli",
-    "interests": "Kiinnostuksen kohteet",
-    "apply": "Käytä suodattimia",
-    "reset": "Nollaa",
-    "clear": "Tyhjennä kaikki"
+    "pets": "🐾 Pets"
   },
   "professionCategory": "💼 Profession category",
   "actions": {
@@ -124,16 +111,21 @@
     "noResults": "No matching profiles found.",
     "loading": "Loading…"
   },
-  "title": "Haku",
-  "subtitle": "Säädä suodattimia sopivien osumien löytämiseksi.",
-  "results": {
-    "heading": "Tulokset",
-    "empty": "Ei osumia nykyisillä suodattimilla.",
-    "loadMore": "Lataa lisää"
+  "gender": {
+    "label": "Gender"
   },
-  "cards": {
-    "age": "Ikä",
-    "distance": "Etäisyys",
-    "view": "Näytä profiili"
+  "orientation": {
+    "label": "❤️ Orientation"
+  },
+  "location": {
+    "country": "🌍 Country",
+    "region": "🗺 Region/State",
+    "city": "🏩 City"
+  },
+  "education": {
+    "label": "🎓 Education"
+  },
+  "religion": {
+    "label": "🕊 Religion"
   }
 }

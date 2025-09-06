@@ -123,26 +123,26 @@
   "age": "Ikä",
   "username": "Käyttäjänimi",
   "email": "Sähköposti",
-  "gender.label": "Gender",
-  "orientation.label": "❤️ Orientation",
-  "height": "Pituus",
-  "height.label": "Height",
+  "gender.label": "Gender  // TODO: translate",
+  "orientation.label": "❤️ Orientation  // TODO: translate",
+  "height": "Height",
+  "height.label": "Height  // TODO: translate",
   "heightUnit": "cm",
   "cm": "cm",
-  "weight": "Paino",
-  "weight.label": "Weight",
+  "weight": "Weight",
+  "weight.label": "Weight  // TODO: translate",
   "weightUnit": "kg",
   "kg": "kg",
-  "bodyType.label": "Body type",
-  "location.country": "🌍 Country",
-  "location.region": "🗺 Region/State",
-  "location.city": "🏩 City",
-  "education.label": "🎓 Education",
-  "professionCategory": "Ammattikategoria",
-  "professionCategory.label": "💼 Profession category",
+  "bodyType.label": "Body type  // TODO: translate",
+  "location.country": "🌍 Country  // TODO: translate",
+  "location.region": "🗺 Region/State  // TODO: translate",
+  "location.city": "🏩 City  // TODO: translate",
+  "education.label": "🎓 Education  // TODO: translate",
+  "professionCategory": "💼 Profession category",
+  "professionCategory.label": "💼 Profession category  // TODO: translate",
   "profession": "Ammatti",
   "professionPlaceholder": "Enter profession…",
-  "religion.label": "🕊 Religion",
+  "religion.label": "🕊 Religion  // TODO: translate",
   "religionImportance": {
     "label": "Religion importance",
     "notImportant": "Not important",
@@ -250,19 +250,15 @@
   "managePhotos": "Manage photos",
   "save": "Tallenna",
   "saveSuccess": "Profile saved.",
-  "about": "Tietoa minusta",
   "gender": {
     "label": "Sukupuoli"
   },
-  "location": {
-    "city": "Kaupunki",
-    "country": "Maa",
-    "manualCity": "Syötä kaupunki käsin",
-    "manualCountry": "Syötä maa käsin",
-    "manualRegion": "Syötä alue käsin",
-    "region": "Maakunta / alue"
-  },
   "orientation": {
     "label": "Suuntautuminen"
+  },
+  "location": {
+    "country": "Maa",
+    "region": "Maakunta / alue",
+    "city": "Kaupunki"
   }
 }

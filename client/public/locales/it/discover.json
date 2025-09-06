@@ -72,14 +72,14 @@
   "instructions": "Set filters and click Filter to find people.",
   "ageRange": "Fascia d'età",
   "username": "Nome utente",
-  "gender.label": "Gender",
-  "orientation.label": "❤️ Orientation",
-  "location.country": "🌍 Country",
-  "location.region": "🗺 Region/State",
-  "location.city": "🏩 City",
-  "education.label": "🎓 Education",
+  "gender.label": "Gender  // TODO: translate",
+  "orientation.label": "❤️ Orientation  // TODO: translate",
+  "location.country": "🌍 Country  // TODO: translate",
+  "location.region": "🗺 Region/State  // TODO: translate",
+  "location.city": "🏩 City  // TODO: translate",
+  "education.label": "🎓 Education  // TODO: translate",
   "profession": "Professione",
-  "religion.label": "🕊 Religion",
+  "religion.label": "🕊 Religion  // TODO: translate",
   "religionImportance": "Importanza della religione",
   "politicalIdeology": "Ideologia politica",
   "children": "👶 Children",
@@ -100,20 +100,7 @@
   "filters": {
     "professionCategory": "💼 Profession category",
     "politicalIdeology": "🗳 Political ideology",
-    "pets": "🐾 Pets",
-    "age": "Età",
-    "minAge": "Età minima",
-    "maxAge": "Età massima",
-    "distance": "Distanza",
-    "maxDistance": "Distanza massima",
-    "location": "Località",
-    "gender": "Genere",
-    "orientation": "Orientation",
-    "lifestyle": "Stile di vita",
-    "interests": "Interessi",
-    "apply": "Applica filtri",
-    "reset": "Reimposta",
-    "clear": "Cancella tutto"
+    "pets": "🐾 Pets"
   },
   "professionCategory": "💼 Profession category",
   "actions": {
@@ -124,21 +111,21 @@
     "noResults": "No matching profiles found.",
     "loading": "Loading…"
   },
-  "title": "Scopri",
-  "subtitle": "Regola i filtri per trovare le corrispondenze giuste.",
-  "results": {
-    "heading": "Risultati",
-    "empty": "Nessuna corrispondenza con i filtri attuali.",
-    "loadMore": "Carica altro"
+  "gender": {
+    "label": "Gender"
   },
-  "cards": {
-    "age": "Età",
-    "distance": "Distanza",
-    "view": "Vedi profilo"
+  "orientation": {
+    "label": "❤️ Orientation"
   },
-  "error": "Qualcosa è andato storto. Riprova.",
-  "gender": "Genere",
-  "noResults": "Nessun risultato trovato.",
-  "orientation": "Orientamento sessuale",
-  "religion": "Religione"
+  "location": {
+    "country": "🌍 Country",
+    "region": "🗺 Region/State",
+    "city": "🏩 City"
+  },
+  "education": {
+    "label": "🎓 Education"
+  },
+  "religion": {
+    "label": "🕊 Religion"
+  }
 }

@@ -123,26 +123,26 @@
   "age": "Vârstă",
   "username": "Nume de utilizator",
   "email": "E-mail",
-  "gender.label": "Gender",
-  "orientation.label": "❤️ Orientation",
-  "height": "Înălțime",
-  "height.label": "Height",
+  "gender.label": "Gender  // TODO: translate",
+  "orientation.label": "❤️ Orientation  // TODO: translate",
+  "height": "Height",
+  "height.label": "Height  // TODO: translate",
   "heightUnit": "cm",
   "cm": "cm",
-  "weight": "Greutate",
-  "weight.label": "Weight",
+  "weight": "Weight",
+  "weight.label": "Weight  // TODO: translate",
   "weightUnit": "kg",
   "kg": "kg",
-  "bodyType.label": "Body type",
-  "location.country": "🌍 Country",
-  "location.region": "🗺 Region/State",
-  "location.city": "🏩 City",
-  "education.label": "🎓 Education",
-  "professionCategory": "Categorie profesională",
-  "professionCategory.label": "💼 Profession category",
+  "bodyType.label": "Body type  // TODO: translate",
+  "location.country": "🌍 Country  // TODO: translate",
+  "location.region": "🗺 Region/State  // TODO: translate",
+  "location.city": "🏩 City  // TODO: translate",
+  "education.label": "🎓 Education  // TODO: translate",
+  "professionCategory": "💼 Profession category",
+  "professionCategory.label": "💼 Profession category  // TODO: translate",
   "profession": "Profesie",
   "professionPlaceholder": "Enter profession…",
-  "religion.label": "🕊 Religion",
+  "religion.label": "🕊 Religion  // TODO: translate",
   "religionImportance": {
     "label": "Religion importance",
     "notImportant": "Not important",
@@ -221,7 +221,8 @@
     "normal": "Normal",
     "athletic": "Athletic",
     "overweight": "Overweight",
-    "obese": "Obese"
+    "obese": "Obese",
+    "label": "Body type"
   },
   "childrenYes": "Yes",
   "childrenNo": "No",
@@ -249,15 +250,15 @@
   "managePhotos": "Manage photos",
   "save": "Salvează",
   "saveSuccess": "Profile saved.",
-  "about": "Despre mine",
-  "gender": "Gen",
-  "location": {
-    "city": "Oraș",
-    "country": "Țară",
-    "manualCity": "Introdu orașul manual",
-    "manualCountry": "Introdu țara manual",
-    "manualRegion": "Introdu regiunea manual",
-    "region": "Regiune"
+  "gender": {
+    "label": "Gender"
   },
-  "orientation": "Orientare sexuală"
+  "orientation": {
+    "label": "❤️ Orientation"
+  },
+  "location": {
+    "country": "Țară",
+    "region": "Regiune",
+    "city": "Oraș"
+  }
 }

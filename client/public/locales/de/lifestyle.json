@@ -4,23 +4,5 @@
   "drugs": "Drogen",
   "exercise": "Bewegung",
   "smoke": "Rauchen",
-  "title": "Lebensstil",
-  "no": "Nein",
-  "sober": "Nüchtern",
-  "little": "Wenig",
-  "average": "Durchschnittlich",
-  "much": "Viel",
-  "exerciseNever": "Nie",
-  "exerciseOccasionally": "Gelegentlich",
-  "exerciseWeekly": "Wöchentlich",
-  "exerciseDaily": "Täglich",
-  "dietOmnivore": "Allesesser",
-  "dietVegetarian": "Vegetarisch",
-  "dietVegan": "Vegan",
-  "dietPescatarian": "Pescetarisch",
-  "dietKeto": "Keto",
-  "dietOther": "Andere",
-  "placeholders": {
-    "select": "Bitte wählen"
-  }
+  "title": "Lebensstil"
 }

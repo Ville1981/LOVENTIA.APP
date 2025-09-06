@@ -72,14 +72,14 @@
   "instructions": "Set filters and click Filter to find people.",
   "ageRange": "年龄范围",
   "username": "用户名",
-  "gender.label": "Gender",
-  "orientation.label": "❤️ Orientation",
-  "location.country": "🌍 Country",
-  "location.region": "🗺 Region/State",
-  "location.city": "🏩 City",
-  "education.label": "🎓 Education",
+  "gender.label": "Gender  // TODO: translate",
+  "orientation.label": "❤️ Orientation  // TODO: translate",
+  "location.country": "🌍 Country  // TODO: translate",
+  "location.region": "🗺 Region/State  // TODO: translate",
+  "location.city": "🏩 City  // TODO: translate",
+  "education.label": "🎓 Education  // TODO: translate",
   "profession": "职业",
-  "religion.label": "🕊 Religion",
+  "religion.label": "🕊 Religion  // TODO: translate",
   "religionImportance": "宗教重要性",
   "politicalIdeology": "政治理念",
   "children": "👶 Children",
@@ -100,20 +100,7 @@
   "filters": {
     "professionCategory": "💼 Profession category",
     "politicalIdeology": "🗳 Political ideology",
-    "pets": "🐾 Pets",
-    "age": "年龄",
-    "minAge": "最小年龄",
-    "maxAge": "最大年龄",
-    "distance": "距离",
-    "maxDistance": "最大距离",
-    "location": "位置",
-    "gender": "性别",
-    "orientation": "Orientation",
-    "lifestyle": "生活方式",
-    "interests": "兴趣",
-    "apply": "应用筛选",
-    "reset": "重置",
-    "clear": "清除全部"
+    "pets": "🐾 Pets"
   },
   "professionCategory": "💼 Profession category",
   "actions": {
@@ -124,21 +111,21 @@
     "noResults": "No matching profiles found.",
     "loading": "Loading…"
   },
-  "title": "发现",
-  "subtitle": "调整筛选条件以找到合适的匹配。",
-  "results": {
-    "heading": "结果",
-    "empty": "当前筛选条件下没有匹配。",
-    "loadMore": "加载更多"
+  "gender": {
+    "label": "Gender"
   },
-  "cards": {
-    "age": "年龄",
-    "distance": "距离",
-    "view": "查看资料"
+  "orientation": {
+    "label": "❤️ Orientation"
   },
-  "error": "出了点问题，请重试。",
-  "gender": "性别",
-  "noResults": "未找到结果。",
-  "orientation": "性取向",
-  "religion": "宗教"
+  "location": {
+    "country": "🌍 Country",
+    "region": "🗺 Region/State",
+    "city": "🏩 City"
+  },
+  "education": {
+    "label": "🎓 Education"
+  },
+  "religion": {
+    "label": "🕊 Religion"
+  }
 }

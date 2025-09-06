@@ -72,14 +72,14 @@
   "instructions": "Refine your search using the filters below.",
   "ageRange": "טווח גילאים",
   "username": "שם משתמש",
-  "gender.label": "Gender",
-  "orientation.label": "❤️ Orientation",
-  "location.country": "🌍 Country",
-  "location.region": "🗺 Region/State",
-  "location.city": "🏩 City",
-  "education.label": "🎓 Education",
+  "gender.label": "Gender  // TODO: translate",
+  "orientation.label": "❤️ Orientation  // TODO: translate",
+  "location.country": "🌍 Country  // TODO: translate",
+  "location.region": "🗺 Region/State  // TODO: translate",
+  "location.city": "🏩 City  // TODO: translate",
+  "education.label": "🎓 Education  // TODO: translate",
   "profession": "מקצוע",
-  "religion.label": "🕊 Religion",
+  "religion.label": "🕊 Religion  // TODO: translate",
   "religionImportance": "חשיבות הדת",
   "politicalIdeology": "אידיאולוגיה פוליטית",
   "children": "👶 Children",
@@ -100,20 +100,7 @@
   "filters": {
     "professionCategory": "💼 Profession category",
     "politicalIdeology": "🗳 Political ideology",
-    "pets": "🐾 Pets",
-    "age": "גיל",
-    "minAge": "גיל מינימלי",
-    "maxAge": "גיל מקסימלי",
-    "distance": "מרחק",
-    "maxDistance": "מרחק מקסימלי",
-    "location": "מיקום",
-    "gender": "מגדר",
-    "orientation": "Orientation",
-    "lifestyle": "אורח חיים",
-    "interests": "תחומי עניין",
-    "apply": "החל מסננים",
-    "reset": "איפוס",
-    "clear": "נקה הכל"
+    "pets": "🐾 Pets"
   },
   "professionCategory": "💼 Profession category",
   "actions": {
@@ -124,21 +111,21 @@
     "noResults": "No matching profiles found.",
     "loading": "Loading…"
   },
-  "title": "גלה",
-  "subtitle": "כוונן את המסננים כדי למצוא התאמות מתאימות.",
-  "results": {
-    "heading": "תוצאות",
-    "empty": "אין התאמות למסננים הנוכחיים.",
-    "loadMore": "טען עוד"
+  "gender": {
+    "label": "Gender"
   },
-  "cards": {
-    "age": "גיל",
-    "distance": "מרחק",
-    "view": "צפה בפרופיל"
+  "orientation": {
+    "label": "❤️ Orientation"
   },
-  "error": "ארעה שגיאה. נסה שוב.",
-  "gender": "מגדר",
-  "noResults": "לא נמצאו תוצאות.",
-  "orientation": "נטייה מינית",
-  "religion": "דת"
+  "location": {
+    "country": "🌍 Country",
+    "region": "🗺 Region/State",
+    "city": "🏩 City"
+  },
+  "education": {
+    "label": "🎓 Education"
+  },
+  "religion": {
+    "label": "🕊 Religion"
+  }
 }

@@ -72,14 +72,14 @@
   "instructions": "Set filters and click Filter to find people.",
   "ageRange": "Interval de vârstă",
   "username": "Nume de utilizator",
-  "gender.label": "Gender",
-  "orientation.label": "❤️ Orientation",
-  "location.country": "🌍 Country",
-  "location.region": "🗺 Region/State",
-  "location.city": "🏩 City",
-  "education.label": "🎓 Education",
+  "gender.label": "Gender  // TODO: translate",
+  "orientation.label": "❤️ Orientation  // TODO: translate",
+  "location.country": "🌍 Country  // TODO: translate",
+  "location.region": "🗺 Region/State  // TODO: translate",
+  "location.city": "🏩 City  // TODO: translate",
+  "education.label": "🎓 Education  // TODO: translate",
   "profession": "Profesie",
-  "religion.label": "🕊 Religion",
+  "religion.label": "🕊 Religion  // TODO: translate",
   "religionImportance": "Importanța religiei",
   "politicalIdeology": "Ideologie politică",
   "children": "👶 Children",
@@ -100,20 +100,7 @@
   "filters": {
     "professionCategory": "💼 Profession category",
     "politicalIdeology": "🗳 Political ideology",
-    "pets": "🐾 Pets",
-    "age": "Vârstă",
-    "minAge": "Vârsta minimă",
-    "maxAge": "Vârsta maximă",
-    "distance": "Distanță",
-    "maxDistance": "Distanța maximă",
-    "location": "Locație",
-    "gender": "Gen",
-    "orientation": "Orientation",
-    "lifestyle": "Stil de viață",
-    "interests": "Interese",
-    "apply": "Aplică filtre",
-    "reset": "Resetare",
-    "clear": "Șterge tot"
+    "pets": "🐾 Pets"
   },
   "professionCategory": "💼 Profession category",
   "actions": {
@@ -124,21 +111,21 @@
     "noResults": "No matching profiles found.",
     "loading": "Loading…"
   },
-  "title": "Descoperă",
-  "subtitle": "Ajustează filtrele pentru a găsi potrivirile potrivite.",
-  "results": {
-    "heading": "Rezultate",
-    "empty": "Nicio potrivire cu filtrele actuale.",
-    "loadMore": "Încarcă mai mult"
+  "gender": {
+    "label": "Gender"
   },
-  "cards": {
-    "age": "Vârstă",
-    "distance": "Distanță",
-    "view": "Vezi profilul"
+  "orientation": {
+    "label": "❤️ Orientation"
   },
-  "error": "A apărut o problemă. Încercați din nou.",
-  "gender": "Gen",
-  "noResults": "Nu s-au găsit rezultate.",
-  "orientation": "Orientare sexuală",
-  "religion": "Religie"
+  "location": {
+    "country": "🌍 Country",
+    "region": "🗺 Region/State",
+    "city": "🏩 City"
+  },
+  "education": {
+    "label": "🎓 Education"
+  },
+  "religion": {
+    "label": "🕊 Religion"
+  }
 }

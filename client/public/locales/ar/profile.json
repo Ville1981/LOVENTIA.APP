@@ -123,26 +123,26 @@
   "age": "العمر",
   "username": "اسم المستخدم",
   "email": "البريد الإلكتروني",
-  "gender.label": "Gender",
-  "orientation.label": "❤️ Orientation",
-  "height": "الطول",
-  "height.label": "Height",
+  "gender.label": "Gender  // TODO: translate",
+  "orientation.label": "❤️ Orientation  // TODO: translate",
+  "height": "Height",
+  "height.label": "Height  // TODO: translate",
   "heightUnit": "سم",
   "cm": "cm",
-  "weight": "الوزن",
-  "weight.label": "Weight",
+  "weight": "Weight",
+  "weight.label": "Weight  // TODO: translate",
   "weightUnit": "كجم",
   "kg": "kg",
-  "bodyType.label": "Body type",
-  "location.country": "🌍 Country",
-  "location.region": "🗺 Region/State",
-  "location.city": "🏩 City",
-  "education.label": "🎓 Education",
-  "professionCategory": "فئة المهنة",
-  "professionCategory.label": "💼 Profession category",
+  "bodyType.label": "Body type  // TODO: translate",
+  "location.country": "🌍 Country  // TODO: translate",
+  "location.region": "🗺 Region/State  // TODO: translate",
+  "location.city": "🏩 City  // TODO: translate",
+  "education.label": "🎓 Education  // TODO: translate",
+  "professionCategory": "💼 Profession category",
+  "professionCategory.label": "💼 Profession category  // TODO: translate",
   "profession": "المهنة",
   "professionPlaceholder": "Enter profession…",
-  "religion.label": "🕊 Religion",
+  "religion.label": "🕊 Religion  // TODO: translate",
   "religionImportance": {
     "label": "Religion importance",
     "notImportant": "Not important",
@@ -221,7 +221,8 @@
     "normal": "Normal",
     "athletic": "Athletic",
     "overweight": "Overweight",
-    "obese": "Obese"
+    "obese": "Obese",
+    "label": "Body type"
   },
   "childrenYes": "Yes",
   "childrenNo": "No",
@@ -249,15 +250,15 @@
   "managePhotos": "Manage photos",
   "save": "حفظ",
   "saveSuccess": "Profile saved.",
-  "about": "نبذة عني",
-  "gender": "النوع",
-  "location": {
-    "city": "المدينة",
-    "country": "الدولة",
-    "manualCity": "Manual city",
-    "manualCountry": "Manual country",
-    "manualRegion": "Manual region / state",
-    "region": "Region / State"
+  "gender": {
+    "label": "Gender"
   },
-  "orientation": "الميول الجنسي"
+  "orientation": {
+    "label": "❤️ Orientation"
+  },
+  "location": {
+    "country": "الدولة",
+    "region": "Region / State",
+    "city": "المدينة"
+  }
 }

@@ -92,26 +92,7 @@
     "Finland": "Finland",
     "Ukraine": "Ukraine",
     "Russia": "Russia",
-    "United States": "United States",
-    "Argentiina": "الأرجنتين",
-    "Brasilia": "البرازيل",
-    "Espanja": "إسبانيا",
-    "Intia": "الهند",
-    "Iso-Britannia": "المملكة المتحدة",
-    "Italia": "إيطاليا",
-    "Japani": "اليابان",
-    "Kanada": "كندا",
-    "Kazakstan": "كازاخستان",
-    "Kiina": "الصين",
-    "Norja": "النرويج",
-    "Portugali": "البرتغال",
-    "Ranska": "فرنسا",
-    "Ruotsi": "السويد",
-    "Saksa": "ألمانيا",
-    "Suomi": "فنلندا",
-    "Ukraina": "أوكرانيا",
-    "Venäjä": "روسيا",
-    "Yhdysvallat": "الولايات المتحدة"
+    "United States": "United States"
   },
   "country": "الدولة",
   "discover": {
@@ -175,9 +156,9 @@
     "lue_lisaa": "اقرأ المزيد",
     "tervetuloa": "مرحبًا بك في Loventia.site!"
   },
-  "etusivu.heroTekstit.0": "اعثر على الحب الذي يدوم.",
-  "etusivu.heroTekstit.1": "قابل أشخاصًا يشاركونك قيمك.",
-  "etusivu.heroTekstit.2": "تطابقك التالي على بعد نقرة واحدة.",
+  "etusivu.heroTekstit.0": "Find love that lasts.  // TODO: translate",
+  "etusivu.heroTekstit.1": "Meet people who share your values.  // TODO: translate",
+  "etusivu.heroTekstit.2": "Your next match is one click away.  // TODO: translate",
   "follow": "تابعنا",
   "health": "سياسة الصحة",
   "hero": {
@@ -185,15 +166,15 @@
     "1": "قابل أشخاصًا يشاركونك قيمك.",
     "2": "تطابقك التالي على بعد نقرة واحدة."
   },
-  "home.title": "اعثر على روابط حقيقية",
-  "home.subtitle": "تصفّح أقل، تطابق أفضل — مجتمع لمواعدة هادفة.",
+  "home.title": "Welcome to Loventia.site!  // TODO: translate",
+  "home.subtitle": "Find meaningful connections easily and safely.  // TODO: translate",
   "home": {
     "title": "اعثر على روابط حقيقية",
     "subtitle": "تصفّح أقل، تطابق أفضل — مجتمع لمواعدة هادفة.",
     "texts": {
-      "0": "Find love that lasts.",
-      "1": "Meet people who share your values.",
-      "2": "Your next match is one click away."
+      "0": "Find love that lasts.  // TODO: translate",
+      "1": "Meet people who share your values.  // TODO: translate",
+      "2": "Your next match is one click away.  // TODO: translate"
     }
   },
   "impressum": "البيان القانوني",
@@ -320,8 +301,7 @@
       "normal": "Normal",
       "obese": "Obese",
       "overweight": "Overweight",
-      "thin": "Thin",
-      "_value": "Body type  // TODO: translate"
+      "thin": "Thin"
     },
     "browse": "Browse...",
     "categories": {
@@ -388,20 +368,7 @@
     "username": "اسم المستخدم",
     "veryImportant": "مهم جدًا",
     "weight": "الوزن (كجم)",
-    "weightUnit": "Weight unit",
-    "about": "عنّي",
-    "age": "العمر",
-    "email": "البريد الإلكتروني",
-    "fetchError": "❌ فشل في تحميل الملف.",
-    "goals": "الأهداف / الرغبات",
-    "mainImage": "الصورة الرئيسية للملف",
-    "name": "الاسم",
-    "premiumMember": "أنت عضو مميز 🎉",
-    "saveChanges": "حفظ التغييرات",
-    "saved": "✅ تم تحديث الملف!",
-    "searchingFor": "ماذا تبحث عن؟",
-    "title": "الملف الشخصي",
-    "updateError": "❌ فشل في تحديث الملف."
+    "weightUnit": "Weight unit"
   },
   "region": "المنطقة / الولاية",
   "religion": {
@@ -455,39 +422,5 @@
   },
   "support": "الدعم",
   "tagline": "طابق بشكل أفضل. أحب بذكاء. 💘",
-  "terms": "الشروط",
-  "nav.about": "About",
-  "nav.admin": "مسؤول",
-  "nav.blog": "مدونة",
-  "nav.careers": "Careers",
-  "nav.coInfo": "معلومات كولورادو",
-  "nav.community": "المجتمع",
-  "nav.company": "الشركة",
-  "nav.conditions": "Conditions",
-  "nav.contact": "اتصال",
-  "nav.cookies": "ملفات تعريف الارتباط",
-  "nav.discover": "استكشف",
-  "nav.download": "تنزيل",
-  "nav.follow": "تابع",
-  "nav.health": "سياسة الصحة",
-  "nav.home": "الصفحة الرئيسية",
-  "nav.impressum": "بيان النشر",
-  "nav.likes": "الإعجابات",
-  "nav.login": "تسجيل الدخول",
-  "nav.map": "الخريطة",
-  "nav.matches": "التطابقات",
-  "nav.messages": "الرسائل",
-  "nav.premium": "بريميوم",
-  "nav.press": "Press",
-  "nav.privacy": "الخصوصية",
-  "nav.profile": "الملف الشخصي",
-  "nav.register": "إنشاء حساب",
-  "nav.rights": "جميع الحقوق محفوظة.",
-  "nav.safety": "نصائح الأمان",
-  "nav.security": "الأمان",
-  "nav.settings": "الإعدادات",
-  "nav.special": "مميز",
-  "nav.support": "الدعم",
-  "nav.tagline": "تطابقات أفضل. حب أذكى. 💘",
-  "nav.terms": "الشروط"
+  "terms": "الشروط"
 }

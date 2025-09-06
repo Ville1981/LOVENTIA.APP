@@ -72,14 +72,14 @@
   "instructions": "Wähle Filter, um passende Profile zu finden",
   "ageRange": "Altersbereich",
   "username": "Benutzername",
-  "gender.label": "Geschlecht",
-  "orientation.label": "❤️ Orientierung",
-  "location.country": "🌍 Land",
-  "location.region": "🗺 Region/Bundesland",
-  "location.city": "🏩 Stadt",
-  "education.label": "🎓 Bildung",
+  "gender.label": "Gender  // TODO: translate",
+  "orientation.label": "❤️ Orientation  // TODO: translate",
+  "location.country": "🌍 Country  // TODO: translate",
+  "location.region": "🗺 Region/State  // TODO: translate",
+  "location.city": "🏩 City  // TODO: translate",
+  "education.label": "🎓 Education  // TODO: translate",
   "profession": "💼 Beruf",
-  "religion.label": "🕊 Religion",
+  "religion.label": "🕊 Religion  // TODO: translate",
   "religionImportance": "Wichtigkeit der Religion",
   "politicalIdeology": "🗳 Politische Einstellung",
   "children": "👶 Kinder",
@@ -110,5 +110,22 @@
   "state": {
     "noResults": "Keine passenden Profile gefunden.",
     "loading": "Laden…"
+  },
+  "gender": {
+    "label": "Geschlecht"
+  },
+  "orientation": {
+    "label": "❤️ Orientierung"
+  },
+  "location": {
+    "country": "🌍 Land",
+    "region": "🗺 Region/Bundesland",
+    "city": "🏩 Stadt"
+  },
+  "education": {
+    "label": "🎓 Bildung"
+  },
+  "religion": {
+    "label": "🕊 Religion"
   }
 }

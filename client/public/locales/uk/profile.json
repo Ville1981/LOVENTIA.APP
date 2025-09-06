@@ -123,26 +123,26 @@
   "age": "Вік",
   "username": "Ім’я користувача",
   "email": "Ел. пошта",
-  "gender.label": "Gender",
-  "orientation.label": "❤️ Orientation",
-  "height": "Зріст",
-  "height.label": "Height",
+  "gender.label": "Gender  // TODO: translate",
+  "orientation.label": "❤️ Orientation  // TODO: translate",
+  "height": "Height",
+  "height.label": "Height  // TODO: translate",
   "heightUnit": "см",
   "cm": "cm",
-  "weight": "Вага",
-  "weight.label": "Weight",
+  "weight": "Weight",
+  "weight.label": "Weight  // TODO: translate",
   "weightUnit": "кг",
   "kg": "kg",
-  "bodyType.label": "Body type",
-  "location.country": "🌍 Country",
-  "location.region": "🗺 Region/State",
-  "location.city": "🏩 City",
-  "education.label": "🎓 Education",
-  "professionCategory": "Категорія професії",
-  "professionCategory.label": "💼 Profession category",
+  "bodyType.label": "Body type  // TODO: translate",
+  "location.country": "🌍 Country  // TODO: translate",
+  "location.region": "🗺 Region/State  // TODO: translate",
+  "location.city": "🏩 City  // TODO: translate",
+  "education.label": "🎓 Education  // TODO: translate",
+  "professionCategory": "💼 Profession category",
+  "professionCategory.label": "💼 Profession category  // TODO: translate",
   "profession": "Професія",
   "professionPlaceholder": "Enter profession…",
-  "religion.label": "🕊 Religion",
+  "religion.label": "🕊 Religion  // TODO: translate",
   "religionImportance": {
     "label": "Religion importance",
     "notImportant": "Not important",
@@ -221,7 +221,8 @@
     "normal": "Normal",
     "athletic": "Athletic",
     "overweight": "Overweight",
-    "obese": "Obese"
+    "obese": "Obese",
+    "label": "Body type"
   },
   "childrenYes": "Yes",
   "childrenNo": "No",
@@ -249,15 +250,15 @@
   "managePhotos": "Manage photos",
   "save": "Зберегти",
   "saveSuccess": "Profile saved.",
-  "about": "Про мене",
-  "gender": "Стать",
-  "location": {
-    "city": "Місто",
-    "country": "Країна",
-    "manualCity": "Введіть місто вручну",
-    "manualCountry": "Введіть країну вручну",
-    "manualRegion": "Введіть регіон вручну",
-    "region": "Регіон"
+  "gender": {
+    "label": "Gender"
   },
-  "orientation": "Сексуальна орієнтація"
+  "orientation": {
+    "label": "❤️ Orientation"
+  },
+  "location": {
+    "country": "Країна",
+    "region": "Регіон",
+    "city": "Місто"
+  }
 }

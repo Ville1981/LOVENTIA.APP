@@ -123,26 +123,26 @@
   "age": "Alter",
   "username": "Benutzername",
   "email": "E-Mail",
-  "gender.label": "Geschlecht",
-  "orientation.label": "❤️ Orientierung",
-  "height": "Größe",
-  "height.label": "Größe",
+  "gender.label": "Gender  // TODO: translate",
+  "orientation.label": "❤️ Orientation  // TODO: translate",
+  "height": "Height",
+  "height.label": "Height  // TODO: translate",
   "heightUnit": "Größeneinheit",
   "cm": "cm",
-  "weight": "Gewicht",
-  "weight.label": "Gewicht",
+  "weight": "Weight",
+  "weight.label": "Weight  // TODO: translate",
   "weightUnit": "Gewichtseinheit",
   "kg": "kg",
-  "bodyType.label": "Körperbau",
-  "location.country": "🌍 Land",
-  "location.region": "🗺 Region/Bundesland",
-  "location.city": "🏩 Stadt",
-  "education.label": "🎓 Bildung",
-  "professionCategory": "💼 Berufskategorie",
-  "professionCategory.label": "💼 Berufskategorie",
+  "bodyType.label": "Body type  // TODO: translate",
+  "location.country": "🌍 Country  // TODO: translate",
+  "location.region": "🗺 Region/State  // TODO: translate",
+  "location.city": "🏩 City  // TODO: translate",
+  "education.label": "🎓 Education  // TODO: translate",
+  "professionCategory": "💼 Profession category",
+  "professionCategory.label": "💼 Profession category  // TODO: translate",
   "profession": "💼 Beruf",
   "professionPlaceholder": "Berufsbezeichnung…",
-  "religion.label": "🕊 Religion",
+  "religion.label": "🕊 Religion  // TODO: translate",
   "religionImportance": {
     "label": "Wichtigkeit der Religion",
     "notImportant": "Nicht wichtig",
@@ -221,7 +221,8 @@
     "normal": "Normal",
     "athletic": "Athletisch",
     "overweight": "Übergewichtig",
-    "obese": "Adipös"
+    "obese": "Adipös",
+    "label": "Körperbau"
   },
   "childrenYes": "Ja",
   "childrenNo": "Nein",
@@ -248,5 +249,16 @@
   },
   "managePhotos": "Fotos verwalten",
   "save": "Speichern",
-  "saveSuccess": "Profil gespeichert."
+  "saveSuccess": "Profil gespeichert.",
+  "gender": {
+    "label": "Geschlecht"
+  },
+  "orientation": {
+    "label": "❤️ Orientierung"
+  },
+  "location": {
+    "country": "🌍 Land",
+    "region": "🗺 Region/Bundesland",
+    "city": "🏩 Stadt"
+  }
 }

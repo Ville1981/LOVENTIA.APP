@@ -123,26 +123,26 @@
   "age": "年龄",
   "username": "用户名",
   "email": "电子邮箱",
-  "gender.label": "Gender",
-  "orientation.label": "❤️ Orientation",
-  "height": "身高",
-  "height.label": "Height",
+  "gender.label": "Gender  // TODO: translate",
+  "orientation.label": "❤️ Orientation  // TODO: translate",
+  "height": "Height",
+  "height.label": "Height  // TODO: translate",
   "heightUnit": "厘米",
   "cm": "cm",
-  "weight": "体重",
-  "weight.label": "Weight",
+  "weight": "Weight",
+  "weight.label": "Weight  // TODO: translate",
   "weightUnit": "千克",
   "kg": "kg",
-  "bodyType.label": "Body type",
-  "location.country": "🌍 Country",
-  "location.region": "🗺 Region/State",
-  "location.city": "🏩 City",
-  "education.label": "🎓 Education",
-  "professionCategory": "职业类别",
-  "professionCategory.label": "💼 Profession category",
+  "bodyType.label": "Body type  // TODO: translate",
+  "location.country": "🌍 Country  // TODO: translate",
+  "location.region": "🗺 Region/State  // TODO: translate",
+  "location.city": "🏩 City  // TODO: translate",
+  "education.label": "🎓 Education  // TODO: translate",
+  "professionCategory": "💼 Profession category",
+  "professionCategory.label": "💼 Profession category  // TODO: translate",
   "profession": "职业",
   "professionPlaceholder": "Enter profession…",
-  "religion.label": "🕊 Religion",
+  "religion.label": "🕊 Religion  // TODO: translate",
   "religionImportance": {
     "label": "Religion importance",
     "notImportant": "Not important",
@@ -221,7 +221,8 @@
     "normal": "Normal",
     "athletic": "Athletic",
     "overweight": "Overweight",
-    "obese": "Obese"
+    "obese": "Obese",
+    "label": "Body type"
   },
   "childrenYes": "Yes",
   "childrenNo": "No",
@@ -249,15 +250,15 @@
   "managePhotos": "Manage photos",
   "save": "保存",
   "saveSuccess": "Profile saved.",
-  "about": "自我介绍",
-  "gender": "性别",
-  "location": {
-    "city": "城市",
-    "country": "国家",
-    "manualCity": "手动输入城市",
-    "manualCountry": "手动输入国家",
-    "manualRegion": "手动输入地区",
-    "region": "地区"
+  "gender": {
+    "label": "Gender"
   },
-  "orientation": "性取向"
+  "orientation": {
+    "label": "❤️ Orientation"
+  },
+  "location": {
+    "country": "国家",
+    "region": "地区",
+    "city": "城市"
+  }
 }

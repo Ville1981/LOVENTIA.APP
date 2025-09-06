@@ -92,26 +92,7 @@
     "Finland": "Finland",
     "Ukraine": "Ukraine",
     "Russia": "Russia",
-    "United States": "United States",
-    "Argentiina": "Argentiina",
-    "Brasilia": "Brasilia",
-    "Espanja": "Espanja",
-    "Intia": "Intia",
-    "Iso-Britannia": "Iso-Britannia",
-    "Italia": "Italia",
-    "Japani": "Japani",
-    "Kanada": "Kanada",
-    "Kazakstan": "Kazakstan",
-    "Kiina": "Kiina",
-    "Norja": "Norja",
-    "Portugali": "Portugali",
-    "Ranska": "Ranska",
-    "Ruotsi": "Ruotsi",
-    "Saksa": "Saksa",
-    "Suomi": "Suomi",
-    "Ukraina": "Ukraina",
-    "Venäjä": "Venäjä",
-    "Yhdysvallat": "Yhdysvallat"
+    "United States": "United States"
   },
   "country": "Maa",
   "discover": {
@@ -146,9 +127,7 @@
     "superliked": "Superlike lähetetty!",
     "title": "Löydä käyttäjiä",
     "username": "Username",
-    "viewProfile": "Näytä profiili",
-    "premiumText": "Näet kuka on tykännyt sinusta, käytä Superlike ja saa enemmän osumia.",
-    "upgradeNow": "Päivitä nyt"
+    "viewProfile": "Näytä profiili"
   },
   "download": "Lataa",
   "error": {
@@ -177,9 +156,9 @@
     "lue_lisaa": "Lue lisää",
     "tervetuloa": "Tervetuloa Loventia.siteen!"
   },
-  "etusivu.heroTekstit.0": "Löydä kestävä rakkaus.",
-  "etusivu.heroTekstit.1": "Tapaa samanhenkisiä ihmisiä.",
-  "etusivu.heroTekstit.2": "Seuraava mätsisi on vain klikkauksen päässä.",
+  "etusivu.heroTekstit.0": "Find love that lasts.  // TODO: translate",
+  "etusivu.heroTekstit.1": "Meet people who share your values.  // TODO: translate",
+  "etusivu.heroTekstit.2": "Your next match is one click away.  // TODO: translate",
   "follow": "Seuraa meitä",
   "health": "Terveyskäytäntö",
   "hero": {
@@ -187,15 +166,15 @@
     "1": "Tapaa samanhenkisiä ihmisiä.",
     "2": "Seuraava mätsisi on vain klikkauksen päässä."
   },
-  "home.title": "Löydä aitoja yhteyksiä",
-  "home.subtitle": "Vähemmän swippausta, parempia osumia — liity merkitykselliseen yhteisöön.",
+  "home.title": "Welcome to Loventia.site!  // TODO: translate",
+  "home.subtitle": "Find meaningful connections easily and safely.  // TODO: translate",
   "home": {
     "title": "Löydä aitoja yhteyksiä",
     "subtitle": "Vähemmän swippausta, parempia osumia — liity merkitykselliseen yhteisöön.",
     "texts": {
-      "0": "Find love that lasts.",
-      "1": "Meet people who share your values.",
-      "2": "Your next match is one click away."
+      "0": "Find love that lasts.  // TODO: translate",
+      "1": "Meet people who share your values.  // TODO: translate",
+      "2": "Your next match is one click away.  // TODO: translate"
     }
   },
   "impressum": "Julkaisija",
@@ -322,8 +301,7 @@
       "normal": "Normaali",
       "obese": "Lihava",
       "overweight": "Ylipainoinen",
-      "thin": "Laiha",
-      "_value": "Body type  // TODO: translate"
+      "thin": "Laiha"
     },
     "browse": "Selaa…",
     "categories": {
@@ -390,11 +368,7 @@
     "username": "Käyttäjänimi",
     "veryImportant": "Erittäin tärkeä",
     "weight": "Paino (kg)",
-    "weightUnit": "Painoyksikkö",
-    "age": "Ikä",
-    "email": "Sähköposti",
-    "mainImage": "Profiilikuva",
-    "name": "Nimi"
+    "weightUnit": "Painoyksikkö"
   },
   "region": "Alue / lääni",
   "religion": {
@@ -448,39 +422,5 @@
   },
   "support": "Tuki",
   "tagline": "Match better. Love smarter. 💘",
-  "terms": "Käyttöehdot",
-  "nav.about": "About",
-  "nav.admin": "Ylläpito",
-  "nav.blog": "Blogi",
-  "nav.careers": "Careers",
-  "nav.coInfo": "Colorado-info",
-  "nav.community": "Yhteisö",
-  "nav.company": "Yritys",
-  "nav.conditions": "Conditions",
-  "nav.contact": "Yhteys",
-  "nav.cookies": "Evästeet",
-  "nav.discover": "Löydä",
-  "nav.download": "Lataa",
-  "nav.follow": "Seuraa",
-  "nav.health": "Terveyskäytännöt",
-  "nav.home": "Etusivu",
-  "nav.impressum": "Impressum",
-  "nav.likes": "Tykkäykset",
-  "nav.login": "Kirjaudu",
-  "nav.map": "Kartta",
-  "nav.matches": "Parit",
-  "nav.messages": "Viestit",
-  "nav.premium": "Premium",
-  "nav.press": "Press",
-  "nav.privacy": "Tietosuoja",
-  "nav.profile": "Profiili",
-  "nav.register": "Rekisteröidy",
-  "nav.rights": "Kaikki oikeudet pidätetään.",
-  "nav.safety": "Turvavinkit",
-  "nav.security": "Turvallisuus",
-  "nav.settings": "Asetukset",
-  "nav.special": "Erikoiset",
-  "nav.support": "Tuki",
-  "nav.tagline": "Parempia osumia. Fiksumpaa rakkautta. 💘",
-  "nav.terms": "Käyttöehdot"
+  "terms": "Käyttöehdot"
 }

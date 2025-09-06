@@ -62,8 +62,7 @@
   "common": {
     "all": "All",
     "filter": "Filtrer",
-    "select": "Sélectionner",
-    "other": "Autre"
+    "select": "Sélectionner"
   },
   "community": "Communauté",
   "company": "Entreprise",
@@ -93,26 +92,7 @@
     "Finland": "Finland",
     "Ukraine": "Ukraine",
     "Russia": "Russia",
-    "United States": "United States",
-    "Argentiina": "Argentine",
-    "Brasilia": "Brésil",
-    "Espanja": "Espagne",
-    "Intia": "Inde",
-    "Iso-Britannia": "Royaume-Uni",
-    "Italia": "Italie",
-    "Japani": "Japon",
-    "Kanada": "Canada",
-    "Kazakstan": "Kazakhstan",
-    "Kiina": "Chine",
-    "Norja": "Norvège",
-    "Portugali": "Portugal",
-    "Ranska": "France",
-    "Ruotsi": "Suède",
-    "Saksa": "Allemagne",
-    "Suomi": "Finlande",
-    "Ukraina": "Ukraine",
-    "Venäjä": "Russie",
-    "Yhdysvallat": "États-Unis"
+    "United States": "United States"
   },
   "country": "Pays",
   "discover": {
@@ -176,9 +156,9 @@
     "lue_lisaa": "En savoir plus",
     "tervetuloa": "Bienvenue sur Loventia.site !"
   },
-  "etusivu.heroTekstit.0": "Trouvez un amour durable.",
-  "etusivu.heroTekstit.1": "Rencontrez des personnes partageant vos valeurs.",
-  "etusivu.heroTekstit.2": "Votre prochaine rencontre est à un clic.",
+  "etusivu.heroTekstit.0": "Find love that lasts.  // TODO: translate",
+  "etusivu.heroTekstit.1": "Meet people who share your values.  // TODO: translate",
+  "etusivu.heroTekstit.2": "Your next match is one click away.  // TODO: translate",
   "follow": "Suivre",
   "health": "Politique de santé",
   "hero": {
@@ -186,15 +166,15 @@
     "1": "Rencontrez des personnes partageant vos valeurs.",
     "2": "Votre prochaine rencontre est à un clic."
   },
-  "home.title": "Trouvez de vraies connexions",
-  "home.subtitle": "Moins de swipe, de meilleurs matchs — une communauté pour des rencontres sincères.",
+  "home.title": "Welcome to Loventia.site!  // TODO: translate",
+  "home.subtitle": "Find meaningful connections easily and safely.  // TODO: translate",
   "home": {
     "title": "Trouvez de vraies connexions",
     "subtitle": "Moins de swipe, de meilleurs matchs — une communauté pour des rencontres sincères.",
     "texts": {
-      "0": "Find love that lasts.",
-      "1": "Meet people who share your values.",
-      "2": "Your next match is one click away."
+      "0": "Find love that lasts.  // TODO: translate",
+      "1": "Meet people who share your values.  // TODO: translate",
+      "2": "Your next match is one click away.  // TODO: translate"
     }
   },
   "impressum": "Mentions légales",
@@ -207,18 +187,7 @@
     "no": "Aucun",
     "smoke": "Tabac",
     "sober": "Sobre",
-    "title": "Mode de vie",
-    "diet": "Préférences alimentaires",
-    "dietKeto": "Keto",
-    "dietOmnivore": "Omnivore",
-    "dietPescatarian": "Pescatarien",
-    "dietVegan": "Végan",
-    "dietVegetarian": "Végétarien",
-    "exercise": "Habitudes d'exercice",
-    "exerciseDaily": "Quotidien",
-    "exerciseNever": "Jamais",
-    "exerciseOccasionally": "Occasionnellement",
-    "exerciseWeekly": "Hebdomadaire"
+    "title": "Mode de vie"
   },
   "likes": {
     "likeBack": "Like back",
@@ -332,8 +301,7 @@
       "normal": "Normal",
       "obese": "Obese",
       "overweight": "Overweight",
-      "thin": "Thin",
-      "_value": "Body type  // TODO: translate"
+      "thin": "Thin"
     },
     "browse": "Parcourir…",
     "categories": {
@@ -400,15 +368,7 @@
     "username": "Username",
     "veryImportant": "Très important",
     "weight": "Poids (kg)",
-    "weightUnit": "Weight unit",
-    "age": "Âge",
-    "email": "Email",
-    "fetchError": "❌ Échec du chargement du profil.",
-    "mainImage": "Image principale du profil",
-    "name": "Nom",
-    "premiumMember": "Vous êtes membre Premium 🎉",
-    "title": "Profil",
-    "updateError": "❌ Échec de la mise à jour du profil."
+    "weightUnit": "Weight unit"
   },
   "region": "Région / état",
   "religion": {
@@ -462,39 +422,5 @@
   },
   "support": "Support",
   "tagline": "Mieux matcher. Aimer plus intelligemment. 💘",
-  "terms": "Conditions",
-  "nav.about": "About",
-  "nav.admin": "Admin",
-  "nav.blog": "Blog",
-  "nav.careers": "Careers",
-  "nav.coInfo": "Infos Colorado",
-  "nav.community": "Communauté",
-  "nav.company": "Entreprise",
-  "nav.conditions": "Conditions",
-  "nav.contact": "Contact",
-  "nav.cookies": "Cookies",
-  "nav.discover": "Découvrir",
-  "nav.download": "Télécharger",
-  "nav.follow": "Suivre",
-  "nav.health": "Politique de santé",
-  "nav.home": "Accueil",
-  "nav.impressum": "Mentions légales",
-  "nav.likes": "Mentions J’aime",
-  "nav.login": "Se connecter",
-  "nav.map": "Carte",
-  "nav.matches": "Correspondances",
-  "nav.messages": "Messages",
-  "nav.premium": "Premium",
-  "nav.press": "Press",
-  "nav.privacy": "Confidentialité",
-  "nav.profile": "Profil",
-  "nav.register": "S'inscrire",
-  "nav.rights": "Tous droits réservés.",
-  "nav.safety": "Conseils de sécurité",
-  "nav.security": "Sécurité",
-  "nav.settings": "Paramètres",
-  "nav.special": "Spécial",
-  "nav.support": "Assistance",
-  "nav.tagline": "Mieux matcher. Aimer plus intelligemment. 💘",
-  "nav.terms": "Conditions"
+  "terms": "Conditions"
 }

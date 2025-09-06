@@ -72,14 +72,14 @@
   "instructions": "Set filters and click Filter to find people.",
   "ageRange": "Віковий діапазон",
   "username": "Ім’я користувача",
-  "gender.label": "Gender",
-  "orientation.label": "❤️ Orientation",
-  "location.country": "🌍 Country",
-  "location.region": "🗺 Region/State",
-  "location.city": "🏩 City",
-  "education.label": "🎓 Education",
+  "gender.label": "Gender  // TODO: translate",
+  "orientation.label": "❤️ Orientation  // TODO: translate",
+  "location.country": "🌍 Country  // TODO: translate",
+  "location.region": "🗺 Region/State  // TODO: translate",
+  "location.city": "🏩 City  // TODO: translate",
+  "education.label": "🎓 Education  // TODO: translate",
   "profession": "Професія",
-  "religion.label": "🕊 Religion",
+  "religion.label": "🕊 Religion  // TODO: translate",
   "religionImportance": "Важливість релігії",
   "politicalIdeology": "Політична ідеологія",
   "children": "👶 Children",
@@ -100,20 +100,7 @@
   "filters": {
     "professionCategory": "💼 Profession category",
     "politicalIdeology": "🗳 Political ideology",
-    "pets": "🐾 Pets",
-    "age": "Вік",
-    "minAge": "Мінімальний вік",
-    "maxAge": "Максимальний вік",
-    "distance": "Відстань",
-    "maxDistance": "Максимальна відстань",
-    "location": "Місцезнаходження",
-    "gender": "Стать",
-    "orientation": "Orientation",
-    "lifestyle": "Спосіб життя",
-    "interests": "Інтереси",
-    "apply": "Застосувати фільтри",
-    "reset": "Скинути",
-    "clear": "Очистити все"
+    "pets": "🐾 Pets"
   },
   "professionCategory": "💼 Profession category",
   "actions": {
@@ -124,21 +111,21 @@
     "noResults": "No matching profiles found.",
     "loading": "Loading…"
   },
-  "title": "Знайти",
-  "subtitle": "Налаштуйте фільтри, щоб знайти відповідні збіги.",
-  "results": {
-    "heading": "Результати",
-    "empty": "Немає збігів із поточними фільтрами.",
-    "loadMore": "Завантажити ще"
+  "gender": {
+    "label": "Gender"
   },
-  "cards": {
-    "age": "Вік",
-    "distance": "Відстань",
-    "view": "Переглянути профіль"
+  "orientation": {
+    "label": "❤️ Orientation"
   },
-  "error": "Щось пішло не так. Спробуйте ще раз.",
-  "gender": "Стать",
-  "noResults": "Результатів не знайдено.",
-  "orientation": "Сексуальна орієнтація",
-  "religion": "Релігія"
+  "location": {
+    "country": "🌍 Country",
+    "region": "🗺 Region/State",
+    "city": "🏩 City"
+  },
+  "education": {
+    "label": "🎓 Education"
+  },
+  "religion": {
+    "label": "🕊 Religion"
+  }
 }
