@@ -72,14 +72,14 @@
   "instructions": "Refine your search using the filters below.",
   "ageRange": "Wigo wa umri",
   "username": "Jina la mtumiaji",
-  "gender.label": "Gender",
-  "orientation.label": "❤️ Orientation",
-  "location.country": "🌍 Country",
-  "location.region": "🗺 Region/State",
-  "location.city": "🏩 City",
-  "education.label": "🎓 Education",
+  "gender.label": "Gender  // TODO: translate",
+  "orientation.label": "❤️ Orientation  // TODO: translate",
+  "location.country": "🌍 Country  // TODO: translate",
+  "location.region": "🗺 Region/State  // TODO: translate",
+  "location.city": "🏩 City  // TODO: translate",
+  "education.label": "🎓 Education  // TODO: translate",
   "profession": "Kazi",
-  "religion.label": "🕊 Religion",
+  "religion.label": "🕊 Religion  // TODO: translate",
   "religionImportance": "Umuhimu wa dini",
   "politicalIdeology": "Itikadi ya kisiasa",
   "children": "👶 Children",
@@ -100,20 +100,7 @@
   "filters": {
     "professionCategory": "💼 Profession category",
     "politicalIdeology": "🗳 Political ideology",
-    "pets": "🐾 Pets",
-    "age": "Umri",
-    "minAge": "Umri wa chini",
-    "maxAge": "Umri wa juu",
-    "distance": "Umbali",
-    "maxDistance": "Umbali wa juu",
-    "location": "Mahali",
-    "gender": "Jinsia",
-    "orientation": "Orientation",
-    "lifestyle": "Mtindo wa maisha",
-    "interests": "Maslahi",
-    "apply": "Tumia vichujio",
-    "reset": "Weka upya",
-    "clear": "Futa vyote"
+    "pets": "🐾 Pets"
   },
   "professionCategory": "💼 Profession category",
   "actions": {
@@ -124,21 +111,21 @@
     "noResults": "No matching profiles found.",
     "loading": "Loading…"
   },
-  "title": "Gundua",
-  "subtitle": "Rekebisha vichujio vyako ili kupata mechi sahihi.",
-  "results": {
-    "heading": "Matokeo",
-    "empty": "Hakuna mechi kwa vichujio vya sasa.",
-    "loadMore": "Pakia zaidi"
+  "gender": {
+    "label": "Gender"
   },
-  "cards": {
-    "age": "Umri",
-    "distance": "Umbali",
-    "view": "Tazama wasifu"
+  "orientation": {
+    "label": "❤️ Orientation"
   },
-  "error": "Kuna kosa limetokea. Tafadhali jaribu tena.",
-  "gender": "Jinsia",
-  "noResults": "Hakuna matokeo.",
-  "orientation": "Mwelekeo wa kijinsia",
-  "religion": "Dini"
+  "location": {
+    "country": "🌍 Country",
+    "region": "🗺 Region/State",
+    "city": "🏩 City"
+  },
+  "education": {
+    "label": "🎓 Education"
+  },
+  "religion": {
+    "label": "🕊 Religion"
+  }
 }

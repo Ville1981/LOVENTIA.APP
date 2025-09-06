@@ -72,14 +72,14 @@
   "instructions": "Set filters and click Filter to find people.",
   "ageRange": "나이 범위",
   "username": "사용자 이름",
-  "gender.label": "Gender",
-  "orientation.label": "❤️ Orientation",
-  "location.country": "🌍 Country",
-  "location.region": "🗺 Region/State",
-  "location.city": "🏩 City",
-  "education.label": "🎓 Education",
+  "gender.label": "Gender  // TODO: translate",
+  "orientation.label": "❤️ Orientation  // TODO: translate",
+  "location.country": "🌍 Country  // TODO: translate",
+  "location.region": "🗺 Region/State  // TODO: translate",
+  "location.city": "🏩 City  // TODO: translate",
+  "education.label": "🎓 Education  // TODO: translate",
   "profession": "직업",
-  "religion.label": "🕊 Religion",
+  "religion.label": "🕊 Religion  // TODO: translate",
   "religionImportance": "종교 중요도",
   "politicalIdeology": "정치 성향",
   "children": "👶 Children",
@@ -100,20 +100,7 @@
   "filters": {
     "professionCategory": "💼 Profession category",
     "politicalIdeology": "🗳 Political ideology",
-    "pets": "🐾 Pets",
-    "age": "나이",
-    "minAge": "최소 나이",
-    "maxAge": "최대 나이",
-    "distance": "거리",
-    "maxDistance": "최대 거리",
-    "location": "위치",
-    "gender": "성별",
-    "orientation": "Orientation",
-    "lifestyle": "라이프스타일",
-    "interests": "관심사",
-    "apply": "필터 적용",
-    "reset": "초기화",
-    "clear": "모두 지우기"
+    "pets": "🐾 Pets"
   },
   "professionCategory": "💼 Profession category",
   "actions": {
@@ -124,21 +111,21 @@
     "noResults": "No matching profiles found.",
     "loading": "Loading…"
   },
-  "title": "탐색",
-  "subtitle": "필터를 조정하여 맞는 상대를 찾아보세요.",
-  "results": {
-    "heading": "결과",
-    "empty": "현재 필터로는 결과가 없습니다.",
-    "loadMore": "더 보기"
+  "gender": {
+    "label": "Gender"
   },
-  "cards": {
-    "age": "나이",
-    "distance": "거리",
-    "view": "프로필 보기"
+  "orientation": {
+    "label": "❤️ Orientation"
   },
-  "error": "문제가 발생했습니다. 다시 시도해 주세요.",
-  "gender": "성별",
-  "noResults": "결과를 찾을 수 없습니다.",
-  "orientation": "성적 지향",
-  "religion": "종교"
+  "location": {
+    "country": "🌍 Country",
+    "region": "🗺 Region/State",
+    "city": "🏩 City"
+  },
+  "education": {
+    "label": "🎓 Education"
+  },
+  "religion": {
+    "label": "🕊 Religion"
+  }
 }

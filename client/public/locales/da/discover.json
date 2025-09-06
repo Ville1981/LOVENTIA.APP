@@ -72,14 +72,14 @@
   "instructions": "Set filters and click Filter to find people.",
   "ageRange": "Aldersinterval",
   "username": "Brugernavn",
-  "gender.label": "Gender",
-  "orientation.label": "❤️ Orientation",
-  "location.country": "🌍 Country",
-  "location.region": "🗺 Region/State",
-  "location.city": "🏩 City",
-  "education.label": "🎓 Education",
+  "gender.label": "Gender  // TODO: translate",
+  "orientation.label": "❤️ Orientation  // TODO: translate",
+  "location.country": "🌍 Country  // TODO: translate",
+  "location.region": "🗺 Region/State  // TODO: translate",
+  "location.city": "🏩 City  // TODO: translate",
+  "education.label": "🎓 Education  // TODO: translate",
   "profession": "Erhverv",
-  "religion.label": "🕊 Religion",
+  "religion.label": "🕊 Religion  // TODO: translate",
   "religionImportance": "Religionens betydning",
   "politicalIdeology": "Politisk ideologi",
   "children": "👶 Children",
@@ -100,20 +100,7 @@
   "filters": {
     "professionCategory": "💼 Profession category",
     "politicalIdeology": "🗳 Political ideology",
-    "pets": "🐾 Pets",
-    "age": "Alder",
-    "minAge": "Min. alder",
-    "maxAge": "Maks. alder",
-    "distance": "Afstand",
-    "maxDistance": "Maks. afstand",
-    "location": "Placering",
-    "gender": "Køn",
-    "orientation": "Orientation",
-    "lifestyle": "Livsstil",
-    "interests": "Interesser",
-    "apply": "Anvend filtre",
-    "reset": "Nulstil",
-    "clear": "Ryd alt"
+    "pets": "🐾 Pets"
   },
   "professionCategory": "💼 Profession category",
   "actions": {
@@ -124,21 +111,21 @@
     "noResults": "No matching profiles found.",
     "loading": "Loading…"
   },
-  "title": "Opdag",
-  "subtitle": "Juster dine filtre for at finde de rigtige matches.",
-  "results": {
-    "heading": "Resultater",
-    "empty": "Ingen resultater med de nuværende filtre.",
-    "loadMore": "Indlæs mere"
+  "gender": {
+    "label": "Gender"
   },
-  "cards": {
-    "age": "Alder",
-    "distance": "Afstand",
-    "view": "Se profil"
+  "orientation": {
+    "label": "❤️ Orientation"
   },
-  "error": "Noget gik galt. Prøv igen.",
-  "gender": "Køn",
-  "noResults": "Ingen resultater fundet.",
-  "orientation": "Seksuel orientering",
-  "religion": "Religion"
+  "location": {
+    "country": "🌍 Country",
+    "region": "🗺 Region/State",
+    "city": "🏩 City"
+  },
+  "education": {
+    "label": "🎓 Education"
+  },
+  "religion": {
+    "label": "🕊 Religion"
+  }
 }

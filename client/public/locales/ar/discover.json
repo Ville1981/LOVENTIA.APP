@@ -72,14 +72,14 @@
   "instructions": "Refine your search using the filters below.",
   "ageRange": "الفئة العمرية",
   "username": "اسم المستخدم",
-  "gender.label": "Gender",
-  "orientation.label": "❤️ Orientation",
-  "location.country": "🌍 Country",
-  "location.region": "🗺 Region/State",
-  "location.city": "🏩 City",
-  "education.label": "🎓 Education",
+  "gender.label": "Gender  // TODO: translate",
+  "orientation.label": "❤️ Orientation  // TODO: translate",
+  "location.country": "🌍 Country  // TODO: translate",
+  "location.region": "🗺 Region/State  // TODO: translate",
+  "location.city": "🏩 City  // TODO: translate",
+  "education.label": "🎓 Education  // TODO: translate",
   "profession": "المهنة",
-  "religion.label": "🕊 Religion",
+  "religion.label": "🕊 Religion  // TODO: translate",
   "religionImportance": "أهمية الدين",
   "politicalIdeology": "الأيديولوجيا السياسية",
   "children": "👶 Children",
@@ -100,20 +100,7 @@
   "filters": {
     "professionCategory": "💼 Profession category",
     "politicalIdeology": "🗳 Political ideology",
-    "pets": "🐾 Pets",
-    "age": "العمر",
-    "minAge": "أقل عمر",
-    "maxAge": "أقصى عمر",
-    "distance": "المسافة",
-    "maxDistance": "أقصى مسافة",
-    "location": "الموقع",
-    "gender": "النوع",
-    "orientation": "Orientation",
-    "lifestyle": "نمط الحياة",
-    "interests": "الاهتمامات",
-    "apply": "تطبيق عوامل التصفية",
-    "reset": "إعادة تعيين",
-    "clear": "مسح الكل"
+    "pets": "🐾 Pets"
   },
   "professionCategory": "💼 Profession category",
   "actions": {
@@ -124,21 +111,21 @@
     "noResults": "No matching profiles found.",
     "loading": "Loading…"
   },
-  "title": "اكتشف",
-  "subtitle": "قم بضبط عوامل التصفية للعثور على المطابقات المناسبة.",
-  "results": {
-    "heading": "النتائج",
-    "empty": "لا توجد نتائج وفق عوامل التصفية الحالية.",
-    "loadMore": "تحميل المزيد"
+  "gender": {
+    "label": "Gender"
   },
-  "cards": {
-    "age": "العمر",
-    "distance": "المسافة",
-    "view": "عرض الملف الشخصي"
+  "orientation": {
+    "label": "❤️ Orientation"
   },
-  "error": "حدث خطأ ما. الرجاء المحاولة مرة أخرى.",
-  "gender": "النوع",
-  "noResults": "لا توجد نتائج.",
-  "orientation": "الميول الجنسي",
-  "religion": "الدين"
+  "location": {
+    "country": "🌍 Country",
+    "region": "🗺 Region/State",
+    "city": "🏩 City"
+  },
+  "education": {
+    "label": "🎓 Education"
+  },
+  "religion": {
+    "label": "🕊 Religion"
+  }
 }

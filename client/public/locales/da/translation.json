@@ -156,9 +156,9 @@
     "lue_lisaa": "Read more",
     "tervetuloa": "Welcome to Loventia.site!"
   },
-  "etusivu.heroTekstit.0": "Find love that lasts.",
-  "etusivu.heroTekstit.1": "Meet people who share your values.",
-  "etusivu.heroTekstit.2": "Your next match is one click away.",
+  "etusivu.heroTekstit.0": "Find love that lasts.  // TODO: translate",
+  "etusivu.heroTekstit.1": "Meet people who share your values.  // TODO: translate",
+  "etusivu.heroTekstit.2": "Your next match is one click away.  // TODO: translate",
   "follow": "Follow",
   "health": "Health Policy",
   "hero": {
@@ -166,15 +166,15 @@
     "1": "Meet people who share your values.",
     "2": "Your next match is one click away."
   },
-  "home.title": "Welcome to Loventia.site!",
-  "home.subtitle": "Find meaningful connections easily and safely.",
+  "home.title": "Welcome to Loventia.site!  // TODO: translate",
+  "home.subtitle": "Find meaningful connections easily and safely.  // TODO: translate",
   "home": {
     "title": "Welcome to Loventia.site!",
     "subtitle": "Find meaningful connections easily and safely.",
     "texts": {
-      "0": "Find love that lasts.",
-      "1": "Meet people who share your values.",
-      "2": "Your next match is one click away."
+      "0": "Find love that lasts.  // TODO: translate",
+      "1": "Meet people who share your values.  // TODO: translate",
+      "2": "Your next match is one click away.  // TODO: translate"
     }
   },
   "impressum": "Impressum",

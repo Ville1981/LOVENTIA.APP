@@ -123,26 +123,26 @@
   "age": "Age",
   "username": "Username",
   "email": "Email",
-  "gender.label": "Gender",
-  "orientation.label": "❤️ Orientation",
+  "gender.label": "Gender  // TODO: translate",
+  "orientation.label": "❤️ Orientation  // TODO: translate",
   "height": "Height",
-  "height.label": "Height",
+  "height.label": "Height  // TODO: translate",
   "heightUnit": "cm",
   "cm": "cm",
   "weight": "Weight",
-  "weight.label": "Weight",
+  "weight.label": "Weight  // TODO: translate",
   "weightUnit": "kg",
   "kg": "kg",
-  "bodyType.label": "Body type",
-  "location.country": "🌍 Country",
-  "location.region": "🗺 Region/State",
-  "location.city": "🏩 City",
-  "education.label": "🎓 Education",
-  "professionCategory": "Profession category",
-  "professionCategory.label": "💼 Profession category",
+  "bodyType.label": "Body type  // TODO: translate",
+  "location.country": "🌍 Country  // TODO: translate",
+  "location.region": "🗺 Region/State  // TODO: translate",
+  "location.city": "🏩 City  // TODO: translate",
+  "education.label": "🎓 Education  // TODO: translate",
+  "professionCategory": "💼 Profession category",
+  "professionCategory.label": "💼 Profession category  // TODO: translate",
   "profession": "Profession",
   "professionPlaceholder": "Enter profession…",
-  "religion.label": "🕊 Religion",
+  "religion.label": "🕊 Religion  // TODO: translate",
   "religionImportance": {
     "label": "Religion importance",
     "notImportant": "Not important",
@@ -221,7 +221,8 @@
     "normal": "Normal",
     "athletic": "Athletic",
     "overweight": "Overweight",
-    "obese": "Obese"
+    "obese": "Obese",
+    "label": "Body type"
   },
   "childrenYes": "Yes",
   "childrenNo": "No",
@@ -249,15 +250,15 @@
   "managePhotos": "Manage photos",
   "save": "Save",
   "saveSuccess": "Profile saved.",
-  "about": "About me",
-  "gender": "Gender",
-  "location": {
-    "city": "City",
-    "country": "Country",
-    "manualCity": "Enter city manually",
-    "manualCountry": "Enter country manually",
-    "manualRegion": "Enter region manually",
-    "region": "Region"
+  "gender": {
+    "label": "Gender"
   },
-  "orientation": "Sexual orientation"
+  "orientation": {
+    "label": "❤️ Orientation"
+  },
+  "location": {
+    "country": "Country",
+    "region": "Region",
+    "city": "City"
+  }
 }

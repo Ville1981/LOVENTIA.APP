@@ -123,26 +123,26 @@
   "age": "عمر",
   "username": "صارف نام",
   "email": "ای میل",
-  "gender.label": "Gender",
-  "orientation.label": "❤️ Orientation",
-  "height": "قد",
-  "height.label": "Height",
+  "gender.label": "Gender  // TODO: translate",
+  "orientation.label": "❤️ Orientation  // TODO: translate",
+  "height": "Height",
+  "height.label": "Height  // TODO: translate",
   "heightUnit": "سینٹی میٹر",
   "cm": "cm",
-  "weight": "وزن",
-  "weight.label": "Weight",
+  "weight": "Weight",
+  "weight.label": "Weight  // TODO: translate",
   "weightUnit": "کلوگرام",
   "kg": "kg",
-  "bodyType.label": "Body type",
-  "location.country": "🌍 Country",
-  "location.region": "🗺 Region/State",
-  "location.city": "🏩 City",
-  "education.label": "🎓 Education",
-  "professionCategory": "پیشہ ورانہ زمرہ",
-  "professionCategory.label": "💼 Profession category",
+  "bodyType.label": "Body type  // TODO: translate",
+  "location.country": "🌍 Country  // TODO: translate",
+  "location.region": "🗺 Region/State  // TODO: translate",
+  "location.city": "🏩 City  // TODO: translate",
+  "education.label": "🎓 Education  // TODO: translate",
+  "professionCategory": "💼 Profession category",
+  "professionCategory.label": "💼 Profession category  // TODO: translate",
   "profession": "پیشہ",
   "professionPlaceholder": "Enter profession…",
-  "religion.label": "🕊 Religion",
+  "religion.label": "🕊 Religion  // TODO: translate",
   "religionImportance": {
     "label": "Religion importance",
     "notImportant": "Not important",
@@ -221,7 +221,8 @@
     "normal": "Normal",
     "athletic": "Athletic",
     "overweight": "Overweight",
-    "obese": "Obese"
+    "obese": "Obese",
+    "label": "Body type"
   },
   "childrenYes": "Yes",
   "childrenNo": "No",
@@ -249,15 +250,15 @@
   "managePhotos": "Manage photos",
   "save": "محفوظ کریں",
   "saveSuccess": "Profile saved.",
-  "about": "میرے بارے میں",
-  "gender": "صنف",
-  "location": {
-    "city": "شہر",
-    "country": "ملک",
-    "manualCity": "Manual city",
-    "manualCountry": "Manual country",
-    "manualRegion": "Manual region / state",
-    "region": "Region / State"
+  "gender": {
+    "label": "Gender"
   },
-  "orientation": "جنسی رجحان"
+  "orientation": {
+    "label": "❤️ Orientation"
+  },
+  "location": {
+    "country": "ملک",
+    "region": "Region / State",
+    "city": "شہر"
+  }
 }
