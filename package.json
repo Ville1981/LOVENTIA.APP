@@ -1,4 +1,3 @@
-
 {
   "name": "loventia-app-client",
   "version": "1.0.0",
@@ -20,9 +19,6 @@
     "i18n:audit": "node scripts/i18nAudit.mjs",
     "i18n:sync": "node scripts/i18nSync.mjs"
   },
-  
-
-
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
     "@tanstack/react-query": "^5.83.0",
@@ -33,8 +29,8 @@
     "i18next-http-backend": "^3.0.2",
     "leaflet": "^1.9.4",
     "prop-types": "^15.8.1",
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "react-helmet": "^6.1.0",
     "react-hook-form": "^7.59.0",
     "react-i18next": "^15.6.0",
@@ -50,7 +46,11 @@
     "@babel/preset-env": "^7.22.0",
     "@babel/preset-react": "^7.22.0",
     "@tailwindcss/postcss": "^4.1.11",
+    "@testing-library/jest-dom": "^6.8.0",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@vitejs/plugin-react": "^4.0.0",
+    "@vitest/coverage-c8": "^0.33.0",
     "artillery": "^2.0.0-27",
     "autoprefixer": "^10.4.21",
     "cypress": "^14.5.1",
@@ -60,6 +60,7 @@
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-prettier": "^4.2.1",
     "eslint-plugin-react": "^7.37.5",
+    "jsdom": "^26.1.0",
     "msw": "^2.10.4",
     "postcss": "^8.5.6",
     "prettier": "^2.8.8",
