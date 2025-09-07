@@ -1,6 +1,6 @@
-// client/src/components/LanguageSwitcher.jsx
+// File: client/src/components/LanguageSwitcher.jsx
 
-// --- REPLACE START: persist + normalize + robust options ---
+// --- REPLACE START: prefer full locale label from i18n (e.g., es-MX) with fallback to base (es) ---
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -55,7 +55,7 @@ const LanguageSwitcher = () => {
           rtl.includes(base) ? "rtl" : "ltr"
         );
       }
-      // Keep dropdown in sync with the *current* i18n language
+      // Keep dropdown in sync with the *current* i18n language (base)
       setValue(base);
     };
 
@@ -87,8 +87,34 @@ const LanguageSwitcher = () => {
     } catch {
       // ignore persistence errors (e.g., private mode)
     }
-    // Show the exact option the user chose in the dropdown
+    // Show the exact option the user chose in the dropdown (may be a regional variant)
     setValue(lng);
+  };
+
+  /**
+   * Render label for a given code with robust fallback:
+   * 1) Try full code (e.g., "common:lang.es-MX") → shows "🇲🇽 Español (México)"
+   * 2) Fallback to base (e.g., "common:lang.es") → shows "🇪🇸 Español"
+   * 3) Fallback to provided default (o.label) to avoid empty text
+   */
+  const renderLocaleLabel = (code, fallbackLabel) => {
+    const fullKey = `common:lang.${code}`;
+    const baseKey = `common:lang.${toBase(code)}`;
+
+    // Try full code (avoid leaking raw key back if missing)
+    const full = t(fullKey);
+    if (full && full !== fullKey) {
+      return full;
+    }
+
+    // Try base code (avoid leaking raw key back if missing)
+    const baseText = t(baseKey);
+    if (baseText && baseText !== baseKey) {
+      return baseText;
+    }
+
+    // Last resort: the hardcoded label on the option definition
+    return fallbackLabel;
   };
 
   /**
@@ -96,6 +122,10 @@ const LanguageSwitcher = () => {
    * Language dropdown options grouped by region.
    * Each group has label + array of {code,label}.
    * (Codes may include region tags; we normalize to the base on change)
+   *
+   * NOTE: Visible option text is produced via renderLocaleLabel(), which first
+   * checks a full i18n key (e.g., "es-MX") and falls back to base (e.g., "es"),
+   * so regional variants like 🇧🇷/🇦🇷/🇨🇴/🇲🇽 render correctly.
    */
   const groups = useMemo(
     () => [
@@ -181,16 +211,19 @@ const LanguageSwitcher = () => {
       value={value}
       onChange={(e) => changeLanguage(e.target.value)}
       className="bg-white text-blue-800 px-2 py-1 rounded text-sm shadow-sm"
-      aria-label={t("select_language_label", { defaultValue: "Select language" })}
+      aria-label={t("common:select_language_label", { defaultValue: "Select language" })}
     >
       <option disabled>
-        {t("select_language_label", { defaultValue: "🌐 Languages" })}
+        {t("common:languages", { defaultValue: "🌐 Languages" })}
       </option>
       {groups.map((g) => (
         <optgroup key={g.label} label={g.label}>
           {g.items.map((o) => (
             <option key={o.code} value={o.code}>
-              {o.label}
+              {
+                // Prefer full variant label from i18n (e.g., es-MX), else fallback to base (es), else hardcoded label
+                renderLocaleLabel(o.code, o.label)
+              }
             </option>
           ))}
         </optgroup>
@@ -201,15 +234,3 @@ const LanguageSwitcher = () => {
 
 export default LanguageSwitcher;
 // --- REPLACE END ---
-
-
-
-
-
-
-
-
-
-
-
-

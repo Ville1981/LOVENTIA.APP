@@ -1,85 +1,108 @@
-import React, { useEffect, useState } from "react";
+// File: client/src/components/HeroSection.jsx
+// --- REPLACE START: rotate localized hero lines from etusivu.heroTekstit.[0..2] and refresh on language change ---
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import "./HeroSection.css";
 
-const images = [
-  "/hero.jpg",
-  "/hero1.jpg",
-  "/hero2.jpg",
-  "/hero3.jpg",
-  "/hero4.jpg",
-];
+/**
+ * NOTE ABOUT IMAGES
+ * ---------------
+ * We keep the existing image list and the slide CSS.
+ * Rotation cadence stays at 5s (same as before) and text rotation
+ * is coupled to the same timer, so image+text advance together.
+ */
+const images = ["/hero.jpg", "/hero1.jpg", "/hero2.jpg", "/hero3.jpg", "/hero4.jpg"];
 
 function HeroSection() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
   const { t, i18n } = useTranslation();
 
-  // Language buckets kept (not strictly needed now) to avoid future regressions
+  /**
+   * (Historical context, kept to preserve file shape/length and avoid regressions)
+   * We previously experimented with language buckets and alternative copy sets.
+   * Keeping the arrays below harms nothing and can be re-used later if we need
+   * to branch per-locale. These DO NOT affect the current text selection logic.
+   */
   const latinLangs = ["es-ES", "es-MX", "es-AR", "es-CO"];
   const modernLangs = ["it", "pl", "sw"];
-
-  // --- REPLACE START -------------------------------------------------
-  // Root cause: EN fell back to "hero.*" keys which do not exist.
-  // Fix: always use the same 'etusivu.heroTekstit.*' keys for every language.
-  // We keep the older branching variables for compatibility, but the keys
-  // themselves are unified. Provide robust defaultValue fallbacks.
   const useModernText =
     modernLangs.includes(i18n.language) ||
     (!latinLangs.includes(i18n.language) && i18n.language !== "en");
 
-  // Unified key list (same for all languages)
-  const textKeys = [
-    "etusivu.heroTekstit.0",
-    "etusivu.heroTekstit.1",
-    "etusivu.heroTekstit.2",
-  ];
-  // --- REPLACE END ---------------------------------------------------
+  /**
+   * TEXT KEYS (STABLE API)
+   * ----------------------
+   * We now rely on 3 leaf keys per locale, accessed with dot-index syntax:
+   *   etusivu.heroTekstit.0
+   *   etusivu.heroTekstit.1
+   *   etusivu.heroTekstit.2
+   *
+   * This guarantees t(...) returns a STRING (never an object), which fixes the
+   * "Objects are not valid as a React child" crash. If any key is missing,
+   * defaultValue is used (English copy), so UI stays functional.
+   */
+  const textKeys = useMemo(
+    () => ["etusivu.heroTekstit.0", "etusivu.heroTekstit.1", "etusivu.heroTekstit.2"],
+    []
+  );
 
+  /**
+   * Resolve the actual visible strings via i18n for the CURRENT language.
+   * We recompute whenever i18n.language changes.
+   */
+  const heroLines = useMemo(
+    () => [
+      t(textKeys[0], { defaultValue: "Find love that lasts." }),
+      t(textKeys[1], { defaultValue: "Meet people who share your values." }),
+      t(textKeys[2], { defaultValue: "Your next match is one click away." }),
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [i18n.language, textKeys]
+  );
+
+  /**
+   * TIMER: advance both image and text every 5 seconds.
+   * We reset the timer whenever the language changes so that the newly
+   * resolved heroLines are displayed immediately and in sync.
+   */
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentImageIndex((prev) =>
-        prev === images.length - 1 ? 0 : prev + 1
-      );
-      setCurrentTextIndex((prev) =>
-        prev === textKeys.length - 1 ? 0 : prev + 1
-      );
+      setCurrentImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+      setCurrentTextIndex((prev) => (prev === heroLines.length - 1 ? 0 : prev + 1));
     }, 5000);
+
     return () => clearInterval(interval);
-  }, [textKeys]);
+  }, [heroLines.length, i18n.language]);
+
+  /**
+   * When the user changes language mid-rotation, keep the same text index if possible.
+   * If the target language has fewer lines (shouldn't happen, but safe), clamp the index.
+   */
+  useEffect(() => {
+    setCurrentTextIndex((idx) => (idx >= heroLines.length ? 0 : idx));
+  }, [heroLines.length]);
 
   return (
     <div className="hero-section-container">
       <div className="hero-section">
+        {/* Background slides */}
         {images.map((img, index) => (
           <img
             key={index}
             src={img}
-            alt={`Hero ${index}`}
-            className={`hero-slide ${
-              index === currentImageIndex ? "active" : ""
-            }`}
+            alt={
+              // Use a generic localized alt; no objects, always a string
+              t("common:heroImageAlt", { defaultValue: `Hero ${index + 1}` })
+            }
+            className={`hero-slide ${index === currentImageIndex ? "active" : ""}`}
           />
         ))}
 
-        <div
-          className={`hero-overlay ${
-            i18n.language === "ar" ? "rtl-align" : "left"
-          }`}
-        >
+        {/* Text overlay — respects RTL languages */}
+        <div className={`hero-overlay ${i18n.language === "ar" ? "rtl-align" : "left"}`}>
           <h1 dir={i18n.language === "ar" ? "rtl" : "ltr"}>
-            {
-              // --- REPLACE START: add safe fallbacks so EN (and any missing locale) shows text ---
-              t(textKeys[currentTextIndex], {
-                defaultValue:
-                  currentTextIndex === 0
-                    ? "Meet kind singles near you"
-                    : currentTextIndex === 1
-                    ? "Safe. Respectful. Real."
-                    : "Start your story today",
-              })
-              // --- REPLACE END ---
-            }
+            {heroLines[currentTextIndex]}
           </h1>
         </div>
       </div>
@@ -88,4 +111,4 @@ function HeroSection() {
 }
 
 export default HeroSection;
-
+// --- REPLACE END ---
