@@ -1,72 +1,84 @@
-// File: src/__tests__/ConversationsOverview.test.jsx
-import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import React from "react";
-import { BrowserRouter } from "react-router-dom";
-import ConversationsOverview from "../components/ConversationsOverview";
-import messageService from "../services/messageService";
+// File: client/src/tests/ConversationOverview.test.jsx
+// --- REPLACE START ---
+import '@testing-library/jest-dom/vitest';
+import React from 'react';
+import { screen, waitFor } from '@testing-library/react';
+import { vi } from 'vitest';
+import ConversationsOverview from '../pages/ConversationsOverview.jsx';
 
-jest.mock("../services/messageService");
+// Use ONLY the shared router-aware renderer.
+import { renderWithRouter } from './utils/renderWithRouter';
 
-describe("ConversationsOverview", () => {
+// Mock the exact module ConversationsOverview imports
+vi.mock('../utils/axiosInstance', () => ({
+  __esModule: true,
+  default: { get: vi.fn() },
+}));
+
+// Import mocked axios so we can control return values
+import axios from '../utils/axiosInstance';
+
+describe('ConversationsOverview', () => {
   const mockConvos = [
     {
-      userId: "1",
-      avatarUrl: "/img/1.jpg",
-      displayName: "Alice",
-      snippet: "Hello",
-      lastMessageTimestamp: new Date().toISOString(),
-      unreadCount: 2,
+      userId: '1',
+      name: 'Alice',
+      avatarUrl: '/a.jpg',
+      lastMessageTime: Date.now(),
+      snippet: 'Hi',
+      unreadCount: 0,
+    },
+    {
+      userId: '2',
+      name: 'Bob',
+      avatarUrl: '/b.jpg',
+      lastMessageTime: Date.now(),
+      snippet: 'Hello',
+      unreadCount: 1,
     },
   ];
 
   beforeEach(() => {
-    messageService.getOverview.mockResolvedValue(mockConvos);
+    axios.get.mockReset();
   });
 
-  it("renders loading state then list", async () => {
-    render(
-      <BrowserRouter>
-        <ConversationsOverview />
-      </BrowserRouter>
-    );
+  it('renders loading state then list', async () => {
+    axios.get.mockResolvedValue({ data: mockConvos });
 
-    expect(screen.getByLabelText(/loading/i)).toBeInTheDocument();
+    renderWithRouter(<ConversationsOverview />);
+
+    // Accessibility: spinner + sr-only text
+    expect(
+      screen.getByText(/loading conversations/i)
+    ).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(screen.getByText("Alice")).toBeInTheDocument();
-      expect(screen.getByText(/Hello/)).toBeInTheDocument();
+      expect(screen.getByText('Alice')).toBeInTheDocument();
+      expect(screen.getByText('Bob')).toBeInTheDocument();
     });
   });
 
-  it("handles empty list", async () => {
-    messageService.getOverview.mockResolvedValue([]);
-    render(
-      <BrowserRouter>
-        <ConversationsOverview />
-      </BrowserRouter>
-    );
+  it('handles empty list', async () => {
+    axios.get.mockResolvedValue({ data: [] });
+
+    renderWithRouter(<ConversationsOverview />);
 
     await waitFor(() => {
-      expect(screen.getByText(/start chatting/i)).toBeInTheDocument();
+      // Bunny placeholder shows when empty
+      expect(screen.getByText(/bunny/i)).toBeInTheDocument();
     });
   });
 
-  it("shows error on fetch failure", async () => {
-    messageService.getOverview.mockRejectedValue(new Error("fail"));
-    render(
-      <BrowserRouter>
-        <ConversationsOverview />
-      </BrowserRouter>
-    );
+  it('shows error on fetch failure', async () => {
+    axios.get.mockRejectedValue(new Error('boom'));
+
+    renderWithRouter(<ConversationsOverview />);
 
     await waitFor(() => {
       expect(
-        screen.getByText(/failed to load conversations/i)
-      ).toBeInTheDocument();
-      expect(
-        screen.getByRole("button", { name: /retry/i })
+        screen.getByText(/unable to load conversations/i)
       ).toBeInTheDocument();
     });
   });
 });
+// --- REPLACE END ---

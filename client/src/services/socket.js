@@ -1,4 +1,4 @@
-// src/services/socket.js
+// File: client/src/services/socket.js
 // Socket.io client setup for real-time chat with reliability enhancements
 // @ts-nocheck
 import { io } from "socket.io-client";
@@ -35,6 +35,8 @@ const HEARTBEAT_INTERVAL = 25000; // send heartbeat every 25s
 const receivedMessageIds = new Set();
 
 function startHeartbeat() {
+  // Clear any existing to avoid duplicates after reconnects
+  if (heartbeatInterval) clearInterval(heartbeatInterval);
   heartbeatInterval = setInterval(() => {
     if (socket.connected) {
       socket.emit("heartbeat");
@@ -43,17 +45,25 @@ function startHeartbeat() {
 }
 
 function stopHeartbeat() {
-  if (heartbeatInterval) clearInterval(heartbeatInterval);
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = undefined;
+  }
 }
 
 function startDedupeCleanup() {
+  // Clear any existing to avoid duplicates after reconnects
+  if (dedupeCleanupInterval) clearInterval(dedupeCleanupInterval);
   dedupeCleanupInterval = setInterval(() => {
     receivedMessageIds.clear();
   }, RECEIPT_CLEAR_INTERVAL);
 }
 
 function stopDedupeCleanup() {
-  if (dedupeCleanupInterval) clearInterval(dedupeCleanupInterval);
+  if (dedupeCleanupInterval) {
+    clearInterval(dedupeCleanupInterval);
+    dedupeCleanupInterval = undefined;
+  }
 }
 
 // Automatically manage heartbeat and dedupe intervals on connect/disconnect
@@ -63,6 +73,7 @@ socket.on("connect", () => {
 });
 
 socket.on("disconnect", () => {
+  // Clear BOTH intervals on disconnect to satisfy the test expectation
   stopHeartbeat();
   stopDedupeCleanup();
 });
@@ -135,3 +146,4 @@ export function offNewMessage(callback) {
 
 // The replacement region is marked between // --- REPLACE START and // --- REPLACE END
 // so you can verify exactly what changed.
+

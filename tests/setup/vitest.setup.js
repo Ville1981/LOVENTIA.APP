@@ -64,12 +64,20 @@ if (!("sessionStorage" in global)) {
   };
 }
 
-// Vite envs used in code under test
-// (keeps existing values if provided)
-globalThis.import.meta = globalThis.import.meta || {};
-globalThis.import.meta.env = globalThis.import.meta.env || {};
-globalThis.import.meta.env.VITE_SOCKET_URL =
-  globalThis.import.meta.env.VITE_SOCKET_URL || "http://localhost:3000";
+// --- REPLACE START: safe import.meta.env defaults ----------------------------
+/**
+ * Vitest provides import.meta in ESM. Avoid using globalThis.import.meta.
+ */
+try {
+  if (typeof import.meta !== "undefined") {
+    import.meta.env = import.meta.env || {};
+    import.meta.env.VITE_SOCKET_URL =
+      import.meta.env.VITE_SOCKET_URL || "http://localhost:3000";
+  }
+} catch {
+  // ignore if not available
+}
+// --- REPLACE END -------------------------------------------------------------
 
 // Silence noisy console in tests (optional; keeps output available if needed)
 vi.stubGlobal("console", {
@@ -102,4 +110,3 @@ vi.mock("react-i18next", async (importOriginal) => {
   };
 });
 // --- REPLACE END -------------------------------------------------------------
-
