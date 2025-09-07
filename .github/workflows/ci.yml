@@ -64,10 +64,12 @@ jobs:
 
       - name: Upload coverage report
         if: success()
-        uses: actions/upload-artifact@v3
+        # --- REPLACE START: bump upload-artifact to v4 ---
+        uses: actions/upload-artifact@v4
         with:
           name: server-coverage
           path: coverage
+        # --- REPLACE END ---
 
   client-tests:
     needs: setup
@@ -96,10 +98,12 @@ jobs:
 
       - name: Upload coverage report
         if: success()
-        uses: actions/upload-artifact@v3
+        # --- REPLACE START: bump upload-artifact to v4 ---
+        uses: actions/upload-artifact@v4
         with:
           name: client-coverage
           path: coverage
+        # --- REPLACE END ---
 
   # --- Cypress E2E job added after client-tests ---
   cypress-e2e:
@@ -113,16 +117,19 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18
+
       - name: Install dependencies
         run: |
           cd server && npm ci &
           cd client && npm ci
+
       - name: Start Server & Client
         run: |
           cd server && npm run dev & 
           cd ../client && npm run dev &
           npx wait-on http://localhost:5000/health
           npx wait-on http://localhost:5174
+
       - name: Run Cypress tests
         run: npx cypress run
   # --- /Cypress E2E job ---

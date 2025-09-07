@@ -26,10 +26,14 @@ jobs:
             -quickout /zap/report/zap-report.html
 
       - name: Upload ZAP report
-        uses: actions/upload-artifact@v3
+        # --- REPLACE START: bump upload-artifact to v4 ---
+        uses: actions/upload-artifact@v4
         with:
           name: zap-report
-          path: zap-report/*.html, zap-report/*.xml
+          path: |
+            zap-report/*.html
+            zap-report/*.xml
+        # --- REPLACE END
 
   dependency-scan:
     runs-on: ubuntu-latest
@@ -37,7 +41,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # --- REPLACE START: inline dependency scanning rather than external workflow
+      # --- REPLACE START: inline dependency scanning rather than external workflow ---
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
@@ -57,7 +61,8 @@ jobs:
           fi
 
       - name: Upload dependency check reports
-        uses: actions/upload-artifact@v3
+        # --- bump upload-artifact to v4 ---
+        uses: actions/upload-artifact@v4
         with:
           name: dependency-check-report
           path: |
