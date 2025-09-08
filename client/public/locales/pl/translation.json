@@ -146,7 +146,11 @@
     "aloita": "Rozpocznij",
     "heroOtsikko": "Witamy w Loventia.site!",
     "heroTeksti": "Znajdź znaczące znajomości łatwo i bezpiecznie.",
-    "heroTekstit": "__TODO: translate__",
+    "heroTekstit": [
+      "Znajdź miłość na lata.",
+      "Poznaj ludzi podzielających Twoje wartości.",
+      "Twoje kolejne dopasowanie jest o jedno kliknięcie."
+    ],
     "katso_kayttajat": "Zobacz użytkowników",
     "kuvaus": "Znajdź towarzystwo, przyjaciół lub miłość łatwo i bezpiecznie.",
     "lue_lisaa": "Czytaj więcej",
@@ -155,9 +159,9 @@
   "follow": "Obserwuj",
   "health": "Polityka zdrowotna",
   "hero": {
-    "0": "Find love that lasts.",
-    "1": "Meet people who share your values.",
-    "2": "Your next match is one click away.",
+    "0": "Znajdź miłość na lata.",
+    "1": "Poznaj ludzi podzielających Twoje wartości.",
+    "2": "Twoje kolejne dopasowanie jest o jedno kliknięcie.",
     "title": "Meet kind singles near you"
   },
   "home": {

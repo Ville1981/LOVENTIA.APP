@@ -100,8 +100,8 @@ function HeroSection() {
         ))}
 
         {/* Text overlay — respects RTL languages */}
-        <div className={`hero-overlay ${i18n.language === "ar" ? "rtl-align" : "left"}`}>
-          <h1 dir={i18n.language === "ar" ? "rtl" : "ltr"}>
+        <div className={`hero-overlay ${i18n.dir() === "rtl" ? "rtl-align" : "left"}`}>
+          <h1 dir={i18n.dir()}>
             {heroLines[currentTextIndex]}
           </h1>
         </div>
