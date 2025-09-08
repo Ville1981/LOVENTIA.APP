@@ -30,3 +30,12 @@ uploads/
 .env
 server/.env
 client/.env
+
+# coverage html reports
+coverage/
+
+
+# i18n clean backups
+client/public/locales/**/*.bak
+
+client/public/locales/**/*.bak
