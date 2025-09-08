@@ -72,14 +72,24 @@
   "instructions": "Set filters and click Filter to find people.",
   "ageRange": "Faixa etária",
   "username": "Nome de usuário",
-  "gender.label": "Gender  // TODO: translate",
-  "orientation.label": "❤️ Orientation  // TODO: translate",
-  "location.country": "🌍 Country  // TODO: translate",
-  "location.region": "🗺 Region/State  // TODO: translate",
-  "location.city": "🏩 City  // TODO: translate",
-  "education.label": "🎓 Education  // TODO: translate",
+  "gender": {
+    "label": "Gender"
+  },
+  "orientation": {
+    "label": "❤️ Orientation"
+  },
+  "location": {
+    "country": "🌍 Country",
+    "region": "🗺 Region/State",
+    "city": "🏩 City"
+  },
+  "education": {
+    "label": "🎓 Education"
+  },
   "profession": "Profissão",
-  "religion.label": "🕊 Religion  // TODO: translate",
+  "religion": {
+    "label": "🕊 Religion"
+  },
   "religionImportance": "Importância da religião",
   "politicalIdeology": "Ideologia política",
   "children": "👶 Children",
@@ -110,22 +120,5 @@
   "state": {
     "noResults": "No matching profiles found.",
     "loading": "Loading…"
-  },
-  "gender": {
-    "label": "Gender"
-  },
-  "orientation": {
-    "label": "❤️ Orientation"
-  },
-  "location": {
-    "country": "🌍 Country",
-    "region": "🗺 Region/State",
-    "city": "🏩 City"
-  },
-  "education": {
-    "label": "🎓 Education"
-  },
-  "religion": {
-    "label": "🕊 Religion"
   }
 }

@@ -146,19 +146,12 @@
     "aloita": "开始",
     "heroOtsikko": "欢迎来到 Loventia.site！",
     "heroTeksti": "轻松、安全地找到有意义的联系。",
-    "heroTekstit": {
-      "0": "寻找持久的爱情。",
-      "1": "结识志同道合的人。",
-      "2": "你的下一个匹配近在咫尺。"
-    },
+    "heroTekstit": "__TODO: translate__",
     "katso_kayttajat": "查看用户",
     "kuvaus": "轻松安全地寻找伴侣、朋友或爱情。",
     "lue_lisaa": "了解更多",
     "tervetuloa": "欢迎来到 Loventia.site！"
   },
-  "etusivu.heroTekstit.0": "Find love that lasts.  // TODO: translate",
-  "etusivu.heroTekstit.1": "Meet people who share your values.  // TODO: translate",
-  "etusivu.heroTekstit.2": "Your next match is one click away.  // TODO: translate",
   "follow": "关注",
   "health": "健康政策",
   "hero": {
@@ -167,16 +160,10 @@
     "2": "你的下一次匹配只需点击一下。",
     "title": "Meet kind singles near you"
   },
-  "home.title": "Welcome to Loventia.site!  // TODO: translate",
-  "home.subtitle": "Find meaningful connections easily and safely.  // TODO: translate",
   "home": {
     "title": "找到真正的连接",
     "subtitle": "少滑动，多匹配——为有意义的约会而建的社区。",
-    "texts": {
-      "0": "Find love that lasts.  // TODO: translate",
-      "1": "Meet people who share your values.  // TODO: translate",
-      "2": "Your next match is one click away.  // TODO: translate"
-    }
+    "texts": "__TODO: translate__"
   },
   "impressum": "出版说明",
   "lifestyle": {

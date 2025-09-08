@@ -146,19 +146,12 @@
     "aloita": "Aloita nyt",
     "heroOtsikko": "Tervetuloa Loventia.siteen",
     "heroTeksti": "Löydä merkityksellisiä yhteyksiä helposti ja turvallisesti.",
-    "heroTekstit": {
-      "0": "Löydä kestävä rakkaus.",
-      "1": "Tapaa samanhenkisiä ihmisiä.",
-      "2": "Seuraava mätsisi on vain klikkauksen päässä."
-    },
+    "heroTekstit": "__TODO: translate__",
     "katso_kayttajat": "Katso käyttäjiä",
     "kuvaus": "Löydä seuraa, ystäviä tai rakkautta helposti ja turvallisesti.",
     "lue_lisaa": "Lue lisää",
     "tervetuloa": "Tervetuloa Loventia.siteen!"
   },
-  "etusivu.heroTekstit.0": "Find love that lasts.  // TODO: translate",
-  "etusivu.heroTekstit.1": "Meet people who share your values.  // TODO: translate",
-  "etusivu.heroTekstit.2": "Your next match is one click away.  // TODO: translate",
   "follow": "Seuraa meitä",
   "health": "Terveyskäytäntö",
   "hero": {
@@ -167,16 +160,10 @@
     "2": "Seuraava mätsisi on vain klikkauksen päässä.",
     "title": "Meet kind singles near you"
   },
-  "home.title": "Welcome to Loventia.site!  // TODO: translate",
-  "home.subtitle": "Find meaningful connections easily and safely.  // TODO: translate",
   "home": {
     "title": "Löydä aitoja yhteyksiä",
     "subtitle": "Vähemmän swippausta, parempia osumia — liity merkitykselliseen yhteisöön.",
-    "texts": {
-      "0": "Find love that lasts.  // TODO: translate",
-      "1": "Meet people who share your values.  // TODO: translate",
-      "2": "Your next match is one click away.  // TODO: translate"
-    }
+    "texts": "__TODO: translate__"
   },
   "impressum": "Julkaisija",
   "lifestyle": {

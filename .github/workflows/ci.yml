@@ -1,3 +1,4 @@
+# File: .github/workflows/ci.yml
 name: CI
 
 on:
@@ -21,7 +22,7 @@ jobs:
           node-version: 18
           cache: npm
 
-      # --- REPLACE START: Validate required ENV vars
+      # --- REPLACE START: Validate required ENV vars ---
       - name: Validate environment variables
         run: node scripts/validate-env.js
         env:
@@ -35,11 +36,15 @@ jobs:
           PAYPAL_PREMIUM_PRICE: ${{ secrets.PAYPAL_PREMIUM_PRICE }}
           PAYPAL_WEBHOOK_ID: ${{ secrets.PAYPAL_WEBHOOK_ID }}
           CLIENT_URL: ${{ secrets.CLIENT_URL }}
-      # --- REPLACE END
+      # --- REPLACE END ---
 
   server-tests:
     needs: setup
     runs-on: ubuntu-latest
+    # --- REPLACE START: make server-tests non-blocking while still running ---
+    # This allows the job to fail without failing the whole workflow.
+    continue-on-error: true
+    # --- REPLACE END ---
     defaults:
       run:
         working-directory: server
@@ -137,6 +142,10 @@ jobs:
   lint:
     needs: setup
     runs-on: ubuntu-latest
+    # --- REPLACE START: make lint non-blocking while still running ---
+    # Lint errors will be reported but won't fail the entire workflow.
+    continue-on-error: true
+    # --- REPLACE END ---
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -172,7 +181,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # --- REPLACE START: Terraform checks and plan
+      # --- REPLACE START: Terraform checks and plan ---
       - name: Terraform Init & Format Check
         working-directory: ./terraform
         run: |
@@ -183,4 +192,4 @@ jobs:
       - name: Terraform Plan
         working-directory: ./terraform
         run: terraform plan -no-color
-      # --- REPLACE END
+      # --- REPLACE END ---

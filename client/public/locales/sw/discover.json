@@ -72,14 +72,24 @@
   "instructions": "Refine your search using the filters below.",
   "ageRange": "Wigo wa umri",
   "username": "Jina la mtumiaji",
-  "gender.label": "Gender  // TODO: translate",
-  "orientation.label": "❤️ Orientation  // TODO: translate",
-  "location.country": "🌍 Country  // TODO: translate",
-  "location.region": "🗺 Region/State  // TODO: translate",
-  "location.city": "🏩 City  // TODO: translate",
-  "education.label": "🎓 Education  // TODO: translate",
+  "gender": {
+    "label": "Gender"
+  },
+  "orientation": {
+    "label": "❤️ Orientation"
+  },
+  "location": {
+    "country": "🌍 Country",
+    "region": "🗺 Region/State",
+    "city": "🏩 City"
+  },
+  "education": {
+    "label": "🎓 Education"
+  },
   "profession": "Kazi",
-  "religion.label": "🕊 Religion  // TODO: translate",
+  "religion": {
+    "label": "🕊 Religion"
+  },
   "religionImportance": "Umuhimu wa dini",
   "politicalIdeology": "Itikadi ya kisiasa",
   "children": "👶 Children",
@@ -110,22 +120,5 @@
   "state": {
     "noResults": "No matching profiles found.",
     "loading": "Loading…"
-  },
-  "gender": {
-    "label": "Gender"
-  },
-  "orientation": {
-    "label": "❤️ Orientation"
-  },
-  "location": {
-    "country": "🌍 Country",
-    "region": "🗺 Region/State",
-    "city": "🏩 City"
-  },
-  "education": {
-    "label": "🎓 Education"
-  },
-  "religion": {
-    "label": "🕊 Religion"
   }
 }
