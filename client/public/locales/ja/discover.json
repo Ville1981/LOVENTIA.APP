@@ -72,14 +72,24 @@
   "instructions": "Set filters and click Filter to find people.",
   "ageRange": "年齢範囲",
   "username": "ユーザー名",
-  "gender.label": "Gender  // TODO: translate",
-  "orientation.label": "❤️ Orientation  // TODO: translate",
-  "location.country": "🌍 Country  // TODO: translate",
-  "location.region": "🗺 Region/State  // TODO: translate",
-  "location.city": "🏩 City  // TODO: translate",
-  "education.label": "🎓 Education  // TODO: translate",
+  "gender": {
+    "label": "Gender"
+  },
+  "orientation": {
+    "label": "❤️ Orientation"
+  },
+  "location": {
+    "country": "🌍 Country",
+    "region": "🗺 Region/State",
+    "city": "🏩 City"
+  },
+  "education": {
+    "label": "🎓 Education"
+  },
   "profession": "職業",
-  "religion.label": "🕊 Religion  // TODO: translate",
+  "religion": {
+    "label": "🕊 Religion"
+  },
   "religionImportance": "宗教の重要度",
   "politicalIdeology": "政治的イデオロギー",
   "children": "👶 Children",
@@ -110,22 +120,5 @@
   "state": {
     "noResults": "No matching profiles found.",
     "loading": "Loading…"
-  },
-  "gender": {
-    "label": "Gender"
-  },
-  "orientation": {
-    "label": "❤️ Orientation"
-  },
-  "location": {
-    "country": "🌍 Country",
-    "region": "🗺 Region/State",
-    "city": "🏩 City"
-  },
-  "education": {
-    "label": "🎓 Education"
-  },
-  "religion": {
-    "label": "🕊 Religion"
   }
 }

@@ -146,19 +146,12 @@
     "aloita": "Ξεκινήστε",
     "heroOtsikko": "Καλώς ήρθατε στο Loventia.site!",
     "heroTeksti": "Βρείτε ουσιαστικές συνδέσεις εύκολα και με ασφάλεια.",
-    "heroTekstit": {
-      "0": "Βρείτε αγάπη που διαρκεί.",
-      "1": "Γνωρίστε άτομα που μοιράζονται τις αξίες σας.",
-      "2": "Το επόμενο ταίρι σας είναι ένα κλικ μακριά."
-    },
+    "heroTekstit": "__TODO: translate__",
     "katso_kayttajat": "Δείτε χρήστες",
     "kuvaus": "Βρείτε συντροφιά, φίλους ή αγάπη εύκολα και με ασφάλεια.",
     "lue_lisaa": "Διαβάστε περισσότερα",
     "tervetuloa": "Καλώς ορίσατε στο Loventia.site!"
   },
-  "etusivu.heroTekstit.0": "Find love that lasts.  // TODO: translate",
-  "etusivu.heroTekstit.1": "Meet people who share your values.  // TODO: translate",
-  "etusivu.heroTekstit.2": "Your next match is one click away.  // TODO: translate",
   "follow": "Ακολουθήστε",
   "health": "Πολιτική υγείας",
   "hero": {
@@ -167,16 +160,10 @@
     "2": "Το επόμενο ταίρι σου είναι ένα κλικ μακριά.",
     "title": "Meet kind singles near you"
   },
-  "home.title": "Welcome to Loventia.site!  // TODO: translate",
-  "home.subtitle": "Find meaningful connections easily and safely.  // TODO: translate",
   "home": {
     "title": "Βρες αληθινές γνωριμίες",
     "subtitle": "Λιγότερα swipes, καλύτερα ταιριάσματα — κοινότητα για ουσιαστικές σχέσεις.",
-    "texts": {
-      "0": "Find love that lasts.  // TODO: translate",
-      "1": "Meet people who share your values.  // TODO: translate",
-      "2": "Your next match is one click away.  // TODO: translate"
-    }
+    "texts": "__TODO: translate__"
   },
   "impressum": "Impressum",
   "lifestyle": {
