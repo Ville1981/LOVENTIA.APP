@@ -130,12 +130,12 @@
     "label": "❤️ Orientierung"
   },
   "height": {
-    "label": "Height  // TODO: translate"
+    "label": "Height"
   },
   "heightUnit": "Größeneinheit",
   "cm": "cm",
   "weight": {
-    "label": "Weight  // TODO: translate"
+    "label": "Weight"
   },
   "weightUnit": "Gewichtseinheit",
   "kg": "kg",
@@ -160,7 +160,7 @@
     "phd": "Promotion / Forschung"
   },
   "professionCategory": {
-    "label": "💼 Profession category  // TODO: translate"
+    "label": "💼 Profession category"
   },
   "profession": "💼 Beruf",
   "professionPlaceholder": "Berufsbezeichnung…",

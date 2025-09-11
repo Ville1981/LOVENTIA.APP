@@ -1,6 +1,4 @@
-// PATH: client/src/i18n/index.js
-
-// --- REPLACE START: robust i18n init with HttpBackend, detector, multi-namespaces, and helpers ---
+// --- REPLACE START: robust i18n init with test-aware guard, HttpBackend/Detector, namespaces & helpers ---
 /* eslint-env browser */
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
@@ -10,7 +8,7 @@ import HttpBackend from "i18next-http-backend";
 /**
  * IMPORTANT NOTES
  * - Expects translation files in: /public/locales/{lng}/{ns}.json
- * - Namespaces kept separate to avoid huge single files and to match page/components:
+ * - Namespaces are split by feature:
  *   "common", "profile", "lifestyle", "discover", "chat", "navbar", "footer", "translation"
  * - Changing language will:
  *     1) persist to localStorage
@@ -56,6 +54,7 @@ function isRtl(lng) {
 
 // Set <html lang> and dir (RTL for ar/he/ur/fa)
 function applyHtmlLang(lng) {
+  if (typeof document === "undefined") return;
   const html = document.documentElement;
   const norm = normalizeLang(lng);
   html.setAttribute("lang", norm);
@@ -65,99 +64,155 @@ function applyHtmlLang(lng) {
 // Persisted language or fallback — guarded for environments where localStorage may throw
 let persistedRaw = null;
 try {
-  persistedRaw = window.localStorage ? localStorage.getItem(STORAGE_KEY) : null;
+  persistedRaw = typeof window !== "undefined" && window.localStorage
+    ? localStorage.getItem(STORAGE_KEY)
+    : null;
 } catch {
   // ignore storage errors
 }
 const persisted = normalizeLang(persistedRaw) || FALLBACK_LANG;
 
-i18n
-  .use(HttpBackend)
-  .use(LanguageDetector)
-  .use(initReactI18next)
-  .init({
-    backend: {
-      // Vite serves /public at the web root -> /locales/...
-      loadPath: "/locales/{{lng}}/{{ns}}.json",
-      crossDomain: true
-    },
+/* -----------------------------------------------------------------------------
+ * TEST-ONLY LIGHTWEIGHT INIT
+ * Avoid HttpBackend and LanguageDetector in Vitest/Jest to prevent network calls
+ * and cross-bundle React collisions. Provide minimal default resources.
+ * ---------------------------------------------------------------------------*/
+if (process.env.NODE_ENV === "test") {
+  i18n
+    .use(initReactI18next)
+    .init({
+      lng: "en",
+      fallbackLng: FALLBACK_LANG,
+      supportedLngs: SUPPORTED_LANGS,
+      ns: NAMESPACES,
+      defaultNS: "common",
+      fallbackNS: ["common", "translation"],
+      resources: {
+        en: {
+          common: {
+            heroImageAlt: "Hero",
+            noData: "No conversations",
+          },
+          chat: {
+            overview: {
+              loading: "Loading conversations",
+              error: "Unable to load conversations",
+              title: "Conversations",
+              empty: "No conversations",
+            },
+          },
+        },
+      },
+      nsSeparator: ":",
+      keySeparator: ".",
+      interpolation: { escapeValue: false },
+      returnNull: false,
+      returnEmptyString: false,
+      parseMissingKeyHandler: (key) => key,
+      react: { useSuspense: false, bindI18n: "languageChanged loaded" },
+    })
+    .then(() => {
+      // Ensure i18n.dir() exists in tests.
+      if (typeof i18n.dir !== "function") {
+        // @ts-ignore
+        i18n.dir = () => (isRtl(i18n.language) ? "rtl" : "ltr");
+      }
+      applyHtmlLang(i18n.language);
+    })
+    .catch(() => { /* quiet in tests */ });
 
-    detection: {
-      order: ["querystring", "localStorage", "navigator", "htmlTag", "cookie"],
-      caches: ["localStorage"],
-      lookupQuerystring: "lng",
-      lookupLocalStorage: STORAGE_KEY,
-      lookupCookie: "i18next"
-    },
+} else {
+  /* -----------------------------------------------------------------------------
+   * NORMAL APP INIT (DEV/PROD)
+   * ---------------------------------------------------------------------------*/
+  i18n
+    .use(HttpBackend)
+    .use(LanguageDetector)
+    .use(initReactI18next)
+    .init({
+      backend: {
+        // Vite serves /public at the web root -> /locales/...
+        loadPath: "/locales/{{lng}}/{{ns}}.json",
+        crossDomain: true,
+      },
 
-    supportedLngs: SUPPORTED_LANGS,
-    fallbackLng: FALLBACK_LANG,
-    lng: persisted,
-    ns: NAMESPACES,
-    defaultNS: "common",
-    fallbackNS: ["common", "translation"],
-    load: "currentOnly",
+      detection: {
+        order: ["querystring", "localStorage", "navigator", "htmlTag", "cookie"],
+        caches: ["localStorage"],
+        lookupQuerystring: "lng",
+        lookupLocalStorage: STORAGE_KEY,
+        lookupCookie: "i18next",
+      },
 
-    nsSeparator: ":",
-    keySeparator: ".",
+      supportedLngs: SUPPORTED_LANGS,
+      fallbackLng: FALLBACK_LANG,
+      lng: persisted,
+      ns: NAMESPACES,
+      defaultNS: "common",
+      fallbackNS: ["common", "translation"],
+      load: "currentOnly",
 
-    interpolation: { escapeValue: false },
+      nsSeparator: ":",
+      keySeparator: ".",
 
-    debug: Boolean(import.meta?.env?.DEV),
+      interpolation: { escapeValue: false },
 
-    returnNull: false,
-    returnEmptyString: false,
-    parseMissingKeyHandler: (key) => key,
+      debug: Boolean(import.meta?.env?.DEV),
 
-    saveMissing: false,
-    nonExplicitSupportedLngs: true,
-    cleanCode: true,
+      returnNull: false,
+      returnEmptyString: false,
+      parseMissingKeyHandler: (key) => key,
 
-    react: {
-      useSuspense: false,
-      bindI18n: "languageChanged loaded"
-    }
-  })
-  .then(() => {
-    const effective = normalizeLang(i18n.language);
-    if (!i18n.language || i18n.language !== effective) {
-      i18n.changeLanguage(effective);
-    }
-    applyHtmlLang(effective);
+      saveMissing: false,
+      nonExplicitSupportedLngs: true,
+      cleanCode: true,
 
-    i18n.on("languageChanged", (lng) => {
-      try {
-        const norm = normalizeLang(lng);
-        localStorage.setItem(STORAGE_KEY, norm);
-        applyHtmlLang(norm);
-      } catch {
-        // ignore
+      react: {
+        useSuspense: false,
+        bindI18n: "languageChanged loaded",
+      },
+    })
+    .then(() => {
+      const effective = normalizeLang(i18n.language);
+      if (!i18n.language || i18n.language !== effective) {
+        i18n.changeLanguage(effective);
+      }
+      applyHtmlLang(effective);
+
+      i18n.on("languageChanged", (lng) => {
+        try {
+          const norm = normalizeLang(lng);
+          localStorage.setItem(STORAGE_KEY, norm);
+          applyHtmlLang(norm);
+        } catch {
+          // ignore
+        }
+      });
+
+      // --- REPLACE START: expose i18n for console debugging (non-test only) ---
+      if (typeof window !== "undefined" && window && !window.i18next) {
+        window.i18next = i18n;
+        window.t = i18n.t.bind(i18n);
+        // eslint-disable-next-line no-console
+        console.info("[i18n] window.i18next exposed:", {
+          lng: i18n.language,
+          ns: i18n.options?.ns,
+          nsSeparator: i18n.options?.nsSeparator,
+        });
+      }
+      i18n.on("initialized", (opts) => {
+        // eslint-disable-next-line no-console
+        console.log("[i18n] initialized", opts, "current lang:", i18n.language);
+      });
+      // --- REPLACE END ---
+    })
+    .catch((err) => {
+      if (import.meta?.env?.DEV) {
+        // eslint-disable-next-line no-console
+        console.error("i18n init error:", err);
       }
     });
-
-    // --- REPLACE START: expose i18n for console debugging ---
-    if (typeof window !== "undefined" && window && !window.i18next) {
-      window.i18next = i18n;
-      window.t = i18n.t.bind(i18n);
-      // eslint-disable-next-line no-console
-      console.info("[i18n] window.i18next exposed:", {
-        lng: i18n.language,
-        ns: i18n.options?.ns,
-        nsSeparator: i18n.options?.nsSeparator
-      });
-    }
-    i18n.on("initialized", (opts) => {
-      // eslint-disable-next-line no-console
-      console.log("[i18n] initialized", opts, "current lang:", i18n.language);
-    });
-    // --- REPLACE END ---
-  })
-  .catch((err) => {
-    if (import.meta?.env?.DEV) {
-      // eslint-disable-next-line no-console
-      console.error("i18n init error:", err);
-    }
-  });
+}
 
 /** Public helper: change app language programmatically. */
 export async function setAppLanguage(lng) {
@@ -170,10 +225,7 @@ export async function setAppLanguage(lng) {
 export function preloadNamespace(ns, lng = i18n.language) {
   const normNs = Array.isArray(ns) ? ns : [ns];
   const normLng = normalizeLang(lng);
-  return Promise.all([
-    i18n.loadNamespaces(normNs),
-    i18n.loadLanguages(normLng)
-  ]);
+  return Promise.all([i18n.loadNamespaces(normNs), i18n.loadLanguages(normLng)]);
 }
 
 /** Public helper: query if the current language is RTL. */
@@ -183,18 +235,3 @@ export function isCurrentLanguageRtl() {
 
 export default i18n;
 // --- REPLACE END ---
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -130,12 +130,12 @@
     "label": "❤️ Orientation"
   },
   "height": {
-    "label": "Height  // TODO: translate"
+    "label": "Height"
   },
   "heightUnit": "سینٹی میٹر",
   "cm": "cm",
   "weight": {
-    "label": "Weight  // TODO: translate"
+    "label": "Weight"
   },
   "weightUnit": "کلوگرام",
   "kg": "kg",
@@ -160,7 +160,7 @@
     "phd": "PhD / Research"
   },
   "professionCategory": {
-    "label": "💼 Profession category  // TODO: translate"
+    "label": "💼 Profession category"
   },
   "profession": "پیشہ",
   "professionPlaceholder": "Enter profession…",

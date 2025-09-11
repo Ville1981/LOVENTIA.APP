@@ -8,6 +8,11 @@
  * Supported feature examples:
  *  - "noAds", "unlimitedRewinds", "dealbreakers", "superLikes",
  *    "whoLikedMe", "unlockQA", "intros"
+ *
+ * Design goals for tests:
+ *  - Do NOT accidentally mark users as "non-premium" in a way that blocks
+ *    normal submits without dealbreakers.
+ *  - Premium is true only when explicitly indicated by known flags/tier/plan.
  */
 
 /**
@@ -72,6 +77,9 @@ function getFeaturesObject(user) {
 
 /**
  * Determine if the account is Premium by any of the supported flags.
+ * NOTE: We are intentionally conservative here—premium is true only
+ * when explicitly indicated. Absence of flags => not premium (but that
+ * should NOT block normal non-dealbreaker submits at the component level).
  */
 export function isPremium(user) {
   return !!(
@@ -110,7 +118,6 @@ export function hasFeature(user, featureKey) {
 
   // Also check a lowercase variant to be tolerant to server casing
   const lower = normalized.toLowerCase();
-  // Build a quick lowercase map once (cheap for small objects)
   for (const [k, v] of Object.entries(feats)) {
     if (k.toLowerCase() === lower) return !!v;
   }
@@ -120,4 +127,3 @@ export function hasFeature(user, featureKey) {
 
 export default { isPremium, hasFeature };
 // --- REPLACE END ---
-

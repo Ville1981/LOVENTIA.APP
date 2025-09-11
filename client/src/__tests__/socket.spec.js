@@ -1,4 +1,3 @@
-// File: client/src/__tests__/socket.spec.js
 // --- REPLACE START ---
 import { vi, expect, describe, test, beforeEach, afterEach } from 'vitest';
 import EventEmitter from 'events';
@@ -29,15 +28,28 @@ vi.mock('socket.io-client', () => {
 });
 
 describe('Socket Service Reliability', () => {
+  let originalWindow;
+
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.clearAllTimers();
     vi.resetModules();
-    // Dynamically import so the mocked socket.io-client is used fresh each test
+
+    // ✅ Provide a minimal window for Node test env (used by services/socket.js)
+    originalWindow = global.window;
+    global.window = {
+      location: { origin: 'http://localhost' },
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    };
+
+    // Dynamically import AFTER window mock so the module sees it at import time
     await import('../services/socket.js');
   });
 
   afterEach(() => {
+    // Restore globals
+    global.window = originalWindow;
     vi.clearAllTimers();
   });
 

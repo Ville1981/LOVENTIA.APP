@@ -1,13 +1,12 @@
 // @ts-nocheck
-// File: client/performance/load.test.js
+// File: client/performance/load.k6.js
 // K6 script for page load and API response time under load
 
 import http from "k6/http";
 import { check, sleep } from "k6";
 import { Trend } from "k6/metrics";
 
-// Base URLs (from environment or defaults)
-// --- REPLACE START: derive base URLs from env or fallbacks ---
+// --- REPLACE START: derive base URLs from env or fallback ---
 const API_URL = __ENV.API_URL || "http://localhost:3000/api";
 const APP_URL = __ENV.APP_URL || API_URL.replace("/api", "");
 // --- REPLACE END ---
@@ -15,8 +14,8 @@ const APP_URL = __ENV.APP_URL || API_URL.replace("/api", "");
 export let options = {
   stages: [
     { duration: "30s", target: 50 }, // ramp up to 50 virtual users
-    { duration: "1m", target: 50 },  // sustain load
-    { duration: "30s", target: 0 },  // ramp down
+    { duration: "1m", target: 50 }, // sustain load
+    { duration: "30s", target: 0 }, // ramp down
   ],
   thresholds: {
     page_load_time: ["p(95)<500"], // 95% of page loads under 500ms
