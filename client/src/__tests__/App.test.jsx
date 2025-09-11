@@ -1,20 +1,21 @@
 // File: client/src/__tests__/App.test.jsx
 // --- REPLACE START ---
-// Ensure jest-dom matchers are available for Vitest
-import '@testing-library/jest-dom/vitest';
-import React from 'react';
-import { render, screen } from '@testing-library/react';
-import App from '../App.jsx';
+// Ensure jest-dom matchers are available in Vitest environment
+import "@testing-library/jest-dom";
+import React from "react";
+import { render, screen } from "@testing-library/react";
+import App from "../App.jsx";
 
-// Import the real i18n setup so hooks like useTranslation() have an instance.
-// NOTE: This assumes your app's i18n is exported from client/src/i18n.js
-import '../i18n.js';
+// Load the app's i18n so useTranslation() has a real instance.
+// Adjust the path if your project structure differs.
+import "../i18n.js";
 
-describe('App smoke test', () => {
-  it('renders main heading', async () => {
+describe("App smoke test", () => {
+  it("renders at least one level-1 heading", async () => {
     render(<App />);
-    const heading = await screen.findByRole('heading', { level: 1 });
-    expect(heading).toBeInTheDocument();
+    // Multiple <h1> elements are expected (navbar/hero/page). Accept any.
+    const headings = await screen.findAllByRole("heading", { level: 1 });
+    expect(headings.length).toBeGreaterThan(0);
   });
 });
 // --- REPLACE END ---

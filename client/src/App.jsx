@@ -70,6 +70,28 @@ function AdminRoute({ children }) {
 }
 // --- REPLACE END ---
 
+// --- REPLACE START: guard MSW (and any network workers) away from test runner ---
+// Only attempt to start MSW in dev when explicitly enabled, never during Vitest.
+// This block has no effect unless VITE_MSW="1" and not running tests.
+if (
+  typeof window !== "undefined" &&
+  import.meta?.env?.MODE !== "test" &&
+  !globalThis.__VITEST__ &&
+  import.meta?.env?.VITE_MSW === "1"
+) {
+  (async () => {
+    try {
+      const mod = await import("./mocks/browser");
+      if (mod?.worker?.start) {
+        await mod.worker.start({ onUnhandledRequest: "bypass" });
+      }
+    } catch (_err) {
+      // Silently skip MSW if mocks are not present in this build
+    }
+  })();
+}
+// --- REPLACE END ---
+
 export default function App() {
   useEffect(() => {
     if ("scrollRestoration" in window.history) {

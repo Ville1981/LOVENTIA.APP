@@ -1,5 +1,3 @@
-// File: client/src/components/FeatureGate.jsx
-
 // --- REPLACE START: upgraded FeatureGate (supports context user, invert, requirePremium; keeps legacy isPremium passthrough) ---
 import React from "react";
 import { hasFeature, isPremium as isPremiumFlag } from "../utils/entitlements";

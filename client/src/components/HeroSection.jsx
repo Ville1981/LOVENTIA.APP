@@ -83,6 +83,9 @@ function HeroSection() {
     setCurrentTextIndex((idx) => (idx >= heroLines.length ? 0 : idx));
   }, [heroLines.length]);
 
+  // Ensure compatibility with tests/runtimes where i18n.dir might be missing
+  const dir = typeof i18n?.dir === "function" ? i18n.dir() : "ltr";
+
   return (
     <div className="hero-section-container">
       <div className="hero-section">
@@ -100,8 +103,8 @@ function HeroSection() {
         ))}
 
         {/* Text overlay — respects RTL languages */}
-        <div className={`hero-overlay ${i18n.dir() === "rtl" ? "rtl-align" : "left"}`}>
-          <h1 dir={i18n.dir()}>
+        <div className={`hero-overlay ${dir === "rtl" ? "rtl-align" : "left"}`}>
+          <h1 dir={dir}>
             {heroLines[currentTextIndex]}
           </h1>
         </div>

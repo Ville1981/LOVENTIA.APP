@@ -157,7 +157,7 @@ const Discover = () => {
         ? normalized.filter((u) => (u.id || u._id)?.toString() !== selfId)
         : normalized;
 
-      const ordered = [];
+      const ordered = []; // ensure defined before .push()
       if (selfUser) ordered.push(selfUser);
       ordered.push(bunnyUser); // demo card second
       ordered.push(...others);
