@@ -1,45 +1,4 @@
 {
-  "title": "发现",
-  "subtitle": "调整筛选条件以找到合适的匹配。",
-  "filters": {
-    "age": "年龄",
-    "minAge": "最小年龄",
-    "maxAge": "最大年龄",
-    "distance": "距离",
-    "maxDistance": "最大距离",
-    "location": "位置",
-    "gender": "性别",
-    "orientation": "Orientation",
-    "lifestyle": "生活方式",
-    "interests": "兴趣",
-    "apply": "应用筛选",
-    "reset": "重置",
-    "clear": "清除全部",
-    "professionCategory": "💼 Profession category",
-    "politicalIdeology": "🗳 Political ideology",
-    "pets": "🐾 Pets"
-  },
-  "results": {
-    "heading": "结果",
-    "empty": "当前筛选条件下没有匹配。",
-    "loadMore": "加载更多"
-  },
-  "cards": {
-    "age": "年龄",
-    "distance": "距离",
-    "view": "查看资料"
-  },
-  "ageRange": "年龄范围",
-  "error": "出了点问题，请重试。",
-  "gender": "性别",
-  "instructions": "Set filters and click Filter to find people.",
-  "noResults": "未找到结果。",
-  "orientation": "性取向",
-  "politicalIdeology": "政治理念",
-  "profession": "职业",
-  "religion": "宗教",
-  "religionImportance": "宗教重要性",
-  "username": "用户名",
   "labels": {
     "header": "Discover",
     "title": "Discover",
@@ -110,13 +69,29 @@
       "other": "Other"
     }
   },
-  "gender.label": "Gender",
-  "orientation.label": "❤️ Orientation",
-  "location.country": "🌍 Country",
-  "location.region": "🗺 Region/State",
-  "location.city": "🏩 City",
-  "education.label": "🎓 Education",
-  "religion.label": "🕊 Religion",
+  "instructions": "Set filters and click Filter to find people.",
+  "ageRange": "年龄范围",
+  "username": "用户名",
+  "gender": {
+    "label": "Gender"
+  },
+  "orientation": {
+    "label": "❤️ Orientation"
+  },
+  "location": {
+    "country": "🌍 Country",
+    "region": "🗺 Region/State",
+    "city": "🏩 City"
+  },
+  "education": {
+    "label": "🎓 Education"
+  },
+  "profession": "职业",
+  "religion": {
+    "label": "🕊 Religion"
+  },
+  "religionImportance": "宗教重要性",
+  "politicalIdeology": "政治理念",
   "children": "👶 Children",
   "pets": "🐾 Pets",
   "lifestyle": "Lifestyle",
@@ -132,6 +107,11 @@
   "weight": "Weight",
   "cm": "cm",
   "kg": "kg",
+  "filters": {
+    "professionCategory": "💼 Profession category",
+    "politicalIdeology": "🗳 Political ideology",
+    "pets": "🐾 Pets"
+  },
   "professionCategory": "💼 Profession category",
   "actions": {
     "apply": "Apply filters",

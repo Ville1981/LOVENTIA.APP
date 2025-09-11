@@ -73,28 +73,9 @@
   },
   "cookies": "Cookie",
   "countries": {
-    "Argentiina": "Argentina",
     "Argentina": "Argentina",
-    "Brasilia": "Brasile",
-    "Chile": "Cile",
-    "Espanja": "Spagna",
-    "Intia": "India",
-    "Iso-Britannia": "Regno Unito",
-    "Italia": "Italia",
-    "Japani": "Giappone",
-    "Kanada": "Canada",
-    "Kazakstan": "Kazakistan",
-    "Kiina": "Cina",
-    "Norja": "Norvegia",
-    "Portugali": "Portogallo",
-    "Ranska": "Francia",
-    "Ruotsi": "Svezia",
-    "Saksa": "Germania",
-    "Suomi": "Finlandia",
-    "Ukraina": "Ucraina",
-    "Venäjä": "Russia",
-    "Yhdysvallat": "Stati Uniti",
     "Brazil": "Brazil",
+    "Chile": "Cile",
     "Spain": "Spain",
     "India": "India",
     "United Kingdom": "United Kingdom",
@@ -118,6 +99,7 @@
     "adAlt": "Spazio pubblicitario – il tuo annuncio qui",
     "ageRange": "Age range",
     "cityNotFound": "Impossibile identificare la tua città.",
+    "error": "Failed to load users.",
     "fetchError": "Errore nel recupero degli utenti.",
     "filter": "Filtra",
     "gender": "Gender",
@@ -145,8 +127,7 @@
     "superliked": "Superlike!",
     "title": "Scopri utenti",
     "username": "Username",
-    "viewProfile": "Visualizza profilo",
-    "error": "Failed to load users."
+    "viewProfile": "Visualizza profilo"
   },
   "download": "Scarica",
   "error": {
@@ -166,36 +147,28 @@
     "heroOtsikko": "Benvenuto su Loventia.site!",
     "heroTeksti": "Trova connessioni significative in modo facile e sicuro.",
     "heroTekstit": [
-      "Trova l'amore che dura.",
+      "Trova un amore che duri.",
       "Incontra persone che condividono i tuoi valori.",
-      "Il tuo prossimo incontro è a un clic di distanza."
+      "Il tuo prossimo match è a un clic."
     ],
     "katso_kayttajat": "Vedi utenti",
     "kuvaus": "Trova compagnia, amici o amore in modo semplice e sicuro.",
     "lue_lisaa": "Leggi di più",
     "tervetuloa": "Benvenuto su Loventia.site!"
   },
-  "etusivu.heroTekstit.0": "Trova l'amore che dura.",
-  "etusivu.heroTekstit.1": "Incontra persone che condividono i tuoi valori.",
-  "etusivu.heroTekstit.2": "Il tuo prossimo incontro è a un clic di distanza.",
   "follow": "Segui",
   "health": "Politica sanitaria",
   "hero": {
-    "0": "Find love that lasts.",
-    "1": "Meet people who share your values.",
-    "2": "Your next match is one click away."
+    "0": "Trova un amore che duri.",
+    "1": "Incontra persone che condividono i tuoi valori.",
+    "2": "Il tuo prossimo match è a un clic.",
+    "title": "Meet kind singles near you"
   },
   "home": {
-    "subtitle": "Meno swipe, più match — una community per incontri significativi.",
     "title": "Trova connessioni reali",
-    "texts": [
-      "Find love that lasts.",
-      "Meet people who share your values.",
-      "Your next match is one click away."
-    ]
+    "subtitle": "Meno swipe, più match — una community per incontri significativi.",
+    "texts": "__TODO: translate__"
   },
-  "home.subtitle": "Meno swipe, più match — una community per incontri significativi.",
-  "home.title": "Trova connessioni reali",
   "impressum": "Note legali",
   "lifestyle": {
     "average": "Moderato",
@@ -274,45 +247,14 @@
     "tagline": "Match migliori. Amore più intelligente. 💘",
     "terms": "Termini"
   },
-  "nav.about": "About",
-  "nav.admin": "Admin",
-  "nav.blog": "Blog",
-  "nav.careers": "Careers",
-  "nav.coInfo": "Info Colorado",
-  "nav.community": "Community",
-  "nav.company": "Azienda",
-  "nav.conditions": "Conditions",
-  "nav.contact": "Contatti",
-  "nav.cookies": "Cookie",
-  "nav.discover": "Scopri",
-  "nav.download": "Scarica",
-  "nav.follow": "Segui",
-  "nav.health": "Politica sanitaria",
-  "nav.home": "Home",
-  "nav.impressum": "Impressum",
-  "nav.likes": "Mi piace",
-  "nav.login": "Accedi",
-  "nav.map": "Mappa",
-  "nav.matches": "Match",
-  "nav.messages": "Messaggi",
-  "nav.premium": "Premium",
-  "nav.press": "Press",
-  "nav.privacy": "Privacy",
-  "nav.profile": "Profilo",
-  "nav.register": "Registrati",
-  "nav.rights": "Tutti i diritti riservati.",
-  "nav.safety": "Consigli di sicurezza",
-  "nav.security": "Sicurezza",
-  "nav.settings": "Impostazioni",
-  "nav.special": "Speciale",
-  "nav.support": "Supporto",
-  "nav.tagline": "Match migliori. Amore più intelligente. 💘",
-  "nav.terms": "Termini",
   "notifications": {
     "likeReceived": "{{username}} liked your profile",
     "matchFound": "You have a new match with {{username}}",
     "newMessage": "You have a new message from {{username}}",
     "superlikeReceived": "{{username}} superliked you"
+  },
+  "overview": {
+    "error": "Failed to load conversations"
   },
   "politics": {
     "anarchism": "Anarchism",
@@ -342,12 +284,11 @@
   },
   "press": "Stampa",
   "profile": {
-    "about": "Su di me",
     "addCaption": "Add a caption...",
-    "age": "Età",
     "basicEducation": "Istruzione di base",
     "bi": "Bisessuale",
     "bodyType": {
+      "_legacy": "Body type  // TODO: translate",
       "athletic": "Athletic",
       "normal": "Normal",
       "obese": "Obese",
@@ -369,13 +310,10 @@
     "delete": "Elimina account",
     "deleteAccount": "Elimina account",
     "education": "Istruzione",
-    "email": "Email",
     "extraImages": "Immagini aggiuntive (max 6)",
     "female": "Femmina",
-    "fetchError": "❌ Impossibile caricare il profilo.",
     "gender": "Genere",
     "goal": "Obiettivi / aspirazioni",
-    "goals": "Obiettivi / desideri",
     "height": "Altezza (cm)",
     "heightUnit": "Height unit",
     "hetero": "Eterosessuale",
@@ -385,12 +323,10 @@
     "location": "Posizione",
     "lookingFor": "Cosa stai cercando?",
     "lowerUni": "Laurea triennale",
-    "mainImage": "Immagine principale del profilo",
     "male": "Maschio",
     "manualCity": "Oppure inserisci manualmente la città",
     "manualCountry": "Oppure inserisci manualmente il paese",
     "manualRegion": "Oppure inserisci manualmente la regione",
-    "name": "Nome",
     "noFileChosen": "No file chosen",
     "notImportant": "Non importante",
     "orientation": "Orientamento sessuale",
@@ -398,7 +334,6 @@
     "pets": "Hai animali domestici?",
     "phd": "Dottorato",
     "politicalIdeology": "Political ideology",
-    "premiumMember": "Sei un membro premium 🎉",
     "profession": "Professione",
     "professionCategory": "Profession category",
     "professionPlaceholder": "Enter your profession...",
@@ -409,13 +344,10 @@
     "removePicture": "Remove picture",
     "required": "Questo campo è obbligatorio",
     "save": "Salva modifiche",
-    "saveChanges": "Salva modifiche",
     "saveCropped": "Save photo",
     "saveError": "Aggiornamento fallito. Controlla i campi.",
     "saveExtraPhotos": "Save extra photos",
     "saveSuccess": "✅ Profilo aggiornato con successo!",
-    "saved": "✅ Profilo aggiornato!",
-    "searchingFor": "Cosa stai cercando?",
     "secondary": "Diploma di scuola superiore",
     "selectCity": "Seleziona una città",
     "selectCountry": "Seleziona un paese",
@@ -423,19 +355,12 @@
     "somewhatImportant": "Abbastanza importante",
     "status": "Stato sentimentale",
     "summary": "Su di me",
-    "title": "Profilo",
-    "updateError": "❌ Impossibile aggiornare il profilo.",
     "updateProfile": "Aggiorna profilo",
     "upperUni": "Laurea magistrale",
     "username": "Nome utente",
     "veryImportant": "Molto importante",
     "weight": "Peso (kg)",
-    "weightUnit": "Weight unit",
-    "bodyType.athletic": "Athletic",
-    "bodyType.normal": "Normal",
-    "bodyType.obese": "Obese",
-    "bodyType.overweight": "Overweight",
-    "bodyType.thin": "Thin"
+    "weightUnit": "Weight unit"
   },
   "region": "Regione / stato",
   "religion": {
@@ -451,23 +376,6 @@
   "rights": "Tutti i diritti riservati.",
   "safety": "Consigli di sicurezza",
   "security": "Sicurezza",
-  "site": {
-    "title": "Loventia.site"
-  },
-  "special": "Speciale",
-  "subnav": {
-    "cupidsPicks": "Cupid's Picks",
-    "matchPercentage": "Match %",
-    "passport": "Passport",
-    "recommended": "Recommended",
-    "superlikes": "SuperLikes"
-  },
-  "support": "Supporto",
-  "tagline": "Abbina meglio. Ama in modo più intelligente. 💘",
-  "terms": "Termini",
-  "overview": {
-    "error": "Failed to load conversations"
-  },
   "select_language_label": "Select language",
   "settings": {
     "dangerDescription": "When you delete your account, all your data will be permanently removed.",
@@ -492,5 +400,19 @@
     "unhideSuccess": "Your account is visible again.",
     "unhideError": "Failed to unhide your account.",
     "signedInAs": "Signed in as"
-  }
+  },
+  "site": {
+    "title": "Loventia.site"
+  },
+  "special": "Speciale",
+  "subnav": {
+    "cupidsPicks": "Cupid's Picks",
+    "matchPercentage": "Match %",
+    "passport": "Passport",
+    "recommended": "Recommended",
+    "superlikes": "SuperLikes"
+  },
+  "support": "Supporto",
+  "tagline": "Abbina meglio. Ama in modo più intelligente. 💘",
+  "terms": "Termini"
 }

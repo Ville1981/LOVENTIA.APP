@@ -1,4 +1,5 @@
 // File: client/src/components/SuperLikeButton.jsx
+
 // --- REPLACE START: new SuperLikeButton component with entitlement + weekly quota logic ---
 import React, { useCallback, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -95,7 +96,7 @@ export default function SuperLikeButton({
     }
     setBusy(true);
     try {
-      // API route: as requested, POST /api/superlike (axios baseURL already includes /api)
+      // API route: POST /api/superlike (axios baseURL already includes /api)
       const res = await api.post("/superlike", { targetUserId });
       // Shape tolerance: { ok, quota: { used, window }, message }
       const ok = res?.data?.ok !== false;

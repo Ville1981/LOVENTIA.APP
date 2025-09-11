@@ -10,16 +10,16 @@ import { useAuth } from "../contexts/AuthContext";
  * Examples:
  *   // Show ads only to non-premium users (invert)
  *   <FeatureGate feature="noAds" invert>
- *     <AdSlot />
+ *     <AdBanner />
  *   </FeatureGate>
  *
  *   // Gate a premium-only module with a fallback CTA
- *   <FeatureGate feature="seeLikedYou" fallback={<UpgradeCTA />}>
- *     <WhoLikedMeReal />
+ *   <FeatureGate feature="whoLikedMe" requirePremium fallback={<UpgradeCTA />}>
+ *     <WhoLikedMe />
  *   </FeatureGate>
  *
  * Props:
- * - feature: string key in user.entitlements.features (e.g. "noAds", "seeLikedYou")
+ * - feature: string key in user.entitlements.features (e.g. "noAds", "unlimitedRewinds", "superLikes")
  * - fallback: node rendered when access is denied (optional)
  * - user: explicit user object; if omitted, will use AuthContext's user
  * - allowPremiumBoolean: if true, treats legacy isPremium=true as “all features on” (default true)
@@ -40,6 +40,7 @@ export default function FeatureGate({
   onDeny = null,
   children,
 }) {
+  // Pull user from AuthContext unless an explicit `user` prop was provided
   const { user: userCtx } = (typeof useAuth === "function" ? useAuth() : {}) || {};
   const user = userProp || userCtx || null;
 
@@ -59,7 +60,7 @@ export default function FeatureGate({
         hasFeature(user, feature) ||
         (allowPremiumBoolean && isPremiumFlag(user));
     } catch {
-      // Defensive: if utils throw for any reason, treat as feature off
+      // Defensive: if utils throw for any reason, treat as feature off but still allow legacy premium
       featureOn = allowPremiumBoolean && !!user?.isPremium;
     }
   }

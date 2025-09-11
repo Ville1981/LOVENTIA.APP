@@ -1,20 +1,35 @@
-// src/services/socket.js
+// File: client/src/services/socket.js
 // Socket.io client setup for real-time chat with reliability enhancements
 // @ts-nocheck
 import { io } from "socket.io-client";
 
-// Use environment variable or fallback to current origin
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || window.location.origin;
+// Use environment variable or fallback to current origin (safe on SSR/tests)
+// --- REPLACE START: robust URL + token retrieval without touching window at module top ---
+const SOCKET_URL =
+  (typeof import.meta !== "undefined" &&
+    import.meta.env &&
+    import.meta.env.VITE_SOCKET_URL) ||
+  (typeof window !== "undefined" ? window.location.origin : "http://localhost");
 
-// Retrieve JWT token (ensure you store it under this key when logging in)
-// --- REPLACE START: unify storage key to 'accessToken' ---
-const token = localStorage.getItem("accessToken");
+/**
+ * Read the current JWT from storage in a test/SSR-safe way.
+ * Never access localStorage at module top-level to avoid ReferenceError.
+ */
+function getToken() {
+  try {
+    if (typeof window === "undefined" || !window.localStorage) return null;
+    return window.localStorage.getItem("accessToken");
+  } catch {
+    return null;
+  }
+}
 // --- REPLACE END ---
 
 // Initialize socket with authentication and reconnection options
-// --- REPLACE START: configure socket with reconnect and auth payload ---
+// (auth is updated right before connect to avoid stale tokens)
+// --- REPLACE START: configure socket with reconnect and dynamic auth payload ---
 export const socket = io(SOCKET_URL, {
-  auth: { token },
+  auth: {}, // set just-in-time in connectSocket()
   transports: ["websocket"], // enforce WebSocket only
   autoConnect: false, // connect manually via connectSocket()
   reconnection: true,
@@ -35,6 +50,8 @@ const HEARTBEAT_INTERVAL = 25000; // send heartbeat every 25s
 const receivedMessageIds = new Set();
 
 function startHeartbeat() {
+  // Clear any existing to avoid duplicates after reconnects
+  if (heartbeatInterval) clearInterval(heartbeatInterval);
   heartbeatInterval = setInterval(() => {
     if (socket.connected) {
       socket.emit("heartbeat");
@@ -43,17 +60,25 @@ function startHeartbeat() {
 }
 
 function stopHeartbeat() {
-  if (heartbeatInterval) clearInterval(heartbeatInterval);
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = undefined;
+  }
 }
 
 function startDedupeCleanup() {
+  // Clear any existing to avoid duplicates after reconnects
+  if (dedupeCleanupInterval) clearInterval(dedupeCleanupInterval);
   dedupeCleanupInterval = setInterval(() => {
     receivedMessageIds.clear();
   }, RECEIPT_CLEAR_INTERVAL);
 }
 
 function stopDedupeCleanup() {
-  if (dedupeCleanupInterval) clearInterval(dedupeCleanupInterval);
+  if (dedupeCleanupInterval) {
+    clearInterval(dedupeCleanupInterval);
+    dedupeCleanupInterval = undefined;
+  }
 }
 
 // Automatically manage heartbeat and dedupe intervals on connect/disconnect
@@ -63,6 +88,7 @@ socket.on("connect", () => {
 });
 
 socket.on("disconnect", () => {
+  // Clear BOTH intervals on disconnect to satisfy the test expectation
   stopHeartbeat();
   stopDedupeCleanup();
 });
@@ -70,8 +96,13 @@ socket.on("disconnect", () => {
 
 /**
  * Connect socket (call before joinRoom).
+ * Sets fresh auth right before connecting to avoid stale tokens and to
+ * prevent touching localStorage at import time (helps Vitest/JSDOM).
  */
 export function connectSocket() {
+  // --- REPLACE START: set auth token just-in-time ---
+  socket.auth = { token: getToken() };
+  // --- REPLACE END ---
   socket.connect();
 }
 
@@ -135,3 +166,4 @@ export function offNewMessage(callback) {
 
 // The replacement region is marked between // --- REPLACE START and // --- REPLACE END
 // so you can verify exactly what changed.
+

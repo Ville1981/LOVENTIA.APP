@@ -73,28 +73,9 @@
   },
   "cookies": "الكوكيز",
   "countries": {
-    "Argentiina": "الأرجنتين",
     "Argentina": "Argentina",
-    "Brasilia": "البرازيل",
-    "Chile": "تشيلي",
-    "Espanja": "إسبانيا",
-    "Intia": "الهند",
-    "Iso-Britannia": "المملكة المتحدة",
-    "Italia": "إيطاليا",
-    "Japani": "اليابان",
-    "Kanada": "كندا",
-    "Kazakstan": "كازاخستان",
-    "Kiina": "الصين",
-    "Norja": "النرويج",
-    "Portugali": "البرتغال",
-    "Ranska": "فرنسا",
-    "Ruotsi": "السويد",
-    "Saksa": "ألمانيا",
-    "Suomi": "فنلندا",
-    "Ukraina": "أوكرانيا",
-    "Venäjä": "روسيا",
-    "Yhdysvallat": "الولايات المتحدة",
     "Brazil": "Brazil",
+    "Chile": "تشيلي",
     "Spain": "Spain",
     "India": "India",
     "United Kingdom": "United Kingdom",
@@ -118,6 +99,7 @@
     "adAlt": "مساحة إعلان – إعلانك هنا",
     "ageRange": "Age range",
     "cityNotFound": "لم نتمكن من تحديد مدينتك.",
+    "error": "Failed to load users.",
     "fetchError": "خطأ في جلب المستخدمين.",
     "filter": "تصفية",
     "gender": "Gender",
@@ -145,8 +127,7 @@
     "superliked": "إعجاب مميز!",
     "title": "اكتشف المستخدمين",
     "username": "Username",
-    "viewProfile": "عرض الملف",
-    "error": "Failed to load users."
+    "viewProfile": "عرض الملف"
   },
   "download": "تحميل",
   "error": {
@@ -166,36 +147,28 @@
     "heroOtsikko": "مرحبًا بك في Loventia.site!",
     "heroTeksti": "اعثر على علاقات ذات مغزى بسهولة وأمان.",
     "heroTekstit": [
-      "اعثر على الحب الذي يدوم.",
-      "قابل أشخاصًا يشاركونك قيمك.",
-      "تطابقك التالي على بعد نقرة واحدة."
+      "اعثر على حب يدوم.",
+      "قابل أشخاصًا يشاركونك القيم.",
+      "تطابقك التالي على بُعد نقرة واحدة."
     ],
     "katso_kayttajat": "عرض المستخدمين",
     "kuvaus": "اعثر على رفقة أو أصدقاء أو حب بسهولة وأمان.",
     "lue_lisaa": "اقرأ المزيد",
     "tervetuloa": "مرحبًا بك في Loventia.site!"
   },
-  "etusivu.heroTekstit.0": "اعثر على الحب الذي يدوم.",
-  "etusivu.heroTekstit.1": "قابل أشخاصًا يشاركونك قيمك.",
-  "etusivu.heroTekstit.2": "تطابقك التالي على بعد نقرة واحدة.",
   "follow": "تابعنا",
   "health": "سياسة الصحة",
   "hero": {
-    "0": "اعثر على الحب الذي يدوم.",
-    "1": "قابل أشخاصًا يشاركونك قيمك.",
-    "2": "تطابقك التالي على بعد نقرة واحدة."
+    "0": "اعثر على حب يدوم.",
+    "1": "قابل أشخاصًا يشاركونك القيم.",
+    "2": "تطابقك التالي على بُعد نقرة واحدة.",
+    "title": "Meet kind singles near you"
   },
   "home": {
-    "subtitle": "تصفّح أقل، تطابق أفضل — مجتمع لمواعدة هادفة.",
     "title": "اعثر على روابط حقيقية",
-    "texts": [
-      "Find love that lasts.",
-      "Meet people who share your values.",
-      "Your next match is one click away."
-    ]
+    "subtitle": "تصفّح أقل، تطابق أفضل — مجتمع لمواعدة هادفة.",
+    "texts": "__TODO: translate__"
   },
-  "home.subtitle": "تصفّح أقل، تطابق أفضل — مجتمع لمواعدة هادفة.",
-  "home.title": "اعثر على روابط حقيقية",
   "impressum": "البيان القانوني",
   "lifestyle": {
     "average": "متوسط",
@@ -274,45 +247,14 @@
     "tagline": "تطابقات أفضل. حب أذكى. 💘",
     "terms": "الشروط"
   },
-  "nav.about": "About",
-  "nav.admin": "مسؤول",
-  "nav.blog": "مدونة",
-  "nav.careers": "Careers",
-  "nav.coInfo": "معلومات كولورادو",
-  "nav.community": "المجتمع",
-  "nav.company": "الشركة",
-  "nav.conditions": "Conditions",
-  "nav.contact": "اتصال",
-  "nav.cookies": "ملفات تعريف الارتباط",
-  "nav.discover": "استكشف",
-  "nav.download": "تنزيل",
-  "nav.follow": "تابع",
-  "nav.health": "سياسة الصحة",
-  "nav.home": "الصفحة الرئيسية",
-  "nav.impressum": "بيان النشر",
-  "nav.likes": "الإعجابات",
-  "nav.login": "تسجيل الدخول",
-  "nav.map": "الخريطة",
-  "nav.matches": "التطابقات",
-  "nav.messages": "الرسائل",
-  "nav.premium": "بريميوم",
-  "nav.press": "Press",
-  "nav.privacy": "الخصوصية",
-  "nav.profile": "الملف الشخصي",
-  "nav.register": "إنشاء حساب",
-  "nav.rights": "جميع الحقوق محفوظة.",
-  "nav.safety": "نصائح الأمان",
-  "nav.security": "الأمان",
-  "nav.settings": "الإعدادات",
-  "nav.special": "مميز",
-  "nav.support": "الدعم",
-  "nav.tagline": "تطابقات أفضل. حب أذكى. 💘",
-  "nav.terms": "الشروط",
   "notifications": {
     "likeReceived": "{{username}} liked your profile",
     "matchFound": "You have a new match with {{username}}",
     "newMessage": "You have a new message from {{username}}",
     "superlikeReceived": "{{username}} superliked you"
+  },
+  "overview": {
+    "error": "Failed to load conversations"
   },
   "politics": {
     "anarchism": "Anarchism",
@@ -342,12 +284,11 @@
   },
   "press": "الصحافة",
   "profile": {
-    "about": "عنّي",
     "addCaption": "Add a caption...",
-    "age": "العمر",
     "basicEducation": "التعليم الأساسي",
     "bi": "ثنائي",
     "bodyType": {
+      "_legacy": "Body type  // TODO: translate",
       "athletic": "Athletic",
       "normal": "Normal",
       "obese": "Obese",
@@ -369,13 +310,10 @@
     "delete": "حذف الحساب",
     "deleteAccount": "حذف الحساب",
     "education": "التعليم",
-    "email": "البريد الإلكتروني",
     "extraImages": "صور إضافية (حد أقصى 6)",
     "female": "أنثى",
-    "fetchError": "❌ فشل في تحميل الملف.",
     "gender": "الجنس",
     "goal": "الأهداف / الطموحات",
-    "goals": "الأهداف / الرغبات",
     "height": "الطول (سم)",
     "heightUnit": "Height unit",
     "hetero": "مغاير",
@@ -385,12 +323,10 @@
     "location": "الموقع",
     "lookingFor": "ما الذي تبحث عنه؟",
     "lowerUni": "درجة جامعية أدنى",
-    "mainImage": "الصورة الرئيسية للملف",
     "male": "ذكر",
     "manualCity": "أو أدخل المدينة يدويًا",
     "manualCountry": "أو أدخل الدولة يدويًا",
     "manualRegion": "أو أدخل المنطقة يدويًا",
-    "name": "الاسم",
     "noFileChosen": "No file chosen",
     "notImportant": "غير مهم",
     "orientation": "التوجه الجنسي",
@@ -398,7 +334,6 @@
     "pets": "هل لديك حيوانات أليفة؟",
     "phd": "دكتوراه",
     "politicalIdeology": "Political ideology",
-    "premiumMember": "أنت عضو مميز 🎉",
     "profession": "المهنة",
     "professionCategory": "Profession category",
     "professionPlaceholder": "Enter your profession...",
@@ -409,13 +344,10 @@
     "removePicture": "Remove picture",
     "required": "هذه الخانة مطلوبة",
     "save": "حفظ التغييرات",
-    "saveChanges": "حفظ التغييرات",
     "saveCropped": "Save photo",
     "saveError": "فشل في التحديث. يرجى التحقق من الحقول.",
     "saveExtraPhotos": "Save extra photos",
     "saveSuccess": "✅ تم تحديث الملف بنجاح!",
-    "saved": "✅ تم تحديث الملف!",
-    "searchingFor": "ماذا تبحث عن؟",
     "secondary": "المرحلة الثانوية",
     "selectCity": "اختر المدينة",
     "selectCountry": "اختر الدولة",
@@ -423,19 +355,12 @@
     "somewhatImportant": "نوعًا ما مهم",
     "status": "الحالة الاجتماعية",
     "summary": "نبذة عني",
-    "title": "الملف الشخصي",
-    "updateError": "❌ فشل في تحديث الملف.",
     "updateProfile": "تحديث الملف",
     "upperUni": "درجة جامعية أعلى",
     "username": "اسم المستخدم",
     "veryImportant": "مهم جدًا",
     "weight": "الوزن (كجم)",
-    "weightUnit": "Weight unit",
-    "bodyType.athletic": "Athletic",
-    "bodyType.normal": "Normal",
-    "bodyType.obese": "Obese",
-    "bodyType.overweight": "Overweight",
-    "bodyType.thin": "Thin"
+    "weightUnit": "Weight unit"
   },
   "region": "المنطقة / الولاية",
   "religion": {
@@ -451,23 +376,6 @@
   "rights": "جميع الحقوق محفوظة.",
   "safety": "نصائح الأمان",
   "security": "الأمان",
-  "site": {
-    "title": "Loventia.site"
-  },
-  "special": "خاص",
-  "subnav": {
-    "cupidsPicks": "Cupid's Picks",
-    "matchPercentage": "Match %",
-    "passport": "Passport",
-    "recommended": "Recommended",
-    "superlikes": "SuperLikes"
-  },
-  "support": "الدعم",
-  "tagline": "طابق بشكل أفضل. أحب بذكاء. 💘",
-  "terms": "الشروط",
-  "overview": {
-    "error": "Failed to load conversations"
-  },
   "select_language_label": "Select language",
   "settings": {
     "dangerDescription": "When you delete your account, all your data will be permanently removed.",
@@ -492,5 +400,19 @@
     "unhideSuccess": "Your account is visible again.",
     "unhideError": "Failed to unhide your account.",
     "signedInAs": "Signed in as"
-  }
+  },
+  "site": {
+    "title": "Loventia.site"
+  },
+  "special": "خاص",
+  "subnav": {
+    "cupidsPicks": "Cupid's Picks",
+    "matchPercentage": "Match %",
+    "passport": "Passport",
+    "recommended": "Recommended",
+    "superlikes": "SuperLikes"
+  },
+  "support": "الدعم",
+  "tagline": "طابق بشكل أفضل. أحب بذكاء. 💘",
+  "terms": "الشروط"
 }

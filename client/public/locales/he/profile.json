@@ -1,63 +1,4 @@
 {
-  "about": "עליי",
-  "age": "גיל",
-  "bodyType": {
-    "slim": "Slim",
-    "normal": "Normal",
-    "athletic": "Athletic",
-    "overweight": "Overweight",
-    "obese": "Obese"
-  },
-  "children": "ילדים",
-  "education": {
-    "label": "Education",
-    "secondary": "High school",
-    "vocational": "Vocational training",
-    "higher": "University",
-    "phd": "PhD / Research"
-  },
-  "gender": "מגדר",
-  "goals": "מטרות",
-  "height": "גובה",
-  "heightUnit": "ס\"מ",
-  "location": {
-    "city": "עיר",
-    "country": "מדינה",
-    "manualCity": "Manual city",
-    "manualCountry": "Manual country",
-    "manualRegion": "Manual region / state",
-    "region": "Region / State"
-  },
-  "lookingFor": "מחפש/ת",
-  "orientation": "נטייה מינית",
-  "pets": "חיות מחמד",
-  "politicalIdeology": "אידיאולוגיה פוליטית",
-  "profession": "מקצוע",
-  "professionCategory": "קטגוריית מקצוע",
-  "religion": {
-    "label": "Religion",
-    "christianity": "Christianity",
-    "islam": "Islam",
-    "hinduism": "Hinduism",
-    "buddhism": "Buddhism",
-    "folk": "Folk religion",
-    "none": "None",
-    "other": "Other",
-    "atheism": "Atheism"
-  },
-  "religionImportance": {
-    "label": "Religion importance",
-    "notImportant": "Not important",
-    "somewhatImportant": "Somewhat important",
-    "veryImportant": "Very important",
-    "essential": "Essential"
-  },
-  "searchingFor": "מחפש/ת",
-  "weight": "משקל",
-  "weightUnit": "ק\"ג",
-  "username": "שם משתמש",
-  "email": "אימייל",
-  "save": "שמירה",
   "labels": {
     "header": "Profile",
     "age": "Age",
@@ -179,20 +120,71 @@
       "none": "None"
     }
   },
-  "gender.label": "Gender",
-  "orientation.label": "❤️ Orientation",
-  "height.label": "Height",
+  "age": "גיל",
+  "username": "שם משתמש",
+  "email": "אימייל",
+  "gender": {
+    "label": "Gender"
+  },
+  "orientation": {
+    "label": "❤️ Orientation"
+  },
+  "height": {
+    "label": "Height"
+  },
+  "heightUnit": "ס\"מ",
   "cm": "cm",
-  "weight.label": "Weight",
+  "weight": {
+    "label": "Weight"
+  },
+  "weightUnit": "ק\"ג",
   "kg": "kg",
-  "bodyType.label": "Body type",
-  "location.country": "🌍 Country",
-  "location.region": "🗺 Region/State",
-  "location.city": "🏩 City",
-  "education.label": "🎓 Education",
-  "professionCategory.label": "💼 Profession category",
+  "bodyType": {
+    "label": "Body type",
+    "slim": "Slim",
+    "normal": "Normal",
+    "athletic": "Athletic",
+    "overweight": "Overweight",
+    "obese": "Obese"
+  },
+  "location": {
+    "country": "מדינה",
+    "region": "Region / State",
+    "city": "עיר"
+  },
+  "education": {
+    "label": "Education",
+    "secondary": "High school",
+    "vocational": "Vocational training",
+    "higher": "University",
+    "phd": "PhD / Research"
+  },
+  "professionCategory": {
+    "label": "💼 Profession category"
+  },
+  "profession": "מקצוע",
   "professionPlaceholder": "Enter profession…",
-  "religion.label": "🕊 Religion",
+  "religion": {
+    "label": "Religion",
+    "christianity": "Christianity",
+    "islam": "Islam",
+    "hinduism": "Hinduism",
+    "buddhism": "Buddhism",
+    "folk": "Folk religion",
+    "none": "None",
+    "other": "Other",
+    "atheism": "Atheism"
+  },
+  "religionImportance": {
+    "label": "Religion importance",
+    "notImportant": "Not important",
+    "somewhatImportant": "Somewhat important",
+    "veryImportant": "Very important",
+    "essential": "Essential"
+  },
+  "politicalIdeology": "אידיאולוגיה פוליטית",
+  "children": "ילדים",
+  "pets": "חיות מחמד",
   "lifestyle": "Lifestyle",
   "smoke": "Smoke",
   "drink": "Alcohol",
@@ -200,6 +192,8 @@
   "diet": "Diet",
   "exercise": "Exercise",
   "aboutMe": "📄 About me",
+  "goals": "מטרות",
+  "lookingFor": "מחפש/ת",
   "male": "Male",
   "female": "Female",
   "other": "Other",
@@ -224,6 +218,7 @@
     "other": "Other",
     "religion": "Religion"
   },
+  "searchingFor": "מחפש/ת",
   "looking": {
     "friendship": "Friendship",
     "gettingToKnow": "Getting to know",
@@ -259,5 +254,6 @@
     "pets": "🐾 Pets"
   },
   "managePhotos": "Manage photos",
+  "save": "שמירה",
   "saveSuccess": "Profile saved."
 }

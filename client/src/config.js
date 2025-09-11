@@ -9,6 +9,9 @@
  *  - Fallback to current origin (map Vite ports 5173/5174 -> 5000)
  *  - Strip a trailing "/api" so other modules can safely append "/api"
  *  - Ensure no accidental double slashes
+ *
+ * NOTE: This file does not control Stripe Portal locale. Keep UI texts in English
+ *       (e.g., "Open Billing Portal") at the component level as desired.
  */
 function resolveBackendBaseUrl() {
   let envUrl = "";

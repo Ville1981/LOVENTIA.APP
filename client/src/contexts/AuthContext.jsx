@@ -1,4 +1,6 @@
-// --- REPLACE START: robust AuthContext with guarded refreshMe + merge-updates from API ---
+// File: client/src/contexts/AuthContext.jsx
+
+// --- REPLACE START: robust AuthContext with guarded refreshMe + billing reconcile + premium exposure ---
 import React, {
   createContext,
   useContext,
@@ -12,6 +14,7 @@ import api, {
   attachAccessToken as _attachAccessToken,
   getAccessToken as _getAccessToken,
 } from "../services/api/axiosInstance";
+import { syncBilling } from "../api/billing";
 
 /**
  * Token helpers
@@ -27,7 +30,7 @@ function attachAccessToken(token) {
   } catch {
     /* ignore */
   }
-  // Fallback (defensive): mirror minimal behavior
+  // Fallback (defensive)
   try {
     if (token) {
       api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
@@ -55,8 +58,7 @@ function getAccessToken() {
 }
 
 /**
- * Lightweight user equality to avoid unnecessary state changes/re-renders.
- * We compare stable identifiers and the most UI-relevant flags.
+ * Lightweight equality to avoid unnecessary state updates.
  */
 function areUsersEffectivelyEqual(a, b) {
   if (a === b) return true;
@@ -70,7 +72,6 @@ function areUsersEffectivelyEqual(a, b) {
   const emailB = b.email || b.username || null;
   if (emailA !== emailB) return false;
 
-  // Normalize premium flags
   const premA = Boolean(a.isPremium ?? a.premium);
   const premB = Boolean(b.isPremium ?? b.premium);
   if (premA !== premB) return false;
@@ -83,8 +84,7 @@ function areUsersEffectivelyEqual(a, b) {
 }
 
 /**
- * Merge only defined values from src into dst (shallow).
- * Avoids clobbering existing fields with undefined/null from partial responses.
+ * Shallow merge where only defined values from src are applied.
  */
 function mergeDefined(dst, src) {
   if (!src) return { ...dst };
@@ -97,11 +97,7 @@ function mergeDefined(dst, src) {
 }
 
 /**
- * Normalize server user payload shape
- * - Extracts user from {user} if present
- * - Mirrors profilePhoto → profilePicture when only one exists
- * - Ensures photos/extraImages arrays exist & are mirrored
- * - Keeps visibility defaults present
+ * Normalize server user payload to a consistent shape for the app.
  */
 function normalizeUserPayload(raw) {
   const u = raw?.user ?? raw ?? null;
@@ -117,21 +113,24 @@ function normalizeUserPayload(raw) {
   if (!Array.isArray(copy.extraImages)) {
     copy.extraImages = copy.extraImages ? [copy.extraImages].filter(Boolean) : copy.photos;
   }
-  // Keep both arrays mirrored to avoid FE surprises
   if (copy.photos.length && !copy.extraImages.length) copy.extraImages = [...copy.photos];
   if (copy.extraImages.length && !copy.photos.length) copy.photos = [...copy.extraImages];
 
   // Visibility defaults
   copy.visibility = copy.visibility || { isHidden: false, hiddenUntil: null, resumeOnLogin: true };
 
+  // Normalize premium flag
+  copy.isPremium = Boolean(copy.isPremium ?? copy.premium);
+
   return copy;
 }
 
 /**
- * AuthContext shape
+ * Context shape
  */
 const AuthContext = createContext({
   user: null,
+  isPremium: false,
   setUser: () => {},
   setAuthUser: () => {},
   mergeUser: () => {},
@@ -142,6 +141,7 @@ const AuthContext = createContext({
   refreshMe: async () => {},
   refreshUser: async () => {},
   applyUserFromApi: () => {},
+  reconcileBillingNow: async () => {},
   bootstrapped: false,
 });
 
@@ -151,16 +151,15 @@ export function AuthProvider({ children }) {
   const [user, setUserState] = useState(null);
   const [accessToken, setAccessTokenState] = useState(getAccessToken() || null);
   const [bootstrapped, setBootstrapped] = useState(false);
-
-  // Prevent overlapping refresh calls
   const refreshInFlightRef = useRef(null);
+  const billingSyncInFlightRef = useRef(null);
 
   // Keep axios header in sync when token changes
   useEffect(() => {
     attachAccessToken(accessToken);
   }, [accessToken]);
 
-  // Replace user only if it meaningfully changes
+  // Replace user only when it meaningfully changes
   const setAuthUser = useCallback((incomingRaw) => {
     const incoming = normalizeUserPayload(incomingRaw);
     setUserState((prev) => {
@@ -169,28 +168,24 @@ export function AuthProvider({ children }) {
     });
   }, []);
 
-  // Merge defined fields (shallow) – used after partial profile updates
+  // Shallow merge partial updates
   const mergeUser = useCallback((partialRaw) => {
     const partial = normalizeUserPayload(partialRaw) || partialRaw;
     setUserState((prev) => mergeDefined(prev, partial || {}));
   }, []);
 
   /**
-   * Fetch current user from preferred endpoints.
-   * Returns a user object or null (never throws).
+   * Load current user from preferred endpoints.
    */
   const fetchMe = useCallback(async () => {
-    // 1) New unified endpoint
     try {
       const r0 = await api.get("/api/me");
       return normalizeUserPayload(r0?.data ?? null);
     } catch {
-      // 2) Legacy (users/profile)
       try {
         const r1 = await api.get("/api/users/profile");
         return normalizeUserPayload(r1?.data ?? null);
       } catch {
-        // 3) Legacy alt
         try {
           const r2 = await api.get("/api/auth/me");
           return normalizeUserPayload(r2?.data ?? null);
@@ -202,17 +197,40 @@ export function AuthProvider({ children }) {
   }, []);
 
   /**
+   * Reconcile billing with the server (Stripe as source of truth),
+   * then update user premium flag locally without clobbering other fields.
+   */
+  const reconcileBillingNow = useCallback(async () => {
+    if (billingSyncInFlightRef.current) return billingSyncInFlightRef.current;
+    const task = (async () => {
+      try {
+        const payload = await syncBilling();
+        if (payload && typeof payload.isPremium === "boolean") {
+          setUserState((prev) => mergeDefined(prev, { isPremium: payload.isPremium }));
+        }
+        return payload;
+      } catch (e) {
+        console.warn("[AuthContext] Billing sync failed:", e?.message || e);
+        return null;
+      } finally {
+        billingSyncInFlightRef.current = null;
+      }
+    })();
+    billingSyncInFlightRef.current = task;
+    return task;
+  }, []);
+
+  /**
    * Refresh access token (cookie-based) and then load /me.
-   * Guards against concurrent calls: if one is in-flight, re-use it.
+   * Also runs a billing reconcile to capture subscription changes.
    */
   const refreshMe = useCallback(async () => {
     if (refreshInFlightRef.current) {
       return refreshInFlightRef.current;
     }
-
     const task = (async () => {
       try {
-        // Try refresh; ignore if endpoint missing (axiosInstance also handles refresh on 401)
+        // Try refresh; tolerate absence
         try {
           const r = await api.post("/api/auth/refresh", {}, { withCredentials: true });
           const next = r?.data?.accessToken || r?.data?.token || null;
@@ -221,14 +239,17 @@ export function AuthProvider({ children }) {
             setAccessTokenState(next);
           }
         } catch {
-          /* absence of refresh is OK */
+          /* ignore */
         }
 
+        // Reconcile billing (ensures isPremium stays accurate)
+        await reconcileBillingNow();
+
+        // Fetch user
         const current = await fetchMe();
-        setAuthUser(current); // guarded replace (not forced)
+        setAuthUser(current);
         return current;
       } catch {
-        // On hard failure, clear auth state
         setAuthUser(null);
         setAccessTokenState(null);
         attachAccessToken(null);
@@ -237,15 +258,14 @@ export function AuthProvider({ children }) {
         refreshInFlightRef.current = null;
       }
     })();
-
     refreshInFlightRef.current = task;
     return task;
-  }, [fetchMe, setAuthUser]);
+  }, [fetchMe, setAuthUser, reconcileBillingNow]);
 
   // Backward-compatible alias
   const refreshUser = refreshMe;
 
-  // Helper to apply user payloads coming from various API responses
+  // Helper to ingest user-bearing responses
   const applyUserFromApi = useCallback(
     (respData, { merge = false } = {}) => {
       const normalized = normalizeUserPayload(respData);
@@ -256,11 +276,59 @@ export function AuthProvider({ children }) {
     [mergeUser, setAuthUser]
   );
 
-  // Bootstrap on mount (single run)
+  /**
+   * Detect if we returned from a Stripe Checkout or Billing Portal
+   * and trigger an immediate reconcile.
+   * Common return indicators:
+   *  - success, canceled, session_id (Checkout)
+   *  - portal_session_id, return_from=portal (Portal)
+   */
+  const detectBillingReturnAndReconcile = useCallback(async () => {
+    try {
+      const qs = new URLSearchParams(window.location.search || "");
+      const hasCheckoutFlag =
+        qs.has("success") || qs.has("canceled") || qs.has("session_id");
+      const hasPortalFlag =
+        qs.has("return_from") || qs.has("portal_session_id");
+
+      if (hasCheckoutFlag || hasPortalFlag) {
+        // Reconcile with backend
+        const payload = await reconcileBillingNow();
+
+        // Optionally tidy query string to avoid repeated syncs on soft nav
+        try {
+          const url = new URL(window.location.href);
+          ["success", "canceled", "session_id", "portal_session_id", "return_from"].forEach((k) =>
+            url.searchParams.delete(k)
+          );
+          window.history.replaceState({}, document.title, url.toString());
+        } catch {
+          /* ignore history errors */
+        }
+
+        // Opportunistically refresh user profile after reconcile
+        if (payload) {
+          const current = await fetchMe();
+          setAuthUser(current);
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [fetchMe, setAuthUser, reconcileBillingNow]);
+
+  /**
+   * Initial bootstrap. Ensures:
+   * - token refresh (if cookies set)
+   * - billing reconcile
+   * - load /me
+   */
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
+        // If navigated back from Stripe, reconcile first
+        await detectBillingReturnAndReconcile();
         await refreshMe();
       } finally {
         if (alive) setBootstrapped(true);
@@ -269,25 +337,38 @@ export function AuthProvider({ children }) {
     return () => {
       alive = false;
     };
-  }, [refreshMe]);
+  }, [refreshMe, detectBillingReturnAndReconcile]);
 
+  /**
+   * Also reconcile on tab focus (helps when users complete purchase in another tab).
+   */
+  useEffect(() => {
+    function onFocus() {
+      // Best-effort: quick reconcile without spamming the server
+      reconcileBillingNow();
+    }
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [reconcileBillingNow]);
+
+  /**
+   * Auth actions
+   */
   const login = useCallback(
     async (email, password) => {
-      const res = await api.post(
-        "/api/auth/login",
-        { email, password },
-        { withCredentials: true }
-      );
+      const res = await api.post("/api/auth/login", { email, password }, { withCredentials: true });
       const token = res?.data?.accessToken || res?.data?.token || null;
       if (token && token !== getAccessToken()) {
         setAccessTokenState(token);
         attachAccessToken(token);
       }
+      // Reconcile after login to pull latest premium status
+      await reconcileBillingNow();
       const current = await fetchMe();
       setAuthUser(current);
       return current;
     },
-    [fetchMe, setAuthUser]
+    [fetchMe, setAuthUser, reconcileBillingNow]
   );
 
   const register = useCallback(
@@ -298,18 +379,20 @@ export function AuthProvider({ children }) {
         setAccessTokenState(token);
         attachAccessToken(token);
       }
+      // Reconcile for safety after register (in case of trial/grant)
+      await reconcileBillingNow();
       const current = await fetchMe();
       setAuthUser(current);
       return current;
     },
-    [fetchMe, setAuthUser]
+    [fetchMe, setAuthUser, reconcileBillingNow]
   );
 
   const logout = useCallback(async () => {
     try {
       await api.post("/api/auth/logout", {}, { withCredentials: true });
     } catch {
-      // ignore endpoint/network errors
+      /* ignore */
     } finally {
       setAuthUser(null);
       setAccessTokenState(null);
@@ -317,23 +400,19 @@ export function AuthProvider({ children }) {
     }
   }, [setAuthUser]);
 
+  /**
+   * Derived flags
+   */
+  const isPremium = useMemo(
+    () => Boolean(user?.isPremium ?? user?.premium),
+    [user]
+  );
+
   const value = useMemo(
     () => ({
       user,
-      setUser: setAuthUser, // legacy alias (replace-when-meaningful)
-      setAuthUser,          // preferred name (replace-when-meaningful)
-      mergeUser,            // shallow merge of defined keys
-      applyUserFromApi,     // helper to ingest /api/users/profile etc. responses
-      accessToken,
-      login,
-      register,
-      logout,
-      refreshMe,
-      refreshUser,
-      bootstrapped,
-    }),
-    [
-      user,
+      isPremium,
+      setUser: setAuthUser,
       setAuthUser,
       mergeUser,
       applyUserFromApi,
@@ -343,6 +422,22 @@ export function AuthProvider({ children }) {
       logout,
       refreshMe,
       refreshUser,
+      reconcileBillingNow,
+      bootstrapped,
+    }),
+    [
+      user,
+      isPremium,
+      setAuthUser,
+      mergeUser,
+      applyUserFromApi,
+      accessToken,
+      login,
+      register,
+      logout,
+      refreshMe,
+      refreshUser,
+      reconcileBillingNow,
       bootstrapped,
     ]
   );

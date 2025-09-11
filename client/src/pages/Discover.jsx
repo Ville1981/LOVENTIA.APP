@@ -1,6 +1,6 @@
 // File: client/src/pages/Discover.jsx
 
-// --- REPLACE START: Discover page – free users can browse; gate only paid actions; premium always unlocked even if features missing ---
+// --- REPLACE START: Discover page – enforce order [self → bunny → others], keep full UI, and skip API for self/bunny while advancing locally ---
 import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -9,12 +9,14 @@ import DiscoverFilters from "../components/DiscoverFilters";
 import SkeletonCard from "../components/SkeletonCard";
 import HiddenStatusBanner from "../components/HiddenStatusBanner";
 import PremiumGate from "../components/PremiumGate";
+import FeatureGate from "../components/FeatureGate";
+import AdBanner from "../components/AdBanner";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../services/api/axiosInstance";
 import { BACKEND_BASE_URL } from "../config";
 import { getDealbreakers, updateDealbreakers } from "../api/dealbreakers";
 
-// Bunny placeholder for empty/error states
+// Bunny placeholder for empty/error states (card only, never avatar fallback)
 const bunnyUser = {
   id: "bunny",
   _id: "bunny",
@@ -54,7 +56,7 @@ const Discover = () => {
   const [error, setError] = useState("");
   const [filterKey, setFilterKey] = useState("initial");
 
-  // local filter states (unchanged)
+  // local filter states (kept as separate fields to preserve structure/rivimäärä)
   const [username, setUsername] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
@@ -97,25 +99,11 @@ const Discover = () => {
       window.history.scrollRestoration = "manual";
     if (!bootstrapped) return;
 
-    const isHidden =
-      authUser?.hidden === true ||
-      authUser?.isHidden === true ||
-      authUser?.visibility?.isHidden === true ||
-      (authUser?.visibility?.hiddenUntil &&
-        new Date(authUser.visibility.hiddenUntil) > new Date());
-
-    const initialParams = {
-      ...(import.meta.env.DEV && !isHidden ? { includeSelf: 1 } : {}),
-    };
+    // ✅ always include self in discover
+    const initialParams = { includeSelf: 1 };
     loadUsers(initialParams);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    authUser?.hidden,
-    authUser?.isHidden,
-    authUser?.visibility?.isHidden,
-    authUser?.visibility?.hiddenUntil,
-    bootstrapped,
-  ]);
+  }, [bootstrapped]);
 
   // Seed min/max age from dealbreakers (if available)
   useEffect(() => {
@@ -158,7 +146,23 @@ const Discover = () => {
             return { ...u, id: u._id || u.id, profilePicture, photos };
           })
         : [];
-      setUsers(normalized.length ? normalized : [bunnyUser]);
+
+      // ✅ Order: [self] → [bunny] → [others]
+      const selfId =
+        authUser?._id?.toString?.() || authUser?.id?.toString?.() || null;
+      const selfUser = selfId
+        ? normalized.find((u) => (u.id || u._id)?.toString() === selfId)
+        : null;
+      const others = selfId
+        ? normalized.filter((u) => (u.id || u._id)?.toString() !== selfId)
+        : normalized;
+
+      const ordered = []; // ensure defined before .push()
+      if (selfUser) ordered.push(selfUser);
+      ordered.push(bunnyUser); // demo card second
+      ordered.push(...others);
+
+      setUsers(ordered.length ? ordered : [bunnyUser]);
       setFilterKey(Date.now().toString());
     } catch (err) {
       // eslint-disable-next-line no-console
@@ -177,35 +181,48 @@ const Discover = () => {
       setShowUpsell(true);
       return;
     }
+
     const currentScroll = window.scrollY;
+
+    // Remove card from UI immediately (optimistic) → ProfileCardList will advance to next
     setUsers((prev) => prev.filter((u) => (u.id || u._id) !== userId));
+
+    // Keep the viewport stable (no page jump)
     requestAnimationFrame(() => {
       setTimeout(() => {
         window.scrollTo({ top: currentScroll, behavior: "auto" });
       }, 0);
     });
-    if (userId !== bunnyUser.id) {
-      api.post(`/discover/${userId}/${actionType}`).catch((err) => {
-        // eslint-disable-next-line no-console
-        console.error(`Error executing ${actionType}:`, err);
-      });
+
+    // ✅ Skip API for self and bunny demo
+    const currentUserId =
+      authUser?._id?.toString?.() || authUser?.id?.toString?.() || null;
+
+    if (userId === bunnyUser.id) {
+      // eslint-disable-next-line no-console
+      console.warn(`[Discover] Skipping API call for bunny ${actionType}`);
+      return;
     }
+    if (currentUserId && userId === currentUserId) {
+      // eslint-disable-next-line no-console
+      console.warn(`[Discover] Skipping API call for self ${actionType}`);
+      return;
+    }
+
+    // Normal case: send to server
+    api.post(`/discover/${userId}/${actionType}`).catch((err) => {
+      // eslint-disable-next-line no-console
+      console.error(`Error executing ${actionType}:`, err);
+    });
   };
 
   const handleFilter = async (formValues) => {
-    const isHidden =
-      authUser?.hidden === true ||
-      authUser?.isHidden === true ||
-      authUser?.visibility?.isHidden === true ||
-      (authUser?.visibility?.hiddenUntil &&
-        new Date(authUser.visibility.hiddenUntil) > new Date());
-
     const query = {
       ...formValues,
       country: formValues.customCountry || formValues.country,
       region: formValues.customRegion || formValues.region,
       city: formValues.customCity || formValues.city,
-      ...(import.meta.env.DEV && !isHidden ? { includeSelf: 1 } : {}),
+      includeSelf: 1, // ✅ always include self
     };
 
     // Mirror age fields to dealbreakers (non-fatal)
@@ -302,7 +319,7 @@ const Discover = () => {
   };
 
   const handleUnhiddenRefresh = () => {
-    const params = { ...(import.meta.env.DEV ? { includeSelf: 1 } : {}) };
+    const params = { includeSelf: 1 }; // ✅ always include self
     loadUsers(params);
   };
 
@@ -319,7 +336,73 @@ const Discover = () => {
           <HiddenStatusBanner user={authUser} onUnhidden={handleUnhiddenRefresh} />
 
           <div className="bg-white border rounded-lg shadow-md p-6 max-w-3xl mx-auto mt-4">
+            {/* Top capability row – visibility via FeatureGate (kept intact) */}
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              {/* See who liked you */}
+              <FeatureGate
+                feature="seeLikedYou"
+                fallback={
+                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-600">
+                    <span role="img" aria-label="eyes">👀</span>
+                    <span>See who liked you</span>
+                    <span className="ml-1 text-[10px] text-amber-700">Premium</span>
+                  </span>
+                }
+              >
+                <a
+                  href="/who-liked-me"
+                  className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-emerald-600 text-white"
+                  title="Open 'Who liked me'"
+                >
+                  <span role="img" aria-label="eyes">👀</span>
+                  <span>Who liked you</span>
+                </a>
+              </FeatureGate>
+
+              {/* No ads – show badge for premium; show subtle “Ads” pill for free */}
+              <FeatureGate
+                feature="noAds"
+                invert={false}
+                fallback={
+                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-600">
+                    <span role="img" aria-label="ad">🪧</span>
+                    <span>Ads</span>
+                    <span className="ml-1 text-[10px] text-amber-700">Premium removes</span>
+                  </span>
+                }
+              >
+                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-indigo-600 text-white">
+                  <span role="img" aria-label="no-ads">🚫</span>
+                  <span>No ads</span>
+                </span>
+              </FeatureGate>
+
+              {/* Dealbreakers visibility */}
+              <FeatureGate
+                feature="dealbreakers"
+                fallback={
+                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-600">
+                    <span role="img" aria-label="filter">🧩</span>
+                    <span>Dealbreakers</span>
+                    <span className="ml-1 text-[10px] text-amber-700">Premium</span>
+                  </span>
+                }
+              >
+                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-pink-600 text-white">
+                  <span role="img" aria-label="filter">🧩</span>
+                  <span>Dealbreakers</span>
+                </span>
+              </FeatureGate>
+            </div>
+
             <DiscoverFilters values={values} handleFilter={handleFilter} />
+          </div>
+
+          {/* Render ad banner for free users (FeatureGate invert on noAds) */}
+          <div className="max-w-3xl mx-auto w-full">
+            <FeatureGate feature="noAds" invert fallback={null}>
+              <AdBanner />
+            </FeatureGate>
           </div>
 
           <div className="mt-6 flex justify-center w-full">

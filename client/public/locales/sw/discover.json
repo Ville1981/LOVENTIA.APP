@@ -1,45 +1,4 @@
 {
-  "title": "Gundua",
-  "subtitle": "Rekebisha vichujio vyako ili kupata mechi sahihi.",
-  "filters": {
-    "age": "Umri",
-    "minAge": "Umri wa chini",
-    "maxAge": "Umri wa juu",
-    "distance": "Umbali",
-    "maxDistance": "Umbali wa juu",
-    "location": "Mahali",
-    "gender": "Jinsia",
-    "orientation": "Orientation",
-    "lifestyle": "Mtindo wa maisha",
-    "interests": "Maslahi",
-    "apply": "Tumia vichujio",
-    "reset": "Weka upya",
-    "clear": "Futa vyote",
-    "professionCategory": "💼 Profession category",
-    "politicalIdeology": "🗳 Political ideology",
-    "pets": "🐾 Pets"
-  },
-  "results": {
-    "heading": "Matokeo",
-    "empty": "Hakuna mechi kwa vichujio vya sasa.",
-    "loadMore": "Pakia zaidi"
-  },
-  "cards": {
-    "age": "Umri",
-    "distance": "Umbali",
-    "view": "Tazama wasifu"
-  },
-  "ageRange": "Wigo wa umri",
-  "error": "Kuna kosa limetokea. Tafadhali jaribu tena.",
-  "gender": "Jinsia",
-  "instructions": "Refine your search using the filters below.",
-  "noResults": "Hakuna matokeo.",
-  "orientation": "Mwelekeo wa kijinsia",
-  "politicalIdeology": "Itikadi ya kisiasa",
-  "profession": "Kazi",
-  "religion": "Dini",
-  "religionImportance": "Umuhimu wa dini",
-  "username": "Jina la mtumiaji",
   "labels": {
     "header": "Discover",
     "title": "Discover",
@@ -110,13 +69,29 @@
       "other": "Other"
     }
   },
-  "gender.label": "Gender",
-  "orientation.label": "❤️ Orientation",
-  "location.country": "🌍 Country",
-  "location.region": "🗺 Region/State",
-  "location.city": "🏩 City",
-  "education.label": "🎓 Education",
-  "religion.label": "🕊 Religion",
+  "instructions": "Refine your search using the filters below.",
+  "ageRange": "Wigo wa umri",
+  "username": "Jina la mtumiaji",
+  "gender": {
+    "label": "Gender"
+  },
+  "orientation": {
+    "label": "❤️ Orientation"
+  },
+  "location": {
+    "country": "🌍 Country",
+    "region": "🗺 Region/State",
+    "city": "🏩 City"
+  },
+  "education": {
+    "label": "🎓 Education"
+  },
+  "profession": "Kazi",
+  "religion": {
+    "label": "🕊 Religion"
+  },
+  "religionImportance": "Umuhimu wa dini",
+  "politicalIdeology": "Itikadi ya kisiasa",
   "children": "👶 Children",
   "pets": "🐾 Pets",
   "lifestyle": "Lifestyle",
@@ -132,6 +107,11 @@
   "weight": "Weight",
   "cm": "cm",
   "kg": "kg",
+  "filters": {
+    "professionCategory": "💼 Profession category",
+    "politicalIdeology": "🗳 Political ideology",
+    "pets": "🐾 Pets"
+  },
   "professionCategory": "💼 Profession category",
   "actions": {
     "apply": "Apply filters",

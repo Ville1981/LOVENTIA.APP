@@ -1,6 +1,6 @@
-// File: server/middleware/authenticate.js
+// File: server/src/middleware/authenticate.js
 
-// --- REPLACE START: JWT authenticate middleware (ESM) ---
+// --- REPLACE START: JWT authenticate middleware (ESM, with login/refresh bypass) ---
 /**
  * Authenticate requests using a Bearer access token.
  * - Looks for Authorization: Bearer <token>
@@ -12,14 +12,14 @@
  * Keeps backward-compat by providing BOTH: req.user.userId and req.user.id.
  */
 
-import jwt from 'jsonwebtoken';
+import jwt from "jsonwebtoken";
 
 /**
  * Returns the first defined value in the provided arguments.
  * This is used to choose between multiple possible env vars.
  */
 function pickFirstDefined(...vals) {
-  for (const v of vals) if (v !== undefined && v !== null && v !== '') return v;
+  for (const v of vals) if (v !== undefined && v !== null && v !== "") return v;
   return undefined;
 }
 
@@ -29,7 +29,7 @@ function pickFirstDefined(...vals) {
  */
 function getAccessTokenFromAuthHeader(req) {
   const h = req?.headers?.authorization;
-  if (!h || typeof h !== 'string') return null;
+  if (!h || typeof h !== "string") return null;
   const m = h.match(/^Bearer\s+(.+)$/i);
   return m ? m[1] : null;
 }
@@ -49,7 +49,7 @@ function getAccessTokenFromCookies(req) {
 function getAccessTokenFromQuery(req) {
   const q = req?.query || {};
   const val = q.token || q.access_token || q.accessToken;
-  return typeof val === 'string' && val.length ? val : null;
+  return typeof val === "string" && val.length ? val : null;
 }
 
 /**
@@ -67,13 +67,31 @@ function resolveToken(req) {
 /**
  * Express middleware that verifies a JWT and attaches the decoded payload
  * to req.user if valid. Otherwise, sends an appropriate error response.
+ *
+ * NOTE: Routes like /api/auth/login and /api/auth/refresh are bypassed
+ * to avoid blocking those flows with missing/expired tokens.
  */
 export default function authenticate(req, res, next) {
   try {
+    // Allow public endpoints without token
+    const path = req.path || "";
+    if (
+      path.startsWith("/auth/login") ||
+      path.startsWith("/auth/register") ||
+      path.startsWith("/auth/refresh") ||
+      path.startsWith("/auth/forgot-password") ||
+      path.startsWith("/auth/reset-password")
+    ) {
+      return next();
+    }
+
     const token = resolveToken(req);
     if (!token) {
-      res.set('WWW-Authenticate', 'Bearer realm="api", error="invalid_request"');
-      return res.status(401).json({ error: 'Missing Authorization token' });
+      res.set(
+        "WWW-Authenticate",
+        'Bearer realm="api", error="invalid_request"'
+      );
+      return res.status(401).json({ error: "Missing Authorization token" });
     }
 
     // Try common env var names; first non-empty wins
@@ -88,21 +106,24 @@ export default function authenticate(req, res, next) {
     ].filter(Boolean);
 
     if (!secretsToTry.length) {
-      // Fail closed with a clear error instead of silently allowing access
-      return res.status(500).json({ error: 'Server JWT secret is not configured' });
+      return res
+        .status(500)
+        .json({ error: "Server JWT secret is not configured" });
     }
 
     // Optional verification options via env
-    // Comma-separated list, e.g. "HS256,HS384"
     const algos =
       (process.env.JWT_ALGORITHMS &&
-        process.env.JWT_ALGORITHMS.split(',').map((s) => s.trim()).filter(Boolean)) ||
+        process.env.JWT_ALGORITHMS.split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)) ||
       undefined;
 
-    const clockTolerance =
-      Number.isFinite(Number(process.env.JWT_CLOCK_TOLERANCE))
-        ? Number(process.env.JWT_CLOCK_TOLERANCE)
-        : undefined;
+    const clockTolerance = Number.isFinite(
+      Number(process.env.JWT_CLOCK_TOLERANCE)
+    )
+      ? Number(process.env.JWT_CLOCK_TOLERANCE)
+      : undefined;
 
     const verifyOpts = {};
     if (algos && algos.length) verifyOpts.algorithms = algos;
@@ -114,44 +135,67 @@ export default function authenticate(req, res, next) {
     for (const secret of secretsToTry) {
       try {
         decoded = jwt.verify(token, secret, verifyOpts);
-        break; // stop at the first valid secret
+        break;
       } catch (e) {
         lastErr = e;
       }
     }
 
     if (!decoded) {
-      // Keep the message generic for security reasons
-      if (process.env.NODE_ENV !== 'production') {
-        // eslint-disable-next-line no-console
-        console.warn('[authenticate] JWT verification failed:', lastErr?.message || lastErr);
+      if (process.env.NODE_ENV !== "production") {
+        console.warn(
+          "[authenticate] JWT verification failed:",
+          lastErr?.message || lastErr
+        );
       }
-      res.set('WWW-Authenticate', 'Bearer realm="api", error="invalid_token"');
-      return res.status(401).json({ error: 'Invalid or expired token' });
+      res.set(
+        "WWW-Authenticate",
+        'Bearer realm="api", error="invalid_token"'
+      );
+      return res.status(401).json({ error: "Invalid or expired token" });
     }
 
     // Normalize expected identifiers
-    const userIdRaw = decoded.userId || decoded.sub || decoded.id || decoded._id;
-    const role = decoded.role || 'user';
+    const userIdRaw =
+      decoded.userId || decoded.sub || decoded.id || decoded._id;
+    const role = decoded.role || "user";
 
     if (!userIdRaw) {
-      return res.status(401).json({ error: 'Invalid token payload' });
+      return res.status(401).json({ error: "Invalid token payload" });
     }
 
-    // Attach a normalized user object while preserving original claims.
-    // Maintain backward compatibility: provide both userId and id as strings.
     const userId = String(userIdRaw);
     req.user = { userId, id: userId, role, ...decoded };
-    // Also attach req.userId for routes that rely on it (back-compat)
     req.userId = userId;
 
     return next();
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('[authenticate] Error:', err?.message || err);
-    return res.status(401).json({ error: 'Authentication failed' });
+    console.error("[authenticate] Error:", err?.message || err);
+    return res.status(401).json({ error: "Authentication failed" });
   }
 }
 
-export { resolveToken, getAccessTokenFromAuthHeader, getAccessTokenFromCookies, getAccessTokenFromQuery };
+export {
+  resolveToken,
+  getAccessTokenFromAuthHeader,
+  getAccessTokenFromCookies,
+  getAccessTokenFromQuery,
+};
 // --- REPLACE END ---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -73,28 +73,9 @@
   },
   "cookies": "Cookies",
   "countries": {
-    "Argentiina": "Αργεντινή",
     "Argentina": "Argentina",
-    "Brasilia": "Βραζιλία",
-    "Chile": "Χιλή",
-    "Espanja": "Ισπανία",
-    "Intia": "Ινδία",
-    "Iso-Britannia": "Ηνωμένο Βασίλειο",
-    "Italia": "Ιταλία",
-    "Japani": "Ιαπωνία",
-    "Kanada": "Καναδάς",
-    "Kazakstan": "Καζακστάν",
-    "Kiina": "Κίνα",
-    "Norja": "Νορβηγία",
-    "Portugali": "Πορτογαλία",
-    "Ranska": "Γαλλία",
-    "Ruotsi": "Σουηδία",
-    "Saksa": "Γερμανία",
-    "Suomi": "Φινλανδία",
-    "Ukraina": "Ουκρανία",
-    "Venäjä": "Ρωσία",
-    "Yhdysvallat": "Ηνωμένες Πολιτείες",
     "Brazil": "Brazil",
+    "Chile": "Χιλή",
     "Spain": "Spain",
     "India": "India",
     "United Kingdom": "United Kingdom",
@@ -118,6 +99,7 @@
     "adAlt": "Διαφημιστικός χώρος – η διαφήμισή σας εδώ",
     "ageRange": "Age range",
     "cityNotFound": "Δεν ήταν δυνατή η αναγνώριση της τοποθεσίας σας με βάση την πόλη.",
+    "error": "Failed to load users.",
     "fetchError": "Σφάλμα κατά την ανάκτηση χρηστών.",
     "filter": "Φιλτράρισμα",
     "gender": "Gender",
@@ -145,8 +127,7 @@
     "superliked": "Superlike στάλθηκε!",
     "title": "Ανακάλυψη χρηστών",
     "username": "Username",
-    "viewProfile": "Προβολή προφίλ",
-    "error": "Failed to load users."
+    "viewProfile": "Προβολή προφίλ"
   },
   "download": "Λήψη",
   "error": {
@@ -166,36 +147,28 @@
     "heroOtsikko": "Καλώς ήρθατε στο Loventia.site!",
     "heroTeksti": "Βρείτε ουσιαστικές συνδέσεις εύκολα και με ασφάλεια.",
     "heroTekstit": [
-      "Βρείτε αγάπη που διαρκεί.",
-      "Γνωρίστε άτομα που μοιράζονται τις αξίες σας.",
-      "Το επόμενο ταίρι σας είναι ένα κλικ μακριά."
+      "Βρείτε μια αγάπη που διαρκεί.",
+      "Γνωρίστε ανθρώπους που μοιράζονται τις αξίες σας.",
+      "Το επόμενο ταίρι σας απέχει ένα κλικ."
     ],
     "katso_kayttajat": "Δείτε χρήστες",
     "kuvaus": "Βρείτε συντροφιά, φίλους ή αγάπη εύκολα και με ασφάλεια.",
     "lue_lisaa": "Διαβάστε περισσότερα",
     "tervetuloa": "Καλώς ορίσατε στο Loventia.site!"
   },
-  "etusivu.heroTekstit.0": "Βρείτε αγάπη που διαρκεί.",
-  "etusivu.heroTekstit.1": "Γνωρίστε άτομα που μοιράζονται τις αξίες σας.",
-  "etusivu.heroTekstit.2": "Το επόμενο ταίρι σας είναι ένα κλικ μακριά.",
   "follow": "Ακολουθήστε",
   "health": "Πολιτική υγείας",
   "hero": {
-    "0": "Βρες την αγάπη που διαρκεί.",
-    "1": "Γνώρισε άτομα που μοιράζονται τις αξίες σου.",
-    "2": "Το επόμενο ταίρι σου είναι ένα κλικ μακριά."
+    "0": "Βρείτε μια αγάπη που διαρκεί.",
+    "1": "Γνωρίστε ανθρώπους που μοιράζονται τις αξίες σας.",
+    "2": "Το επόμενο ταίρι σας απέχει ένα κλικ.",
+    "title": "Meet kind singles near you"
   },
   "home": {
-    "subtitle": "Λιγότερα swipes, καλύτερα ταιριάσματα — κοινότητα για ουσιαστικές σχέσεις.",
     "title": "Βρες αληθινές γνωριμίες",
-    "texts": [
-      "Find love that lasts.",
-      "Meet people who share your values.",
-      "Your next match is one click away."
-    ]
+    "subtitle": "Λιγότερα swipes, καλύτερα ταιριάσματα — κοινότητα για ουσιαστικές σχέσεις.",
+    "texts": "__TODO: translate__"
   },
-  "home.subtitle": "Λιγότερα swipes, καλύτερα ταιριάσματα — κοινότητα για ουσιαστικές σχέσεις.",
-  "home.title": "Βρες αληθινές γνωριμίες",
   "impressum": "Impressum",
   "lifestyle": {
     "average": "Μέτρια",
@@ -274,45 +247,14 @@
     "tagline": "Καλύτερα ταίρια. Έξυπνη αγάπη. 💘",
     "terms": "Όροι"
   },
-  "nav.about": "About",
-  "nav.admin": "Διαχειριστής",
-  "nav.blog": "Ιστολόγιο",
-  "nav.careers": "Careers",
-  "nav.coInfo": "Πληροφορίες Κολοράντο",
-  "nav.community": "Κοινότητα",
-  "nav.company": "Εταιρεία",
-  "nav.conditions": "Conditions",
-  "nav.contact": "Επικοινωνία",
-  "nav.cookies": "Cookies",
-  "nav.discover": "Ανακάλυψη",
-  "nav.download": "Λήψη",
-  "nav.follow": "Ακολούθησε",
-  "nav.health": "Πολιτική υγείας",
-  "nav.home": "Αρχική",
-  "nav.impressum": "Impressum",
-  "nav.likes": "Μου αρέσει",
-  "nav.login": "Σύνδεση",
-  "nav.map": "Χάρτης",
-  "nav.matches": "Ταιριάσματα",
-  "nav.messages": "Μηνύματα",
-  "nav.premium": "Premium",
-  "nav.press": "Press",
-  "nav.privacy": "Απόρρητο",
-  "nav.profile": "Προφίλ",
-  "nav.register": "Εγγραφή",
-  "nav.rights": "Με επιφύλαξη παντός δικαιώματος.",
-  "nav.safety": "Συμβουλές ασφαλείας",
-  "nav.security": "Ασφάλεια",
-  "nav.settings": "Ρυθμίσεις",
-  "nav.special": "Ειδικά",
-  "nav.support": "Υποστήριξη",
-  "nav.tagline": "Καλύτερα ταίρια. Έξυπνη αγάπη. 💘",
-  "nav.terms": "Όροι",
   "notifications": {
     "likeReceived": "{{username}} liked your profile",
     "matchFound": "You have a new match with {{username}}",
     "newMessage": "You have a new message from {{username}}",
     "superlikeReceived": "{{username}} superliked you"
+  },
+  "overview": {
+    "error": "Failed to load conversations"
   },
   "politics": {
     "anarchism": "Anarchism",
@@ -342,12 +284,11 @@
   },
   "press": "Τύπος",
   "profile": {
-    "about": "Σχετικά με εμένα",
     "addCaption": "Add a caption...",
-    "age": "Ηλικία",
     "basicEducation": "Βασική εκπαίδευση",
     "bi": "Αμφιφυλόφιλος",
     "bodyType": {
+      "_legacy": "Body type  // TODO: translate",
       "athletic": "Athletic",
       "normal": "Normal",
       "obese": "Obese",
@@ -369,13 +310,10 @@
     "delete": "Διαγραφή λογαριασμού",
     "deleteAccount": "Διαγραφή λογαριασμού",
     "education": "Εκπαίδευση",
-    "email": "Email",
     "extraImages": "Επιπλέον εικόνες (μέγιστο 6)",
     "female": "Γυναίκα",
-    "fetchError": "❌ Αποτυχία φόρτωσης προφίλ.",
     "gender": "Φύλο",
     "goal": "Στόχοι / φιλοδοξίες",
-    "goals": "Στόχοι / επιθυμίες",
     "height": "Ύψος (cm)",
     "heightUnit": "Height unit",
     "hetero": "Ετεροφυλόφιλος",
@@ -385,12 +323,10 @@
     "location": "Τοποθεσία",
     "lookingFor": "Τι ψάχνετε;",
     "lowerUni": "Πτυχίο κατώτερου πανεπιστημίου",
-    "mainImage": "Κύρια εικόνα προφίλ",
     "male": "Άνδρας",
     "manualCity": "Ή εισάγετε πόλη χειροκίνητα",
     "manualCountry": "Ή εισάγετε χώρα χειροκίνητα",
     "manualRegion": "Ή εισάγετε περιοχή χειροκίνητα",
-    "name": "Όνομα",
     "noFileChosen": "No file chosen",
     "notImportant": "Μη σημαντική",
     "orientation": "Σεξουαλικός προσανατολισμός",
@@ -398,7 +334,6 @@
     "pets": "Έχετε κατοικίδια;",
     "phd": "Διδακτορικό (PhD)",
     "politicalIdeology": "Political ideology",
-    "premiumMember": "Είστε premium μέλος 🎉",
     "profession": "Επάγγελμα",
     "professionCategory": "Profession category",
     "professionPlaceholder": "Enter your profession...",
@@ -409,13 +344,10 @@
     "removePicture": "Remove picture",
     "required": "Αυτό το πεδίο είναι υποχρεωτικό",
     "save": "Αποθήκευση αλλαγών",
-    "saveChanges": "Αποθήκευση αλλαγών",
     "saveCropped": "Save photo",
     "saveError": "Η ενημέρωση απέτυχε. Παρακαλώ ελέγξτε τα πεδία.",
     "saveExtraPhotos": "Save extra photos",
     "saveSuccess": "✅ Το προφίλ ενημερώθηκε με επιτυχία!",
-    "saved": "✅ Το προφίλ ενημερώθηκε!",
-    "searchingFor": "Τι ψάχνετε;",
     "secondary": "Πτυχίο δευτεροβάθμιας εκπαίδευσης",
     "selectCity": "Επιλέξτε πόλη",
     "selectCountry": "Επιλέξτε χώρα",
@@ -423,19 +355,12 @@
     "somewhatImportant": "Κάπως σημαντική",
     "status": "Κατάσταση σχέσης",
     "summary": "Σχετικά με εμένα",
-    "title": "Προφίλ",
-    "updateError": "❌ Αποτυχία ενημέρωσης προφίλ.",
     "updateProfile": "Ενημέρωση προφίλ",
     "upperUni": "Πτυχίο ανώτερου πανεπιστημίου",
     "username": "Όνομα χρήστη",
     "veryImportant": "Πολύ σημαντική",
     "weight": "Βάρος (kg)",
-    "weightUnit": "Weight unit",
-    "bodyType.athletic": "Athletic",
-    "bodyType.normal": "Normal",
-    "bodyType.obese": "Obese",
-    "bodyType.overweight": "Overweight",
-    "bodyType.thin": "Thin"
+    "weightUnit": "Weight unit"
   },
   "region": "Περιοχή / πολιτεία",
   "religion": {
@@ -451,23 +376,6 @@
   "rights": "Με επιφύλαξη παντός δικαιώματος.",
   "safety": "Συμβουλές ασφαλείας",
   "security": "Ασφάλεια",
-  "site": {
-    "title": "Loventia.site"
-  },
-  "special": "Special",
-  "subnav": {
-    "cupidsPicks": "Cupid's Picks",
-    "matchPercentage": "Match %",
-    "passport": "Passport",
-    "recommended": "Recommended",
-    "superlikes": "SuperLikes"
-  },
-  "support": "Υποστήριξη",
-  "tagline": "Ταιριάξτε καλύτερα. Αγαπήστε πιο έξυπνα. 💘",
-  "terms": "Όροι",
-  "overview": {
-    "error": "Failed to load conversations"
-  },
   "select_language_label": "Select language",
   "settings": {
     "dangerDescription": "When you delete your account, all your data will be permanently removed.",
@@ -492,5 +400,19 @@
     "unhideSuccess": "Your account is visible again.",
     "unhideError": "Failed to unhide your account.",
     "signedInAs": "Signed in as"
-  }
+  },
+  "site": {
+    "title": "Loventia.site"
+  },
+  "special": "Special",
+  "subnav": {
+    "cupidsPicks": "Cupid's Picks",
+    "matchPercentage": "Match %",
+    "passport": "Passport",
+    "recommended": "Recommended",
+    "superlikes": "SuperLikes"
+  },
+  "support": "Υποστήριξη",
+  "tagline": "Ταιριάξτε καλύτερα. Αγαπήστε πιο έξυπνα. 💘",
+  "terms": "Όροι"
 }

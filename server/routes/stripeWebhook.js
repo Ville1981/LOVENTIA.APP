@@ -1,27 +1,12 @@
 // File: server/routes/stripeWebhook.js
 
-// --- REPLACE START: Robust Stripe webhook (verify + sync from Stripe + premium consistency) ---
-'use strict';
-
-/**
- * Stripe Webhook Router (ESM)
- * - Verifies signatures using STRIPE_WEBHOOK_SECRET
- * - Syncs premium flags (isPremium & premium) and subscriptionId with Stripe as the source of truth
- * - Exports `export default router` for compatibility with ESM `index.js`
- */
-
+// --- REPLACE START: Convert to ESM, use centralized Stripe client, fix mount path, keep existing logic ---
 import express from 'express';
-import Stripe from 'stripe';
 import 'dotenv/config';
-
-import User from '../models/User.js';
+import stripe from '../config/stripe.js';          // centralized Stripe client (apiVersion pinned)
+import User from '../models/User.js';              // canonical User model path
 
 const router = express.Router();
-
-// Use the same Stripe API version as in your CLI logs for deterministic behavior
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-04-30.basil',
-});
 
 /* ──────────────────────────────────────────────────────────────────────────────
    Helpers
@@ -169,7 +154,6 @@ async function resolveUserFromCheckoutSession(session) {
   if (metaUserId) {
     return { userId: metaUserId, customerId: session?.customer || null };
   }
-
   const customerId = session?.customer || null;
   if (!customerId) return { userId: null, customerId: null };
 
@@ -183,8 +167,10 @@ async function resolveUserFromCheckoutSession(session) {
 
 /* ──────────────────────────────────────────────────────────────────────────────
    Webhook Endpoint
-   Mounted by app as: app.use('/api/payment/stripe-webhook', router)
-   → So define POST '/' here.
+   NOTE (mount path):
+   - In your app.js you mount: app.use('/api/payment/stripe-webhook', router)
+   - Therefore the route path here **must be '/'**.
+   - Final endpoint: POST /api/payment/stripe-webhook
 ────────────────────────────────────────────────────────────────────────────── */
 router.post(
   '/',
@@ -221,8 +207,8 @@ router.post(
          * - Then perform a full sync to be authoritative
          */
         case 'checkout.session.completed': {
-          const session = event.data.object;
-          const customerId    = session?.customer || null;
+          const session        = event.data.object;
+          const customerId     = session?.customer || null;
           const subscriptionId = session?.subscription || null;
 
           const { userId } = await resolveUserFromCheckoutSession(session);
@@ -244,7 +230,7 @@ router.post(
          * Subscription lifecycle → always re-sync to Stripe state.
          */
         case 'customer.subscription.created': {
-          const sub = event.data.object;
+          const sub        = event.data.object;
           const customerId = sub?.customer || null;
           const subId      = sub?.id || null;
 
@@ -254,7 +240,7 @@ router.post(
         }
 
         case 'customer.subscription.updated': {
-          const sub = event.data.object;
+          const sub        = event.data.object;
           const customerId = sub?.customer || null;
           const subId      = sub?.id || null;
 
@@ -264,7 +250,7 @@ router.post(
         }
 
         case 'customer.subscription.deleted': {
-          const sub = event.data.object;
+          const sub        = event.data.object;
           const customerId = sub?.customer || null;
 
           if (customerId) {
@@ -314,3 +300,16 @@ router.post(
 
 export default router;
 // --- REPLACE END ---
+
+
+
+
+
+
+
+
+
+
+
+
+

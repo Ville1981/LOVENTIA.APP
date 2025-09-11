@@ -1,26 +1,8 @@
 {
-  "title": "Lebensstil",
-  "smoke": "Rauchen",
+  "diet": "Ernährung",
   "drink": "Alkohol",
   "drugs": "Drogen",
   "exercise": "Bewegung",
-  "diet": "Ernährung",
-  "no": "Nein",
-  "sober": "Nüchtern",
-  "little": "Wenig",
-  "average": "Durchschnittlich",
-  "much": "Viel",
-  "exerciseNever": "Nie",
-  "exerciseOccasionally": "Gelegentlich",
-  "exerciseWeekly": "Wöchentlich",
-  "exerciseDaily": "Täglich",
-  "dietOmnivore": "Allesesser",
-  "dietVegetarian": "Vegetarisch",
-  "dietVegan": "Vegan",
-  "dietPescatarian": "Pescetarisch",
-  "dietKeto": "Keto",
-  "dietOther": "Andere",
-  "placeholders": {
-    "select": "Bitte wählen"
-  }
+  "smoke": "Rauchen",
+  "title": "Lebensstil"
 }

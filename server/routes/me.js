@@ -59,13 +59,12 @@ router.get("/me", authenticate, async (req, res) => {
     // Apply model's safe transform
     const u = doc.toJSON ? doc.toJSON() : doc;
 
-    // Normalize premium signals
-    const ent = u.entitlements && typeof u.entitlements === "object" ? u.entitlements : {};
-    const legacyFlag = !!u.premium;
+    // Normalize premium signals — SINGLE SOURCE OF TRUTH (Mongo)
+    const ent =
+      u.entitlements && typeof u.entitlements === "object" ? u.entitlements : {};
+    // Authoritative flag comes ONLY from DB field isPremium
     const newFlag = !!u.isPremium;
-    const entTier = ent.tier === "premium";
-
-    const isPremium = newFlag || legacyFlag || entTier;
+    const isPremium = newFlag; // do NOT OR with legacy premium or entitlements.tier
     const tier = isPremium ? "premium" : "free";
 
     // Prepare consistent visibility
@@ -92,13 +91,13 @@ router.get("/me", authenticate, async (req, res) => {
       email: u.email || null,
       username: u.username || null,
 
-      // ✅ premium flags (both kept in sync)
+      // ✅ premium flags (both kept in sync; premium mirrors isPremium for legacy clients)
       isPremium,
       premium: isPremium,
 
-      // ✅ entitlements coerced
+      // ✅ entitlements coerced (never derive premium from this)
       entitlements: {
-        tier,
+        tier, // "premium" when isPremium=true, otherwise "free"
         since: ent.since || null,
         until: ent.until || null,
         features: ent.features || undefined,

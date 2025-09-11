@@ -1,4 +1,4 @@
-// --- REPLACE START: i18n-safe labels, EN enum values for backend (smoke/drink/drugs/diet/exercise) ---
+// --- REPLACE START: i18n-safe labels, EN enum values, and search-mode validation gating (no required rules/attrs in search) ---
 import PropTypes from "prop-types";
 import React from "react";
 import { useFormContext } from "react-hook-form";
@@ -38,12 +38,26 @@ const exerciseOptions = [
  * Props:
  *   t: i18n translate function (required)
  *   includeAllOption: add "All" option as the first item (default: false)
+ *   disableValidation / mode="search": when active, do NOT register RHF required rules,
+ *     do NOT add DOM `required` attributes, and avoid forced defaults that would
+ *     make fields effectively mandatory in search mode.
  */
-const FormLifestyle = ({ t, includeAllOption = false }) => {
+const FormLifestyle = ({
+  t,
+  includeAllOption = false,
+  disableValidation = false,
+  mode = undefined,
+}) => {
+  // In search mode we suppress any validation rules and DOM `required` attributes.
+  const searchMode = !!disableValidation || mode === "search";
+
   const {
     register,
     formState: { errors },
   } = useFormContext();
+
+  // Helper to conditionally apply rules (future-proof if rules are added later).
+  const withRules = (rules) => (searchMode ? {} : rules || {});
 
   // Compose select options lists
   const headOption = includeAllOption
@@ -52,10 +66,7 @@ const FormLifestyle = ({ t, includeAllOption = false }) => {
   const triadOptions = [headOption, ...baseOptions];
 
   return (
-    <div
-      className="flex flex-col gap-4 w-full text-left"
-      data-cy="FormLifestyle__section"
-    >
+    <div className="flex flex-col gap-4 w-full text-left" data-cy="FormLifestyle__section">
       <h3 className="text-lg font-semibold mb-2" data-cy="FormLifestyle__title">
         {t("lifestyle:title")}
       </h3>
@@ -64,16 +75,14 @@ const FormLifestyle = ({ t, includeAllOption = false }) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Smoke */}
         <div>
-          <label
-            className="block text-sm font-medium mb-1"
-            data-cy="FormLifestyle__smokeLabel"
-          >
+          <label className="block text-sm font-medium mb-1" data-cy="FormLifestyle__smokeLabel">
             {t("lifestyle:smoke")}
           </label>
           <select
-            {...register("smoke")}
+            {...register("smoke", withRules(/* e.g., { required: t('common:required') } */))}
             className="w-full border rounded px-3 py-2 text-sm"
             data-cy="FormLifestyle__smokeSelect"
+            required={false}
           >
             {triadOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -82,10 +91,7 @@ const FormLifestyle = ({ t, includeAllOption = false }) => {
             ))}
           </select>
           {errors.smoke && (
-            <p
-              className="mt-1 text-sm text-red-600"
-              data-cy="FormLifestyle__smokeError"
-            >
+            <p className="mt-1 text-sm text-red-600" data-cy="FormLifestyle__smokeError">
               {errors.smoke.message}
             </p>
           )}
@@ -93,16 +99,14 @@ const FormLifestyle = ({ t, includeAllOption = false }) => {
 
         {/* Drink */}
         <div>
-          <label
-            className="block text-sm font-medium mb-1"
-            data-cy="FormLifestyle__drinkLabel"
-          >
+          <label className="block text-sm font-medium mb-1" data-cy="FormLifestyle__drinkLabel">
             {t("lifestyle:drink")}
           </label>
           <select
-            {...register("drink")}
+            {...register("drink", withRules(/* e.g., { required: t('common:required') } */))}
             className="w-full border rounded px-3 py-2 text-sm"
             data-cy="FormLifestyle__drinkSelect"
+            required={false}
           >
             {triadOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -111,10 +115,7 @@ const FormLifestyle = ({ t, includeAllOption = false }) => {
             ))}
           </select>
           {errors.drink && (
-            <p
-              className="mt-1 text-sm text-red-600"
-              data-cy="FormLifestyle__drinkError"
-            >
+            <p className="mt-1 text-sm text-red-600" data-cy="FormLifestyle__drinkError">
               {errors.drink.message}
             </p>
           )}
@@ -122,16 +123,14 @@ const FormLifestyle = ({ t, includeAllOption = false }) => {
 
         {/* Drugs */}
         <div>
-          <label
-            className="block text-sm font-medium mb-1"
-            data-cy="FormLifestyle__drugsLabel"
-          >
+          <label className="block text-sm font-medium mb-1" data-cy="FormLifestyle__drugsLabel">
             {t("lifestyle:drugs")}
           </label>
           <select
-            {...register("drugs")}
+            {...register("drugs", withRules(/* e.g., { required: t('common:required') } */))}
             className="w-full border rounded px-3 py-2 text-sm"
             data-cy="FormLifestyle__drugsSelect"
+            required={false}
           >
             {triadOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -140,10 +139,7 @@ const FormLifestyle = ({ t, includeAllOption = false }) => {
             ))}
           </select>
           {errors.drugs && (
-            <p
-              className="mt-1 text-sm text-red-600"
-              data-cy="FormLifestyle__drugsError"
-            >
+            <p className="mt-1 text-sm text-red-600" data-cy="FormLifestyle__drugsError">
               {errors.drugs.message}
             </p>
           )}
@@ -154,16 +150,14 @@ const FormLifestyle = ({ t, includeAllOption = false }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
         {/* Dietary Preferences (single-select) */}
         <div>
-          <label
-            className="block text-sm font-medium mb-1"
-            data-cy="FormLifestyle__dietLabel"
-          >
+          <label className="block text-sm font-medium mb-1" data-cy="FormLifestyle__dietLabel">
             {t("lifestyle:diet")}
           </label>
           <select
-            {...register("nutritionPreferences")}
+            {...register("nutritionPreferences", withRules(/* e.g., { required: t('common:required') } */))}
             className="w-full border rounded px-3 py-2 text-sm"
             data-cy="FormLifestyle__dietSelect"
+            required={false}
           >
             <option value="">{t("common:select")}</option>
             {dietOptions.map((opt) => (
@@ -173,10 +167,7 @@ const FormLifestyle = ({ t, includeAllOption = false }) => {
             ))}
           </select>
           {errors.nutritionPreferences && (
-            <p
-              className="mt-1 text-sm text-red-600"
-              data-cy="FormLifestyle__dietError"
-            >
+            <p className="mt-1 text-sm text-red-600" data-cy="FormLifestyle__dietError">
               {errors.nutritionPreferences.message}
             </p>
           )}
@@ -184,16 +175,14 @@ const FormLifestyle = ({ t, includeAllOption = false }) => {
 
         {/* Exercise Habits */}
         <div>
-          <label
-            className="block text-sm font-medium mb-1"
-            data-cy="FormLifestyle__exerciseLabel"
-          >
+          <label className="block text-sm font-medium mb-1" data-cy="FormLifestyle__exerciseLabel">
             {t("lifestyle:exercise")}
           </label>
           <select
-            {...register("activityLevel")}
+            {...register("activityLevel", withRules(/* e.g., { required: t('common:required') } */))}
             className="w-full border rounded px-3 py-2 text-sm"
             data-cy="FormLifestyle__exerciseSelect"
+            required={false}
           >
             <option value="">{t("common:select")}</option>
             {exerciseOptions.map((opt) => (
@@ -203,10 +192,7 @@ const FormLifestyle = ({ t, includeAllOption = false }) => {
             ))}
           </select>
           {errors.activityLevel && (
-            <p
-              className="mt-1 text-sm text-red-600"
-              data-cy="FormLifestyle__exerciseError"
-            >
+            <p className="mt-1 text-sm text-red-600" data-cy="FormLifestyle__exerciseError">
               {errors.activityLevel.message}
             </p>
           )}
@@ -219,6 +205,8 @@ const FormLifestyle = ({ t, includeAllOption = false }) => {
 FormLifestyle.propTypes = {
   t: PropTypes.func.isRequired,
   includeAllOption: PropTypes.bool,
+  disableValidation: PropTypes.bool,
+  mode: PropTypes.oneOf([undefined, "search"]),
 };
 
 export default FormLifestyle;

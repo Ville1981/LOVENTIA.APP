@@ -1,6 +1,6 @@
-// PATH: server/models/User.cjs
+// File: server/models/User.js
 
-// --- REPLACE START: Convert to CommonJS + add missing fields + location + visibility sync + entitlements (kept original structure) ---
+// --- REPLACE START: CommonJS schema with billing.stripeCustomerId + isPremium + minimal sync/compat ---
 'use strict';
 
 const mongoose = require('mongoose');
@@ -13,7 +13,7 @@ const bcrypt = require('bcryptjs');
  * - Provides virtuals for legacy aliases and convenience (country/region/city ↔ location.*, photos ↔ extraImages, etc.)
  * - Preserves CommonJS exports for maximum compatibility with existing code
  * - Visibility fields (visibility.*, isHidden/hidden virtuals, hiddenUntil, resumeOnLogin) + sync hooks
- * - ✅ Billing fields: `premium`, `isPremium`, `stripeCustomerId`, `subscriptionId`
+ * - ✅ Billing fields: `premium`, `isPremium`, top-level `stripeCustomerId` (legacy), `subscriptionId`, and **`billing.stripeCustomerId` (canonical)**
  * - ✅ Entitlements block (tier/features/quotas) to support FE expectations while mirroring legacy flags
  */
 
@@ -49,10 +49,19 @@ function safeTransform(_doc, ret) {
           : (typeof ret.resumeOnLogin === 'boolean' ? ret.resumeOnLogin : true),
     };
 
-    // ✅ Explicitly keep billing fields visible in API output (never hide these)
+    // ✅ Billing exposure in API output (normalize both places)
     ret.isPremium = !!ret.isPremium;
     ret.premium = !!ret.premium;
-    if (!('stripeCustomerId' in ret)) ret.stripeCustomerId = null;
+
+    // Ensure billing container exists
+    if (!ret.billing || typeof ret.billing !== 'object') ret.billing = {};
+    // Prefer nested billing.stripeCustomerId in API output; mirror top-level for legacy
+    const nestedCid = ret.billing.stripeCustomerId || null;
+    const topCid = ret.stripeCustomerId || null;
+    const effectiveCid = nestedCid || topCid || null;
+
+    ret.billing.stripeCustomerId = effectiveCid;
+    ret.stripeCustomerId = effectiveCid; // keep legacy top-level view in responses
     if (!('subscriptionId' in ret)) ret.subscriptionId = null;
 
     // Output consistency for entitlements (keep legacy flags mirrored)
@@ -81,17 +90,14 @@ function safeTransform(_doc, ret) {
     if (!Array.isArray(ret.extraImages)) ret.extraImages = ret.extraImages ? [ret.extraImages].filter(Boolean) : [];
     if (!Array.isArray(ret.photos)) ret.photos = Array.isArray(ret.extraImages) ? ret.extraImages : [];
 
-    // Keep profilePicture as-is; do not auto-derive here to avoid surprises.
-    // (Upload endpoints ensure slot-0 mirror -> profilePicture.)
-
-    // ✅ Ensure location flatten fields exist in output (virtuals should already expose them,
+    // Ensure location flatten fields exist in output (virtuals should already expose them,
     // but in case of lean/plain objects, provide fallbacks)
     const loc = ret.location && typeof ret.location === 'object' ? ret.location : {};
     if (ret.country === undefined) ret.country = loc.country || ret.country || undefined;
     if (ret.region === undefined)  ret.region  = loc.region  || ret.region  || undefined;
     if (ret.city === undefined)    ret.city    = loc.city    || ret.city    || undefined;
 
-    // ✅ Ensure preferences container exists in output for client consistency
+    // Ensure preferences container exists in output for client consistency
     if (!ret.preferences || typeof ret.preferences !== 'object') {
       ret.preferences = { dealbreakers: {
         distanceKm: null,
@@ -165,8 +171,15 @@ const userSchema = new mongoose.Schema(
     // ✅ Billing (legacy + authoritative flags)
     premium:            { type: Boolean, default: false },  // legacy flag kept for compatibility
     isPremium:          { type: Boolean, default: false },  // authoritative flag used by new logic
+
+    // Legacy flat fields (kept for back-compat with older code paths)
     stripeCustomerId:   { type: String, default: null },
     subscriptionId:     { type: String, default: null },
+
+    // ✅ Canonical billing container (requested): billing.stripeCustomerId
+    billing: {
+      stripeCustomerId: { type: String, default: null },
+    },
 
     // ✅ Entitlements (single source of truth for feature access; kept simple first)
     entitlements: {
@@ -271,6 +284,12 @@ const userSchema = new mongoose.Schema(
     // ✅ ADDED: timestamps for superlike rate limiting (persisted)
     superLikeTimestamps: [{ type: Date, default: undefined }],
 
+    // ✅ Optional weekly quota counters (kept minimal for compatibility)
+    superLike: {
+      weeklyUsed: { type: Number, default: 0 },
+      weekStart:  { type: Date,   default: null },
+    },
+
     blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 
     // Password reset fields
@@ -365,10 +384,10 @@ userSchema.virtual('hidden')
     this.visibility.isHidden = val;
   });
 
-/* ----------------------- Visibility sync hooks ----------------------- */
+/* ----------------------- Visibility & Billing sync hooks ----------------------- */
 /**
  * Keep top-level (isHidden, hiddenUntil, resumeOnLogin) and nested visibility.* in sync.
- * This ensures both old and new clients get the flags they expect.
+ * Also mirror billing.stripeCustomerId ↔ top-level stripeCustomerId for backward compatibility.
  */
 function syncVisibility(doc) {
   try {
@@ -401,9 +420,28 @@ function syncVisibility(doc) {
   }
 }
 
+/**
+ * Mirror billing.stripeCustomerId <-> stripeCustomerId.
+ * Canonical source: billing.stripeCustomerId if set; otherwise keep top-level value.
+ */
+function syncBillingCustomerId(doc) {
+  try {
+    if (!doc.billing || typeof doc.billing !== 'object') doc.billing = {};
+    const nested = doc.billing.stripeCustomerId || null;
+    const top    = doc.stripeCustomerId || null;
+    const effective = nested || top || null;
+
+    // Keep both in sync
+    doc.billing.stripeCustomerId = effective;
+    doc.stripeCustomerId = effective;
+  } catch {
+    // noop
+  }
+}
+
 // Pre-validate/Pre-save to keep fields aligned
-userSchema.pre('validate', function (next) { try { syncVisibility(this); next(); } catch { next(); } });
-userSchema.pre('save',      function (next) { try { syncVisibility(this); next(); } catch { next(); } });
+userSchema.pre('validate', function (next) { try { syncVisibility(this); syncBillingCustomerId(this); next(); } catch { next(); } });
+userSchema.pre('save',      function (next) { try { syncVisibility(this); syncBillingCustomerId(this); next(); } catch { next(); } });
 
 /* ----------------------- Auth helper ----------------------- */
 /**
@@ -527,11 +565,14 @@ userSchema.methods.hasFeature = function hasFeature(featureKey) {
 try {
   userSchema.index({ username: 1 }, { name: 'idx_user_username', unique: true });
   userSchema.index({ email: 1 }, { name: 'idx_user_email', unique: true });
+
   userSchema.index(
     { 'location.country': 1, 'location.region': 1, 'location.city': 1 },
     { name: 'idx_user_location' }
   );
+
   userSchema.index({ gender: 1, age: 1 }, { name: 'idx_user_gender_age' });
+
   // Keep separate numeric indexes for potential range queries
   userSchema.index({ latitude: 1, longitude: 1 }, { name: 'idx_user_lat_lng' });
 
@@ -547,8 +588,9 @@ try {
     { name: 'idx_user_entitlements_tier' }
   );
 
-  // Billing lookups
-  userSchema.index({ stripeCustomerId: 1 }, { name: 'idx_user_stripe_customer' });
+  // Billing lookups (nested + legacy top-level for back-compat)
+  userSchema.index({ 'billing.stripeCustomerId': 1 }, { name: 'idx_user_billing_stripe_customer' });
+  userSchema.index({ stripeCustomerId: 1 }, { name: 'idx_user_stripe_customer_legacy' });
   userSchema.index({ subscriptionId: 1 }, { name: 'idx_user_subscription' });
 
   // Preferences lookups (future-proofing for dealbreakers queries)

@@ -1,4 +1,4 @@
-// server/routes/messages.js
+// File: server/routes/messages.js
 
 const express = require('express');
 const authenticate = require('../middleware/authenticate');
@@ -6,6 +6,28 @@ const { profanityFilter, moderationRateLimiter } = require('../middleware/modera
 const Message = require('../models/Message');
 
 const router = express.Router();
+
+// --- REPLACE START: helpers for Premium/feature gating (intros) ---
+/**
+ * Determine if a user is Premium via multiple flags/structures.
+ * Supports legacy flags and structured entitlements.
+ */
+function isPremiumUser(user) {
+  if (!user) return false;
+  if (user.isPremium || user.premium) return true;
+  if (user.plan && /premium|pro|plus/i.test(String(user.plan))) return true;
+  const ent = user.entitlements && user.entitlements.features;
+  return !!(ent && (ent.intros || ent.unlimitedMessages || ent['intros'] === true));
+}
+
+/**
+ * Check if sending an intro message is allowed for this user.
+ * Premium users (or users with `entitlements.features.intros`) are allowed.
+ */
+function canSendIntro(user) {
+  return isPremiumUser(user);
+}
+// --- REPLACE END ---
 
 /**
  * GET /api/messages/overview
@@ -67,6 +89,32 @@ router.get(
   }
 );
 
+// --- REPLACE START: new helper endpoint to check intro entitlement for a target ---
+/**
+ * GET /api/messages/can-send-intro/:userId
+ * Returns whether the current authenticated user can send an intro to :userId.
+ * Premium users have this capability; non-premium are blocked at server.
+ */
+router.get(
+  '/can-send-intro/:userId',
+  authenticate,
+  moderationRateLimiter,
+  async (req, res) => {
+    try {
+      const allowed = canSendIntro(req.user);
+      return res.json({
+        ok: true,
+        canSendIntro: allowed,
+        feature: 'intros',
+      });
+    } catch (err) {
+      console.error('Error checking intro capability:', err);
+      return res.status(500).json({ ok: false, error: 'Internal server error' });
+    }
+  }
+);
+// --- REPLACE END ---
+
 /**
  * POST /api/messages/:userId
  * Send a new message from authenticated user to specified peer
@@ -83,6 +131,28 @@ router.post(
       const sender = req.user.id;
       const receiver = req.params.userId;
       const text = req.body.text;
+
+      // --- REPLACE START: enforce "intro messages" are Premium-only ---
+      // Detect "intro" => no existing messages in either direction between the two users.
+      const existingCount = await Message.countDocuments({
+        $or: [
+          { sender, receiver },
+          { sender: receiver, receiver: sender }
+        ]
+      });
+
+      const isIntro = existingCount === 0;
+
+      if (isIntro && !canSendIntro(req.user)) {
+        return res.status(403).json({
+          ok: false,
+          error: 'Premium required: intro messages',
+          code: 'FEATURE_LOCKED',
+          feature: 'intros',
+          canSendIntro: false,
+        });
+      }
+      // --- REPLACE END ---
 
       const newMessage = new Message({ sender, receiver, text });
       const saved = await newMessage.save();

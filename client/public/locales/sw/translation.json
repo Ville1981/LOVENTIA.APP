@@ -1,15 +1,6 @@
 {
   "Admin": "Msimamizi",
   "Discover": "Gundua",
-  "Etusivu": {
-    "heroOtsikko": "Karibu kwenye Loventia.site!",
-    "heroTeksti": "Pata uhusiano wa maana kwa urahisi na kwa usalama.",
-    "heroTekstit": {
-      "0": "Pata upendo wa kweli.",
-      "1": "Kutana na watu wanaoshiriki maadili yako.",
-      "2": "Linganisho lako lijalo liko bonyeza moja tu mbali."
-    }
-  },
   "Home": "Nyumbani",
   "Likes": "Vipendwa",
   "Login": "Ingia",
@@ -82,28 +73,9 @@
   },
   "cookies": "Vidakuzi",
   "countries": {
-    "Argentiina": "Argentina",
     "Argentina": "Argentina",
-    "Brasilia": "Brazil",
-    "Chile": "Chile",
-    "Espanja": "Spain",
-    "Intia": "India",
-    "Iso-Britannia": "United Kingdom",
-    "Italia": "Italy",
-    "Japani": "Japan",
-    "Kanada": "Canada",
-    "Kazakstan": "Kazakhstan",
-    "Kiina": "China",
-    "Norja": "Norway",
-    "Portugali": "Portugal",
-    "Ranska": "France",
-    "Ruotsi": "Sweden",
-    "Saksa": "Germany",
-    "Suomi": "Finland",
-    "Ukraina": "Ukraine",
-    "Venäjä": "Russia",
-    "Yhdysvallat": "United States",
     "Brazil": "Brazil",
+    "Chile": "Chile",
     "Spain": "Spain",
     "India": "India",
     "United Kingdom": "United Kingdom",
@@ -127,6 +99,7 @@
     "adAlt": "Nafasi ya tangazo – tangazo lako hapa",
     "ageRange": "Age range",
     "cityNotFound": "Mahali haikuweza kutambuliwa kwa jiji.",
+    "error": "Failed to load users.",
     "fetchError": "Hitilafu wakati wa kupakia watumiaji.",
     "filter": "Chuja",
     "gender": "Gender",
@@ -154,8 +127,7 @@
     "superliked": "Superlike!",
     "title": "Gundua watumiaji",
     "username": "Username",
-    "viewProfile": "Tazama wasifu",
-    "error": "Failed to load users."
+    "viewProfile": "Tazama wasifu"
   },
   "download": "Pakua",
   "error": {
@@ -175,36 +147,28 @@
     "heroOtsikko": "Welcome to Loventia.site!",
     "heroTeksti": "Find meaningful connections easily and safely.",
     "heroTekstit": [
-      "Find love that lasts.",
-      "Meet people who share your values.",
-      "Your next match is one click away."
+      "Pata upendo unaodumu.",
+      "Kutana na watu wanaoshirikiana na maadili yako.",
+      "Mechi yako inayofuata iko umbali wa bonyeza moja."
     ],
     "katso_kayttajat": "See users",
     "kuvaus": "Find companionship, friends or love easily and safely.",
     "lue_lisaa": "Read more",
     "tervetuloa": "Welcome to Loventia.site!"
   },
-  "etusivu.heroTekstit.0": "Find love that lasts.",
-  "etusivu.heroTekstit.1": "Meet people who share your values.",
-  "etusivu.heroTekstit.2": "Your next match is one click away.",
   "follow": "Fuata",
   "health": "Sera ya Afya",
   "hero": {
-    "0": "Find love that lasts.",
-    "1": "Meet people who share your values.",
-    "2": "Your next match is one click away."
+    "0": "Pata upendo unaodumu.",
+    "1": "Kutana na watu wanaoshirikiana na maadili yako.",
+    "2": "Mechi yako inayofuata iko umbali wa bonyeza moja.",
+    "title": "Meet kind singles near you"
   },
   "home": {
-    "subtitle": "Swipe kidogo, mechi bora — jamii ya uchumba wa maana.",
     "title": "Pata mahusiano ya kweli",
-    "texts": [
-      "Find love that lasts.",
-      "Meet people who share your values.",
-      "Your next match is one click away."
-    ]
+    "subtitle": "Swipe kidogo, mechi bora — jamii ya uchumba wa maana.",
+    "texts": "__TODO: translate__"
   },
-  "home.subtitle": "Swipe kidogo, mechi bora — jamii ya uchumba wa maana.",
-  "home.title": "Pata mahusiano ya kweli",
   "impressum": "Taarifa za Sheria",
   "lifestyle": {
     "average": "Kawaida",
@@ -283,45 +247,14 @@
     "tagline": "Mechi bora. Upendo wenye akili. 💘",
     "terms": "Vigezo"
   },
-  "nav.about": "About",
-  "nav.admin": "Admin",
-  "nav.blog": "Blogu",
-  "nav.careers": "Careers",
-  "nav.coInfo": "Taarifa za Colorado",
-  "nav.community": "Jumuiya",
-  "nav.company": "Kampuni",
-  "nav.conditions": "Conditions",
-  "nav.contact": "Mawasiliano",
-  "nav.cookies": "Vidakuzi",
-  "nav.discover": "Gundua",
-  "nav.download": "Pakua",
-  "nav.follow": "Fuata",
-  "nav.health": "Sera ya Afya",
-  "nav.home": "Nyumbani",
-  "nav.impressum": "Impressum",
-  "nav.likes": "Likes",
-  "nav.login": "Ingia",
-  "nav.map": "Ramani",
-  "nav.matches": "Mechi",
-  "nav.messages": "Ujumbe",
-  "nav.premium": "Premium",
-  "nav.press": "Press",
-  "nav.privacy": "Faragha",
-  "nav.profile": "Profaili",
-  "nav.register": "Jisajili",
-  "nav.rights": "Haki zote zimehifadhiwa.",
-  "nav.safety": "Vidokezo vya usalama",
-  "nav.security": "Usalama",
-  "nav.settings": "Mipangilio",
-  "nav.special": "Maalum",
-  "nav.support": "Usaidizi",
-  "nav.tagline": "Mechi bora. Upendo wenye akili. 💘",
-  "nav.terms": "Vigezo",
   "notifications": {
     "likeReceived": "{{username}} liked your profile",
     "matchFound": "You have a new match with {{username}}",
     "newMessage": "You have a new message from {{username}}",
     "superlikeReceived": "{{username}} superliked you"
+  },
+  "overview": {
+    "error": "Failed to load conversations"
   },
   "politics": {
     "anarchism": "Anarchism",
@@ -351,12 +284,11 @@
   },
   "press": "Vyombo vya Habari",
   "profile": {
-    "about": "Kuhusu mimi",
     "addCaption": "Add a caption...",
-    "age": "Umri",
     "basicEducation": "Elimu ya msingi",
     "bi": "Biseksuali",
     "bodyType": {
+      "_legacy": "Body type  // TODO: translate",
       "athletic": "Athletic",
       "normal": "Normal",
       "obese": "Obese",
@@ -378,13 +310,10 @@
     "delete": "Futa akaunti",
     "deleteAccount": "Futa akaunti",
     "education": "Elimu",
-    "email": "Barua pepe",
     "extraImages": "Picha za ziada (max 6)",
     "female": "Mwanamke",
-    "fetchError": "❌ Imeshindwa kupakia wasifu.",
     "gender": "Jinsia",
     "goal": "Malengo / matarajio",
-    "goals": "Malengo / matarajio",
     "height": "Urefu (cm)",
     "heightUnit": "Height unit",
     "hetero": "Heteroseksuali",
@@ -394,12 +323,10 @@
     "location": "Mahali",
     "lookingFor": "Unatafuta nini?",
     "lowerUni": "Shahada ya chini ya chuo",
-    "mainImage": "Picha kuu ya wasifu",
     "male": "Mwanaume",
     "manualCity": "Au andika jiji mwenyewe",
     "manualCountry": "Au andika nchi mwenyewe",
     "manualRegion": "Au andika mkoa mwenyewe",
-    "name": "Jina",
     "noFileChosen": "No file chosen",
     "notImportant": "Si muhimu",
     "orientation": "Mwelekeo wa kingono",
@@ -407,7 +334,6 @@
     "pets": "Una wanyama wa kufugwa?",
     "phd": "Shahada ya uzamivu",
     "politicalIdeology": "Political ideology",
-    "premiumMember": "Wewe ni mwanachama wa Premium 🎉",
     "profession": "Kazi",
     "professionCategory": "Profession category",
     "professionPlaceholder": "Enter your profession...",
@@ -418,13 +344,10 @@
     "removePicture": "Remove picture",
     "required": "Sehemu hii inahitajika",
     "save": "Hifadhi mabadiliko",
-    "saveChanges": "Hifadhi mabadiliko",
     "saveCropped": "Save photo",
     "saveError": "Imeshindwa kusasisha. Tafadhali angalia sehemu.",
     "saveExtraPhotos": "Save extra photos",
     "saveSuccess": "✅ Wasifu umesasishwa kikamilifu!",
-    "saved": "✅ Wasifu umesasishwa!",
-    "searchingFor": "Unatafuta nini?",
     "secondary": "Shahada ya sekondari",
     "selectCity": "Chagua jiji",
     "selectCountry": "Chagua nchi",
@@ -432,19 +355,12 @@
     "somewhatImportant": "Kwa kiasi fulani",
     "status": "Hali ya uhusiano",
     "summary": "Kuhusu mimi",
-    "title": "Wasifu",
-    "updateError": "❌ Imeshindwa kusasisha wasifu.",
     "updateProfile": "Sasisha wasifu",
     "upperUni": "Shahada ya juu ya chuo",
     "username": "Jina la mtumiaji",
     "veryImportant": "Muhimu sana",
     "weight": "Uzito (kg)",
-    "weightUnit": "Weight unit",
-    "bodyType.athletic": "Athletic",
-    "bodyType.normal": "Normal",
-    "bodyType.obese": "Obese",
-    "bodyType.overweight": "Overweight",
-    "bodyType.thin": "Thin"
+    "weightUnit": "Weight unit"
   },
   "region": "Mkoa / jimbo",
   "religion": {
@@ -460,23 +376,6 @@
   "rights": "Haki zote zimehifadhiwa.",
   "safety": "Vidokezo vya Usalama",
   "security": "Usalama",
-  "site": {
-    "title": "Loventia.site"
-  },
-  "special": "Maalum",
-  "subnav": {
-    "cupidsPicks": "Cupid's Picks",
-    "matchPercentage": "Match %",
-    "passport": "Passport",
-    "recommended": "Recommended",
-    "superlikes": "SuperLikes"
-  },
-  "support": "Usaidizi",
-  "tagline": "Linganishwa vizuri. Penda kwa akili. 💘",
-  "terms": "Masharti",
-  "overview": {
-    "error": "Failed to load conversations"
-  },
   "select_language_label": "Select language",
   "settings": {
     "dangerDescription": "When you delete your account, all your data will be permanently removed.",
@@ -501,5 +400,19 @@
     "unhideSuccess": "Your account is visible again.",
     "unhideError": "Failed to unhide your account.",
     "signedInAs": "Signed in as"
-  }
+  },
+  "site": {
+    "title": "Loventia.site"
+  },
+  "special": "Maalum",
+  "subnav": {
+    "cupidsPicks": "Cupid's Picks",
+    "matchPercentage": "Match %",
+    "passport": "Passport",
+    "recommended": "Recommended",
+    "superlikes": "SuperLikes"
+  },
+  "support": "Usaidizi",
+  "tagline": "Linganishwa vizuri. Penda kwa akili. 💘",
+  "terms": "Masharti"
 }
