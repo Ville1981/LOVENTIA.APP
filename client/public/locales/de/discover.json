@@ -72,14 +72,24 @@
   "instructions": "Wähle Filter, um passende Profile zu finden",
   "ageRange": "Altersbereich",
   "username": "Benutzername",
-  "gender.label": "Geschlecht",
-  "orientation.label": "❤️ Orientierung",
-  "location.country": "🌍 Land",
-  "location.region": "🗺 Region/Bundesland",
-  "location.city": "🏩 Stadt",
-  "education.label": "🎓 Bildung",
+  "gender": {
+    "label": "Geschlecht"
+  },
+  "orientation": {
+    "label": "❤️ Orientierung"
+  },
+  "location": {
+    "country": "🌍 Land",
+    "region": "🗺 Region/Bundesland",
+    "city": "🏩 Stadt"
+  },
+  "education": {
+    "label": "🎓 Bildung"
+  },
   "profession": "💼 Beruf",
-  "religion.label": "🕊 Religion",
+  "religion": {
+    "label": "🕊 Religion"
+  },
   "religionImportance": "Wichtigkeit der Religion",
   "politicalIdeology": "🗳 Politische Einstellung",
   "children": "👶 Kinder",

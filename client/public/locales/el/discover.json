@@ -1,45 +1,4 @@
 {
-  "title": "Discover",
-  "subtitle": "Tune your filters to find the right matches.",
-  "filters": {
-    "age": "Age",
-    "minAge": "Min age",
-    "maxAge": "Max age",
-    "distance": "Distance",
-    "maxDistance": "Max distance",
-    "location": "Location",
-    "gender": "Gender",
-    "orientation": "Orientation",
-    "lifestyle": "Lifestyle",
-    "interests": "Interests",
-    "apply": "Apply filters",
-    "reset": "Reset",
-    "clear": "Clear all",
-    "professionCategory": "💼 Profession category",
-    "politicalIdeology": "🗳 Political ideology",
-    "pets": "🐾 Pets"
-  },
-  "results": {
-    "heading": "Results",
-    "empty": "No matches with current filters.",
-    "loadMore": "Load more"
-  },
-  "cards": {
-    "age": "Age",
-    "distance": "Distance",
-    "view": "View profile"
-  },
-  "ageRange": "Age range",
-  "error": "Something went wrong. Please try again.",
-  "gender": "Gender",
-  "instructions": "Set filters and click Filter to find people.",
-  "noResults": "No results found.",
-  "orientation": "Sexual orientation",
-  "politicalIdeology": "Political ideology",
-  "profession": "Profession",
-  "religion": "Religion",
-  "religionImportance": "Importance of religion",
-  "username": "Username",
   "labels": {
     "header": "Discover",
     "title": "Discover",
@@ -110,13 +69,29 @@
       "other": "Other"
     }
   },
-  "gender.label": "Gender",
-  "orientation.label": "❤️ Orientation",
-  "location.country": "🌍 Country",
-  "location.region": "🗺 Region/State",
-  "location.city": "🏩 City",
-  "education.label": "🎓 Education",
-  "religion.label": "🕊 Religion",
+  "instructions": "Set filters and click Filter to find people.",
+  "ageRange": "Age range",
+  "username": "Username",
+  "gender": {
+    "label": "Gender"
+  },
+  "orientation": {
+    "label": "❤️ Orientation"
+  },
+  "location": {
+    "country": "🌍 Country",
+    "region": "🗺 Region/State",
+    "city": "🏩 City"
+  },
+  "education": {
+    "label": "🎓 Education"
+  },
+  "profession": "Profession",
+  "religion": {
+    "label": "🕊 Religion"
+  },
+  "religionImportance": "Importance of religion",
+  "politicalIdeology": "Political ideology",
   "children": "👶 Children",
   "pets": "🐾 Pets",
   "lifestyle": "Lifestyle",
@@ -132,6 +107,11 @@
   "weight": "Weight",
   "cm": "cm",
   "kg": "kg",
+  "filters": {
+    "professionCategory": "💼 Profession category",
+    "politicalIdeology": "🗳 Political ideology",
+    "pets": "🐾 Pets"
+  },
   "professionCategory": "💼 Profession category",
   "actions": {
     "apply": "Apply filters",

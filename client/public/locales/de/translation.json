@@ -73,28 +73,9 @@
   },
   "cookies": "Cookies",
   "countries": {
-    "Argentiina": "Argentinien",
     "Argentina": "Argentina",
-    "Brasilia": "Brasilien",
-    "Chile": "Chile",
-    "Espanja": "Spanien",
-    "Intia": "Indien",
-    "Iso-Britannia": "Vereinigtes Königreich",
-    "Italia": "Italien",
-    "Japani": "Japan",
-    "Kanada": "Kanada",
-    "Kazakstan": "Kasachstan",
-    "Kiina": "China",
-    "Norja": "Norwegen",
-    "Portugali": "Portugal",
-    "Ranska": "Frankreich",
-    "Ruotsi": "Schweden",
-    "Saksa": "Deutschland",
-    "Suomi": "Finnland",
-    "Ukraina": "Ukraine",
-    "Venäjä": "Russland",
-    "Yhdysvallat": "Vereinigte Staaten",
     "Brazil": "Brazil",
+    "Chile": "Chile",
     "Spain": "Spain",
     "India": "India",
     "United Kingdom": "United Kingdom",
@@ -118,6 +99,7 @@
     "adAlt": "Werbefläche – deine Anzeige hier",
     "ageRange": "Altersbereich",
     "cityNotFound": "Deine Stadt konnte nicht ermittelt werden.",
+    "error": "Failed to load users.",
     "fetchError": "Fehler beim Laden der Benutzer.",
     "filter": "Filtern",
     "gender": "Geschlecht",
@@ -145,8 +127,7 @@
     "superliked": "Superlike!",
     "title": "Benutzer entdecken",
     "username": "Benutzername",
-    "viewProfile": "Profil ansehen",
-    "error": "Failed to load users."
+    "viewProfile": "Profil ansehen"
   },
   "download": "Download",
   "error": {
@@ -166,8 +147,8 @@
     "heroOtsikko": "Willkommen bei Loventia.site!",
     "heroTeksti": "Finde sinnvolle Verbindungen einfach und sicher.",
     "heroTekstit": [
-      "Finde die Liebe fürs Leben.",
-      "Triff Menschen mit ähnlichen Werten.",
+      "Finde Liebe, die bleibt.",
+      "Triff Menschen, die deine Werte teilen.",
       "Dein nächstes Match ist nur einen Klick entfernt."
     ],
     "katso_kayttajat": "Benutzer ansehen",
@@ -175,27 +156,19 @@
     "lue_lisaa": "Mehr erfahren",
     "tervetuloa": "Willkommen bei Loventia.site!"
   },
-  "etusivu.heroTekstit.0": "Finde die Liebe fürs Leben.",
-  "etusivu.heroTekstit.1": "Triff Menschen mit ähnlichen Werten.",
-  "etusivu.heroTekstit.2": "Dein nächstes Match ist nur einen Klick entfernt.",
   "follow": "Folgen",
   "health": "Gesundheitshinweis",
   "hero": {
-    "0": "Finde wahre Liebe.",
-    "1": "Triff Menschen mit deinen Werten.",
-    "2": "Dein nächstes Match ist nur einen Klick entfernt."
+    "0": "Finde Liebe, die bleibt.",
+    "1": "Triff Menschen, die deine Werte teilen.",
+    "2": "Dein nächstes Match ist nur einen Klick entfernt.",
+    "title": "Meet kind singles near you"
   },
   "home": {
-    "subtitle": "Weniger wischen, besser matchen — eine Community für ernsthaftes Dating.",
     "title": "Echte Verbindungen finden",
-    "texts": [
-      "Find love that lasts.",
-      "Meet people who share your values.",
-      "Your next match is one click away."
-    ]
+    "subtitle": "Weniger wischen, besser matchen — eine Community für ernsthaftes Dating.",
+    "texts": "__TODO: translate__"
   },
-  "home.subtitle": "Weniger wischen, besser matchen — eine Community für ernsthaftes Dating.",
-  "home.title": "Echte Verbindungen finden",
   "impressum": "Impressum",
   "lifestyle": {
     "average": "Durchschnittlich",
@@ -274,45 +247,14 @@
     "tagline": "Besser matchen. Klüger lieben. 💘",
     "terms": "Nutzungsbedingungen"
   },
-  "nav.about": "Über uns",
-  "nav.admin": "Admin",
-  "nav.blog": "Blog",
-  "nav.careers": "Karriere",
-  "nav.coInfo": "Colorado-Info",
-  "nav.community": "Community",
-  "nav.company": "Unternehmen",
-  "nav.conditions": "Bedingungen",
-  "nav.contact": "Kontakt",
-  "nav.cookies": "Cookies",
-  "nav.discover": "Entdecken",
-  "nav.download": "Download",
-  "nav.follow": "Folgen",
-  "nav.health": "Gesundheitsrichtlinien",
-  "nav.home": "Startseite",
-  "nav.impressum": "Impressum",
-  "nav.likes": "Likes",
-  "nav.login": "Anmelden",
-  "nav.map": "Karte",
-  "nav.matches": "Matches",
-  "nav.messages": "Nachrichten",
-  "nav.premium": "Premium",
-  "nav.press": "Presse",
-  "nav.privacy": "Datenschutz",
-  "nav.profile": "Profil",
-  "nav.register": "Registrieren",
-  "nav.rights": "Alle Rechte vorbehalten.",
-  "nav.safety": "Sicherheitstipps",
-  "nav.security": "Sicherheit",
-  "nav.settings": "Einstellungen",
-  "nav.special": "Spezial",
-  "nav.support": "Support",
-  "nav.tagline": "Besser matchen. Klüger lieben. 💘",
-  "nav.terms": "Nutzungsbedingungen",
   "notifications": {
     "likeReceived": "{{username}} hat dein Profil geliked",
     "matchFound": "Neues Match mit {{username}}",
     "newMessage": "Neue Nachricht von {{username}}",
     "superlikeReceived": "{{username}} hat dich supergeliked"
+  },
+  "overview": {
+    "error": "Failed to load conversations"
   },
   "politics": {
     "anarchism": "Anarchismus",
@@ -342,12 +284,11 @@
   },
   "press": "Presse",
   "profile": {
-    "about": "Über mich",
     "addCaption": "Bildunterschrift hinzufügen…",
-    "age": "Alter",
     "basicEducation": "Grundbildung",
     "bi": "Bisexuell",
     "bodyType": {
+      "_legacy": "Body type  // TODO: translate",
       "athletic": "Athletisch",
       "normal": "Normal",
       "obese": "Adipös",
@@ -369,13 +310,10 @@
     "delete": "Konto löschen",
     "deleteAccount": "Konto löschen",
     "education": "Bildung",
-    "email": "E-Mail",
     "extraImages": "Weitere Bilder (max. 6)",
     "female": "Weiblich",
-    "fetchError": "❌ Fehler beim Laden des Profils.",
     "gender": "Geschlecht",
     "goal": "Ziele / Wünsche",
-    "goals": "Ziele / Wünsche",
     "height": "Größe (cm)",
     "heightUnit": "Größeneinheit",
     "hetero": "Heterosexuell",
@@ -385,12 +323,10 @@
     "location": "Standort",
     "lookingFor": "Wonach suchst du?",
     "lowerUni": "Bachelor oder gleichwertig",
-    "mainImage": "Hauptprofilbild",
     "male": "Männlich",
     "manualCity": "Oder Stadt manuell eingeben",
     "manualCountry": "Oder Land manuell eingeben",
     "manualRegion": "Oder Region manuell eingeben",
-    "name": "Name",
     "noFileChosen": "Keine Datei ausgewählt",
     "notImportant": "Nicht wichtig",
     "orientation": "Sexuelle Orientierung",
@@ -398,7 +334,6 @@
     "pets": "Hast du Haustiere?",
     "phd": "Doktortitel (PhD)",
     "politicalIdeology": "Politische Einstellung",
-    "premiumMember": "Du bist ein Premium-Mitglied 🎉",
     "profession": "Beruf",
     "professionCategory": "Berufskategorie",
     "professionPlaceholder": "Gib deinen Beruf ein…",
@@ -409,13 +344,10 @@
     "removePicture": "Bild entfernen",
     "required": "Dieses Feld ist erforderlich",
     "save": "Änderungen speichern",
-    "saveChanges": "Änderungen speichern",
     "saveCropped": "Foto speichern",
     "saveError": "Aktualisierung fehlgeschlagen. Bitte Felder prüfen.",
     "saveExtraPhotos": "Zusätzliche Fotos speichern",
     "saveSuccess": "✅ Profil erfolgreich aktualisiert!",
-    "saved": "✅ Profil erfolgreich aktualisiert!",
-    "searchingFor": "Was suchst du?",
     "secondary": "Sekundarabschluss",
     "selectCity": "Stadt auswählen",
     "selectCountry": "Land auswählen",
@@ -423,19 +355,12 @@
     "somewhatImportant": "Einigermaßen wichtig",
     "status": "Beziehungsstatus",
     "summary": "Über mich",
-    "title": "Profil",
-    "updateError": "❌ Fehler beim Aktualisieren des Profils.",
     "updateProfile": "Profil aktualisieren",
     "upperUni": "Master oder gleichwertig",
     "username": "Benutzername",
     "veryImportant": "Sehr wichtig",
     "weight": "Gewicht (kg)",
-    "weightUnit": "Gewichtseinheit",
-    "bodyType.athletic": "Athletic",
-    "bodyType.normal": "Normal",
-    "bodyType.obese": "Obese",
-    "bodyType.overweight": "Overweight",
-    "bodyType.thin": "Thin"
+    "weightUnit": "Gewichtseinheit"
   },
   "region": "Region / Bundesland",
   "religion": {
@@ -451,23 +376,6 @@
   "rights": "Alle Rechte vorbehalten.",
   "safety": "Sicherheitstipps",
   "security": "Sicherheit",
-  "site": {
-    "title": "Loventia.site"
-  },
-  "special": "Spezial",
-  "subnav": {
-    "cupidsPicks": "Cupids Auswahl",
-    "matchPercentage": "Match-Rate",
-    "passport": "Passport",
-    "recommended": "Empfohlen",
-    "superlikes": "SuperLikes"
-  },
-  "support": "Support",
-  "tagline": "Besser verlieben. Klüger lieben. 💘",
-  "terms": "Nutzungsbedingungen",
-  "overview": {
-    "error": "Failed to load conversations"
-  },
   "select_language_label": "Select language",
   "settings": {
     "dangerDescription": "When you delete your account, all your data will be permanently removed.",
@@ -492,5 +400,19 @@
     "unhideSuccess": "Your account is visible again.",
     "unhideError": "Failed to unhide your account.",
     "signedInAs": "Signed in as"
-  }
+  },
+  "site": {
+    "title": "Loventia.site"
+  },
+  "special": "Spezial",
+  "subnav": {
+    "cupidsPicks": "Cupids Auswahl",
+    "matchPercentage": "Match-Rate",
+    "passport": "Passport",
+    "recommended": "Empfohlen",
+    "superlikes": "SuperLikes"
+  },
+  "support": "Support",
+  "tagline": "Besser verlieben. Klüger lieben. 💘",
+  "terms": "Nutzungsbedingungen"
 }

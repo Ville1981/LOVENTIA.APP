@@ -1,7 +1,7 @@
 // File: client/src/api/billing.js
 
 // --- REPLACE START: Billing API client (create checkout, open portal, cancel now, sync) ---
-import api from "../utils/axiosInstance";
+import api from "../services/api/axiosInstance"; // use the shared Axios instance (with baseURL + interceptors)
 
 /**
  * Normalize `{ url }` from various payload shapes.
@@ -27,7 +27,7 @@ export async function createCheckoutSession(opts = {}) {
     const email =
       typeof opts === "string" ? opts : (opts && typeof opts === "object" ? opts.email : undefined);
 
-    // NOTE: axiosInstance baseURL should already include `/api`
+    // axiosInstance baseURL already includes `/api`
     const res = await api.post("/billing/create-checkout-session", {
       email: email || undefined,
     });
@@ -133,3 +133,22 @@ export default {
   syncBilling,
 };
 // --- REPLACE END ---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

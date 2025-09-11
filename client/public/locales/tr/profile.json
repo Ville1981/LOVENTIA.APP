@@ -1,63 +1,4 @@
 {
-  "about": "Hakkımda",
-  "age": "Yaş",
-  "bodyType": {
-    "slim": "Slim",
-    "normal": "Normal",
-    "athletic": "Athletic",
-    "overweight": "Overweight",
-    "obese": "Obese"
-  },
-  "children": "Çocuklar",
-  "education": {
-    "label": "Education",
-    "secondary": "High school",
-    "vocational": "Vocational training",
-    "higher": "University",
-    "phd": "PhD / Research"
-  },
-  "gender": "Cinsiyet",
-  "goals": "Hedefler",
-  "height": "Boy",
-  "heightUnit": "cm",
-  "location": {
-    "city": "Şehir",
-    "country": "Ülke",
-    "manualCity": "Şehri manuel gir",
-    "manualCountry": "Ülkeyi manuel gir",
-    "manualRegion": "Bölgeyi manuel gir",
-    "region": "Bölge"
-  },
-  "lookingFor": "Arıyor",
-  "orientation": "Cinsel yönelim",
-  "pets": "Evcil hayvanlar",
-  "politicalIdeology": "Siyasi ideoloji",
-  "profession": "Meslek",
-  "professionCategory": "Meslek kategorisi",
-  "religion": {
-    "label": "Religion",
-    "christianity": "Christianity",
-    "islam": "Islam",
-    "hinduism": "Hinduism",
-    "buddhism": "Buddhism",
-    "folk": "Folk religion",
-    "none": "None",
-    "other": "Other",
-    "atheism": "Atheism"
-  },
-  "religionImportance": {
-    "label": "Religion importance",
-    "notImportant": "Not important",
-    "somewhatImportant": "Somewhat important",
-    "veryImportant": "Very important",
-    "essential": "Essential"
-  },
-  "searchingFor": "Arıyor",
-  "weight": "Kilo",
-  "weightUnit": "kg",
-  "username": "Kullanıcı adı",
-  "email": "E-posta",
-  "save": "Kaydet",
   "labels": {
     "header": "Profile",
     "age": "Age",
@@ -179,20 +120,71 @@
       "none": "None"
     }
   },
-  "gender.label": "Gender",
-  "orientation.label": "❤️ Orientation",
-  "height.label": "Height",
+  "age": "Yaş",
+  "username": "Kullanıcı adı",
+  "email": "E-posta",
+  "gender": {
+    "label": "Gender"
+  },
+  "orientation": {
+    "label": "❤️ Orientation"
+  },
+  "height": {
+    "label": "Height"
+  },
+  "heightUnit": "cm",
   "cm": "cm",
-  "weight.label": "Weight",
+  "weight": {
+    "label": "Weight"
+  },
+  "weightUnit": "kg",
   "kg": "kg",
-  "bodyType.label": "Body type",
-  "location.country": "🌍 Country",
-  "location.region": "🗺 Region/State",
-  "location.city": "🏩 City",
-  "education.label": "🎓 Education",
-  "professionCategory.label": "💼 Profession category",
+  "bodyType": {
+    "label": "Body type",
+    "slim": "Slim",
+    "normal": "Normal",
+    "athletic": "Athletic",
+    "overweight": "Overweight",
+    "obese": "Obese"
+  },
+  "location": {
+    "country": "Ülke",
+    "region": "Bölge",
+    "city": "Şehir"
+  },
+  "education": {
+    "label": "Education",
+    "secondary": "High school",
+    "vocational": "Vocational training",
+    "higher": "University",
+    "phd": "PhD / Research"
+  },
+  "professionCategory": {
+    "label": "💼 Profession category"
+  },
+  "profession": "Meslek",
   "professionPlaceholder": "Enter profession…",
-  "religion.label": "🕊 Religion",
+  "religion": {
+    "label": "Religion",
+    "christianity": "Christianity",
+    "islam": "Islam",
+    "hinduism": "Hinduism",
+    "buddhism": "Buddhism",
+    "folk": "Folk religion",
+    "none": "None",
+    "other": "Other",
+    "atheism": "Atheism"
+  },
+  "religionImportance": {
+    "label": "Religion importance",
+    "notImportant": "Not important",
+    "somewhatImportant": "Somewhat important",
+    "veryImportant": "Very important",
+    "essential": "Essential"
+  },
+  "politicalIdeology": "Siyasi ideoloji",
+  "children": "Çocuklar",
+  "pets": "Evcil hayvanlar",
   "lifestyle": "Lifestyle",
   "smoke": "Smoke",
   "drink": "Alcohol",
@@ -200,6 +192,8 @@
   "diet": "Diet",
   "exercise": "Exercise",
   "aboutMe": "📄 About me",
+  "goals": "Hedefler",
+  "lookingFor": "Arıyor",
   "male": "Male",
   "female": "Female",
   "other": "Other",
@@ -224,6 +218,7 @@
     "other": "Other",
     "religion": "Religion"
   },
+  "searchingFor": "Arıyor",
   "looking": {
     "friendship": "Friendship",
     "gettingToKnow": "Getting to know",
@@ -259,5 +254,6 @@
     "pets": "🐾 Pets"
   },
   "managePhotos": "Manage photos",
+  "save": "Kaydet",
   "saveSuccess": "Profile saved."
 }

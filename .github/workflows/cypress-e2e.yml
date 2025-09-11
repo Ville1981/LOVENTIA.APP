@@ -1,5 +1,6 @@
-name: Cypress E2E Tests
+# File: .github/workflows/cypress-e2e.yml
 
+name: Cypress E2E Tests
 
 on:
   push:
@@ -10,6 +11,7 @@ on:
 jobs:
   cypress-e2e:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -30,8 +32,14 @@ jobs:
           wait-on-timeout: 60
           command: npm run cy:run
 
+      # Upload videos and screenshots produced by Cypress
       - name: Archive Cypress videos and screenshots
-        uses: actions/upload-artifact@v3
+        # --- REPLACE START: bump deprecated upload-artifact v3 -> v4 (GitHub Actions requirement)
+        uses: actions/upload-artifact@v4
+        # --- REPLACE END
         with:
           name: cypress-artifacts
-          path: cypress/videos, cypress/screenshots
+          # Keep both folders; newline-separated paths are recommended
+          path: |
+            cypress/videos
+            cypress/screenshots

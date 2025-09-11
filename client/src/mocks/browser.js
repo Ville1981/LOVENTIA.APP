@@ -1,3 +1,5 @@
+// File: client/src/mocks/browser.js
+
 /*
   Mock Service Worker (MSW) setup in development.
   Replacement regions are marked between:
@@ -5,21 +7,38 @@
     // --- REPLACE END
 */
 
-// --- REPLACE START: import setupWorker from 'msw/browser' (not 'msw') ---
-import { setupWorker } from 'msw/browser';
-// --- REPLACE END ---
+// --- REPLACE START: conditional export to avoid importing MSW during tests ---
+/**
+ * In tests:
+ *  - Do NOT import 'msw/browser' at all (prevents web-runner resolve/fetch timeouts).
+ *  - Export a lightweight stub that exposes the same surface used by the app.
+ *
+ * In dev (non-test):
+ *  - Lazy-import setupWorker and handlers to avoid side effects at module load.
+ *  - Do NOT auto-start here; the app decides when to call worker.start().
+ */
 
-// --- REPLACE START: import your handlers ---
-import { handlers } from './handlers';
-// --- REPLACE END ---
+let worker;
 
-// Create the service worker with provided request handlers
-export const worker = setupWorker(...handlers);
+const isTest =
+  typeof globalThis !== "undefined" &&
+  (globalThis.__VITEST__ || (typeof import.meta !== "undefined" && import.meta.env?.MODE === "test"));
 
-// --- REPLACE START: do NOT auto-start here; main entry controls .start() ---
-/*
-  Important:
-  - Call worker.start() manually from your main.jsx/main.tsx if you want MSW active in dev.
-  - This avoids running MSW unintentionally in production builds.
-*/
+if (isTest) {
+  // Lightweight stub to satisfy imports during Vitest runs
+  worker = {
+    start: async () => undefined,
+    stop: async () => undefined,
+    use: () => undefined,
+    resetHandlers: () => undefined,
+    printHandlers: () => undefined,
+  };
+} else {
+  // Lazy ESM imports only in non-test environments
+  const { setupWorker } = await import("msw/browser");
+  const { handlers } = await import("./handlers");
+  worker = setupWorker(...handlers);
+}
+
+export { worker };
 // --- REPLACE END ---

@@ -164,7 +164,8 @@
   "hero": {
     "0": "Find love that lasts.",
     "1": "Meet people who share your values.",
-    "2": "Your next match is one click away."
+    "2": "Your next match is one click away.",
+    "title": "Meet kind singles near you"
   },
   "home.title": "Welcome to Loventia.site!",
   "home.subtitle": "Find meaningful connections easily and safely.",
@@ -295,12 +296,14 @@
     "addCaption": "Add a caption...",
     "basicEducation": "Basic education",
     "bi": "Bisexual",
-    "bodyType": "Body type",
-    "bodyType.athletic": "Athletic",
-    "bodyType.normal": "Normal",
-    "bodyType.obese": "Obese",
-    "bodyType.overweight": "Overweight",
-    "bodyType.thin": "Thin",
+    "bodyType": {
+      "_legacy": "Body type",
+      "athletic": "Athletic",
+      "normal": "Normal",
+      "obese": "Obese",
+      "overweight": "Overweight",
+      "thin": "Thin"
+    },
     "browse": "Browse...",
     "categories": {
       "Education": "Education",

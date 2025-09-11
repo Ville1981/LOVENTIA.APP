@@ -1,3 +1,5 @@
+// File: server/routes/auth.js
+
 // --- REPLACE START: Make ESM modules work cleanly (no require in ESM), keep dynamic imports ---
 import 'dotenv/config';
 import express from 'express';
@@ -83,16 +85,6 @@ async function registerUser(req, res, next) {
   }
 }
 
-async function loginUser(req, res, next) {
-  try {
-    const m = await loadUserController();
-    const fn = m.loginUser || m.default?.loginUser || m.default || m;
-    return fn(req, res, next);
-  } catch (err) {
-    return next(err);
-  }
-}
-
 // upload wrapper: preserve .fields([...]) API for our multer-based middleware
 const upload = {
   fields: (spec) => {
@@ -163,6 +155,49 @@ router.use(express.json());
 router.use(express.urlencoded({ extended: true }));
 router.use(cookieParser());
 
+/**
+ * Helpers to generate JWTs
+ */
+const ACCESS_EXPIRES_IN  = process.env.JWT_EXPIRES_IN || '15m';
+const REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
+
+function signAccessToken(payload) {
+  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: ACCESS_EXPIRES_IN });
+}
+function signRefreshToken(payload) {
+  return jwt.sign(payload, process.env.JWT_REFRESH_SECRET, { expiresIn: REFRESH_EXPIRES_IN });
+}
+
+/**
+ * Set refresh cookie with secure defaults.
+ * NOTE: We reuse cookieOptions from utils and extend with Max-Age.
+ */
+async function setRefreshCookie(res, refreshToken) {
+  const base = await loadCookieOptions();
+  const maxAgeMs = (() => {
+    // Try to parse "7d", "15m", "3600" seconds-like strings; fallback to 7 days
+    const v = String(REFRESH_EXPIRES_IN).trim();
+    const m = v.match(/^(\d+)([smhd])?$/i);
+    if (!m) return 1000 * 60 * 60 * 24 * 7;
+    const n = parseInt(m[1], 10);
+    const unit = (m[2] || 's').toLowerCase();
+    const mult = unit === 's' ? 1000
+      : unit === 'm' ? 60 * 1000
+      : unit === 'h' ? 60 * 60 * 1000
+      : unit === 'd' ? 24 * 60 * 60 * 1000
+      : 1000;
+    return n * mult;
+  })();
+
+  const opts = {
+    ...base,
+    // Ensure cookie always has a lifetime
+    maxAge: typeof base.maxAge === 'number' ? base.maxAge : maxAgeMs,
+  };
+
+  res.cookie('refreshToken', refreshToken, opts);
+}
+
 // -----------------------------
 // 1) Refresh Access Token
 //    POST /api/auth/refresh
@@ -179,14 +214,15 @@ router.post('/refresh', async (req, res) => {
     if (!userId) {
       return res.status(401).json({ error: 'Invalid token payload' });
     }
-    const accessToken = jwt.sign(
-      { userId, role: decoded.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '15m' }
-    );
+
+    // Optionally rotate refresh token to extend session
+    const newRefresh = signRefreshToken({ userId, role: decoded.role || 'user' });
+    await setRefreshCookie(res, newRefresh);
+
+    const accessToken = signAccessToken({ userId, role: decoded.role || 'user' });
     return res.json({ accessToken });
   } catch (err) {
-    console.error('Refresh token error:', err);
+    console.error('Refresh token error:', err?.message || err);
     return res.status(403).json({ error: 'Invalid or expired refresh token' });
   }
 });
@@ -198,7 +234,7 @@ router.post('/refresh', async (req, res) => {
 router.post('/logout', async (req, res) => {
   try {
     const cookieOptions = await loadCookieOptions();
-    res.clearCookie('refreshToken', cookieOptions);
+    res.clearCookie('refreshToken', { ...cookieOptions, maxAge: 0 });
     return res.json({ message: 'Logout successful' });
   } catch (err) {
     console.error('Logout error:', err);
@@ -213,10 +249,50 @@ router.post('/logout', async (req, res) => {
 router.post('/register', validateRegister, registerUser);
 
 // -----------------------------
-// 4) Login User
+// 4) Login User (sets refresh cookie)
 //    POST /api/auth/login
 // -----------------------------
-router.post('/login', validateLogin, loginUser);
+router.post('/login', validateLogin, async (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    // Find by email (case-insensitive)
+    const user = await User.findOne({ email: { $regex: `^${email}$`, $options: 'i' } });
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const ok = await bcrypt.compare(String(password), String(user.password || ''));
+    if (!ok) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const payload = { userId: String(user._id), role: user.role || 'user' };
+
+    const accessToken  = signAccessToken(payload);
+    const refreshToken = signRefreshToken(payload);
+
+    // Set refresh cookie (httpOnly)
+    await setRefreshCookie(res, refreshToken);
+
+    // Minimal user data to the client
+    const safeUser = {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      premium: user.premium || user.isPremium || false,
+      plan: user.plan || null,
+    };
+
+    return res.json({ accessToken, user: safeUser });
+  } catch (err) {
+    console.error('Login error:', err?.message || err);
+    return res.status(500).json({ error: 'Login failed' });
+  }
+});
 
 // -----------------------------
 // 5) Forgot Password

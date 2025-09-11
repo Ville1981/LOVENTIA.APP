@@ -1,34 +1,4 @@
 {
-  "title": "Haku",
-  "subtitle": "Säädä suodattimia sopivien osumien löytämiseksi.",
-  "filters": {
-    "age": "Ikä",
-    "minAge": "Min ikä",
-    "maxAge": "Max ikä",
-    "distance": "Etäisyys",
-    "maxDistance": "Maksimi etäisyys",
-    "location": "Sijainti",
-    "gender": "Sukupuoli",
-    "orientation": "Suuntautuminen",
-    "lifestyle": "Elämäntyyli",
-    "interests": "Kiinnostuksen kohteet",
-    "apply": "Käytä suodattimia",
-    "reset": "Nollaa",
-    "clear": "Tyhjennä kaikki",
-    "professionCategory": "💼 Profession category",
-    "politicalIdeology": "🗳 Political ideology",
-    "pets": "🐾 Pets"
-  },
-  "results": {
-    "heading": "Tulokset",
-    "empty": "Ei osumia nykyisillä suodattimilla.",
-    "loadMore": "Lataa lisää"
-  },
-  "cards": {
-    "age": "Ikä",
-    "distance": "Etäisyys",
-    "view": "Näytä profiili"
-  },
   "labels": {
     "header": "Discover",
     "title": "Discover",
@@ -102,14 +72,24 @@
   "instructions": "Choose filters to find matching profiles",
   "ageRange": "Age range",
   "username": "Username",
-  "gender.label": "Gender",
-  "orientation.label": "❤️ Orientation",
-  "location.country": "🌍 Country",
-  "location.region": "🗺 Region/State",
-  "location.city": "🏩 City",
-  "education.label": "🎓 Education",
+  "gender": {
+    "label": "Gender"
+  },
+  "orientation": {
+    "label": "❤️ Orientation"
+  },
+  "location": {
+    "country": "🌍 Country",
+    "region": "🗺 Region/State",
+    "city": "🏩 City"
+  },
+  "education": {
+    "label": "🎓 Education"
+  },
   "profession": "💼 Profession",
-  "religion.label": "🕊 Religion",
+  "religion": {
+    "label": "🕊 Religion"
+  },
   "religionImportance": "Religion importance",
   "politicalIdeology": "🗳 Political ideology",
   "children": "👶 Children",
@@ -127,6 +107,11 @@
   "weight": "Weight",
   "cm": "cm",
   "kg": "kg",
+  "filters": {
+    "professionCategory": "💼 Profession category",
+    "politicalIdeology": "🗳 Political ideology",
+    "pets": "🐾 Pets"
+  },
   "professionCategory": "💼 Profession category",
   "actions": {
     "apply": "Apply filters",

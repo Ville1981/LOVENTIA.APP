@@ -1,63 +1,4 @@
 {
-  "about": "Sobre mí",
-  "age": "Edad",
-  "bodyType": {
-    "slim": "Slim",
-    "normal": "Normal",
-    "athletic": "Athletic",
-    "overweight": "Overweight",
-    "obese": "Obese"
-  },
-  "children": "Hijos",
-  "education": {
-    "label": "Education",
-    "secondary": "High school",
-    "vocational": "Vocational training",
-    "higher": "University",
-    "phd": "PhD / Research"
-  },
-  "gender": "Género",
-  "goals": "Objetivos",
-  "height": "Altura",
-  "heightUnit": "cm",
-  "location": {
-    "city": "Ciudad",
-    "country": "País",
-    "manualCity": "Introducir ciudad manualmente",
-    "manualCountry": "Introducir país manualmente",
-    "manualRegion": "Introducir región manualmente",
-    "region": "Región"
-  },
-  "lookingFor": "Buscando",
-  "orientation": "Orientación sexual",
-  "pets": "Mascotas",
-  "politicalIdeology": "Ideología política",
-  "profession": "Profesión",
-  "professionCategory": "Categoría profesional",
-  "religion": {
-    "label": "Religion",
-    "christianity": "Christianity",
-    "islam": "Islam",
-    "hinduism": "Hinduism",
-    "buddhism": "Buddhism",
-    "folk": "Folk religion",
-    "none": "None",
-    "other": "Other",
-    "atheism": "Atheism"
-  },
-  "religionImportance": {
-    "label": "Religion importance",
-    "notImportant": "Not important",
-    "somewhatImportant": "Somewhat important",
-    "veryImportant": "Very important",
-    "essential": "Essential"
-  },
-  "searchingFor": "Buscando",
-  "weight": "Peso",
-  "weightUnit": "kg",
-  "username": "Nombre de usuario",
-  "email": "Correo electrónico",
-  "save": "Guardar",
   "labels": {
     "header": "Profile",
     "age": "Age",
@@ -179,20 +120,71 @@
       "none": "None"
     }
   },
-  "gender.label": "Gender",
-  "orientation.label": "❤️ Orientation",
-  "height.label": "Height",
+  "age": "Edad",
+  "username": "Nombre de usuario",
+  "email": "Correo electrónico",
+  "gender": {
+    "label": "Gender"
+  },
+  "orientation": {
+    "label": "❤️ Orientation"
+  },
+  "height": {
+    "label": "Height"
+  },
+  "heightUnit": "cm",
   "cm": "cm",
-  "weight.label": "Weight",
+  "weight": {
+    "label": "Weight"
+  },
+  "weightUnit": "kg",
   "kg": "kg",
-  "bodyType.label": "Body type",
-  "location.country": "🌍 Country",
-  "location.region": "🗺 Region/State",
-  "location.city": "🏩 City",
-  "education.label": "🎓 Education",
-  "professionCategory.label": "💼 Profession category",
+  "bodyType": {
+    "label": "Body type",
+    "slim": "Slim",
+    "normal": "Normal",
+    "athletic": "Athletic",
+    "overweight": "Overweight",
+    "obese": "Obese"
+  },
+  "location": {
+    "country": "País",
+    "region": "Región",
+    "city": "Ciudad"
+  },
+  "education": {
+    "label": "Education",
+    "secondary": "High school",
+    "vocational": "Vocational training",
+    "higher": "University",
+    "phd": "PhD / Research"
+  },
+  "professionCategory": {
+    "label": "💼 Profession category"
+  },
+  "profession": "Profesión",
   "professionPlaceholder": "Enter profession…",
-  "religion.label": "🕊 Religion",
+  "religion": {
+    "label": "Religion",
+    "christianity": "Christianity",
+    "islam": "Islam",
+    "hinduism": "Hinduism",
+    "buddhism": "Buddhism",
+    "folk": "Folk religion",
+    "none": "None",
+    "other": "Other",
+    "atheism": "Atheism"
+  },
+  "religionImportance": {
+    "label": "Religion importance",
+    "notImportant": "Not important",
+    "somewhatImportant": "Somewhat important",
+    "veryImportant": "Very important",
+    "essential": "Essential"
+  },
+  "politicalIdeology": "Ideología política",
+  "children": "Hijos",
+  "pets": "Mascotas",
   "lifestyle": "Lifestyle",
   "smoke": "Smoke",
   "drink": "Alcohol",
@@ -200,6 +192,8 @@
   "diet": "Diet",
   "exercise": "Exercise",
   "aboutMe": "📄 About me",
+  "goals": "Objetivos",
+  "lookingFor": "Buscando",
   "male": "Male",
   "female": "Female",
   "other": "Other",
@@ -224,6 +218,7 @@
     "other": "Other",
     "religion": "Religion"
   },
+  "searchingFor": "Buscando",
   "looking": {
     "friendship": "Friendship",
     "gettingToKnow": "Getting to know",
@@ -259,5 +254,6 @@
     "pets": "🐾 Pets"
   },
   "managePhotos": "Manage photos",
+  "save": "Guardar",
   "saveSuccess": "Profile saved."
 }

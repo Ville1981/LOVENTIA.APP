@@ -1,63 +1,4 @@
 {
-  "about": "نبذة عني",
-  "age": "العمر",
-  "bodyType": {
-    "slim": "Slim",
-    "normal": "Normal",
-    "athletic": "Athletic",
-    "overweight": "Overweight",
-    "obese": "Obese"
-  },
-  "children": "الأطفال",
-  "education": {
-    "label": "Education",
-    "secondary": "High school",
-    "vocational": "Vocational training",
-    "higher": "University",
-    "phd": "PhD / Research"
-  },
-  "gender": "النوع",
-  "goals": "الأهداف",
-  "height": "الطول",
-  "heightUnit": "سم",
-  "location": {
-    "city": "المدينة",
-    "country": "الدولة",
-    "manualCity": "Manual city",
-    "manualCountry": "Manual country",
-    "manualRegion": "Manual region / state",
-    "region": "Region / State"
-  },
-  "lookingFor": "يبحث عن",
-  "orientation": "الميول الجنسي",
-  "pets": "الحيوانات الأليفة",
-  "politicalIdeology": "الأيديولوجيا السياسية",
-  "profession": "المهنة",
-  "professionCategory": "فئة المهنة",
-  "religion": {
-    "label": "Religion",
-    "christianity": "Christianity",
-    "islam": "Islam",
-    "hinduism": "Hinduism",
-    "buddhism": "Buddhism",
-    "folk": "Folk religion",
-    "none": "None",
-    "other": "Other",
-    "atheism": "Atheism"
-  },
-  "religionImportance": {
-    "label": "Religion importance",
-    "notImportant": "Not important",
-    "somewhatImportant": "Somewhat important",
-    "veryImportant": "Very important",
-    "essential": "Essential"
-  },
-  "searchingFor": "يبحث عن",
-  "weight": "الوزن",
-  "weightUnit": "كجم",
-  "username": "اسم المستخدم",
-  "email": "البريد الإلكتروني",
-  "save": "حفظ",
   "labels": {
     "header": "Profile",
     "age": "Age",
@@ -179,20 +120,71 @@
       "none": "None"
     }
   },
-  "gender.label": "Gender",
-  "orientation.label": "❤️ Orientation",
-  "height.label": "Height",
+  "age": "العمر",
+  "username": "اسم المستخدم",
+  "email": "البريد الإلكتروني",
+  "gender": {
+    "label": "Gender"
+  },
+  "orientation": {
+    "label": "❤️ Orientation"
+  },
+  "height": {
+    "label": "Height"
+  },
+  "heightUnit": "سم",
   "cm": "cm",
-  "weight.label": "Weight",
+  "weight": {
+    "label": "Weight"
+  },
+  "weightUnit": "كجم",
   "kg": "kg",
-  "bodyType.label": "Body type",
-  "location.country": "🌍 Country",
-  "location.region": "🗺 Region/State",
-  "location.city": "🏩 City",
-  "education.label": "🎓 Education",
-  "professionCategory.label": "💼 Profession category",
+  "bodyType": {
+    "label": "Body type",
+    "slim": "Slim",
+    "normal": "Normal",
+    "athletic": "Athletic",
+    "overweight": "Overweight",
+    "obese": "Obese"
+  },
+  "location": {
+    "country": "الدولة",
+    "region": "Region / State",
+    "city": "المدينة"
+  },
+  "education": {
+    "label": "Education",
+    "secondary": "High school",
+    "vocational": "Vocational training",
+    "higher": "University",
+    "phd": "PhD / Research"
+  },
+  "professionCategory": {
+    "label": "💼 Profession category"
+  },
+  "profession": "المهنة",
   "professionPlaceholder": "Enter profession…",
-  "religion.label": "🕊 Religion",
+  "religion": {
+    "label": "Religion",
+    "christianity": "Christianity",
+    "islam": "Islam",
+    "hinduism": "Hinduism",
+    "buddhism": "Buddhism",
+    "folk": "Folk religion",
+    "none": "None",
+    "other": "Other",
+    "atheism": "Atheism"
+  },
+  "religionImportance": {
+    "label": "Religion importance",
+    "notImportant": "Not important",
+    "somewhatImportant": "Somewhat important",
+    "veryImportant": "Very important",
+    "essential": "Essential"
+  },
+  "politicalIdeology": "الأيديولوجيا السياسية",
+  "children": "الأطفال",
+  "pets": "الحيوانات الأليفة",
   "lifestyle": "Lifestyle",
   "smoke": "Smoke",
   "drink": "Alcohol",
@@ -200,6 +192,8 @@
   "diet": "Diet",
   "exercise": "Exercise",
   "aboutMe": "📄 About me",
+  "goals": "الأهداف",
+  "lookingFor": "يبحث عن",
   "male": "Male",
   "female": "Female",
   "other": "Other",
@@ -224,6 +218,7 @@
     "other": "Other",
     "religion": "Religion"
   },
+  "searchingFor": "يبحث عن",
   "looking": {
     "friendship": "Friendship",
     "gettingToKnow": "Getting to know",
@@ -259,5 +254,6 @@
     "pets": "🐾 Pets"
   },
   "managePhotos": "Manage photos",
+  "save": "حفظ",
   "saveSuccess": "Profile saved."
 }

@@ -123,26 +123,58 @@
   "age": "Alter",
   "username": "Benutzername",
   "email": "E-Mail",
-  "gender.label": "Geschlecht",
-  "orientation.label": "❤️ Orientierung",
-  "height": "Größe",
-  "height.label": "Größe",
+  "gender": {
+    "label": "Geschlecht"
+  },
+  "orientation": {
+    "label": "❤️ Orientierung"
+  },
+  "height": {
+    "label": "Height"
+  },
   "heightUnit": "Größeneinheit",
   "cm": "cm",
-  "weight": "Gewicht",
-  "weight.label": "Gewicht",
+  "weight": {
+    "label": "Weight"
+  },
   "weightUnit": "Gewichtseinheit",
   "kg": "kg",
-  "bodyType.label": "Körperbau",
-  "location.country": "🌍 Land",
-  "location.region": "🗺 Region/Bundesland",
-  "location.city": "🏩 Stadt",
-  "education.label": "🎓 Bildung",
-  "professionCategory": "💼 Berufskategorie",
-  "professionCategory.label": "💼 Berufskategorie",
+  "bodyType": {
+    "label": "Körperbau",
+    "slim": "Schlank",
+    "normal": "Normal",
+    "athletic": "Athletisch",
+    "overweight": "Übergewichtig",
+    "obese": "Adipös"
+  },
+  "location": {
+    "country": "🌍 Land",
+    "region": "🗺 Region/Bundesland",
+    "city": "🏩 Stadt"
+  },
+  "education": {
+    "label": "Bildung",
+    "secondary": "Abitur / Gymnasium",
+    "vocational": "Berufsausbildung",
+    "higher": "Hochschule / Universität",
+    "phd": "Promotion / Forschung"
+  },
+  "professionCategory": {
+    "label": "💼 Profession category"
+  },
   "profession": "💼 Beruf",
   "professionPlaceholder": "Berufsbezeichnung…",
-  "religion.label": "🕊 Religion",
+  "religion": {
+    "label": "Religion",
+    "christianity": "Christentum",
+    "islam": "Islam",
+    "hinduism": "Hinduismus",
+    "buddhism": "Buddhismus",
+    "folk": "Volksreligion",
+    "none": "Keine",
+    "other": "Andere",
+    "atheism": "Atheismus"
+  },
   "religionImportance": {
     "label": "Wichtigkeit der Religion",
     "notImportant": "Nicht wichtig",
@@ -165,24 +197,6 @@
   "male": "Männlich",
   "female": "Weiblich",
   "other": "Andere",
-  "education": {
-    "label": "Bildung",
-    "secondary": "Abitur / Gymnasium",
-    "vocational": "Berufsausbildung",
-    "higher": "Hochschule / Universität",
-    "phd": "Promotion / Forschung"
-  },
-  "religion": {
-    "label": "Religion",
-    "christianity": "Christentum",
-    "islam": "Islam",
-    "hinduism": "Hinduismus",
-    "buddhism": "Buddhismus",
-    "folk": "Volksreligion",
-    "none": "Keine",
-    "other": "Andere",
-    "atheism": "Atheismus"
-  },
   "common": {
     "other": "Andere"
   },
@@ -215,13 +229,6 @@
     "chatOnly": "Nur chatten",
     "casual": "Unverbindlich",
     "undecided": "Unentschieden"
-  },
-  "bodyType": {
-    "slim": "Schlank",
-    "normal": "Normal",
-    "athletic": "Athletisch",
-    "overweight": "Übergewichtig",
-    "obese": "Adipös"
   },
   "childrenYes": "Ja",
   "childrenNo": "Nein",

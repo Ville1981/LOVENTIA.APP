@@ -1,45 +1,4 @@
 {
-  "title": "اكتشف",
-  "subtitle": "قم بضبط عوامل التصفية للعثور على المطابقات المناسبة.",
-  "filters": {
-    "age": "العمر",
-    "minAge": "أقل عمر",
-    "maxAge": "أقصى عمر",
-    "distance": "المسافة",
-    "maxDistance": "أقصى مسافة",
-    "location": "الموقع",
-    "gender": "النوع",
-    "orientation": "Orientation",
-    "lifestyle": "نمط الحياة",
-    "interests": "الاهتمامات",
-    "apply": "تطبيق عوامل التصفية",
-    "reset": "إعادة تعيين",
-    "clear": "مسح الكل",
-    "professionCategory": "💼 Profession category",
-    "politicalIdeology": "🗳 Political ideology",
-    "pets": "🐾 Pets"
-  },
-  "results": {
-    "heading": "النتائج",
-    "empty": "لا توجد نتائج وفق عوامل التصفية الحالية.",
-    "loadMore": "تحميل المزيد"
-  },
-  "cards": {
-    "age": "العمر",
-    "distance": "المسافة",
-    "view": "عرض الملف الشخصي"
-  },
-  "ageRange": "الفئة العمرية",
-  "error": "حدث خطأ ما. الرجاء المحاولة مرة أخرى.",
-  "gender": "النوع",
-  "instructions": "Refine your search using the filters below.",
-  "noResults": "لا توجد نتائج.",
-  "orientation": "الميول الجنسي",
-  "politicalIdeology": "الأيديولوجيا السياسية",
-  "profession": "المهنة",
-  "religion": "الدين",
-  "religionImportance": "أهمية الدين",
-  "username": "اسم المستخدم",
   "labels": {
     "header": "Discover",
     "title": "Discover",
@@ -110,13 +69,29 @@
       "other": "Other"
     }
   },
-  "gender.label": "Gender",
-  "orientation.label": "❤️ Orientation",
-  "location.country": "🌍 Country",
-  "location.region": "🗺 Region/State",
-  "location.city": "🏩 City",
-  "education.label": "🎓 Education",
-  "religion.label": "🕊 Religion",
+  "instructions": "Refine your search using the filters below.",
+  "ageRange": "الفئة العمرية",
+  "username": "اسم المستخدم",
+  "gender": {
+    "label": "Gender"
+  },
+  "orientation": {
+    "label": "❤️ Orientation"
+  },
+  "location": {
+    "country": "🌍 Country",
+    "region": "🗺 Region/State",
+    "city": "🏩 City"
+  },
+  "education": {
+    "label": "🎓 Education"
+  },
+  "profession": "المهنة",
+  "religion": {
+    "label": "🕊 Religion"
+  },
+  "religionImportance": "أهمية الدين",
+  "politicalIdeology": "الأيديولوجيا السياسية",
   "children": "👶 Children",
   "pets": "🐾 Pets",
   "lifestyle": "Lifestyle",
@@ -132,6 +107,11 @@
   "weight": "Weight",
   "cm": "cm",
   "kg": "kg",
+  "filters": {
+    "professionCategory": "💼 Profession category",
+    "politicalIdeology": "🗳 Political ideology",
+    "pets": "🐾 Pets"
+  },
   "professionCategory": "💼 Profession category",
   "actions": {
     "apply": "Apply filters",

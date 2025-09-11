@@ -3,7 +3,7 @@
 // --- REPLACE START: import grouping and PrivateRoute/AdminRoute using context user+bootstrapped ---
 import React, { useEffect, Suspense } from "react";
 import {
-  BrowserRouter as Router,
+  BrowserRouter,
   Routes,
   Route,
   Navigate,
@@ -70,6 +70,28 @@ function AdminRoute({ children }) {
 }
 // --- REPLACE END ---
 
+// --- REPLACE START: guard MSW (and any network workers) away from test runner ---
+// Only attempt to start MSW in dev when explicitly enabled, never during Vitest.
+// This block has no effect unless VITE_MSW="1" and not running tests.
+if (
+  typeof window !== "undefined" &&
+  import.meta?.env?.MODE !== "test" &&
+  !globalThis.__VITEST__ &&
+  import.meta?.env?.VITE_MSW === "1"
+) {
+  (async () => {
+    try {
+      const mod = await import("./mocks/browser");
+      if (mod?.worker?.start) {
+        await mod.worker.start({ onUnhandledRequest: "bypass" });
+      }
+    } catch (_err) {
+      // Silently skip MSW if mocks are not present in this build
+    }
+  })();
+}
+// --- REPLACE END ---
+
 export default function App() {
   useEffect(() => {
     if ("scrollRestoration" in window.history) {
@@ -80,9 +102,14 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      {/* --- REPLACE START: assume AuthProvider wraps the app in main.jsx; no nested provider here --- */}
+      {/* --- REPLACE START: add React Router v7 future flags --- */}
       <Suspense fallback={<div className="p-4">Loading translations…</div>}>
-        <Router>
+        <BrowserRouter
+          future={{
+            v7_startTransition: true,
+            v7_relativeSplatPath: true,
+          }}
+        >
           <Routes>
             <Route path="/" element={<MainLayout />}>
               {/* Public routes */}
@@ -221,10 +248,9 @@ export default function App() {
               <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>
-        </Router>
+        </BrowserRouter>
       </Suspense>
       {/* --- REPLACE END --- */}
     </ErrorBoundary>
   );
 }
-

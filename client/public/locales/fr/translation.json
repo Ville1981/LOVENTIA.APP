@@ -62,7 +62,6 @@
   "common": {
     "all": "All",
     "filter": "Filtrer",
-    "other": "Autre",
     "select": "Sélectionner"
   },
   "community": "Communauté",
@@ -74,28 +73,9 @@
   },
   "cookies": "Cookies",
   "countries": {
-    "Argentiina": "Argentine",
     "Argentina": "Argentina",
-    "Brasilia": "Brésil",
-    "Chile": "Chili",
-    "Espanja": "Espagne",
-    "Intia": "Inde",
-    "Iso-Britannia": "Royaume-Uni",
-    "Italia": "Italie",
-    "Japani": "Japon",
-    "Kanada": "Canada",
-    "Kazakstan": "Kazakhstan",
-    "Kiina": "Chine",
-    "Norja": "Norvège",
-    "Portugali": "Portugal",
-    "Ranska": "France",
-    "Ruotsi": "Suède",
-    "Saksa": "Allemagne",
-    "Suomi": "Finlande",
-    "Ukraina": "Ukraine",
-    "Venäjä": "Russie",
-    "Yhdysvallat": "États-Unis",
     "Brazil": "Brazil",
+    "Chile": "Chili",
     "Spain": "Spain",
     "India": "India",
     "United Kingdom": "United Kingdom",
@@ -119,6 +99,7 @@
     "adAlt": "Espace pub – votre annonce ici",
     "ageRange": "Age range",
     "cityNotFound": "Impossible d'identifier votre ville.",
+    "error": "Failed to load users.",
     "fetchError": "Erreur lors de la récupération des utilisateurs.",
     "filter": "Filtrer",
     "gender": "Gender",
@@ -146,8 +127,7 @@
     "superliked": "Superlike !",
     "title": "Découvrir des utilisateurs",
     "username": "Username",
-    "viewProfile": "Voir le profil",
-    "error": "Failed to load users."
+    "viewProfile": "Voir le profil"
   },
   "download": "Télécharger",
   "error": {
@@ -167,8 +147,8 @@
     "heroOtsikko": "Bienvenue sur Loventia.site !",
     "heroTeksti": "Trouvez des connexions significatives facilement et en toute sécurité.",
     "heroTekstit": [
-      "Trouvez un amour durable.",
-      "Rencontrez des personnes partageant vos valeurs.",
+      "Trouvez un amour qui dure.",
+      "Rencontrez des personnes qui partagent vos valeurs.",
       "Votre prochaine rencontre est à un clic."
     ],
     "katso_kayttajat": "Voir les utilisateurs",
@@ -176,43 +156,24 @@
     "lue_lisaa": "En savoir plus",
     "tervetuloa": "Bienvenue sur Loventia.site !"
   },
-  "etusivu.heroTekstit.0": "Trouvez un amour durable.",
-  "etusivu.heroTekstit.1": "Rencontrez des personnes partageant vos valeurs.",
-  "etusivu.heroTekstit.2": "Votre prochaine rencontre est à un clic.",
   "follow": "Suivre",
   "health": "Politique de santé",
   "hero": {
-    "0": "Trouvez un amour durable.",
-    "1": "Rencontrez des personnes partageant vos valeurs.",
-    "2": "Votre prochaine rencontre est à un clic."
+    "0": "Trouvez un amour qui dure.",
+    "1": "Rencontrez des personnes qui partagent vos valeurs.",
+    "2": "Votre prochaine rencontre est à un clic.",
+    "title": "Meet kind singles near you"
   },
   "home": {
-    "subtitle": "Moins de swipe, de meilleurs matchs — une communauté pour des rencontres sincères.",
     "title": "Trouvez de vraies connexions",
-    "texts": [
-      "Find love that lasts.",
-      "Meet people who share your values.",
-      "Your next match is one click away."
-    ]
+    "subtitle": "Moins de swipe, de meilleurs matchs — une communauté pour des rencontres sincères.",
+    "texts": "__TODO: translate__"
   },
-  "home.subtitle": "Moins de swipe, de meilleurs matchs — une communauté pour des rencontres sincères.",
-  "home.title": "Trouvez de vraies connexions",
   "impressum": "Mentions légales",
   "lifestyle": {
     "average": "Moyennement",
-    "diet": "Préférences alimentaires",
-    "dietKeto": "Keto",
-    "dietOmnivore": "Omnivore",
-    "dietPescatarian": "Pescatarien",
-    "dietVegan": "Végan",
-    "dietVegetarian": "Végétarien",
     "drink": "Alcool",
     "drugs": "Drogues",
-    "exercise": "Habitudes d'exercice",
-    "exerciseDaily": "Quotidien",
-    "exerciseNever": "Jamais",
-    "exerciseOccasionally": "Occasionnellement",
-    "exerciseWeekly": "Hebdomadaire",
     "little": "Un peu",
     "much": "Beaucoup",
     "no": "Aucun",
@@ -286,45 +247,14 @@
     "tagline": "Mieux matcher. Aimer plus intelligemment. 💘",
     "terms": "Conditions"
   },
-  "nav.about": "About",
-  "nav.admin": "Admin",
-  "nav.blog": "Blog",
-  "nav.careers": "Careers",
-  "nav.coInfo": "Infos Colorado",
-  "nav.community": "Communauté",
-  "nav.company": "Entreprise",
-  "nav.conditions": "Conditions",
-  "nav.contact": "Contact",
-  "nav.cookies": "Cookies",
-  "nav.discover": "Découvrir",
-  "nav.download": "Télécharger",
-  "nav.follow": "Suivre",
-  "nav.health": "Politique de santé",
-  "nav.home": "Accueil",
-  "nav.impressum": "Mentions légales",
-  "nav.likes": "Mentions J’aime",
-  "nav.login": "Se connecter",
-  "nav.map": "Carte",
-  "nav.matches": "Correspondances",
-  "nav.messages": "Messages",
-  "nav.premium": "Premium",
-  "nav.press": "Press",
-  "nav.privacy": "Confidentialité",
-  "nav.profile": "Profil",
-  "nav.register": "S'inscrire",
-  "nav.rights": "Tous droits réservés.",
-  "nav.safety": "Conseils de sécurité",
-  "nav.security": "Sécurité",
-  "nav.settings": "Paramètres",
-  "nav.special": "Spécial",
-  "nav.support": "Assistance",
-  "nav.tagline": "Mieux matcher. Aimer plus intelligemment. 💘",
-  "nav.terms": "Conditions",
   "notifications": {
     "likeReceived": "{{username}} liked your profile",
     "matchFound": "You have a new match with {{username}}",
     "newMessage": "You have a new message from {{username}}",
     "superlikeReceived": "{{username}} superliked you"
+  },
+  "overview": {
+    "error": "Failed to load conversations"
   },
   "politics": {
     "anarchism": "Anarchism",
@@ -355,10 +285,10 @@
   "press": "Presse",
   "profile": {
     "addCaption": "Ajouter une légende…",
-    "age": "Âge",
     "basicEducation": "Éducation de base",
     "bi": "Bisexuel",
     "bodyType": {
+      "_legacy": "Body type  // TODO: translate",
       "athletic": "Athletic",
       "normal": "Normal",
       "obese": "Obese",
@@ -380,10 +310,8 @@
     "delete": "Delete account",
     "deleteAccount": "Supprimer le compte",
     "education": "Niveau d'études",
-    "email": "Email",
     "extraImages": "Images supplémentaires (max. 6)",
     "female": "Femme",
-    "fetchError": "❌ Échec du chargement du profil.",
     "gender": "Genre",
     "goal": "Goals / aspirations",
     "height": "Taille (cm)",
@@ -395,12 +323,10 @@
     "location": "Location",
     "lookingFor": "What are you looking for?",
     "lowerUni": "Licence ou équivalent",
-    "mainImage": "Image principale du profil",
     "male": "Homme",
     "manualCity": "Or enter city manually",
     "manualCountry": "Or enter country manually",
     "manualRegion": "Or enter region manually",
-    "name": "Nom",
     "noFileChosen": "Aucun fichier sélectionné",
     "notImportant": "Pas important",
     "orientation": "Orientation sexuelle",
@@ -408,7 +334,6 @@
     "pets": "Animaux de compagnie",
     "phd": "Doctorat (PhD)",
     "politicalIdeology": "Political ideology",
-    "premiumMember": "Vous êtes membre Premium 🎉",
     "profession": "Profession",
     "professionCategory": "Catégorie de profession",
     "professionPlaceholder": "Entrez votre profession…",
@@ -430,19 +355,12 @@
     "somewhatImportant": "Assez important",
     "status": "Statut relationnel",
     "summary": "About me",
-    "title": "Profil",
-    "updateError": "❌ Échec de la mise à jour du profil.",
     "updateProfile": "Mettre à jour le profil",
     "upperUni": "Master ou équivalent",
     "username": "Username",
     "veryImportant": "Très important",
     "weight": "Poids (kg)",
-    "weightUnit": "Weight unit",
-    "bodyType.athletic": "Athletic",
-    "bodyType.normal": "Normal",
-    "bodyType.obese": "Obese",
-    "bodyType.overweight": "Overweight",
-    "bodyType.thin": "Thin"
+    "weightUnit": "Weight unit"
   },
   "region": "Région / état",
   "religion": {
@@ -458,23 +376,6 @@
   "rights": "Tous droits réservés.",
   "safety": "Conseils de sécurité",
   "security": "Sécurité",
-  "site": {
-    "title": "Loventia.site"
-  },
-  "special": "Spécial",
-  "subnav": {
-    "cupidsPicks": "Cupid's Picks",
-    "matchPercentage": "Match %",
-    "passport": "Passport",
-    "recommended": "Recommended",
-    "superlikes": "SuperLikes"
-  },
-  "support": "Support",
-  "tagline": "Mieux matcher. Aimer plus intelligemment. 💘",
-  "terms": "Conditions",
-  "overview": {
-    "error": "Failed to load conversations"
-  },
   "select_language_label": "Select language",
   "settings": {
     "dangerDescription": "When you delete your account, all your data will be permanently removed.",
@@ -499,5 +400,19 @@
     "unhideSuccess": "Your account is visible again.",
     "unhideError": "Failed to unhide your account.",
     "signedInAs": "Signed in as"
-  }
+  },
+  "site": {
+    "title": "Loventia.site"
+  },
+  "special": "Spécial",
+  "subnav": {
+    "cupidsPicks": "Cupid's Picks",
+    "matchPercentage": "Match %",
+    "passport": "Passport",
+    "recommended": "Recommended",
+    "superlikes": "SuperLikes"
+  },
+  "support": "Support",
+  "tagline": "Mieux matcher. Aimer plus intelligemment. 💘",
+  "terms": "Conditions"
 }
