@@ -1,6 +1,6 @@
 // File: server/src/middleware/authenticate.js
 
-// --- REPLACE START: JWT authenticate middleware (ESM, with login/refresh bypass) ---
+// --- REPLACE START: JWT authenticate middleware (ESM, with optional test stub bypass) ---
 /**
  * Authenticate requests using a Bearer access token.
  * - Looks for Authorization: Bearer <token>
@@ -10,6 +10,11 @@
  *
  * Compatible with setups using either JWT_SECRET or ACCESS_TOKEN_SECRET.
  * Keeps backward-compat by providing BOTH: req.user.userId and req.user.id.
+ *
+ * Test convenience:
+ * - If NODE_ENV === "test" AND (AUTH_STUB === "1" OR AUTH_NOOP === "1"),
+ *   this middleware becomes a no-op (calls next()) so routes do not 500
+ *   when the auth layer is intentionally bypassed in tests.
  */
 
 import jwt from "jsonwebtoken";
@@ -73,6 +78,15 @@ function resolveToken(req) {
  */
 export default function authenticate(req, res, next) {
   try {
+    // --- Test stub bypass (optional) ---
+    // When enabled, do nothing so tests won't fail due to missing/mocked auth.
+    if (
+      process.env.NODE_ENV === "test" &&
+      (process.env.AUTH_STUB === "1" || process.env.AUTH_NOOP === "1")
+    ) {
+      return next();
+    }
+
     // Allow public endpoints without token
     const path = req.path || "";
     if (
@@ -182,20 +196,3 @@ export {
   getAccessTokenFromQuery,
 };
 // --- REPLACE END ---
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

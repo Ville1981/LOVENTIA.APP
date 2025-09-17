@@ -1,27 +1,36 @@
-// File: client/src/setupTests.js
-
 // --- REPLACE START: setup for Vitest + RTL + router (v5+v6) + i18n stubs & polyfills ---
 /**
  * Global test setup for the client (Vitest).
- * - React Testing Library matchers
- * - Safe mocks for react-router-dom navigation (supports legacy useHistory().push and v6 useNavigate)
- * - Stub for 'history' package so any custom history.push() works in tests
- * - i18n stubs: mock react-i18next hooks/components + backend & detector (no network, no heavy init)
+ * - RTL matchers via @testing-library/jest-dom/vitest (fixes "expect is not defined")
+ * - Ensure Vitest globals are present (describe/it/expect) in edge cases
+ * - Safe mocks for react-router-dom (v5 useHistory + v6 useNavigate)
+ * - Stub for 'history' package (create*History)
+ * - Lightweight i18n stubs (react-i18next + backend + detector)
  * - JS DOM polyfills (matchMedia, IntersectionObserver, ResizeObserver, scrollTo, URL blobs)
  * - Storage shims (localStorage/sessionStorage)
- * - Quiet common noisy console errors in test output
+ * - Quiet noisy console errors in tests
  *
- * Important:
- *  - No environment forcing (e.g., "web") here.
- *  - Avoid heavyweight dynamic imports in setup (prevents resolve/fetch timeouts).
+ * Note: Performance stubs are excluded in vitest.config.js. If they still slip
+ *       through (path or config drift), this file defensively guarantees that
+ *       Vitest globals exist so those files don’t crash.
  */
 
-import "@testing-library/jest-dom";
-import { vi } from "vitest";
+import "@testing-library/jest-dom/vitest"; // Vitest-integrated matchers
+import { vi, expect as _expect, describe as _describe, it as _it, beforeAll as _beforeAll, afterAll as _afterAll, beforeEach as _beforeEach, afterEach as _afterEach } from "vitest";
 
 /* -----------------------------------------------------------------------------
- * Router: mock navigation
- * Keep the actual components, only override imperative navigation APIs.
+ * Ensure Vitest globals exist (defensive)
+ * ---------------------------------------------------------------------------*/
+if (typeof globalThis.expect === "undefined") globalThis.expect = _expect;
+if (typeof globalThis.describe === "undefined") globalThis.describe = _describe;
+if (typeof globalThis.it === "undefined") globalThis.it = _it;
+if (typeof globalThis.beforeAll === "undefined") globalThis.beforeAll = _beforeAll;
+if (typeof globalThis.afterAll === "undefined") globalThis.afterAll = _afterAll;
+if (typeof globalThis.beforeEach === "undefined") globalThis.beforeEach = _beforeEach;
+if (typeof globalThis.afterEach === "undefined") globalThis.afterEach = _afterEach;
+
+/* -----------------------------------------------------------------------------
+ * Router: mock navigation (keep components; override imperative APIs only)
  * ---------------------------------------------------------------------------*/
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");
@@ -73,8 +82,7 @@ vi.mock("history", async () => {
 });
 
 /* -----------------------------------------------------------------------------
- * i18n mocks: react-i18next + backend + detector (SYNCHRONOUS, LIGHTWEIGHT)
- * IMPORTANT: No vi.importActual here to avoid resolveId/fetch timeouts.
+ * i18n mocks: react-i18next + backend + detector (synchronous & lightweight)
  * ---------------------------------------------------------------------------*/
 vi.mock("react-i18next", () => {
   // Minimal translation map for commonly used test keys; otherwise echo the key.
@@ -111,17 +119,13 @@ vi.mock("react-i18next", () => {
     off: vi.fn(),
   };
 
-  // Provide minimal named exports used by the app/tests.
-  // Note: include initReactI18next to satisfy potential imports (no-op).
   const initReactI18next = { type: "3rdParty", init: () => {} };
 
   return {
-    // Hooks/components
     useTranslation: () => ({ t, i18n: i18nStub, ready: true }),
     Trans: ({ i18nKey, values, children }) => (children ?? t(i18nKey, values)),
     I18nextProvider: ({ children }) => children,
     initReactI18next,
-    // Keep default export shape loosely compatible if referenced
     default: { useTranslation: () => ({ t, i18n: i18nStub, ready: true }) },
   };
 });
@@ -227,7 +231,7 @@ if (typeof window !== "undefined") {
 }
 
 /* -----------------------------------------------------------------------------
- * Silence noisy console errors (keeps meaningful ones)
+ * Silence noisy console errors (keep meaningful ones)
  * ---------------------------------------------------------------------------*/
 const originalError = console.error;
 console.error = (...args) => {
@@ -241,7 +245,6 @@ console.error = (...args) => {
   originalError(...args);
 };
 
-// Expose vi for tests that may need it
-// eslint-disable-next-line no-underscore-dangle
+// Expose vi for tests that may need it (handy in debug)
 globalThis.__vi = vi;
 // --- REPLACE END ---
