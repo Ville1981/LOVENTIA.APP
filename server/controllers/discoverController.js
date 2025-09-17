@@ -1,3 +1,5 @@
+// File: server/controllers/discoverController.js
+
 // --- REPLACE START: Discover controller with robust filters + dealbreakers age & lifestyle fallback (no unnecessary shortening) ---
 'use strict';
 
@@ -28,24 +30,22 @@ const allowedFilters = [
   'religionImportance',
   'education',
   'profession',
-  'professionCategory',   // optional UI field
+  'professionCategory',
   'country',
   'region',
   'city',
   'children',
   'pets',
   'summary',
-  'goals',                // legacy support (mapped to 'goal')
-  'goal',                 // canonical schema field
+  'goals',         // legacy support (mapped to 'goal')
+  'goal',          // canonical schema field
   'lookingFor',
   'smoke',
   'drink',
   'drugs',
-  'status',               // relationship status (if present in schema)
-  'bodyType',             // if present in schema
-  // --- REPLACE START: allow political ideology filters (UI + schema aligned) ---
+  'status',        // relationship status (if present in schema)
+  'bodyType',      // if present in schema
   'politicalIdeology',
-  // --- REPLACE END ---
 ];
 
 /* =============================================================================
@@ -99,7 +99,7 @@ function normalizeImagePath(img) {
   // Remove leading slashes temporarily to simplify handling
   s = s.replace(/^\/+/, '');
 
-  // If path starts with uploads/ (or /uploads/ after the strip), ensure single '/uploads/<rest>'
+  // If path starts with uploads/ ensure single '/uploads/<rest>'
   if (/^uploads\/?/i.test(s)) {
     s = s.replace(/^uploads\/uploads\//i, 'uploads/');
     return `/${s}`;
@@ -155,6 +155,18 @@ function buildFiltersFromQuery(query, currentUserId, { allowSelf }) {
     filters._id = { $ne: currentUserId };
   }
 
+  // Orientation (single legacy string or array in DB); if client passes CSV, support it
+  if (typeof query.orientation === 'string' && query.orientation.includes(',')) {
+    const arr = query.orientation.split(',').map(s => s.trim()).filter(Boolean);
+    // Support both legacy 'orientation' and new 'orientationList'
+    if (arr.length) {
+      filters.$or = [
+        { orientation: { $in: arr } },
+        { orientationList: { $in: arr } },
+      ];
+    }
+  }
+
   return filters;
 }
 
@@ -196,6 +208,8 @@ function buildPagingAndSort(query) {
     sort = { age: 1 };
   } else if (query.sort === 'ageDesc') {
     sort = { age: -1 };
+  } else if (query.sort === 'lastActive') {
+    sort = { lastActive: -1, updatedAt: -1 };
   }
 
   const skip = (page - 1) * limit;
@@ -243,27 +257,19 @@ function buildMustHavePhotoClause() {
 }
 
 function buildNonSmokerClause() {
-  // Flexible: support either string field 'smoke' or boolean 'smoker'
+  // Flexible: support either string field 'smoke' or boolean 'smoker', and nested lifestyle.smoke
   return {
     $or: [
       { smoker: { $exists: true, $ne: true } }, // smoker !== true  (false/undefined treated as pass)
       {
         smoke: {
           $in: [
-            'no',
-            'none',
-            'never',
-            'non-smoker',
-            'non smoker',
-            'nonsmoker',
-            'sober',
-            'clean',
-            'nope',
-            'no_smoke',
-            'does not smoke',
+            'no', 'none', 'never', 'non-smoker', 'non smoker', 'nonsmoker',
+            'no_smoke', 'does not smoke', 'clean',
           ],
         },
       },
+      { 'lifestyle.smoke': { $in: ['no','none','never','non-smoker','non smoker','nonsmoker'] } },
       { smoke: { $exists: true, $eq: false } }, // sometimes stored as boolean false
     ],
   };
@@ -571,4 +577,5 @@ export async function handleAction(req, res) {
       .json({ error: 'Server error recording action' });
   }
 }
+// --- REPLACE END ---
 

@@ -1,4 +1,4 @@
-// File: server/routes/authRoutes.js
+// File: server/src/routes/authRoutes.js
 
 // --- REPLACE START: public authentication routes (no authenticate middleware) + forgot/reset-password wiring ---
 import express from 'express';
@@ -10,6 +10,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Dynamic import for authController (Windows ESM compatibility)
+// From server/src/routes → ../api/controllers resolves to server/src/api/controllers
 const ControllerModule = await import(
   pathToFileURL(path.resolve(__dirname, '../api/controllers/authController.js')).href
 ).catch(() => null);
@@ -18,6 +19,7 @@ const authController = ControllerModule?.default || ControllerModule || {};
 // --- REPLACE START: also try userController as a fallback for forgot/reset and me ---
 let userController = {};
 try {
+  // From server/src/routes → ../controllers resolves to server/src/controllers
   const UcModule = await import(
     pathToFileURL(path.resolve(__dirname, '../controllers/userController.js')).href
   );
@@ -27,7 +29,7 @@ try {
 }
 // --- REPLACE END ---
 
-// Optional request validators
+// Optional request validators (if present)
 let validateBody, loginSchema, registerSchema;
 try {
   const validators = await import(

@@ -1,5 +1,3 @@
-// PATH: client/src/services/api/axiosInstance.js
-
 // --- REPLACE START: resilient Axios instance with refresh + credentials (adds "token unchanged" guard) ---
 import axios from "axios";
 
@@ -388,19 +386,3 @@ api.interceptors.response.use(
 
 export default api;
 // --- REPLACE END ---
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
