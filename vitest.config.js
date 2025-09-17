@@ -1,6 +1,6 @@
 // File: vitest.config.js
 
-// --- REPLACE START: Vitest config wired to client/src/setupTests.js, jsdom env, and modern deps optimizer ---
+// --- REPLACE START: Vitest config wired to src/setupTests.js, jsdom env, and modern deps optimizer ---
 import { defineConfig } from "vitest/config";
 import path from "node:path";
 import url from "node:url";
@@ -15,12 +15,12 @@ export default defineConfig({
     // Ensure a single copy of these libs is used
     dedupe: ["react", "react-dom", "react-router", "react-router-dom"],
     alias: {
-      "@src": r("client/src"),
-      "@components": r("client/src/components"),
-      "@utils": r("client/src/utils"),
-      "@pages": r("client/src/pages"),
-      "@i18n": r("client/src/i18n"),
-      // Pin to project copies
+      "@src": r("src"),
+      "@components": r("src/components"),
+      "@utils": r("src/utils"),
+      "@pages": r("src/pages"),
+      "@i18n": r("src/i18n"),
+      // Pin to project copies (avoid hoisted duplicates)
       react: r("node_modules/react"),
       "react-dom": r("node_modules/react-dom"),
       history: r("node_modules/history"),
@@ -28,7 +28,7 @@ export default defineConfig({
   },
 
   test: {
-    // 1) Browser-like environment for RTL
+    // 1) Browser-like environment for React Testing Library
     environment: "jsdom",
     environmentOptions: {
       jsdom: {
@@ -37,11 +37,15 @@ export default defineConfig({
       },
     },
 
-    // 2) Global setup (router & i18n stubs, polyfills, etc.)
-    setupFiles: ["client/src/setupTests.js"],
+    // 2) Global setup (router & i18n stubs, polyfills, jest-dom, etc.)
+    //    IMPORTANT: In src/setupTests.js, import the Vitest flavor:
+    //      import "@testing-library/jest-dom/vitest";
+    setupFiles: ["src/setupTests.js"],
 
-    // 3) Use optimizer include (Vitest v3: deps.inline is deprecated)
-    //    This pre-optimizes & inlines troublesome ESM deps so workers don’t timeout resolving them.
+    // 3) Vitest globals (fixes "describe/it/expect is not defined")
+    globals: true,
+
+    // 4) Pre-optimize ESM deps to keep workers happy
     deps: {
       optimizer: {
         web: {
@@ -59,21 +63,20 @@ export default defineConfig({
 
     // Test discovery
     include: [
-      "client/src/__tests__/**/*.{test,spec}.{js,jsx,ts,tsx}",
-      "client/src/**/*.{test,spec}.{js,jsx,ts,tsx}",
+      "src/__tests__/**/*.{test,spec}.{js,jsx,ts,tsx}",
+      "src/**/*.{test,spec}.{js,jsx,ts,tsx}",
     ],
     exclude: [
       "node_modules",
       "dist",
       "coverage",
       "**/.{history,cache,tmp,temp}/**",
-      "server/**",
-      "client/cypress/**",
-      "client/playwright/**",
+      "../server/**",
+      "cypress/**",
+      "playwright/**",
     ],
 
     // Stability & CI ergonomics
-    globals: true,
     hookTimeout: 15000,
     testTimeout: 20000,
     teardownTimeout: 10000,
@@ -93,9 +96,9 @@ export default defineConfig({
         "**/__mocks__/**",
         "node_modules/**",
         "coverage/**",
-        "client/vite-env.d.ts",
-        "client/src/main.jsx",
-        "client/src/**/index.js",
+        "vite-env.d.ts",
+        "src/main.jsx",
+        "src/**/index.js",
       ],
       lines: 35,
       functions: 20,
@@ -105,3 +108,18 @@ export default defineConfig({
   },
 });
 // --- REPLACE END ---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

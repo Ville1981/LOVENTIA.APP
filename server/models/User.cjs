@@ -15,6 +15,11 @@ const bcrypt = require('bcryptjs');
  * - Visibility fields (visibility.*, isHidden/hidden virtuals, hiddenUntil, resumeOnLogin) + sync hooks
  * - ✅ Billing fields: `premium`, `isPremium`, top-level `stripeCustomerId` (legacy), `subscriptionId`, and **`billing.stripeCustomerId` (canonical)**
  * - ✅ Entitlements block (tier/features/quotas) to support FE expectations while mirroring legacy flags
+ * - ✅ This update adds (without breaking legacy):
+ *      • lifestyle { smoke/drink/drugs } nested (mirrored with top-level smoke/drink/drugs)
+ *      • orientationList: string[] (mirrored with legacy `orientation` string)
+ *      • locationPoint: GeoJSON Point [lng,lat] + 2dsphere index (mirrored from latitude/longitude)
+ *      • optional lastActive for Discover sorting
  */
 
 // Transform function to hide sensitive fields in JSON output.
@@ -123,6 +128,23 @@ function safeTransform(_doc, ret) {
         education: [],
       };
     }
+
+    // ✅ Ensure nested lifestyle exists in output and mirrors top-level if needed
+    if (!ret.lifestyle || typeof ret.lifestyle !== 'object') {
+      ret.lifestyle = { smoke: ret.smoke || '', drink: ret.drink || '', drugs: ret.drugs || '' };
+    }
+
+    // ✅ Ensure orientationList array exists in output (mirror from legacy orientation if needed)
+    if (!Array.isArray(ret.orientationList)) {
+      const arr = [];
+      if (ret.orientation) arr.push(ret.orientation);
+      ret.orientationList = arr;
+    }
+
+    // ✅ If GeoJSON is missing but lat/lng exists, expose a lightweight view (non-persisted)
+    if (!ret.locationPoint && typeof ret.longitude === 'number' && typeof ret.latitude === 'number') {
+      ret.locationPoint = { type: 'Point', coordinates: [ret.longitude, ret.latitude] };
+    }
   } catch {
     // noop
   }
@@ -136,7 +158,6 @@ function ensure(obj, key, fallback) {
 }
 
 /* ----------------------- Preferences / Dealbreakers schemas ----------------------- */
-// Keeping these small and explicit ensures Mongoose persists values (fixes PATCH→GET mismatch)
 const DealbreakersSchema = new mongoose.Schema(
   {
     distanceKm:    { type: Number,  default: null },
@@ -159,8 +180,25 @@ const PreferencesSchema = new mongoose.Schema(
   { _id: false }
 );
 
+/* ----------------------- Lifestyle & Geo sub-schemas ----------------------- */
+const LifestyleSchema = new mongoose.Schema(
+  {
+    smoke: { type: String, trim: true, default: '' }, // 'none'|'little'|'average'|'much'|'free' etc. (kept flexible)
+    drink: { type: String, trim: true, default: '' },
+    drugs: { type: String, trim: true, default: '' },
+  },
+  { _id: false }
+);
+
+const GeoPointSchema = new mongoose.Schema(
+  {
+    type:        { type: String, enum: ['Point'], default: 'Point' },
+    coordinates: { type: [Number], default: undefined }, // [lng, lat]
+  },
+  { _id: false }
+);
+
 /* ----------------------- Main User schema ----------------------- */
-// IMPORTANT: `politicalIdeology` replaces legacy `ideology`. A virtual alias is provided for backward compatibility.
 const userSchema = new mongoose.Schema(
   {
     username:           { type: String, required: true, unique: true, trim: true },
@@ -181,7 +219,7 @@ const userSchema = new mongoose.Schema(
       stripeCustomerId: { type: String, default: null },
     },
 
-    // ✅ Entitlements (single source of truth for feature access; kept simple first)
+    // ✅ Entitlements
     entitlements: {
       tier:   { type: String, enum: ['free','premium'], default: 'free' },
       since:  { type: Date },
@@ -228,7 +266,11 @@ const userSchema = new mongoose.Schema(
     healthInfo:         { type: String, trim: true },
     activityLevel:      { type: String, trim: true },
     nutritionPreferences: { type: [String], default: [] },
+
+    // Legacy single-orientation (kept)
     orientation:        { type: String, trim: true },
+    // ✅ New: orientation list for multi-select filters
+    orientationList:    { type: [String], default: [] },
 
     // Field persisted (with legacy alias)
     politicalIdeology: {
@@ -259,6 +301,9 @@ const userSchema = new mongoose.Schema(
     latitude:           { type: Number, min: -90, max: 90 },
     longitude:          { type: Number, min: -180, max: 180 },
 
+    // ✅ GeoJSON point for $near queries (mirrored from latitude/longitude)
+    locationPoint:      { type: GeoPointSchema, default: undefined },
+
     // Preferences used in Discover/filters
     preferredGender:    { type: String, default: 'any', trim: true },
     preferredMinAge:    { type: Number, default: 18, min: 18, max: 120 },
@@ -267,10 +312,11 @@ const userSchema = new mongoose.Schema(
 
     interests:          { type: [String], default: [] },
 
-    // Lifestyle filters
+    // Legacy lifestyle fields (kept) + ✅ nested lifestyle for new filters
     smoke:              { type: String, trim: true },
     drink:              { type: String, trim: true },
     drugs:              { type: String, trim: true },
+    lifestyle:          { type: LifestyleSchema, default: () => ({}) },
 
     // Media
     profilePicture:     { type: String, trim: true },     // canonical single avatar path
@@ -281,10 +327,8 @@ const userSchema = new mongoose.Schema(
     passes:       [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     superLikes:   [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 
-    // ✅ ADDED: timestamps for superlike rate limiting (persisted)
+    // ✅ Superlike rate limiting
     superLikeTimestamps: [{ type: Date, default: undefined }],
-
-    // ✅ Optional weekly quota counters (kept minimal for compatibility)
     superLike: {
       weeklyUsed: { type: Number, default: 0 },
       weekStart:  { type: Date,   default: null },
@@ -310,6 +354,9 @@ const userSchema = new mongoose.Schema(
 
     // ✅ NEW: preferences container (includes persisted dealbreakers)
     preferences:     { type: PreferencesSchema, default: () => ({}) },
+
+    // ✅ Optional activity timestamp to help Discover sorting
+    lastActive:      { type: Date, default: null },
   },
   {
     timestamps: true,
@@ -384,10 +431,14 @@ userSchema.virtual('hidden')
     this.visibility.isHidden = val;
   });
 
-/* ----------------------- Visibility & Billing sync hooks ----------------------- */
+/* ----------------------- Visibility & Billing & Lifestyle/Geo/Orientation sync hooks ----------------------- */
 /**
  * Keep top-level (isHidden, hiddenUntil, resumeOnLogin) and nested visibility.* in sync.
  * Also mirror billing.stripeCustomerId ↔ top-level stripeCustomerId for backward compatibility.
+ * Additionally:
+ *  - lifestyle.smoke/drink/drugs ↔ top-level smoke/drink/drugs
+ *  - orientationList[] ↔ legacy orientation string
+ *  - locationPoint.coordinates from longitude/latitude when present
  */
 function syncVisibility(doc) {
   try {
@@ -420,10 +471,6 @@ function syncVisibility(doc) {
   }
 }
 
-/**
- * Mirror billing.stripeCustomerId <-> stripeCustomerId.
- * Canonical source: billing.stripeCustomerId if set; otherwise keep top-level value.
- */
 function syncBillingCustomerId(doc) {
   try {
     if (!doc.billing || typeof doc.billing !== 'object') doc.billing = {};
@@ -439,9 +486,84 @@ function syncBillingCustomerId(doc) {
   }
 }
 
+function syncLifestyle(doc) {
+  try {
+    if (!doc.lifestyle || typeof doc.lifestyle !== 'object') doc.lifestyle = {};
+    // If top-level fields exist, prefer them as source of truth to keep legacy code working
+    if (doc.smoke) doc.lifestyle.smoke = doc.smoke;
+    else if (!doc.lifestyle.smoke) doc.lifestyle.smoke = '';
+
+    if (doc.drink) doc.lifestyle.drink = doc.drink;
+    else if (!doc.lifestyle.drink) doc.lifestyle.drink = '';
+
+    if (doc.drugs) doc.lifestyle.drugs = doc.drugs;
+    else if (!doc.lifestyle.drugs) doc.lifestyle.drugs = '';
+
+    // Also mirror back from nested to top-level if top-level is empty
+    if (!doc.smoke && doc.lifestyle.smoke) doc.smoke = doc.lifestyle.smoke;
+    if (!doc.drink && doc.lifestyle.drink) doc.drink = doc.lifestyle.drink;
+    if (!doc.drugs && doc.lifestyle.drugs) doc.drugs = doc.lifestyle.drugs;
+  } catch {
+    // noop
+  }
+}
+
+function syncOrientation(doc) {
+  try {
+    if (!Array.isArray(doc.orientationList)) doc.orientationList = [];
+    // If legacy single orientation is present and not in list, add it
+    if (doc.orientation && !doc.orientationList.includes(doc.orientation)) {
+      doc.orientationList.push(doc.orientation);
+    }
+    // If legacy empty but list has one value, mirror to legacy for old code paths
+    if (!doc.orientation && doc.orientationList.length === 1) {
+      doc.orientation = doc.orientationList[0];
+    }
+  } catch {
+    // noop
+  }
+}
+
+function syncGeoPoint(doc) {
+  try {
+    const hasNumbers = typeof doc.longitude === 'number' && typeof doc.latitude === 'number';
+    if (hasNumbers) {
+      if (!doc.locationPoint || typeof doc.locationPoint !== 'object') {
+        doc.locationPoint = { type: 'Point', coordinates: [doc.longitude, doc.latitude] };
+      } else {
+        doc.locationPoint.type = 'Point';
+        doc.locationPoint.coordinates = [doc.longitude, doc.latitude];
+      }
+    } else {
+      // keep as-is; do not delete existing point if numeric coords are absent
+    }
+  } catch {
+    // noop
+  }
+}
+
 // Pre-validate/Pre-save to keep fields aligned
-userSchema.pre('validate', function (next) { try { syncVisibility(this); syncBillingCustomerId(this); next(); } catch { next(); } });
-userSchema.pre('save',      function (next) { try { syncVisibility(this); syncBillingCustomerId(this); next(); } catch { next(); } });
+userSchema.pre('validate', function (next) {
+  try {
+    syncVisibility(this);
+    syncBillingCustomerId(this);
+    syncLifestyle(this);
+    syncOrientation(this);
+    syncGeoPoint(this);
+    next();
+  } catch { next(); }
+});
+
+userSchema.pre('save', function (next) {
+  try {
+    syncVisibility(this);
+    syncBillingCustomerId(this);
+    syncLifestyle(this);
+    syncOrientation(this);
+    syncGeoPoint(this);
+    next();
+  } catch { next(); }
+});
 
 /* ----------------------- Auth helper ----------------------- */
 /**
@@ -465,9 +587,6 @@ userSchema.statics.findByCredentials = async function (email, password) {
 };
 
 /* ----------------------- Entitlements helpers (server-side feature toggles) ----------------------- */
-/**
- * Build default Premium features.
- */
 function buildPremiumFeatures() {
   return {
     seeLikedYou:       true,
@@ -480,9 +599,7 @@ function buildPremiumFeatures() {
     noAds:             true,
   };
 }
-/**
- * Start Premium: updates entitlements and legacy flags.
- */
+
 userSchema.methods.startPremium = function startPremium() {
   const e = ensure(this, 'entitlements', { features: {}, quotas: { superLikes: {} } });
   e.tier = 'premium';
@@ -498,9 +615,6 @@ userSchema.methods.startPremium = function startPremium() {
   this.premium = true; // legacy mirror
 };
 
-/**
- * Stop Premium: clears features and legacy flags.
- */
 userSchema.methods.stopPremium = function stopPremium() {
   const e = ensure(this, 'entitlements', { features: {}, quotas: { superLikes: {} } });
   e.tier = 'free';
@@ -525,15 +639,10 @@ userSchema.methods.stopPremium = function stopPremium() {
   this.subscriptionId = null;
 };
 
-/**
- * Reconcile entitlements from Stripe status (activeCount).
- * If activeCount>0 → premium, else free.
- */
 userSchema.methods.reconcileFromStripeStatus = function (activeCount, latestActiveSubId = null, periodEnd = null) {
   if (activeCount > 0) {
     this.startPremium();
     if (periodEnd instanceof Date) {
-      // If the sub is cancel_at_period_end but still active, allow UI to show "ends on ..."
       const e = ensure(this, 'entitlements', { features: {}, quotas: { superLikes: {} } });
       e.until = periodEnd;
     }
@@ -543,10 +652,6 @@ userSchema.methods.reconcileFromStripeStatus = function (activeCount, latestActi
   }
 };
 
-/**
- * ✅ New: instance method to ask "does this user have feature X?"
- * Mirrors middleware logic; safe for server-side checks in services/controllers.
- */
 userSchema.methods.hasFeature = function hasFeature(featureKey) {
   if (!featureKey) return false;
   const premium =
@@ -561,7 +666,6 @@ userSchema.methods.hasFeature = function hasFeature(featureKey) {
 };
 
 /* ----------------------- Indexes ----------------------- */
-
 try {
   userSchema.index({ username: 1 }, { name: 'idx_user_username', unique: true });
   userSchema.index({ email: 1 }, { name: 'idx_user_email', unique: true });
@@ -575,6 +679,9 @@ try {
 
   // Keep separate numeric indexes for potential range queries
   userSchema.index({ latitude: 1, longitude: 1 }, { name: 'idx_user_lat_lng' });
+
+  // ✅ 2dsphere index for GeoJSON point
+  userSchema.index({ locationPoint: '2dsphere' }, { name: 'idx_user_locationPoint_2dsphere' });
 
   // Helpful query for Discover visibility
   userSchema.index(
@@ -598,12 +705,17 @@ try {
     { 'preferences.dealbreakers.distanceKm': 1, 'preferences.dealbreakers.mustHavePhoto': 1 },
     { name: 'idx_user_pref_dealbreakers_basic' }
   );
+
+  // ✅ Orientation list index to support $in queries efficiently
+  userSchema.index({ orientationList: 1 }, { name: 'idx_user_orientation_list' });
+
+  // Optional activity sorting helper
+  userSchema.index({ lastActive: -1 }, { name: 'idx_user_lastActive' });
 } catch {
   /* noop */
 }
 
 /* ----------------------- Model export ----------------------- */
-
 let UserModel;
 try {
   UserModel = mongoose.model('User');
@@ -615,3 +727,4 @@ module.exports = UserModel;
 module.exports.User = UserModel;        // named export (interop)
 module.exports.default = UserModel;     // default-like export (interop)
 // --- REPLACE END ---
+

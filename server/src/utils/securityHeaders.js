@@ -1,4 +1,4 @@
-// utils/securityHeaders.js
+// server/src/utils/securityHeaders.js
 
 /**
  * Middleware to set security-related HTTP headers:
@@ -10,7 +10,9 @@
  * - Permissions-Policy
  */
 
-module.exports = function securityHeaders(req, res, next) {
+// --- REPLACE START: switch to ESM default export ---
+export default function securityHeaders(req, res, next) {
+// --- REPLACE END ---
   // --- REPLACE START: Content Security Policy ---
   res.setHeader(
     'Content-Security-Policy',
@@ -49,4 +51,5 @@ module.exports = function securityHeaders(req, res, next) {
   // --- REPLACE END ---
 
   next();
-};
+}
+

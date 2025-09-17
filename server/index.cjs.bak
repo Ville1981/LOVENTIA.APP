@@ -1,0 +1,95 @@
+// --- REPLACE START: dynamic-import bridge from CJS to ESM app with shim mounts (users & discover, .js + .cjs aware) ---
+"use strict";
+
+/**
+ * CommonJS bridge that dynamically imports the ESM Express app.
+ * - Keeps "type": "module" setups intact.
+ * - Importing this file evaluates ./src/app.js (which starts the server in non-test envs).
+ * - Exports a Promise that resolves to the Express `app` instance.
+ *
+ * NOTE:
+ *  • This file only ensures the legacy mount points exist when the project still boots from index.cjs.
+ *  • We mount ONLY the requested shim routes; no extra/duplicate mounts are added.
+ */
+
+const fs = require("fs");
+const path = require("path");
+
+// Import the ESM app (returns module namespace); prefer default/app/app.default
+const appPromise = import("./src/app.js").then((m) => m.default || m.app || m);
+
+// Export the promise so consumers can `await require('./index.cjs')`
+module.exports = appPromise;
+
+/**
+ * Helper: resolve first existing path from candidates.
+ * We keep candidates minimal and prioritize the requested shim locations.
+ */
+function resolveExistingFile(candidates) {
+  for (const p of candidates) {
+    try {
+      if (fs.existsSync(p)) return p;
+    } catch {
+      // continue
+    }
+  }
+  return null;
+}
+
+/**
+ * After the ESM app is loaded, mount the shims if present.
+ * IMPORTANT:
+ *  - Primary targets (as requested): ./server/routes/user.* and ./server/routes/discover.*
+ *  - Support both .js and .cjs to match your repo.
+ *  - We do NOT introduce duplicate mounts; only mount if a shim file exists and exports a router.
+ */
+appPromise.then((app) => {
+  if (!app || typeof app.use !== "function") return;
+
+  // USERS shim (.js first, then .cjs)
+  try {
+    const usersPath = resolveExistingFile([
+      path.resolve(__dirname, "./server/routes/user.js"),
+      path.resolve(__dirname, "./server/routes/user.cjs"),
+    ]);
+
+    if (usersPath) {
+      const mod = require(usersPath);
+      const usersRouter = (mod && (mod.default || mod.router || mod)) || mod;
+      if (typeof usersRouter === "function") {
+        app.use("/api/users", usersRouter);
+        console.log("✅ Mounted /api/users via shim:", usersPath);
+      } else {
+        console.warn("⚠️ Users shim exported non-router (expected function). File:", usersPath);
+      }
+    } else {
+      console.warn("⚠️ Users shim not found at ./server/routes/user.{js,cjs} (skipping mount).");
+    }
+  } catch (e) {
+    console.warn("⚠️ Could not mount /api/users from index.cjs:", e && (e.message || e));
+  }
+
+  // DISCOVER shim (.js first, then .cjs)
+  try {
+    const discoverPath = resolveExistingFile([
+      path.resolve(__dirname, "./server/routes/discover.js"),
+      path.resolve(__dirname, "./server/routes/discover.cjs"),
+    ]);
+
+    if (discoverPath) {
+      const mod = require(discoverPath);
+      const discoverRouter = (mod && (mod.default || mod.router || mod)) || mod;
+      if (typeof discoverRouter === "function") {
+        app.use("/api/discover", discoverRouter);
+        console.log("✅ Mounted /api/discover via shim:", discoverPath);
+      } else {
+        console.warn("⚠️ Discover shim exported non-router (expected function). File:", discoverPath);
+      }
+    } else {
+      console.warn("⚠️ Discover shim not found at ./server/routes/discover.{js,cjs} (skipping mount).");
+    }
+  } catch (e) {
+    console.warn("⚠️ Could not mount /api/discover from index.cjs:", e && (e.message || e));
+  }
+});
+// --- REPLACE END ---

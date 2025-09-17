@@ -1,14 +1,42 @@
-// --- REPLACE START: keep manual tests out of CI to avoid ESM/interactive flows ---
+// File: server/jest.config.js
+
+// --- REPLACE START: ESM-ready Jest config with Babel transform & allowed ESM deps ---
 /**
- * Jest config for the server package.
+ * Jest config for the server package (ESM).
  * - Uses Node test environment
  * - Ignores manual E2E-like tests under tests/manual in CI
- *   (they often need real secrets/browsers and can include ESM-only syntax)
+ * - Transpiles ESM syntax in tests/sources via babel-jest
+ * - Allows selected ESM deps from node_modules to be transformed (e.g., node-fetch, supertest)
  */
-module.exports = {
+export default {
   testEnvironment: "node",
-  // Keep the default Jest resolver; just ignore manual tests folder.
+
+  // Ignore manual test folder and node_modules
   testPathIgnorePatterns: ["/node_modules/", "/tests/manual/"],
-  // If you later need to support ESM in tests, add a transformer here.
+
+  // Use babel-jest inline so no separate babel.config.* is required
+  transform: {
+    "^.+\\.[jt]sx?$": [
+      "babel-jest",
+      {
+        presets: [
+          [
+            "@babel/preset-env",
+            {
+              targets: { node: "current" },
+              modules: "auto",
+            },
+          ],
+        ],
+      },
+    ],
+  },
+
+  // By default node_modules is skipped; whitelist ESM deps that need transpilation
+  transformIgnorePatterns: [
+    "/node_modules/(?!node-fetch|undici|superagent|supertest)/",
+  ],
+
+  coverageProvider: "v8",
 };
 // --- REPLACE END ---
