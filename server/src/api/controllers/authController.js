@@ -1,4 +1,4 @@
-// server/controllers/authController.js
+// PATH: server/src/api/controllers/authController.js
 
 // --- REPLACE START: ESM auth controller with username validation & robust cookieOptions + real forgot/reset password (email) ---
 /**
@@ -10,6 +10,7 @@
  * - Email reset flow with crypto token (hash stored in DB) + nodemailer
  * - Exports: register, login, refreshToken, logout, me, forgotPassword, resetPassword (+ default export)
  * - Compatibility: reset link now includes ?token=...&id=..., and reset endpoint accepts { token, password } OR { id, token, newPassword }.
+ * - Cookie policy: dev → SameSite=Lax, Secure=false, Path=/api/auth; prod → SameSite=Strict (overridable), Secure=true
  */
 
 import jwt from 'jsonwebtoken';
@@ -27,26 +28,75 @@ const __dirname  = path.dirname(__filename);
 /* -------------------------------------------------------------------------- */
 /*                             Cookie configuration                            */
 /* -------------------------------------------------------------------------- */
+/**
+ * We keep a base cookieOptions object that can be overridden by:
+ * - local utils/cookieOptions.js (if present)
+ * - environment variables (COOKIE_PATH, COOKIE_SAMESITE, COOKIE_SECURE, COOKIE_DOMAIN)
+ *
+ * Defaults:
+ *   - Development (NODE_ENV !== 'production'):
+ *       httpOnly = true, sameSite = 'Lax', secure = false, path = '/api/auth'
+ *   - Production:
+ *       httpOnly = true, sameSite = 'Strict' (unless env override), secure = true, path = '/api/auth'
+ *
+ * NOTE:
+ *   - We DO NOT set domain by default. If you need cross-subdomain cookies in prod,
+ *     set COOKIE_DOMAIN=.yourdomain.com in the environment.
+ *   - We do NOT fix maxAge here; it is set where cookies are issued.
+ */
 
 let cookieOptions = {
   httpOnly: true,
-  sameSite: 'lax',
-  secure: false,
-  path: '/',
-  // MaxAge intentionally omitted here; set when we actually set the cookie.
+  sameSite: 'Lax',     // dev default (normalized later)
+  secure: false,       // dev default
+  path: '/api/auth',   // stable path for refresh/login/logout
+  // domain: undefined  // only if explicitly provided via env or util override
 };
+
+// Optional: load project-specific defaults if provided
 try {
   const modURL = pathToFileURL(path.resolve(__dirname, '../../utils/cookieOptions.js'));
   const mod    = await import(modURL.href);
-  cookieOptions = mod.cookieOptions || mod.default || cookieOptions;
+  const fromUtil = mod.cookieOptions || mod.default;
+  if (fromUtil && typeof fromUtil === 'object') {
+    cookieOptions = { ...cookieOptions, ...fromUtil };
+  }
 } catch {
   // keep fallback
 }
 
+// Allow environment overrides (string values)
+const ENV_SAMESITE = (process.env.COOKIE_SAMESITE || '').trim(); // e.g. 'Lax' | 'Strict' | 'None' (case-insensitive ok)
+const ENV_SECURE   = (process.env.COOKIE_SECURE   || '').trim(); // 'true' | 'false'
+const ENV_PATH     = (process.env.COOKIE_PATH     || '').trim();
+const ENV_DOMAIN   = (process.env.COOKIE_DOMAIN   || '').trim();
+
+if (ENV_PATH)     cookieOptions.path     = ENV_PATH;
+if (ENV_SAMESITE) cookieOptions.sameSite = ENV_SAMESITE;
+if (ENV_SECURE)   cookieOptions.secure   = ENV_SECURE.toLowerCase() === 'true';
+if (ENV_DOMAIN)   cookieOptions.domain   = ENV_DOMAIN;
+
+// Normalize dev/prod defaults if not overridden
 if (process.env.NODE_ENV === 'production') {
-  cookieOptions.secure = cookieOptions.secure ?? true;
-  cookieOptions.sameSite = cookieOptions.sameSite ?? 'none';
+  // In prod, prefer stricter defaults unless explicitly overridden above/util
+  if (!ENV_SECURE && (cookieOptions.secure === false || cookieOptions.secure == null)) {
+    cookieOptions.secure = true;
+  }
+  if (!ENV_SAMESITE && (!cookieOptions.sameSite || String(cookieOptions.sameSite).toLowerCase() === 'lax')) {
+    cookieOptions.sameSite = 'Strict';
+  }
+} else {
+  // In dev, force dev-friendly defaults unless explicitly overridden
+  if (!ENV_SECURE)   cookieOptions.secure   = false;
+  if (!ENV_SAMESITE) cookieOptions.sameSite = 'Lax';
+  if (!ENV_PATH)     cookieOptions.path     = '/api/auth';
 }
+
+// Ensure proper casing for SameSite accepted by Express/Set-Cookie (case-insensitive allowed, but keep tidy)
+const sameSiteLower = String(cookieOptions.sameSite || '').toLowerCase();
+if (sameSiteLower === 'lax') cookieOptions.sameSite = 'Lax';
+else if (sameSiteLower === 'strict') cookieOptions.sameSite = 'Strict';
+else if (sameSiteLower === 'none') cookieOptions.sameSite = 'None';
 
 /* -------------------------------------------------------------------------- */
 /*                          Resolve / load the User model                      */
@@ -243,7 +293,7 @@ export async function register(req, res) {
     const at   = generateAccessToken({ userId: uid, role });
     const rt   = generateRefreshToken({ userId: uid, role });
 
-    // Set refresh cookie (7 days)
+    // Set refresh cookie (7 days) with stabilized options (dev/prod aware)
     res.cookie('refreshToken', rt, { ...cookieOptions, maxAge: 7 * 24 * 60 * 60 * 1000 });
 
     return res.status(201).json({
@@ -302,6 +352,7 @@ export async function login(req, res) {
     const at   = generateAccessToken({ userId: uid, role });
     const rt   = generateRefreshToken({ userId: uid, role });
 
+    // Set refresh cookie (7 days) with stabilized options (dev/prod aware)
     res.cookie('refreshToken', rt, { ...cookieOptions, maxAge: 7 * 24 * 60 * 60 * 1000 });
 
     return res.json({
@@ -316,12 +367,15 @@ export async function login(req, res) {
 
 /**
  * POST /api/auth/refresh
- * Cookie: refreshToken
- * MUST return: { accessToken }
+ * Accepted:
+ *   - Cookie: refreshToken   (preferred)
+ *   - Body:   { refreshToken }  (fallback for clients that cannot handle HttpOnly cookies in dev tools)
+ * Returns: { accessToken }
  */
 export async function refreshToken(req, res) {
   try {
-    const token = req.cookies?.refreshToken;
+    // Prefer cookie; fall back to explicit body field if present
+    const token = req.cookies?.refreshToken || req.body?.refreshToken;
     if (!token) {
       return res.status(401).json({ error: 'No refresh token provided' });
     }
@@ -356,13 +410,13 @@ export async function refreshToken(req, res) {
 /**
  * POST /api/auth/logout
  * Clears refreshToken cookie
- * Fix Express 5 warning: pass cookie options to clearCookie.
+ * Fix Express 5 warning: pass same cookie options to clearCookie as used in cookie()
  */
 export function logout(_req, res) {
   try {
-    // ✅ Include options to avoid Express 5 warning
+    // Include the same options (path/samesite/secure/httpOnly/domain) so the client actually clears it
     res.clearCookie('refreshToken', { ...cookieOptions, maxAge: 0 });
-    return res.sendStatus(204);
+    return res.status(200).json({ message: 'Logout successful' });
   } catch (err) {
     console.error('Logout error:', err?.stack || err?.message || err);
     return res.status(500).json({ error: 'Logout failed' });

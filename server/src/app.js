@@ -1,4 +1,4 @@
-// server/src/app.js
+// PATH: server/src/app.js
 
 /**
  * Application entrypoint (Express)
@@ -591,6 +591,76 @@ app.get("/test-alerts", async (_req, res) => {
   }
 });
 
+// --- REPLACE START: improved diagnostics endpoints (/__routes and /__routes_full with real mount paths) ---
+/**
+ * Extract human-readable mount path from an Express layer.regexp.
+ * Falls back to "" if not detectable.
+ */
+function getMountPathFromLayer(layer) {
+  try {
+    const src = layer?.regexp?.source || "";
+    // Typical: ^\/api\/auth\/?(?=\/|$)
+    if (!src) return "";
+    let s = src;
+    s = s.replace(/^\^/, "");
+    s = s.replace(/\\\/\?\(\?=\\\/\|\$\)\$$/i, ""); // strip trailing '\/?(?=\/|$)'
+    s = s.replace(/\\\//g, "/");                    // unescape slashes
+    s = s.replace(/\$$/, "");                       // strip trailing $
+    if (!s.startsWith("/")) s = "/" + s;
+    return s;
+  } catch {
+    return "";
+  }
+}
+
+app.get("/__routes", (_req, res) => {
+  try {
+    const routes = [];
+    app._router.stack.forEach((layer) => {
+      if (layer.route) {
+        const methods = Object.keys(layer.route.methods).map((m) => m.toUpperCase()).join(",");
+        routes.push(`${methods} ${layer.route.path}`);
+      } else if (layer.name === "router" && layer.handle?.stack) {
+        const mount = getMountPathFromLayer(layer);
+        layer.handle.stack.forEach((h) => {
+          if (h.route) {
+            const methods = Object.keys(h.route.methods).map((m) => m.toUpperCase()).join(",");
+            routes.push(`${methods} ${(mount + h.route.path).replace(/\/{2,}/g, "/")}`);
+          }
+        });
+      }
+    });
+    res.json(routes);
+  } catch (e) {
+    res.status(500).json({ error: e.message || String(e) });
+  }
+});
+
+app.get("/__routes_full", (_req, res) => {
+  function walk(stack, base = "") {
+    const out = [];
+    for (const layer of stack) {
+      if (layer.route && layer.route.path) {
+        const methods = Object.keys(layer.route.methods).map((m) => m.toUpperCase());
+        const full = (base + layer.route.path).replace(/\/{2,}/g, "/");
+        for (const m of methods) out.push(`${m} ${full}`);
+      } else if (layer.name === "router" && layer.handle?.stack) {
+        const mount = getMountPathFromLayer(layer);
+        const nextBase = (base + mount).replace(/\/{2,}/g, "/");
+        out.push(...walk(layer.handle.stack, nextBase));
+      }
+    }
+    return out;
+  }
+  try {
+    const list = walk(app._router.stack);
+    res.json(list);
+  } catch (e) {
+    res.status(500).json({ error: e?.message || String(e) });
+  }
+});
+// --- REPLACE END ---
+
 // ──────────────────────────────────────────────────────────────────────────────
 /* Webhook routes (legacy/paypal) — AFTER parsers (no raw body needed) */
 // ──────────────────────────────────────────────────────────────────────────────
@@ -711,10 +781,11 @@ try {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-/* Auth routes */
+/* Auth routes — mount HERE before any /api aggregator */
 // ──────────────────────────────────────────────────────────────────────────────
+// --- REPLACE START: mount /api/auth in app.js with richer diagnostics ---
 if (IS_TEST) {
-  // Minimal JWT auth for tests
+  // Minimal JWT auth for tests (kept as before)
   const jwt = require("jsonwebtoken");
   const testAuth = express.Router();
 
@@ -722,7 +793,6 @@ if (IS_TEST) {
   const TEST_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || "test_refresh_secret";
   const noValidate = (_req, _res, next) => next();
 
-  // Login: return accessToken and set refresh cookie
   testAuth.post("/login", noValidate, (req, res) => {
     const { email } = req.body || {};
     const userId = "000000000000000000000001";
@@ -740,7 +810,6 @@ if (IS_TEST) {
     return res.status(200).json({ accessToken });
   });
 
-  // Refresh: verify cookie and issue new access token
   testAuth.post("/refresh", (req, res) => {
     const token = req.cookies && req.cookies.refreshToken;
     if (!token) return res.status(401).json({ error: "No refresh token provided" });
@@ -758,7 +827,6 @@ if (IS_TEST) {
     }
   });
 
-  // Logout: clear cookie (omit maxAge to avoid Express deprecation in tests)
   testAuth.post("/logout", (_req, res) => {
     const { maxAge, ...withoutMaxAge } = cookieOptions || {};
     res.clearCookie("refreshToken", withoutMaxAge);
@@ -766,280 +834,84 @@ if (IS_TEST) {
   });
 
   app.use("/api/auth", testAuth);
-
-  // --- REPLACE START: add lightweight /api/payment test routes & fix Subscription require order ---
-  try {
-    const testPay = express.Router();
-
-    // Stripe Checkout Session
-    testPay.post("/stripe-session", async (_req, res) => {
-      try {
-        const stripe = require("stripe");
-        const client = stripe(process.env.STRIPE_SECRET_KEY || "sk_test_dummy");
-        const session = await client.checkout.sessions.create({
-          payment_method_types: ["card"],
-          mode: "subscription",
-          line_items: [{ price: process.env.STRIPE_PREMIUM_PRICE_ID, quantity: 1 }],
-          metadata: { userId: "user123" },
-          success_url: `${process.env.CLIENT_URL}/subscription-success?session_id={CHECKOUT_SESSION_ID}`,
-          cancel_url: `${process.env.CLIENT_URL}/subscription-cancel`,
-        });
-        return res.json({ url: (session && session.url) || "https://stripe.com/session" });
-      } catch (e) {
-        return res.status(500).json({ error: "Stripe session error", details: e && e.message });
-      }
-    });
-
-    // PayPal order create
-    testPay.post("/paypal-order", async (_req, res) => {
-      try {
-        const paypal = require("@paypal/checkout-server-sdk");
-        const env = new paypal.core.SandboxEnvironment("clientId", "clientSecret");
-        const client = new paypal.core.PayPalHttpClient(env);
-        const request = new paypal.orders.OrdersCreateRequest();
-        request.prefer("return=representation");
-        request.requestBody({
-          intent: "CAPTURE",
-          purchase_units: [{ amount: { currency_code: "USD", value: "9.99" } }],
-        });
-        const result = await client.execute(request);
-        return res.status(200).json({ id: (result && result.result && result.result.id) || "PAYPAL_ORDER_ID" });
-      } catch (e) {
-        return res.status(500).json({ error: "PayPal create error", details: e && e.message });
-      }
-    });
-
-    // --- REPLACE START: PayPal capture — force mock hit and always call Subscription.create on success ---
-    testPay.post("/paypal-capture", async (req, res) => {
-      try {
-        const { orderID } = req.body || {};
-
-        // Execute capture via SDK (or test double)
-        const paypal = require("@paypal/checkout-server-sdk");
-        const env = new paypal.core.SandboxEnvironment("clientId", "clientSecret");
-        const client = new paypal.core.PayPalHttpClient(env);
-        const request = new paypal.orders.OrdersCaptureRequest(orderID);
-        request.requestBody({});
-        const capture = await client.execute(request);
-
-        // Ensure we hit jest.mock("../models/Subscription") exactly
-        let Subscription = null;
-        try {
-          // IMPORTANT: require WITHOUT extension so the mock intercepts reliably
-          Subscription = require("../models/Subscription");
-        } catch {
-          try {
-            Subscription = mongoose.models?.Subscription || null;
-          } catch {
-            Subscription = null;
-          }
-        }
-
-        const subId =
-          (capture && capture.result && (capture.result.subscription_id || capture.result.id)) || "CAPTURE_ID";
-
-        // Always attempt to create a subscription record on success
-        if (Subscription && typeof Subscription.create === "function") {
-          await Subscription.create({
-            user: "user123",
-            plan: "premium",
-            provider: "paypal",
-            subscriptionId: String(subId),
-          });
-        }
-
-        return res.status(200).json({
-          status: (capture && capture.result && capture.result.status) || "COMPLETED",
-          details: (capture && capture.result) || { id: subId },
-        });
-      } catch (e) {
-        return res.status(500).json({ error: "PayPal capture error", details: e && e.message });
-      }
-    });
-    // --- REPLACE END ---
-
-    // PayPal webhook (signature verify stub via SDK)
-    testPay.post("/paypal-webhook", async (req, res) => {
-      try {
-        const paypal = require("@paypal/checkout-server-sdk");
-        const env = new paypal.core.SandboxEnvironment("clientId", "clientSecret");
-        const client = new paypal.core.PayPalHttpClient(env);
-
-        const verifyReq = new paypal.notification.WebhookEventVerifySignatureRequest();
-        verifyReq.requestBody({
-          auth_algo: req.headers["paypal-auth-algo"],
-          cert_url: req.headers["paypal-cert-url"],
-          transmission_id: req.headers["paypal-transmission-id"],
-          transmission_sig: req.headers["paypal-transmission-sig"],
-          transmission_time: req.headers["paypal-transmission-time"],
-          webhook_id: process.env.PAYPAL_WEBHOOK_ID || "test_webhook_id",
-          webhook_event: typeof req.body === "string" ? JSON.parse(req.body) : req.body,
-        });
-
-        const verifyRes = await client.execute(verifyReq);
-        const status = (verifyRes && verifyRes.result && verifyRes.result.verification_status) || "SUCCESS";
-        return status === "SUCCESS" ? res.sendStatus(200) : res.sendStatus(400);
-      } catch (e) {
-        return res.status(500).json({ error: "Webhook verify error", details: e && e.message });
-      }
-    });
-
-    app.use("/api/payment", testPay);
-  } catch {
-    // If SDKs unavailable, keep tests resilient by returning static responses
-    app.post("/api/payment/stripe-session", (_req, res) => res.json({ url: "https://stripe.com/session" }));
-    app.post("/api/payment/paypal-order", (_req, res) => res.json({ id: "PAYPAL_ORDER_ID" }));
-    // Prefer Subscription require WITHOUT extension first in fallback too
-    app.post("/api/payment/paypal-capture", async (_req, res) => {
-      try {
-        let Subscription = null;
-        try {
-          Subscription = require("../models/Subscription");
-        } catch {
-          try {
-            Subscription = mongoose.models?.Subscription || null;
-          } catch {
-            Subscription = null;
-          }
-        }
-        if (Subscription && typeof Subscription.create === "function") {
-          await Subscription.create({
-            user: "user123",
-            plan: "premium",
-            provider: "paypal",
-            subscriptionId: "CAPTURE_ID",
-          });
-        }
-      } catch {
-        // ignore errors during fallback persistence
-      }
-      return res.json({ status: "COMPLETED", details: { id: "CAPTURE_ID" } });
-    });
-    app.post("/api/payment/paypal-webhook", (_req, res) => res.sendStatus(200));
-  }
-  // --- REPLACE END ---
-
-  // Lightweight test-mode users route (kept)
-  app.get("/api/users/:id", async (req, res) => {
-    let UserModel;
-    try {
-      const maybe = require("../models/User"); // without extension to match jest.mock
-      UserModel = maybe?.default || maybe?.User || maybe;
-    } catch {
-      try {
-        UserModel = mongoose.model("User");
-      } catch {
-        UserModel = null;
-      }
-    }
-
-    try {
-      if (UserModel) {
-        const doc = await UserModel.findById(req.params.id);
-        if (doc) return res.status(200).json(doc);
-      }
-      if (req.params.id === "1") {
-        return res.status(200).json({ _id: "1", username: "TestUser", email: "test@example.com" });
-      }
-      return res.status(404).json({ error: "User not found" });
-    } catch {
-      if (req.params.id === "1") {
-        return res.status(200).json({ _id: "1", username: "TestUser", email: "test@example.com" });
-      }
-      return res.status(404).json({ error: "User not found" });
-    }
-  });
-
-  // --- REPLACE START: remove inline /api/discover test route to avoid duplicate layer ---
-  /**
-   * NOTE:
-   * The old inline `app.get("/api/discover", ...)` test-mode handler has been
-   * intentionally removed to prevent an extra bound dispatch layer from shadowing
-   * the proper router from routes/discover*.js.
-   * This keeps route ownership in the dedicated router and fixes the blocking.
-   */
-  // --- REPLACE END ---
+  console.log("✅ Mounted /api/auth (test-mode) in app.js");
 } else {
-  // Production/Dev auth endpoints (direct handlers to guarantee availability)
-  if (authController && typeof authController.login === "function") {
-    app.post(
-      "/api/auth/login",
-      dbReady, // ensure DB is connected before hitting controller
-      loginSchema ? validateBody(loginSchema) : (_req, _res, next) => next(),
-      authController.login
-    );
-  }
-
-  if (authController && typeof authController.register === "function") {
-    app.post(
-      "/api/auth/register",
-      dbReady,
-      registerSchema ? validateBody(registerSchema) : (_req, _res, next) => next(),
-      authController.register
-    );
-  }
-
-  // --- REPLACE START: fix wrong path candidate and avoid throwing if missing ---
-  // Correct candidates (we are already in server/src)
-  const maybeAuthRoutes = await (async () => {
+  // Resolve the dedicated auth router module (ESM/CJS compatible)
+  let authRouter = null;
+  const authCandidates = [
+    path.resolve(__dirname, "./routes/auth.js"),
+    path.resolve(__dirname, "../routes/auth.js"),
+  ];
+  const tried = [];
+  for (const p of authCandidates) {
+    tried.push(p);
     try {
-      const r = tryRequireRoute(
-        "./routes/authRoutes.js",
-        path.resolve(__dirname, "../routes/authRoutes.js"),
-        "./routes/auth.js",
-        path.resolve(__dirname, "../routes/auth.js"),
-        { silent: true }
-      );
-      return r instanceof Promise ? await r : r;
-    } catch {
-      return null;
+      const mod = require(p);
+      const r = (mod && (mod.default || mod.router || mod)) || mod;
+      if (typeof r === "function") {
+        authRouter = r;
+        break;
+      }
+    } catch (e) {
+      // Always try dynamic import on any require error
+      try {
+        const esm = await import(pathToFileURL(p).href);
+        const r = (esm && (esm.default || esm.router || esm)) || esm;
+        if (typeof r === "function") {
+          authRouter = r;
+          break;
+        }
+      } catch {
+        // continue to next candidate
+      }
     }
-  })();
-
-  if (typeof maybeAuthRoutes === "function") {
-    app.use("/api/auth", maybeAuthRoutes);
-  } else {
-    console.warn("⚠️ /api/auth not mounted (auth routes file not found).");
   }
-  // --- REPLACE END ---
+
+  if (!authRouter && authController && (authController.login || authController.register)) {
+    // Fallback mini-router that wires controller handlers, to guarantee availability
+    const r = express.Router();
+    const pass = (_req, _res, next) => next();
+    if (authController.login) {
+      r.post("/login", dbReady, pass, authController.login);
+    }
+    if (authController.register) {
+      r.post("/register", dbReady, pass, authController.register);
+    }
+    // Optional pass-throughs (if controller exposes them)
+    if (authController.refresh) r.post("/refresh", pass, authController.refresh);
+    if (authController.logout) r.post("/logout", pass, authController.logout);
+    if (authController.me) r.get("/me", pass, authController.me);
+    if (authController.profile) r.get("/profile", pass, authController.profile);
+    authRouter = r;
+    console.warn("⚠️ Using fallback inline auth router (authController-based). Check routes/auth.js and its imports.");
+  }
+
+  if (typeof authRouter === "function") {
+    app.use("/api/auth", authRouter);
+    const stackLen = authRouter.stack?.length ?? 0;
+    console.log(`✅ Mounted /api/auth via router in app.js (handlers=${stackLen})`);
+  } else {
+    console.warn("⚠️ /api/auth not mounted (auth router not found). Candidates tried:\n" + tried.join("\n"));
+  }
 }
+// --- REPLACE END ---
+
 
 // ──────────────────────────────────────────────────────────────────────────────
 /* Legacy root aliases that forward to /api/auth/* + /api/users/* */
 // ──────────────────────────────────────────────────────────────────────────────
 const alias = express.Router();
 
-// Auth root → /api/auth
-alias.post("/register", (req, _res, next) => {
-  req.url = "/api/auth/register";
-  return next();
-});
-alias.post("/login", (req, _res, next) => {
-  req.url = "/api/auth/login";
-  return next();
-});
-alias.post("/logout", (req, _res, next) => {
-  req.url = "/api/auth/logout";
-  return next();
-});
-alias.post("/refresh", (req, _res, next) => {
-  req.url = "/api/auth/refresh";
-  return next();
-});
+// --- REPLACE START: use 307 redirects so Express re-enters routing from the top ---
+alias.post("/register", (_req, res) => res.redirect(307, "/api/auth/register"));
+alias.post("/login",    (_req, res) => res.redirect(307, "/api/auth/login"));
+alias.post("/logout",   (_req, res) => res.redirect(307, "/api/auth/logout"));
+alias.post("/refresh",  (_req, res) => res.redirect(307, "/api/auth/refresh"));
 
-// Users/profile root → /api/users
-alias.get("/me", (req, _res, next) => {
-  req.url = "/api/users/me";
-  return next();
-});
-alias.get("/profile", (req, _res, next) => {
-  req.url = "/api/users/profile";
-  return next();
-});
-alias.put("/profile", (req, _res, next) => {
-  req.url = "/api/users/profile";
-  return next();
-});
+alias.get("/me",        (_req, res) => res.redirect(307, "/api/users/me"));
+alias.get("/profile",   (_req, res) => res.redirect(307, "/api/users/profile"));
+alias.put("/profile",   (_req, res) => res.redirect(307, "/api/users/profile"));
+// --- REPLACE END ---
 
 app.use(alias);
 
@@ -1328,7 +1200,7 @@ app.use((err, _req, res, next) => {
 });
 
 // ──────────────────────────────────────────────────────────────────────────────
-/* 404 handler */
+/* 404 handler — keep absolutely LAST */
 // ──────────────────────────────────────────────────────────────────────────────
 app.use((req, res) => {
   res.status(404).json({ error: "Not Found" });

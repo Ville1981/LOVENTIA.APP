@@ -1,95 +1,243 @@
-// --- REPLACE START: dynamic-import bridge from CJS to ESM app with shim mounts (users & discover, .js + .cjs aware) ---
+// PATH: server/index.cjs
+
+// --- REPLACE START: dynamic-import bridge (remove local /api/auth mount; keep diagnostics and other shims intact) ---
 "use strict";
 
 /**
  * CommonJS bridge that dynamically imports the ESM Express app.
  * - Keeps "type": "module" setups intact.
- * - Importing this file evaluates ./src/app.js (which starts the server in non-test envs).
- * - Exports a Promise that resolves to the Express `app` instance.
+ * - Importing this file evaluates ./src/app.js (which should create and export the Express `app`).
+ * - Exports a Promise that resolves to the Express `app` instance (default/app/app.default).
  *
- * NOTE:
- *  • This file only ensures the legacy mount points exist when the project still boots from index.cjs.
- *  • We mount ONLY the requested shim routes; no extra/duplicate mounts are added.
+ * IMPORTANT:
+ *  • Do NOT mount /api/auth here (it is mounted in src/app.js to guarantee correct ordering).
+ *  • Keep diagnostics: console dump + GET /__routes + GET /__routes_full.
+ *  • Optional shims for other feature routers (users, discover) remain supported.
  */
 
 const fs = require("fs");
 const path = require("path");
+const { pathToFileURL } = require("url");
 
-// Import the ESM app (returns module namespace); prefer default/app/app.default
+// Resolve the ESM app and choose the most likely export carrying the Express `app`.
 const appPromise = import("./src/app.js").then((m) => m.default || m.app || m);
-
-// Export the promise so consumers can `await require('./index.cjs')`
 module.exports = appPromise;
 
-/**
- * Helper: resolve first existing path from candidates.
- * We keep candidates minimal and prioritize the requested shim locations.
- */
+/* --------------------------------- Helpers -------------------------------- */
+
+/** Resolve first existing path from candidates (keeps original behavior). */
 function resolveExistingFile(candidates) {
   for (const p of candidates) {
     try {
       if (fs.existsSync(p)) return p;
     } catch {
-      // continue
+      // ignore fs errors
     }
   }
   return null;
 }
 
-/**
- * After the ESM app is loaded, mount the shims if present.
- * IMPORTANT:
- *  - Primary targets (as requested): ./server/routes/user.* and ./server/routes/discover.*
- *  - Support both .js and .cjs to match your repo.
- *  - We do NOT introduce duplicate mounts; only mount if a shim file exists and exports a router.
- */
-appPromise.then((app) => {
-  if (!app || typeof app.use !== "function") return;
+/** Load a router exported via CJS or ESM. Returns a Router function or null. */
+async function loadRouter(filePath) {
+  if (!filePath) return null;
+  if (filePath.endsWith(".cjs")) {
+    const mod = require(filePath);
+    return mod?.default || mod?.router || mod || null;
+  } else {
+    const mod = await import(pathToFileURL(filePath).href);
+    return mod?.default || mod?.router || mod || null;
+  }
+}
 
-  // USERS shim (.js first, then .cjs)
+/**
+ * Extract a human-readable mount prefix from an Express layer's RegExp.
+ * This is best-effort but sufficient to show meaningful base paths.
+ */
+function extractMountFromLayer(layer) {
+  try {
+    if (layer?.regexp?.fast_slash) return "/";
+    if (layer?.regexp?.fast_star) return "*";
+    const src = layer?.regexp?.toString() || "";
+    // Capture literal segment between slashes (e.g. /^\/api\/auth\/?/ -> "api")
+    const m = src.match(/\\\/([^\\^$?()[\]+*{}|]+)\\\//);
+    if (m && m[1]) return `/${m[1]}`;
+    return "";
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Recursively walk an Express stack and collect FULL paths including base mounts.
+ * Output format: "METHODS /base/path".
+ */
+function collectFullPaths(appOrRouter) {
+  const out = [];
+  const walk = (stack, prefix = "") => {
+    if (!Array.isArray(stack)) return;
+
+    for (const layer of stack) {
+      // Terminal route layer
+      if (layer?.route?.path) {
+        const methods = Object.keys(layer.route.methods || {})
+          .filter(Boolean)
+          .map((m) => m.toUpperCase())
+          .join(",");
+        out.push(`${methods} ${prefix}${layer.route.path}`);
+        continue;
+      }
+      // Nested router
+      if (layer?.name === "router" && layer?.handle?.stack) {
+        const mount = extractMountFromLayer(layer);
+        walk(layer.handle.stack, `${prefix}${mount}`);
+      }
+    }
+  };
+  const stack = appOrRouter?._router?.stack || appOrRouter?.stack;
+  if (stack) walk(stack, "");
+  return out;
+}
+
+/* ------------------------------- Shim Mounts ------------------------------- */
+
+/**
+ * After the ESM app is loaded, mount shims if present.
+ * NOTE: /api/auth is intentionally NOT mounted here — it is mounted inside src/app.js.
+ */
+appPromise.then(async (app) => {
+  if (!app || typeof app.use !== "function") {
+    console.error("❌ App did not resolve to an Express instance from ./src/app.js");
+    return;
+  }
+
+  // USERS shim
   try {
     const usersPath = resolveExistingFile([
-      path.resolve(__dirname, "./server/routes/user.js"),
-      path.resolve(__dirname, "./server/routes/user.cjs"),
+      path.resolve(__dirname, "./routes/user.js"),
+      path.resolve(__dirname, "./routes/user.cjs"),
+      path.resolve(__dirname, "./src/routes/user.js"),
+      path.resolve(__dirname, "./src/routes/user.cjs"),
     ]);
-
     if (usersPath) {
-      const mod = require(usersPath);
-      const usersRouter = (mod && (mod.default || mod.router || mod)) || mod;
+      const usersRouter = await loadRouter(usersPath);
       if (typeof usersRouter === "function") {
         app.use("/api/users", usersRouter);
         console.log("✅ Mounted /api/users via shim:", usersPath);
       } else {
-        console.warn("⚠️ Users shim exported non-router (expected function). File:", usersPath);
+        console.warn("⚠️ Users shim exported a non-router value. File:", usersPath, "Type:", typeof usersRouter);
       }
     } else {
-      console.warn("⚠️ Users shim not found at ./server/routes/user.{js,cjs} (skipping mount).");
+      console.warn("⚠️ Users shim not found (./routes|./src/routes user.{js,cjs})");
     }
   } catch (e) {
-    console.warn("⚠️ Could not mount /api/users from index.cjs:", e && (e.message || e));
+    console.warn("⚠️ Could not mount /api/users:", e?.message || e);
   }
 
-  // DISCOVER shim (.js first, then .cjs)
+  // DISCOVER shim
   try {
     const discoverPath = resolveExistingFile([
-      path.resolve(__dirname, "./server/routes/discover.js"),
-      path.resolve(__dirname, "./server/routes/discover.cjs"),
+      path.resolve(__dirname, "./routes/discover.js"),
+      path.resolve(__dirname, "./routes/discover.cjs"),
+      path.resolve(__dirname, "./src/routes/discover.js"),
+      path.resolve(__dirname, "./src/routes/discover.cjs"),
     ]);
-
     if (discoverPath) {
-      const mod = require(discoverPath);
-      const discoverRouter = (mod && (mod.default || mod.router || mod)) || mod;
+      const discoverRouter = await loadRouter(discoverPath);
       if (typeof discoverRouter === "function") {
         app.use("/api/discover", discoverRouter);
         console.log("✅ Mounted /api/discover via shim:", discoverPath);
       } else {
-        console.warn("⚠️ Discover shim exported non-router (expected function). File:", discoverPath);
+        console.warn("⚠️ Discover shim exported a non-router value. File:", discoverPath, "Type:", typeof discoverRouter);
       }
     } else {
-      console.warn("⚠️ Discover shim not found at ./server/routes/discover.{js,cjs} (skipping mount).");
+      console.warn("⚠️ Discover shim not found (./routes|./src/routes discover.{js,cjs})");
     }
   } catch (e) {
-    console.warn("⚠️ Could not mount /api/discover from index.cjs:", e && (e.message || e));
+    console.warn("⚠️ Could not mount /api/discover:", e?.message || e);
   }
+
+  // AUTH shim — SKIPPED on purpose (auth is mounted in src/app.js)
+  try {
+    const authPath = resolveExistingFile([
+      path.resolve(__dirname, "./routes/auth.js"),
+      path.resolve(__dirname, "./src/routes/auth.js"),
+      path.resolve(__dirname, "./routes/auth.cjs"),
+      path.resolve(__dirname, "./src/routes/auth.cjs"),
+    ]);
+
+    if (authPath) {
+      // Load for validation/logging only; do not mount here to avoid duplicates.
+      const ns = await import(pathToFileURL(authPath).href);
+      const exported = ns?.default ?? ns?.router ?? ns ?? null;
+      const exportedType = typeof exported;
+
+      if (exportedType !== "function") {
+        const keys = ns ? Object.keys(ns) : [];
+        console.warn("⚠️ Auth shim export is not a Router function.", {
+          file: authPath,
+          exportedType,
+          exportedKeys: keys,
+          hint:
+            "Ensure server/routes/auth.js does `export default router;` and uses relative paths only.",
+        });
+      } else {
+        console.log(
+          "ℹ️ Detected auth router at",
+          authPath,
+          "— not mounting here because /api/auth is mounted in src/app.js (correct order)."
+        );
+      }
+
+      // ⚠️ DO NOT MOUNT AUTH HERE:
+      // app.use("/api/auth", exported); // ← intentionally disabled to prevent duplicates
+    } else {
+      console.warn("ℹ️ Auth shim not present (this is fine since src/app.js mounts /api/auth).");
+    }
+  } catch (e) {
+    console.warn("⚠️ Skipped auth shim validation due to error:", e?.message || e);
+  }
+
+  /* --------------------------- Diagnostics endpoints --------------------------- */
+
+  // Console dump with full mount prefixes
+  try {
+    const listed = collectFullPaths(app);
+    console.log("🔎 All mounted routes (full paths):", listed);
+  } catch (e) {
+    console.warn("⚠️ Could not list routes to console:", e?.message || e);
+  }
+
+  // Provide GET /__routes with FULL paths (avoid double-register if already present).
+  try {
+    const already = (collectFullPaths(app) || []).some((r) => r.endsWith(" /__routes"));
+    if (!already) {
+      app.get("/__routes", (_req, res) => {
+        try {
+          res.json(collectFullPaths(app));
+        } catch (err) {
+          res.status(500).json({ error: err?.message || String(err) });
+        }
+      });
+      console.log("🧭 Registered /__routes diagnostics endpoint (full-path walker).");
+    }
+  } catch (e) {
+    console.warn("⚠️ Could not register /__routes diagnostics endpoint:", e?.message || e);
+  }
+
+  // Provide an unconditional GET /__routes_full (never skipped), useful if /__routes existed earlier.
+  try {
+    app.get("/__routes_full", (_req, res) => {
+      try {
+        res.json(collectFullPaths(app));
+      } catch (err) {
+        res.status(500).json({ error: err?.message || String(err) });
+      }
+    });
+    console.log("🧭 Registered /__routes_full diagnostics endpoint (full-path walker).");
+  } catch (e) {
+    console.warn("⚠️ Could not register /__routes_full:", e?.message || e);
+  }
+
+  // NOTE: Keep 404 handler inside src/app.js AFTER all mounts. Do not add another here.
 });
 // --- REPLACE END ---

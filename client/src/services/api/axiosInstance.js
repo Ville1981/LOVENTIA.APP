@@ -1,3 +1,5 @@
+// PATH: client/src/services/api/axiosInstance.js
+
 // --- REPLACE START: resilient Axios instance with refresh + credentials (adds "token unchanged" guard) ---
 import axios from "axios";
 
@@ -21,7 +23,6 @@ function getOrigin(input) {
 function resolveBaseURL() {
   let fromEnv;
   try {
-    // Works under Vite; guarded for tests/build tools
     fromEnv =
       (typeof import.meta !== "undefined" &&
         import.meta.env &&
@@ -47,8 +48,6 @@ function resolveBaseURL() {
 
 /**
  * Build allowlist of API origins for CORS hygiene.
- * NOTE: Client cannot enforce CORS, that's server-side. We still make sure we don't
- *       send credentials/Authorization to a non-allowlisted origin by accident.
  */
 function buildAllowedApiOrigins() {
   const current = (typeof window !== "undefined" && window.location?.origin) || "";
@@ -67,14 +66,13 @@ function buildAllowedApiOrigins() {
   return list;
 }
 
-// Calculated once at module init; if you need to override at runtime, export a setter.
+// Calculated once at module init
 const BASE_URL = resolveBaseURL();
 const BASE_ORIGIN = getOrigin(BASE_URL);
 const ALLOWED_API_ORIGINS = buildAllowedApiOrigins();
 
 /**
- * In-memory access token with localStorage fallback (compat).
- * Keep both names exported so old imports keep working.
+ * In-memory access token with localStorage fallback.
  */
 let accessToken =
   (typeof localStorage !== "undefined" &&
@@ -83,10 +81,8 @@ let accessToken =
 
 /**
  * Attach token to memory, storage, and axios default header.
- * IMPORTANT: includes a "token unchanged" guard to avoid unnecessary state churn.
  */
 export function attachAccessToken(token) {
-  // --- Token unchanged guard: if same value as current, do nothing (prevents re-render loops) ---
   const next = token || null;
   const curr =
     accessToken ||
@@ -94,7 +90,7 @@ export function attachAccessToken(token) {
       (localStorage.getItem("accessToken") || localStorage.getItem("token"))) ||
     null;
 
-  // If both are strings and equal, skip writes & header mutations
+  // Guard: no change
   if (typeof next === "string" && typeof curr === "string" && next === curr) {
     return;
   }
@@ -112,14 +108,13 @@ export function attachAccessToken(token) {
   }
 
   if (next) {
-    // Set default Authorization only once here; requests can still override per-call
     api.defaults.headers.common.Authorization = `Bearer ${next}`;
   } else {
     delete api.defaults.headers.common.Authorization;
   }
 }
 
-// Backward/forward compatible helper names
+// Helpers
 export const setAccessToken = (t) => attachAccessToken(t);
 export function getAccessToken() {
   return (
@@ -130,11 +125,12 @@ export function getAccessToken() {
   );
 }
 
-// Create the single axios instance used across the app
+/**
+ * Create axios instance
+ */
 const api = axios.create({
-  // No hardcoded localhost; env or runtime guess above
   baseURL: BASE_URL || "/api",
-  withCredentials: true, // allow cookie round-trips (refresh cookie)
+  withCredentials: true, // allow cookie round-trips
   headers: {
     "X-Requested-With": "XMLHttpRequest",
     Accept: "application/json",
@@ -142,14 +138,12 @@ const api = axios.create({
 });
 
 /**
- * Build a human-friendly URL for logs without leaking tokens or sensitive payloads.
- * We only log method + URL. We never log headers or request/response bodies.
+ * Build safe request log string.
  */
 function describeRequest(config) {
   const method = (config.method || "get").toUpperCase();
   const base = String(config.baseURL || api.defaults.baseURL || "");
   let url = String(config.url || "");
-  // Avoid double '/api/api/*' in logs
   if (url.startsWith("/api/") && base.endsWith("/api")) {
     url = url.replace(/^\/api\//, "/");
   }
@@ -157,12 +151,11 @@ function describeRequest(config) {
 }
 
 /**
- * Detect if the request is an auth endpoint where we must NOT send Authorization.
- * Covers common variants: /auth/login, /auth/register, /auth/refresh, /login, /register, /refresh, /auth/forgot, /auth/reset
+ * Detect if URL is an auth endpoint.
  */
 function isAuthPath(urlLike) {
   if (!urlLike) return false;
-  const u = String(urlLike).replace(/^\//, ""); // strip leading slash
+  const u = String(urlLike).replace(/^\//, "");
   return (
     /^auth\/(login|register|refresh|forgot|reset)(\/|$)/i.test(u) ||
     /^(login|register|refresh)(\/|$)/i.test(u)
@@ -170,8 +163,7 @@ function isAuthPath(urlLike) {
 }
 
 /**
- * Very light heuristic to detect sensitive keys in either request data or params.
- * We DON'T log bodies at all, but this lets us strip accidental card-related metadata if present.
+ * Strip sensitive keys before debug.
  */
 function stripSensitive(obj) {
   if (!obj || typeof obj !== "object") return obj;
@@ -194,11 +186,7 @@ function stripSensitive(obj) {
   ];
   const out = Array.isArray(obj) ? [] : {};
   for (const k of Object.keys(obj)) {
-    if (SENSITIVE_KEYS.includes(k)) {
-      // Drop entirely (client should never echo these to logs)
-      // eslint-disable-next-line no-continue
-      continue;
-    }
+    if (SENSITIVE_KEYS.includes(k)) continue;
     const v = obj[k];
     out[k] = typeof v === "object" ? stripSensitive(v) : v;
   }
@@ -206,13 +194,11 @@ function stripSensitive(obj) {
 }
 
 /**
- * Ensure outgoing requests only send credentials/Authorization to allowed API origins.
- * This is a client-side hygiene layer; the *real* CORS enforcement is server-side.
+ * Only send credentials to allowed origins.
  */
 function shouldSendCredentialsTo(urlLike) {
   const targetOrigin = getOrigin(String(urlLike || BASE_URL));
   if (!targetOrigin) return false;
-  // Allow same-origin and anything explicitly allowlisted via VITE_ALLOWED_API_ORIGINS
   return (
     targetOrigin === ((typeof window !== "undefined" && window.location?.origin) || "") ||
     targetOrigin === BASE_ORIGIN ||
@@ -220,12 +206,11 @@ function shouldSendCredentialsTo(urlLike) {
   );
 }
 
-// Ensure Authorization header for every request if we have a token,
-// BUT NEVER for auth endpoints (prevents 403 on login when expired token exists)
-// AND NEVER send credentials to non-allowlisted origins.
+/**
+ * Request interceptor
+ */
 api.interceptors.request.use(
   (config) => {
-    // Avoid accidental '/api/api/*' duplication if someone passes urls beginning with '/api/'
     if (
       typeof config.url === "string" &&
       config.url.startsWith("/api/") &&
@@ -234,13 +219,11 @@ api.interceptors.request.use(
       config.url = config.url.replace(/^\/api\//, "/");
     }
 
-    // Compute absolute target for CORS hygiene
     const absoluteURL = new URL(
       String(config.url || ""),
       String(config.baseURL || api.defaults.baseURL || BASE_URL)
     ).toString();
 
-    // Skip Authorization for auth endpoints
     const urlForCheck = String(config.url || "");
     const allowCreds = shouldSendCredentialsTo(absoluteURL);
 
@@ -249,34 +232,28 @@ api.interceptors.request.use(
       if (token) {
         config.headers = {
           ...config.headers,
-          Authorization: `Bearer ${token}`, // never log this
+          Authorization: `Bearer ${token}`,
         };
       }
       config.withCredentials = true;
     } else {
-      // Ensure we do NOT send any stale Authorization or cookies
       if (config.headers && "Authorization" in config.headers) {
         delete config.headers.Authorization;
       }
       config.withCredentials = false;
     }
 
-    // Normalize Content-Type only for plain JSON bodies
     if (config.data && !(config.data instanceof FormData)) {
       config.headers = {
         ...config.headers,
         "Content-Type": "application/json",
       };
-      // As an extra safety, strip known sensitive keys before *any* potential debug tooling
-      // (we are not logging config.data, but some dev tools could)
       config.data = stripSensitive(config.data);
     }
-    // Also scrub params (again, we don't log them, but be safe)
     if (config.params && typeof config.params === "object") {
       config.params = stripSensitive(config.params);
     }
 
-    // Lightweight request log (no headers/tokens/body)
     try {
       // eslint-disable-next-line no-console
       console.debug?.(`[REQ] ${describeRequest(config)}`);
@@ -289,58 +266,48 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Refresh logic: try once on 401 responses (but never for auth endpoints)
+/**
+ * Refresh logic
+ * Always calls /api/auth/refresh (withCredentials).
+ */
 let refreshPromise = null;
 
 async function performRefresh() {
   if (!refreshPromise) {
-    // IMPORTANT: send {} (not null/undefined) to satisfy express.json(strict: true)
-    // Try /auth/refresh first, then fall back to /refresh (root) for legacy servers.
-    const tryEndpoints = ["/auth/refresh", "/refresh"];
-
     refreshPromise = (async () => {
-      for (const ep of tryEndpoints) {
-        try {
-          // Only send cookie to our own/allowlisted origins
-          if (!shouldSendCredentialsTo(BASE_URL)) {
-            throw new Error("Refresh origin not allowed");
-          }
-          const res = await api.post(ep, {}, { withCredentials: true });
-          const incoming =
-            res?.data?.accessToken || res?.data?.token || null;
-
-          if (!incoming) throw new Error("No accessToken in refresh response");
-
-          // --- Token unchanged guard on refresh: only update if different ---
-          const before = getAccessToken();
-          if (typeof incoming === "string" && incoming === before) {
-            // Token is identical; do not re-attach to avoid re-render churn
-            return incoming;
-          }
-
-          attachAccessToken(incoming);
-          return incoming;
-        } catch {
-          // try next endpoint
+      try {
+        if (!shouldSendCredentialsTo(BASE_URL)) {
+          throw new Error("Refresh origin not allowed");
         }
-      }
-      throw new Error("All refresh endpoints failed");
-    })()
-      .catch((err) => {
-        // Clear token on hard refresh failure
+
+        const res = await api.post("/auth/refresh", {}, { withCredentials: true });
+        const incoming = res?.data?.accessToken || res?.data?.token || null;
+
+        if (!incoming) throw new Error("No accessToken in refresh response");
+
+        const before = getAccessToken();
+        if (typeof incoming === "string" && incoming === before) {
+          return incoming;
+        }
+
+        attachAccessToken(incoming);
+        return incoming;
+      } catch (err) {
         attachAccessToken(null);
         throw err;
-      })
-      .finally(() => {
+      } finally {
         refreshPromise = null;
-      });
+      }
+    })();
   }
   return refreshPromise;
 }
 
+/**
+ * Response interceptor
+ */
 api.interceptors.response.use(
   (response) => {
-    // Lightweight response log (status + URL only)
     try {
       const method = (response.config?.method || "get").toUpperCase();
       const base = String(response.config?.baseURL || api.defaults.baseURL || "");
@@ -362,7 +329,6 @@ api.interceptors.response.use(
 
     const status = error?.response?.status;
 
-    // Never attempt refresh for auth endpoints to avoid loops
     if (isAuthPath(original.url || "")) {
       return Promise.reject(error);
     }
@@ -371,12 +337,10 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Prevent infinite loops
     original._retry = true;
 
     try {
       await performRefresh();
-      // Retrigger original request with the (possibly) new token
       return api(original);
     } catch (refreshErr) {
       return Promise.reject(refreshErr);
@@ -386,3 +350,18 @@ api.interceptors.response.use(
 
 export default api;
 // --- REPLACE END ---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
