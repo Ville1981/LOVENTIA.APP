@@ -1,4 +1,4 @@
-// File: server/src/routes/auth.js
+﻿// File: server/routes/auth.js
 // @ts-nocheck
 
 "use strict";
@@ -32,7 +32,9 @@ const __dirname = path.dirname(__filename);
  */
 async function tryLoad(relOrAbs) {
   try {
-    const abs = path.isAbsolute(relOrAbs) ? relOrAbs : path.resolve(__dirname, relOrAbs);
+    const abs = path.isAbsolute(relOrAbs)
+      ? relOrAbs
+      : path.resolve(__dirname, relOrAbs);
     const esm = await import(pathToFileURL(abs).href);
     return (esm && (esm.default || esm)) || esm;
   } catch {
@@ -43,8 +45,8 @@ async function tryLoad(relOrAbs) {
 /** Lazily resolve project modules only when needed to avoid import-time crashes */
 async function getUserModel() {
   const candidates = [
-    "../models/User.js",           // server/src/models/User.js
-    "../../models/User.js",        // server/models/User.js (fallback)
+    "../models/User.js", // server/src/models/User.js
+    "../../models/User.js", // server/models/User.js (fallback)
   ];
   for (const c of candidates) {
     const mod = await tryLoad(c);
@@ -54,10 +56,7 @@ async function getUserModel() {
 }
 
 async function getSendEmail() {
-  const candidates = [
-    "../utils/sendEmail.js",
-    "../../utils/sendEmail.js",
-  ];
+  const candidates = ["../utils/sendEmail.js", "../../utils/sendEmail.js"];
   for (const c of candidates) {
     const mod = await tryLoad(c);
     if (typeof mod === "function") return mod;
@@ -79,7 +78,11 @@ async function getCookieOptions() {
     return mod; // plain object export
   }
   // sensible default
-  return { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production" };
+  return {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+  };
 }
 
 async function getAuthenticate() {
@@ -104,11 +107,20 @@ async function getValidators() {
   for (const c of candidates) {
     const mod = await tryLoad(c);
     if (!mod) continue;
-    const validateRegister = mod.validateRegister || mod.default?.validateRegister || ((_req, _res, next) => next());
-    const validateLogin = mod.validateLogin || mod.default?.validateLogin || ((_req, _res, next) => next());
+    let validateRegister =
+      mod.validateRegister || mod.default?.validateRegister;
+    let validateLogin = mod.validateLogin || mod.default?.validateLogin;
+    if (typeof validateRegister !== "function")
+      validateRegister = (_req, _res, next) => next();
+    if (typeof validateLogin !== "function")
+      validateLogin = (_req, _res, next) => next();
     return { validateRegister, validateLogin };
   }
-  return { validateRegister: (_req, _res, next) => next(), validateLogin: (_req, _res, next) => next() };
+  // fallback no-ops
+  return {
+    validateRegister: (_req, _res, next) => next(),
+    validateLogin: (_req, _res, next) => next(),
+  };
 }
 
 async function getProfileValidator() {
@@ -119,17 +131,17 @@ async function getProfileValidator() {
   for (const c of candidates) {
     const mod = await tryLoad(c);
     if (!mod) continue;
-    const fn = mod.sanitizeAndValidateProfile || mod.default?.sanitizeAndValidateProfile || ((_req, _res, next) => next());
+    const fn =
+      mod.sanitizeAndValidateProfile ||
+      mod.default?.sanitizeAndValidateProfile ||
+      ((_req, _res, next) => next());
     return fn;
   }
   return (_req, _res, next) => next();
 }
 
 async function getUploadMiddleware() {
-  const candidates = [
-    "../middleware/upload.js",
-    "../../middleware/upload.js",
-  ];
+  const candidates = ["../middleware/upload.js", "../../middleware/upload.js"];
   for (const c of candidates) {
     const mod = await tryLoad(c);
     const up = (mod && (mod.default || mod)) || mod;
@@ -162,9 +174,8 @@ async function getAuthController() {
     if (!mod) continue;
     // Normalize namespace
     const ns = (mod && (mod.default || mod)) || mod;
-    const hasAny =
-      ["register", "login", "refresh", "logout", "me", "profile"]
-        .some((k) => typeof ns[k] === "function");
+    const hasAny = ["register", "login", "refresh", "logout", "me", "profile"]
+      .some((k) => typeof ns[k] === "function");
     if (hasAny) return ns;
     // Sometimes exported under different names (e.g., registerUser/loginUser)
     if (typeof ns.registerUser === "function" || typeof ns.loginUser === "function") {
@@ -181,6 +192,7 @@ async function getAuthController() {
   return null;
 }
 // --- REPLACE END ---
+
 
 const router = express.Router();
 
