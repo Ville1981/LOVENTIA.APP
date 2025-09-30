@@ -1,4 +1,4 @@
-﻿// File: server/routes/auth.js
+// File: server/routes/auth.js
 // @ts-nocheck
 
 "use strict";
