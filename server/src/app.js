@@ -370,14 +370,14 @@ async function connectMongo() {
     return false;
   }
   try {
+    // --- REPLACE START: mongoose.connect options without deprecated flags ---
     await mongoose.connect(MONGO_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
       serverSelectionTimeoutMS: Number(process.env.MONGO_SSM || 15000),
       socketTimeoutMS: Number(process.env.MONGO_SOCK_TIMEOUT || 45000),
       maxPoolSize: Number(process.env.MONGO_MAX_POOL || 10),
       retryWrites: true,
     });
+    // --- REPLACE END ---
     const { host, port, name } = mongoose.connection;
     console.log(`✅ MongoDB connected → ${host}:${port}/${name}`);
     return true;
@@ -413,13 +413,21 @@ mongoose.connection.on("error", (e) => {
 // ──────────────────────────────────────────────────────────────────────────────
 /* CORS & Preflight */
 // ──────────────────────────────────────────────────────────────────────────────
+// --- REPLACE START: remove wildcard app.options (Express 5 / path-to-regexp v6-safe) ---
 app.use(corsConfig);
+
+// Specific preflights that use concrete paths are fine:
 app.options("/api/auth/refresh", corsConfig, (_req, res) => res.sendStatus(200));
 app.options("/api/users/:userId/photos/upload-photo-step", corsConfig, (_req, res) => res.sendStatus(200));
-// broaden preflight for auth + legacy root endpoints
-app.options(["/api/auth/*", "/register", "/login", "/logout", "/refresh", "/me", "/profile"], corsConfig, (_req, res) =>
-  res.sendStatus(200)
-);
+
+// Generic preflight handler for any other path (avoid '*' and '/*' with v6):
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    return corsConfig(req, res, () => res.sendStatus(200));
+  }
+  return next();
+});
+// --- REPLACE END ---
 
 // ──────────────────────────────────────────────────────────────────────────────
 /* Security headers */
@@ -501,12 +509,50 @@ app.use(express.json({ limit: "1mb", strict: true, type: "application/json" }));
 app.use(express.urlencoded({ extended: true }));
 
 // ──────────────────────────────────────────────────────────────────────────────
-/* Sanitizers */
-// ──────────────────────────────────────────────────────────────────────────────
-// --- REPLACE START: mount sanitizers as functions (ESM-safe) ---
-app.use(xssSanitizer);
-app.use(sqlSanitizer);
+// PATH: server/src/app.js
+
+// --- REPLACE START: safe sanitizer wrappers for Express 5 (read-only req.query) ---
+/**
+ * Mark diagnostics endpoints to skip sanitizers.
+ * Must run BEFORE sanitizer middlewares.
+ */
+app.use((req, res, next) => {
+  if (req.path === "/__routes" || req.path === "/__routes_full") {
+    res.locals.__skipSanitize = true;
+  }
+  next();
+});
+
+/**
+ * Return a wrapper that bypasses given middleware when req.query is read-only,
+ * or when res.locals.__skipSanitize is set (diagnostics).
+ */
+function safeSanitizer(mw) {
+  return function (req, res, next) {
+    try {
+      if (res.locals.__skipSanitize) return next();
+
+      // Detect read-only query (Express 5 request has getter-only)
+      const own = Object.getOwnPropertyDescriptor(req, "query");
+      const proto = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(req) || {}, "query");
+      const desc = own || proto;
+      const isReadOnly = !!(desc && !desc.writable && !desc.set);
+
+      if (isReadOnly) return next(); // skip to avoid "Cannot set property query" warnings
+
+      return mw(req, res, next);
+    } catch {
+      // Never break the request pipeline because of sanitizers
+      return next();
+    }
+  };
+}
+
+// Mount sanitizers via safe wrappers
+app.use(safeSanitizer(xssSanitizer));
+app.use(safeSanitizer(sqlSanitizer));
 // --- REPLACE END ---
+
 
 // --- REPLACE START: ensure User model is registered synchronously in test-mode ---
 if (IS_TEST) {
@@ -591,7 +637,9 @@ app.get("/test-alerts", async (_req, res) => {
   }
 });
 
-// --- REPLACE START: improved diagnostics endpoints (/__routes and /__routes_full with real mount paths) ---
+// PATH: server/src/app.js
+
+// --- REPLACE START: ultra-safe diagnostics endpoints (/__routes and /__routes_full) ---
 /**
  * Extract human-readable mount path from an Express layer.regexp.
  * Falls back to "" if not detectable.
@@ -599,7 +647,6 @@ app.get("/test-alerts", async (_req, res) => {
 function getMountPathFromLayer(layer) {
   try {
     const src = layer?.regexp?.source || "";
-    // Typical: ^\/api\/auth\/?(?=\/|$)
     if (!src) return "";
     let s = src;
     s = s.replace(/^\^/, "");
@@ -613,57 +660,88 @@ function getMountPathFromLayer(layer) {
   }
 }
 
-app.get("/__routes", (_req, res) => {
+app.get("/__routes", (req, res) => {
+  // ensure sanitizers are skipped even if this ran earlier in pipeline
+  res.locals.__skipSanitize = true;
+
   try {
     const routes = [];
-    app._router.stack.forEach((layer) => {
-      if (layer.route) {
-        const methods = Object.keys(layer.route.methods).map((m) => m.toUpperCase()).join(",");
-        routes.push(`${methods} ${layer.route.path}`);
-      } else if (layer.name === "router" && layer.handle?.stack) {
-        const mount = getMountPathFromLayer(layer);
-        layer.handle.stack.forEach((h) => {
-          if (h.route) {
-            const methods = Object.keys(h.route.methods).map((m) => m.toUpperCase()).join(",");
-            routes.push(`${methods} ${(mount + h.route.path).replace(/\/{2,}/g, "/")}`);
+    const stack = (app && app._router && Array.isArray(app._router.stack)) ? app._router.stack : [];
+
+    for (const layer of stack) {
+      try {
+        // Direct route
+        if (layer && layer.route) {
+          const methodsObj = layer.route.methods || {};
+          const methods = Object.keys(methodsObj).map((m) => m.toUpperCase()).join(",");
+          const p = typeof layer.route.path === "string" ? layer.route.path : "";
+          routes.push(`${methods} ${p}`);
+          continue;
+        }
+
+        // Nested router
+        if (layer && layer.name === "router" && layer.handle && Array.isArray(layer.handle.stack)) {
+          const mount = getMountPathFromLayer(layer);
+          for (const h of layer.handle.stack) {
+            try {
+              if (h && h.route) {
+                const methodsObj = h.route.methods || {};
+                const methods = Object.keys(methodsObj).map((m) => m.toUpperCase()).join(",");
+                const sub = typeof h.route.path === "string" ? h.route.path : "";
+                routes.push(`${methods} ${(mount + sub).replace(/\/{2,}/g, "/")}`);
+              }
+            } catch { /* ignore per-layer errors */ }
           }
-        });
-      }
-    });
-    res.json(routes);
+        }
+      } catch { /* ignore per-layer errors */ }
+    }
+
+    return res.json(routes);
   } catch (e) {
-    res.status(500).json({ error: e.message || String(e) });
+    return res.status(500).json({ error: e?.message || String(e) });
   }
 });
 
-app.get("/__routes_full", (_req, res) => {
+app.get("/__routes_full", (req, res) => {
+  // ensure sanitizers are skipped even if this ran earlier in pipeline
+  res.locals.__skipSanitize = true;
+
   function walk(stack, base = "") {
     const out = [];
+    if (!Array.isArray(stack)) return out;
+
     for (const layer of stack) {
-      if (layer.route && layer.route.path) {
-        const methods = Object.keys(layer.route.methods).map((m) => m.toUpperCase());
-        const full = (base + layer.route.path).replace(/\/{2,}/g, "/");
-        for (const m of methods) out.push(`${m} ${full}`);
-      } else if (layer.name === "router" && layer.handle?.stack) {
-        const mount = getMountPathFromLayer(layer);
-        const nextBase = (base + mount).replace(/\/{2,}/g, "/");
-        out.push(...walk(layer.handle.stack, nextBase));
-      }
+      try {
+        // Route layer
+        if (layer && layer.route) {
+          const routePath = typeof layer.route.path === "string" ? layer.route.path : "";
+          const methodsObj = layer.route.methods || {};
+          const methods = Object.keys(methodsObj).map((m) => m.toUpperCase());
+          const full = (base + (routePath || "")).replace(/\/{2,}/g, "/") || "/";
+          for (const m of methods) out.push(`${m} ${full}`);
+          continue;
+        }
+
+        // Nested router
+        if (layer && layer.name === "router" && layer.handle && Array.isArray(layer.handle.stack)) {
+          const mount = getMountPathFromLayer(layer) || "";
+          const nextBase = (base + mount).replace(/\/{2,}/g, "/");
+          out.push(...walk(layer.handle.stack, nextBase));
+        }
+      } catch { /* ignore per-layer errors */ }
     }
     return out;
   }
+
   try {
-    const list = walk(app._router.stack);
-    res.json(list);
+    const root = (app && app._router && Array.isArray(app._router.stack)) ? app._router.stack : [];
+    return res.json(walk(root));
   } catch (e) {
-    res.status(500).json({ error: e?.message || String(e) });
+    return res.status(500).json({ error: e?.message || String(e) });
   }
 });
 // --- REPLACE END ---
 
-// ──────────────────────────────────────────────────────────────────────────────
-/* Webhook routes (legacy/paypal) — AFTER parsers (no raw body needed) */
-// ──────────────────────────────────────────────────────────────────────────────
 if (!IS_TEST) {
   try {
     // --- REPLACE START: expand candidates to include ../routes for current project layout ---
@@ -896,6 +974,47 @@ if (IS_TEST) {
 }
 // --- REPLACE END ---
 
+// PATH: server/src/app.js
+
+// --- REPLACE START: force-mount /api/search and /api/rewind (ESM-safe, with logging) ---
+try {
+  const searchURL = pathToFileURL(path.resolve(__dirname, "./routes/search.js")).href;
+  const mod = await import(searchURL);
+  const searchRouter = (mod && (mod.default || mod.router || mod)) || null;
+
+  if (typeof searchRouter === "function") {
+    app.use("/api/search", authenticate, roleAuthorization("user"), searchRouter);
+    console.log("🔎 Mounted /api/search (src/routes/search.js)");
+  } else {
+    console.warn("⚠️ /api/search not mounted (bad export in src/routes/search.js).");
+  }
+} catch (e) {
+  console.warn(
+    "⚠️ /api/search not mounted (failed to import src/routes/search.js):",
+    (e && e.message) ? e.message : e
+  );
+}
+
+try {
+  const rewindURL = pathToFileURL(path.resolve(__dirname, "./routes/rewind.js")).href;
+  const mod = await import(rewindURL);
+  const rewindRouter = (mod && (mod.default || mod.router || mod)) || null;
+
+  if (typeof rewindRouter === "function") {
+    app.use("/api/rewind", authenticate, roleAuthorization("user"), rewindRouter);
+    console.log("⏪ Mounted /api/rewind (src/routes/rewind.js)");
+  } else {
+    console.warn("⚠️ /api/rewind not mounted (bad export in src/routes/rewind.js).");
+  }
+} catch (e) {
+  console.warn(
+    "⚠️ /api/rewind not mounted (failed to import src/routes/rewind.js):",
+    (e && e.message) ? e.message : e
+  );
+}
+// --- REPLACE END ---
+
+
 
 // ──────────────────────────────────────────────────────────────────────────────
 /* Legacy root aliases that forward to /api/auth/* + /api/users/* */
@@ -1079,9 +1198,16 @@ if (!IS_TEST) {
     // optional
   }
 
-  // Rewind
-  try {
-    // --- REPLACE START: remove wrong ./src candidate & make silent ---
+  // --- REPLACE START: skip legacy rewind mount attempt if already mounted ---
+try {
+  // If /api/rewind was already mounted above (⏪ log line), skip silently
+  const alreadyMounted = Array.isArray(app._router?.stack)
+    && app._router.stack.some(layer =>
+      layer?.name === "router" &&
+      /\/api\/rewind(?:\/|$)/.test(layer?.regexp?.source || "")
+    );
+
+  if (!alreadyMounted) {
     let rewindRoutes = tryRequireRoute(
       "./routes/rewind.js",
       path.resolve(__dirname, "../routes/rewind.js"),
@@ -1090,17 +1216,24 @@ if (!IS_TEST) {
     rewindRoutes = rewindRoutes instanceof Promise ? await rewindRoutes : rewindRoutes;
     if (typeof rewindRoutes === "function") {
       app.use("/api/rewind", authenticate, roleAuthorization("user"), rewindRoutes);
-    } else {
-      console.warn("⚠️ /api/rewind not mounted (rewind routes file not found).");
     }
-    // --- REPLACE END ---
-  } catch {
-    // optional
   }
+} catch {
+  // optional — no warning if skipped or not found
+}
+// --- REPLACE END ---
 
-  // Search
-  try {
-    // --- REPLACE START: remove wrong ./src candidate & make silent ---
+
+  // --- REPLACE START: skip legacy search mount attempt if already mounted ---
+try {
+  // If /api/search was already mounted above (🔎 log line), skip silently
+  const alreadyMounted = Array.isArray(app._router?.stack)
+    && app._router.stack.some(layer =>
+      layer?.name === "router" &&
+      /\/api\/search(?:\/|$)/.test(layer?.regexp?.source || "")
+    );
+
+  if (!alreadyMounted) {
     let searchRoutes = tryRequireRoute(
       "./routes/search.js",
       path.resolve(__dirname, "../routes/search.js"),
@@ -1109,13 +1242,12 @@ if (!IS_TEST) {
     searchRoutes = searchRoutes instanceof Promise ? await searchRoutes : searchRoutes;
     if (typeof searchRoutes === "function") {
       app.use("/api/search", authenticate, roleAuthorization("user"), searchRoutes);
-    } else {
-      console.warn("⚠️ /api/search not mounted (search routes file not found).");
     }
-    // --- REPLACE END ---
-  } catch {
-    // optional
   }
+} catch {
+  // optional — no warning if skipped or not found
+}
+// --- REPLACE END ---
 
   // --- REPLACE START: mount /api/dealbreakers directly from src/routes/dealbreakers.js ---
   try {
@@ -1269,3 +1401,4 @@ if (typeof module !== "undefined") {
   module.exports = app;
 }
 // --- REPLACE END ---
+

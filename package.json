@@ -1,61 +1,52 @@
 {
   "name": "loventia-app",
   "version": "1.0.0",
-  "description": "Root workspace for Loventia (client app managed via npm workspaces).",
+  "description": "Root workspace for Loventia (client + server managed via npm workspaces).",
   "private": true,
-
   "workspaces": [
-    "client"
+    "client",
+    "server"
   ],
-
   "scripts": {
     "dev": "npm --workspace client run dev",
     "dev:host": "npm --workspace client run dev:host",
     "build": "npm --workspace client run build",
     "preview": "npm --workspace client run preview",
-
-    "test": "npm --workspace client run test",
-    "test:ci": "npm --workspace client run test",
+    "server": "npm --workspace server run server",
+    "server:dev": "npm --workspace server run dev",
+    "server:start": "npm --workspace server run start",
+    "test": "npm --workspace client run test && npm --workspace server run test",
+    "test:ci": "npm --workspace client run test && npm --workspace server run test",
     "test:watch": "npm --workspace client exec vitest --watch",
     "ls:react": "npm ls react react-dom",
-
     "lint": "npm --workspace client run lint",
     "lint:fix": "npm --workspace client run lint:fix",
-
     "i18n:audit": "npm --workspace client run i18n:audit",
     "i18n:sync": "npm --workspace client run i18n:sync",
-
     "cy:run": "npm --workspace client run cy:run",
     "perf:socket": "npm --workspace client run perf:socket",
     "scan:zap": "npm --workspace client run scan:zap",
     "scan:dep": "npm --workspace client run scan:dep",
-
-    "clean": "rimraf node_modules package-lock.json client/node_modules",
+    "clean": "rimraf node_modules package-lock.json client/node_modules server/node_modules",
     "reinstall": "npm run clean && npm install",
     "postinstall": "node -e \"console.log('[postinstall] Workspaces ready:', !!require('./package.json').workspaces)\""
   },
-
   "dependencies": {
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },
-
   "overrides": {
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },
-
   "devDependencies": {
     "rimraf": "^6.0.1"
   },
-
   "engines": {
     "node": ">=18.17.0",
     "npm": ">=8.0.0"
   },
-
   "packageManager": "npm@10.0.0",
-
   "repository": {
     "type": "git",
     "url": "git+https://example.com/loventia-app.git"

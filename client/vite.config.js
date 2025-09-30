@@ -1,16 +1,26 @@
-import { defineConfig, loadEnv } from "vite";
-import react from "@vitejs/plugin-react";
+// PATH: client/vite.config.js
+
 import path from "path";
 
-export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), "");
+import react from "@vitejs/plugin-react";
+import { defineConfig, loadEnv } from "vite";
 
-  // --- REPLACE START: ensure correct dev/build paths + proxy ---
+export default defineConfig(({ mode }) => {
+  // --- REPLACE START: ensure env resolution is scoped to the client dir (prevents accidental ../../package.json lookups) ---
+  // Previously: const env = loadEnv(mode, process.cwd(), "");
+  // Now: resolve from the config's directory so Vite/esbuild won't traverse up to C:\package.json
+  const envDir = path.resolve(__dirname);
+  const env = loadEnv(mode, envDir, "");
+  // --- REPLACE END ---
+
   const BACKEND = env.VITE_BACKEND_URL || "http://localhost:5000";
   const PROXY_DEBUG = env.VITE_PROXY_DEBUG === "1";
 
   return {
     root: __dirname,
+    // --- REPLACE START: pin envDir so only client/.env* files are considered ---
+    envDir,
+    // --- REPLACE END ---
     publicDir: path.resolve(__dirname, "public"),
     base: "/",
     build: {
@@ -19,7 +29,6 @@ export default defineConfig(({ mode }) => {
       sourcemap: true,
       chunkSizeWarningLimit: 1200,
     },
-    // --- REPLACE END ---
 
     plugins: [react()],
 
