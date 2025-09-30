@@ -1,7 +1,7 @@
-// File: server/routes/rewind.js
+// PATH: server/src/routes/rewind.js
+
 // --- REPLACE START: ESM-compatible rewind route (Premium users have unlimited rewinds) ---
 /* eslint-disable no-console */
-
 /**
  * This router provides a single POST endpoint to undo the user's last action
  * (like or pass). It is **Premium-gated** and supports multiple legacy / new
@@ -14,6 +14,8 @@
  *  - Upstream auth middleware should set `req.user` (or at least `req.userId`).
  */
 
+"use strict";
+
 import express from "express";
 import mongoose from "mongoose";
 import User from "../models/User.js";
@@ -21,7 +23,7 @@ import authenticate from "../middleware/authenticate.js";
 
 const router = express.Router();
 
-// Parse JSON bodies for this router
+// Parse JSON bodies for this router (kept even if app has global parsers)
 router.use(express.json());
 router.use(express.urlencoded({ extended: true }));
 
@@ -196,7 +198,8 @@ router.post("/", authenticate, async (req, res) => {
 /* -------------------------------------------------------------------------- */
 
 // ESM default export (index.js should `import rewindRouter from './routes/rewind.js'`)
-
-// --- REPLACE END ---
-
 export default router;
+
+// CJS fallback for environments that still use require()
+try { module.exports = router; } catch {}
+// --- REPLACE END ---
