@@ -1,4 +1,4 @@
-﻿// PATH: server/index.cjs
+// PATH: server/index.cjs
 
 // --- REPLACE START: dynamic-import bridge (remove local /api/auth mount; keep diagnostics and other shims intact) ---
 "use strict";
