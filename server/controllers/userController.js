@@ -5,7 +5,7 @@
  * User Controller
  * -----------------------------------------------------------------------------
  * Updates in this version:
- *  - Uses the single shared normalizer from ../utils/normalizeUserOut.js
+ *  - Uses the single shared normalizer from ../src/utils/normalizeUserOut.js
  *  - Avoids any .select("...") that cuts fields (we only exclude password where needed)
  *  - Realistic forgot/reset password flow with email helper (env-configured)
  *  - Visibility helpers (hide/unhide) and auto-unhide on login
@@ -19,16 +19,19 @@ import fs from "fs";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
+// --- REPLACE START: fixed path utils import (correct path, separate line, no stray characters) ---
+import { toWebPath, normalizeUploadsList } from "../src/utils/pathUtils.js";
+// --- REPLACE END ---
 import crypto from "crypto";
 import nodemailer from "nodemailer";
 
 // ✅ Unified outbound normalizer (single source of truth)
 import normalizeUserOutUtil, {
   normalizeUsersOut as _normalizeUsersOutUtil,
-} from "../utils/normalizeUserOut.js";
+} from "../src/utils/normalizeUserOut.js";
 
 // Models (ESM/CJS interop safe)
-import * as UserModule from "../models/User.js";
+import * as UserModule from "../src/models/User.js";
 const User = UserModule?.default || UserModule;
 
 /* -----------------------------------------------------------------------------
@@ -58,7 +61,7 @@ let _servicesCache = null;
 async function loadServices() {
   if (_servicesCache) return _servicesCache;
 
-  const bases = ["../services", "./services", "../api/services", "../src/services"];
+  const bases = ["../src/services", "../api/services", "../services", "./services"];
   const result = {};
   for (const base of bases) {
     try {
@@ -169,15 +172,7 @@ async function sendMail({ to, subject, text, html }) {
   return transporter.sendMail({ from, to, subject, text, html });
 }
 
-// --- REPLACE START: outbound normalizer (delegate to utils) ---
-/** Normalize path to web path */
-function toWebPath(p) {
-  if (!p || typeof p !== "string") return p;
-  let s = p.replace(/\\/g, "/");
-  if (!/^https?:\/\//i.test(s) && !s.startsWith("/")) s = `/${s}`;
-  return s;
-}
-
+// --- REPLACE START: outbound normalizer (delegate to utils); remove duplicate local toWebPath ---
 /** Local wrapper around shared normalizer with safe fallback */
 function normalizeUserOut(u) {
   try {
@@ -603,11 +598,65 @@ export async function updateProfile(req, res) {
   }
 }
 
+// --- REPLACE START: implement upgradeToPremium (no more 501) ---
 export async function upgradeToPremium(req, res) {
+  // First, if a service exists, let it handle the upgrade (keeps future extensibility).
   const sv = await loadServices();
-  if (typeof sv.upgradeToPremiumService === "function") return sv.upgradeToPremiumService(req, res);
-  return res.status(501).json({ error: "Not implemented (premium service missing)" });
+  if (typeof sv.upgradeToPremiumService === "function") {
+    return sv.upgradeToPremiumService(req, res);
+  }
+
+  // Built-in free Premium upgrade (no external service required).
+  try {
+    const id =
+      req.user?.id || req.user?._id || req.user?.userId || req.auth?.userId || req.auth?.id;
+
+    if (!id || !mongoose.Types.ObjectId.isValid(String(id))) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const user = await User.findById(String(id));
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    // Ensure entitlements shape exists
+    user.entitlements = user.entitlements || {};
+    user.entitlements.features = user.entitlements.features || {};
+    user.entitlements.quotas = user.entitlements.quotas || {};
+
+    // Flip premium flags
+    user.premium = true;            // legacy flag
+    user.isPremium = true;          // alias used by some clients
+    user.entitlements.tier = "premium";
+    user.entitlements.until = null; // perpetual until changed (free premium)
+
+    // Enable a reasonable default set of premium features
+    Object.assign(user.entitlements.features, {
+      unlimitedLikes: true,
+      unlimitedRewinds: true,
+      dealbreakers: true,
+      seeLikedYou: true,
+      qaVisibilityAll: true,
+      introsMessaging: true,
+      noAds: true,
+    });
+
+    // Reset/bump quotas relevant to premium
+    user.entitlements.quotas.superLikes = user.entitlements.quotas.superLikes || {};
+    user.entitlements.quotas.superLikes.used = 0;
+    user.entitlements.quotas.superLikes.window = "weekly";
+    user.superLike = user.superLike || { weeklyUsed: 0, weekStart: null };
+    user.superLike.weeklyUsed = 0;
+
+    const saved = await user.save();
+
+    // Always return normalized user
+    return res.status(200).json(normalizeUserOut(saved));
+  } catch (err) {
+    console.error("upgradeToPremium error:", err);
+    return res.status(500).json({ error: "Failed to upgrade to premium" });
+  }
 }
+// --- REPLACE END: implement upgradeToPremium (no more 501) ---
 
 export async function getMatchesWithScore(req, res) {
   const sv = await loadServices();
@@ -917,7 +966,7 @@ export async function deleteMeUser(req, res) {
 
     let deletedMessages = 0;
     try {
-      const MsgModule = await import("../models/Message.js").catch(() => null);
+      const MsgModule = await import("../src/models/Message.js").catch(() => null);
       const Message = MsgModule?.default || MsgModule;
       if (Message && typeof Message.deleteMany === "function") {
         const r1 = await Message.deleteMany({ sender: String(uid) });
@@ -1138,3 +1187,4 @@ export default {
   unhideMe,
 };
 // --- REPLACE END ---
+

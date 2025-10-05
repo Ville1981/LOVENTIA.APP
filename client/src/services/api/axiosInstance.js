@@ -1,6 +1,6 @@
 // PATH: client/src/services/api/axiosInstance.js
 
-// --- REPLACE START: resilient Axios instance with refresh + credentials (adds "token unchanged" guard) ---
+// --- REPLACE START: resilient Axios instance with refresh lock + credentials (prevents parallel spam) ---
 import axios from "axios";
 
 /**
@@ -26,8 +26,7 @@ function resolveBaseURL() {
     fromEnv =
       (typeof import.meta !== "undefined" &&
         import.meta.env &&
-        (import.meta.env.VITE_API_BASE_URL ||
-          import.meta.env.VITE_BACKEND_URL)) ||
+        (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_BACKEND_URL)) ||
       undefined;
   } catch {
     // ignore if not running under Vite
@@ -211,6 +210,7 @@ function shouldSendCredentialsTo(urlLike) {
  */
 api.interceptors.request.use(
   (config) => {
+    // Normalize /api prefix when baseURL already ends with /api
     if (
       typeof config.url === "string" &&
       config.url.startsWith("/api/") &&
@@ -268,7 +268,8 @@ api.interceptors.request.use(
 
 /**
  * Refresh logic
- * Always calls /api/auth/refresh (withCredentials).
+ * Debounced via a module-scoped promise (prevents parallel refresh spam).
+ * Always calls /auth/refresh (withCredentials).
  */
 let refreshPromise = null;
 
@@ -287,7 +288,7 @@ async function performRefresh() {
 
         const before = getAccessToken();
         if (typeof incoming === "string" && incoming === before) {
-          return incoming;
+          return incoming; // token unchanged
         }
 
         attachAccessToken(incoming);
@@ -296,7 +297,7 @@ async function performRefresh() {
         attachAccessToken(null);
         throw err;
       } finally {
-        refreshPromise = null;
+        refreshPromise = null; // release lock
       }
     })();
   }
@@ -329,14 +330,15 @@ api.interceptors.response.use(
 
     const status = error?.response?.status;
 
+    // Do not refresh for auth endpoints
     if (isAuthPath(original.url || "")) {
       return Promise.reject(error);
     }
 
+    // Only attempt refresh once
     if (status !== 401 || original._retry) {
       return Promise.reject(error);
     }
-
     original._retry = true;
 
     try {
@@ -350,18 +352,4 @@ api.interceptors.response.use(
 
 export default api;
 // --- REPLACE END ---
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

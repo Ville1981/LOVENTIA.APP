@@ -1,20 +1,20 @@
-// File: client/src/pages/Discover.jsx
+// PATH: client/src/pages/Discover.jsx
 
-// --- REPLACE START: Discover page – enforce order [self → bunny → others], keep full UI, and skip API for self/bunny while advancing locally ---
-import React, { useState, useEffect, useMemo } from "react";
+// --- REPLACE START: pause API while any <select> is focused + fix import order + keep behavior intact ---
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { getDealbreakers, updateDealbreakers } from "../api/dealbreakers";
+import AdBanner from "../components/AdBanner";
 import ProfileCardList from "../components/discover/ProfileCardList";
 import DiscoverFilters from "../components/DiscoverFilters";
-import SkeletonCard from "../components/SkeletonCard";
+import FeatureGate from "../components/FeatureGate";
 import HiddenStatusBanner from "../components/HiddenStatusBanner";
 import PremiumGate from "../components/PremiumGate";
-import FeatureGate from "../components/FeatureGate";
-import AdBanner from "../components/AdBanner";
+import SkeletonCard from "../components/SkeletonCard";
+import { BACKEND_BASE_URL } from "../config";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../services/api/axiosInstance";
-import { BACKEND_BASE_URL } from "../config";
-import { getDealbreakers, updateDealbreakers } from "../api/dealbreakers";
 
 // Bunny placeholder for empty/error states (card only, never avatar fallback)
 const bunnyUser = {
@@ -56,7 +56,7 @@ const Discover = () => {
   const [error, setError] = useState("");
   const [filterKey, setFilterKey] = useState("initial");
 
-  // local filter states (kept as separate fields to preserve structure/rivimäärä)
+  // local filter states (kept as separate fields to preserve structure/line count)
   const [username, setUsername] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
@@ -94,29 +94,79 @@ const Discover = () => {
   // Upsell modal state (shown when free user tries paid action)
   const [showUpsell, setShowUpsell] = useState(false);
 
+  // --- Focus pause: when any <select> is focused, pause API-triggering actions on Discover ---
+  const [selectHasFocus, setSelectHasFocus] = useState(false);
+  const onAnySelectFocus = useCallback(() => setSelectHasFocus(true), []);
+  const onAnySelectBlur = useCallback(() => {
+    // Let native blur settle before checking activeElement
+    setTimeout(() => {
+      const el = typeof document !== "undefined" ? document.activeElement : null;
+      setSelectHasFocus(Boolean(el && el.tagName === "SELECT"));
+    }, 0);
+  }, []);
+
+  // Global listener so this works even if children don’t forward probe props
   useEffect(() => {
-    if ("scrollRestoration" in window.history)
+    function onFocusIn(e) {
+      const target = e?.target;
+      if (target && target.tagName === "SELECT") onAnySelectFocus();
+    }
+    function onFocusOut(e) {
+      const target = e?.target;
+      if (target && target.tagName === "SELECT") onAnySelectBlur();
+    }
+    document.addEventListener("focusin", onFocusIn);
+    document.addEventListener("focusout", onFocusOut);
+    return () => {
+      document.removeEventListener("focusin", onFocusIn);
+      document.removeEventListener("focusout", onFocusOut);
+    };
+  }, [onAnySelectFocus, onAnySelectBlur]);
+
+  const probeFocusProps = { onFocus: onAnySelectFocus, onBlur: onAnySelectBlur };
+
+  // If something tries to trigger a fetch while paused, remember it and run after blur
+  const pendingQueryRef = useRef(null);
+  const flushPendingAfterBlur = useCallback(() => {
+    if (!selectHasFocus && pendingQueryRef.current) {
+      const params = pendingQueryRef.current;
+      pendingQueryRef.current = null;
+      loadUsers(params);
+    }
+  }, [selectHasFocus]);
+
+  useEffect(() => {
+    flushPendingAfterBlur();
+  }, [selectHasFocus, flushPendingAfterBlur]);
+
+  useEffect(() => {
+    if ("scrollRestoration" in window.history) {
       window.history.scrollRestoration = "manual";
+    }
     if (!bootstrapped) return;
 
     // ✅ always include self in discover
     const initialParams = { includeSelf: 1 };
-    loadUsers(initialParams);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bootstrapped]);
 
-  // Seed min/max age from dealbreakers (if available)
+    // If a select is focused during mount, queue instead of immediate fetch
+    if (selectHasFocus) {
+      pendingQueryRef.current = initialParams;
+    } else {
+      loadUsers(initialParams);
+    }
+  }, [bootstrapped, selectHasFocus]);
+
+  // Seed min/max age from dealbreakers (if available).
+  // Pause while select is focused to avoid extra renders during menu open.
   useEffect(() => {
     let mounted = true;
     const seedFromDealbreakers = async () => {
       try {
-        if (!bootstrapped) return;
+        if (!bootstrapped || selectHasFocus) return;
         const db = await getDealbreakers();
         if (!mounted || !db) return;
-        if (typeof db.ageMin === "number" && Number.isFinite(db.ageMin))
-          setMinAge(db.ageMin);
-        if (typeof db.ageMax === "number" && Number.isFinite(db.ageMax))
-          setMaxAge(db.ageMax);
+        if (typeof db.ageMin === "number" && Number.isFinite(db.ageMin)) setMinAge(db.ageMin);
+        if (typeof db.ageMax === "number" && Number.isFinite(db.ageMax)) setMaxAge(db.ageMax);
       } catch {
         /* silent */
       }
@@ -125,9 +175,15 @@ const Discover = () => {
     return () => {
       mounted = false;
     };
-  }, [bootstrapped]);
+  }, [bootstrapped, selectHasFocus]);
 
   const loadUsers = async (params = {}) => {
+    // If a menu is open, do not fetch right now; queue it and return.
+    if (selectHasFocus) {
+      pendingQueryRef.current = params;
+      return;
+    }
+
     setIsLoading(true);
     setError("");
     try {
@@ -157,7 +213,7 @@ const Discover = () => {
         ? normalized.filter((u) => (u.id || u._id)?.toString() !== selfId)
         : normalized;
 
-      const ordered = []; // ensure defined before .push()
+      const ordered = [];
       if (selfUser) ordered.push(selfUser);
       ordered.push(bunnyUser); // demo card second
       ordered.push(...others);
@@ -262,6 +318,11 @@ const Discover = () => {
       delete query.maxAge;
     }
 
+    // Respect focus pause: queue while a select is open
+    if (selectHasFocus) {
+      pendingQueryRef.current = query;
+      return;
+    }
     loadUsers(query);
   };
 
@@ -291,6 +352,7 @@ const Discover = () => {
     minAge,
     maxAge,
   };
+
   const setters = {
     setUsername,
     setAge,
@@ -320,6 +382,10 @@ const Discover = () => {
 
   const handleUnhiddenRefresh = () => {
     const params = { includeSelf: 1 }; // ✅ always include self
+    if (selectHasFocus) {
+      pendingQueryRef.current = params;
+      return;
+    }
     loadUsers(params);
   };
 
@@ -395,7 +461,15 @@ const Discover = () => {
               </FeatureGate>
             </div>
 
-            <DiscoverFilters values={values} handleFilter={handleFilter} />
+            {/* Pass focus probes + values (+ optional setters for future enhancements) into filters */}
+            <DiscoverFilters
+              values={values}
+              handleFilter={handleFilter}
+              // These extra props are harmless if the child ignores them;
+              // they enable focus-aware pausing if forwarded by the child later.
+              setters={setters}
+              probeFocusProps={probeFocusProps}
+            />
           </div>
 
           {/* Render ad banner for free users (FeatureGate invert on noAds) */}

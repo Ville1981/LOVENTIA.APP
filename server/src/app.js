@@ -48,7 +48,7 @@ let swagger; // resolved below after helpers are defined
 // --- REPLACE END ---
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Dynamic-import helpers (CJS/ESM interop)
+/* Dynamic-import helpers (CJS/ESM interop) */
 // ──────────────────────────────────────────────────────────────────────────────
 // --- REPLACE START: helpers to load CJS or ESM seamlessly ---
 /**
@@ -304,7 +304,7 @@ async function authenticate(req, res, next) {
 // --- REPLACE END ---
 
 // ──────────────────────────────────────────────────────────────────────────────
-// App bootstrap
+/* App bootstrap */
 // ──────────────────────────────────────────────────────────────────────────────
 const app = express();
 
@@ -345,7 +345,7 @@ app.use(compression());
 // Swagger UI
 // --- REPLACE START: use dynamically-loaded swagger (ESM-safe) ---
 app.use("/api-docs", swagger.serve, swagger.setup);
-// --- REPLACE END ---
+/// --- REPLACE END ---
 
 // ──────────────────────────────────────────────────────────────────────────────
 /* MongoDB connection */
@@ -505,11 +505,12 @@ if (!IS_TEST) {
 // ──────────────────────────────────────────────────────────────────────────────
 /* Body parsers */
 // ──────────────────────────────────────────────────────────────────────────────
+// --- REPLACE START: ensure JSON parser is mounted BEFORE any routes that need req.body (e.g., photos/reorder, set-avatar) ---
 app.use(express.json({ limit: "1mb", strict: true, type: "application/json" }));
 app.use(express.urlencoded({ extended: true }));
+// --- REPLACE END ---
 
 // ──────────────────────────────────────────────────────────────────────────────
-// PATH: server/src/app.js
 
 // --- REPLACE START: safe sanitizer wrappers for Express 5 (read-only req.query) ---
 /**
@@ -636,8 +637,6 @@ app.get("/test-alerts", async (_req, res) => {
     res.status(500).send("Alert test failed");
   }
 });
-
-// PATH: server/src/app.js
 
 // --- REPLACE START: ultra-safe diagnostics endpoints (/__routes and /__routes_full) ---
 /**
@@ -794,6 +793,7 @@ try {
   console.warn("⚠️ Could not ensure /uploads directory tree:", e && e.message ? e.message : e);
 }
 
+// --- REPLACE START: ensure /uploads static is mounted (FE expects /uploads/...) ---
 app.use(
   "/uploads",
   express.static(uploadsRoot, {
@@ -811,6 +811,7 @@ app.use(
     },
   })
 );
+// --- REPLACE END ---
 
 // Optionally serve client build (controlled by env; harmless if not present)
 if (process.env.SERVE_CLIENT === "true") {
@@ -973,8 +974,6 @@ if (IS_TEST) {
   }
 }
 // --- REPLACE END ---
-
-// PATH: server/src/app.js
 
 // --- REPLACE START: force-mount /api/search and /api/rewind (ESM-safe, with logging) ---
 try {
@@ -1401,4 +1400,3 @@ if (typeof module !== "undefined") {
   module.exports = app;
 }
 // --- REPLACE END ---
-

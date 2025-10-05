@@ -29,7 +29,8 @@
     "scan:dep": "npm --workspace client run scan:dep",
     "clean": "rimraf node_modules package-lock.json client/node_modules server/node_modules",
     "reinstall": "npm run clean && npm install",
-    "postinstall": "node -e \"console.log('[postinstall] Workspaces ready:', !!require('./package.json').workspaces)\""
+    "postinstall": "node -e \"console.log('[postinstall] Workspaces ready:', !!require('./package.json').workspaces)\"",
+    "prepare": "husky"
   },
   "dependencies": {
     "react": "18.3.1",
@@ -40,6 +41,8 @@
     "react-dom": "18.3.1"
   },
   "devDependencies": {
+    "gitleaks": "^1.0.0",
+    "husky": "^9.1.7",
     "rimraf": "^6.0.1"
   },
   "engines": {

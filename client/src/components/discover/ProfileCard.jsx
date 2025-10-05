@@ -1,8 +1,8 @@
-// File: client/src/components/discover/ProfileCard.jsx
+// PATH: client/src/components/discover/ProfileCard.jsx
 
-// --- REPLACE START: ProfileCard – robust image URL normalization (BACKEND_BASE_URL), safe id/location, minimal changes ---
+// --- REPLACE START: ProfileCard – normalize location (string → object), robust image URLs, remove bad ESLint directive ---
 import PropTypes from "prop-types";
-import React, { memo, useState, useEffect } from "react";
+import React, { memo, useEffect, useMemo, useState } from "react";
 
 import ActionButtons from "./ActionButtons";
 import DetailsSection from "./DetailsSection";
@@ -12,7 +12,7 @@ import StatsPanel from "./StatsPanel";
 import SummaryAccordion from "./SummaryAccordion";
 import { BACKEND_BASE_URL } from "../../utils/config";
 
-// Demo-only fallback photos (used when user.photos is empty). 
+// Demo-only fallback photos (used when user.photos is empty).
 // Bunny images are only used for demo/prototype purposes.
 const DEMO_FALLBACK_PHOTOS = [
   "/assets/bunny1.jpg",
@@ -35,64 +35,94 @@ const ProfileCard = ({ user, onPass, onLike, onSuperlike }) => {
    */
   const normalize = (raw) => {
     if (!raw || typeof raw !== "string") return "";
-    const s = raw.trim();
-    if (s === "") return "";
+    const s0 = raw.trim();
+    if (s0 === "") return "";
 
     // Absolute URL already
-    if (/^https?:\/\//i.test(s)) return s;
-
-    // Server-side uploaded images
-    if (s.startsWith("/uploads/")) return `${BACKEND_BASE_URL}${s}`;
-    // Bare filename that likely refers to an upload
-    if (!s.startsWith("/")) return `${BACKEND_BASE_URL}/uploads/${s}`;
+    if (/^https?:\/\//i.test(s0)) return s0;
 
     // Client-side static assets (keep relative to client origin)
-    if (s.startsWith("/assets/")) return `${window.location.origin}${s}`;
+    if (s0.startsWith("/assets/")) return `${window.location.origin}${s0}`;
+
+    // Server-side uploaded images
+    if (s0.startsWith("/uploads/")) return `${BACKEND_BASE_URL}${s0}`;
+
+    // Bare filename that likely refers to an upload
+    if (!s0.startsWith("/")) return `${BACKEND_BASE_URL}/uploads/${s0}`;
 
     // Any other rooted path (rare): assume client origin
-    return `${window.location.origin}${s}`;
+    return `${window.location.origin}${s0}`;
   };
+
+  // Normalize photos from various shapes to URL strings
+  const photoUrls = useMemo(() => {
+    const rawList =
+      Array.isArray(user?.photos) && user.photos.length > 0
+        ? user.photos
+        : DEMO_FALLBACK_PHOTOS;
+
+    return rawList
+      .map((item) => {
+        if (typeof item === "string") return item;
+        if (item?.url) return item.url;
+        if (item?.src) return item.src;
+        if (item?.photoUrl) return item.photoUrl;
+        if (item?.imageUrl) return item.imageUrl;
+        return "";
+      })
+      .map(normalize)
+      .filter(Boolean);
+  }, [user?.photos]);
 
   useEffect(() => {
     setLoading(true);
     setError(null);
     try {
-      // Prefer backend-provided photos, otherwise fall back to demo set
-      const rawList =
-        Array.isArray(user.photos) && user.photos.length > 0
-          ? user.photos
-          : DEMO_FALLBACK_PHOTOS;
-
-      const urls = rawList
-        .map((item) => {
-          if (typeof item === "string") return item;
-          if (item?.url) return item.url;
-          if (item?.src) return item.src;
-          if (item?.photoUrl) return item.photoUrl;
-          if (item?.imageUrl) return item.imageUrl;
-          return "";
-        })
-        .map(normalize)
-        .filter(Boolean);
-
-      setPhotos(urls);
+      setPhotos(photoUrls);
     } catch (e) {
+      // eslint-disable-next-line no-console
       console.error(e);
       setError("Failed to load images");
     } finally {
       setLoading(false);
     }
-    // React only when user.photos changes
-  }, [user.photos]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [photoUrls]);
 
   // Safe display name and id normalization
-  const displayName = user.name || user.username || "Unknown";
-  const id = (user.id || user._id || "").toString();
+  const displayName = user?.name || user?.username || "Unknown";
+  const id = (user?.id || user?._id || "").toString();
+
+  // --- Normalize location (Option A): if string, coerce to object for safe consumers ---
+  const normalizedLocation = useMemo(() => {
+    const raw = user?.location;
+    if (!raw) {
+      return {
+        city: user?.city || "",
+        region: user?.region || "",
+        country: user?.country || "",
+        label: "",
+      };
+    }
+    if (typeof raw === "string") {
+      // Keep original city/region/country fields as hints; label preserves raw text
+      return {
+        city: user?.city || "",
+        region: user?.region || "",
+        country: user?.country || "",
+        label: raw,
+      };
+    }
+    // Assume object-like
+    return {
+      city: raw.city ?? user?.city ?? "",
+      region: raw.region ?? user?.region ?? "",
+      country: raw.country ?? user?.country ?? "",
+      label: raw.label ?? "",
+    };
+  }, [user?.location, user?.city, user?.region, user?.country]);
 
   if (loading) {
-    return (
-      <div className="p-6 text-center text-gray-500">Loading profile…</div>
-    );
+    return <div className="p-6 text-center text-gray-500">Loading profile…</div>;
   }
 
   if (error) {
@@ -119,18 +149,18 @@ const ProfileCard = ({ user, onPass, onLike, onSuperlike }) => {
         {/* Name, age, compatibility */}
         <div className="flex items-center justify-between">
           <h3 className="text-xl font-bold">
-            {displayName}, {user.age ?? "?"}
+            {displayName}, {user?.age ?? "?"}
           </h3>
           <div className="w-10 h-10 border-2 border-blue-600 rounded-full flex items-center justify-center text-blue-600 font-bold">
-            {user.compatibility ?? 0}%
+            {user?.compatibility ?? 0}%
           </div>
         </div>
 
         {/* Location */}
         <LocationText
-          city={user?.location?.city ?? user.city}
-          region={user?.location?.region ?? user.region}
-          country={user?.location?.country ?? user.country}
+          city={normalizedLocation.city}
+          region={normalizedLocation.region}
+          country={normalizedLocation.country}
         />
 
         {/* Pass / Like / Superlike buttons */}
@@ -142,13 +172,13 @@ const ProfileCard = ({ user, onPass, onLike, onSuperlike }) => {
         />
 
         {/* Summary */}
-        <SummaryAccordion summary={user.summary} />
+        <SummaryAccordion summary={user?.summary} />
 
         {/* Stats */}
         <StatsPanel user={user} />
 
         {/* Details */}
-        <DetailsSection details={user.details} />
+        <DetailsSection details={user?.details} />
       </div>
     </div>
   );
@@ -165,11 +195,16 @@ ProfileCard.propTypes = {
     city: PropTypes.string,
     region: PropTypes.string,
     country: PropTypes.string,
-    location: PropTypes.shape({
-      city: PropTypes.string,
-      region: PropTypes.string,
-      country: PropTypes.string,
-    }),
+    // Accept both object and string to avoid PropTypes warning until all callers normalize upstream.
+    location: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.shape({
+        city: PropTypes.string,
+        region: PropTypes.string,
+        country: PropTypes.string,
+        label: PropTypes.string,
+      }),
+    ]),
     photos: PropTypes.arrayOf(
       PropTypes.oneOfType([
         PropTypes.string,
@@ -191,3 +226,4 @@ ProfileCard.propTypes = {
 
 export default memo(ProfileCard);
 // --- REPLACE END ---
+

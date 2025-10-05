@@ -1,35 +1,23 @@
-// File: client/src/App.jsx
+// PATH: client/src/App.jsx
 
-// --- REPLACE START: import grouping and PrivateRoute/AdminRoute using context user+bootstrapped ---
-import React, { useEffect, Suspense } from "react";
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
+// --- REPLACE START: add React Query defaults + fix import order + keep behavior intact ---
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import React, { Suspense, useEffect } from "react";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
-// Styles
+
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
-// Subscriptions page (for /settings/subscriptions)
-import SubscriptionSettings from "./pages/settings/SubscriptionSettings";
-
-// Context & Utilities
 import ErrorBoundary from "./components/ErrorBoundary";
-import { useAuth } from "./contexts/AuthContext";
-
-// Components/Layout
-import MainLayout from "./components/MainLayout";
-
-// Utility Components
 import { ForgotPassword } from "./components/ForgotPassword";
+import MainLayout from "./components/MainLayout";
 import { ResetPassword } from "./components/ResetPassword";
-
-// Pages (Alphabetical)
+import { useAuth } from "./contexts/AuthContext";
+import About from "./pages/About";
 import AdminPanel from "./pages/AdminPanel";
 import ChatPage from "./pages/ChatPage";
+import Cookies from "./pages/Cookies";
 import Discover from "./pages/Discover";
 import Etusivu from "./pages/Etusivu";
 import ExtraPhotosPage from "./pages/ExtraPhotosPage";
@@ -42,17 +30,24 @@ import PremiumCancel from "./pages/PremiumCancel";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import ProfileHub from "./pages/ProfileHub";
 import Register from "./pages/Register";
-import Settings from "./pages/Settings"; // legacy, kept for compatibility
+import Security from "./pages/Security";
+import SubscriptionSettings from "./pages/settings/SubscriptionSettings";
+import SettingsPage from "./pages/SettingsPage";
+import Support from "./pages/Support";
+import Terms from "./pages/Terms";
 import Upgrade from "./pages/Upgrade";
 import WhoLikedMe from "./pages/WhoLikedMe";
-import SettingsPage from "./pages/SettingsPage"; // the actual /settings page
 
-// Footer pages (public)
-import About from "./pages/About";
-import Support from "./pages/Support";
-import Security from "./pages/Security";
-import Terms from "./pages/Terms";
-import Cookies from "./pages/Cookies";
+// React Query client with calmer defaults to avoid refetch bursts while selects are open
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      retry: 1,
+    },
+  },
+});
 
 // Private route gate
 function PrivateRoute({ children }) {
@@ -68,11 +63,8 @@ function AdminRoute({ children }) {
   if (!user) return <Navigate to="/login" replace />;
   return user.role === "admin" ? children : <Navigate to="/" replace />;
 }
-// --- REPLACE END ---
 
-// --- REPLACE START: guard MSW (and any network workers) away from test runner ---
 // Only attempt to start MSW in dev when explicitly enabled, never during Vitest.
-// This block has no effect unless VITE_MSW="1" and not running tests.
 if (
   typeof window !== "undefined" &&
   import.meta?.env?.MODE !== "test" &&
@@ -85,12 +77,11 @@ if (
       if (mod?.worker?.start) {
         await mod.worker.start({ onUnhandledRequest: "bypass" });
       }
-    } catch (_err) {
+    } catch {
       // Silently skip MSW if mocks are not present in this build
     }
   })();
 }
-// --- REPLACE END ---
 
 export default function App() {
   useEffect(() => {
@@ -102,155 +93,156 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      {/* --- REPLACE START: add React Router v7 future flags --- */}
-      <Suspense fallback={<div className="p-4">Loading translations…</div>}>
-        <BrowserRouter
-          future={{
-            v7_startTransition: true,
-            v7_relativeSplatPath: true,
-          }}
-        >
-          <Routes>
-            <Route path="/" element={<MainLayout />}>
-              {/* Public routes */}
-              <Route index element={<Etusivu />} />
-              <Route path="discover" element={<Discover />} />
+      <QueryClientProvider client={queryClient}>
+        <Suspense fallback={<div className="p-4">Loading translations…</div>}>
+          <BrowserRouter
+            future={{
+              v7_startTransition: true,
+              v7_relativeSplatPath: true,
+            }}
+          >
+            <Routes>
+              <Route path="/" element={<MainLayout />}>
+                {/* Public routes */}
+                <Route index element={<Etusivu />} />
+                <Route path="discover" element={<Discover />} />
 
-              {/* Public footer routes */}
-              <Route path="about" element={<About />} />
-              <Route path="support" element={<Support />} />
-              <Route path="security" element={<Security />} />
-              <Route path="privacy" element={<PrivacyPolicy />} />
-              <Route path="terms" element={<Terms />} />
-              <Route path="cookies" element={<Cookies />} />
+                {/* Public footer routes */}
+                <Route path="about" element={<About />} />
+                <Route path="support" element={<Support />} />
+                <Route path="security" element={<Security />} />
+                <Route path="privacy" element={<PrivacyPolicy />} />
+                <Route path="terms" element={<Terms />} />
+                <Route path="cookies" element={<Cookies />} />
 
-              {/* Auth-protected */}
-              <Route
-                path="profile"
-                element={
-                  <PrivateRoute>
-                    <ProfileHub />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="profile/:userId"
-                element={
-                  <PrivateRoute>
-                    <ProfileHub />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="profile/photos"
-                element={
-                  <PrivateRoute>
-                    <ExtraPhotosPage />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="matches"
-                element={
-                  <PrivateRoute>
-                    <MatchPage />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="messages"
-                element={
-                  <PrivateRoute>
-                    <MessagesOverview />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="chat/:userId"
-                element={
-                  <PrivateRoute>
-                    <ChatPage />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="cancel"
-                element={
-                  <PrivateRoute>
-                    <PremiumCancel />
-                  </PrivateRoute>
-                }
-              />
+                {/* Auth-protected */}
+                <Route
+                  path="profile"
+                  element={
+                    <PrivateRoute>
+                      <ProfileHub />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="profile/:userId"
+                  element={
+                    <PrivateRoute>
+                      <ProfileHub />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="profile/photos"
+                  element={
+                    <PrivateRoute>
+                      <ExtraPhotosPage />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="matches"
+                  element={
+                    <PrivateRoute>
+                      <MatchPage />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="messages"
+                  element={
+                    <PrivateRoute>
+                      <MessagesOverview />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="chat/:userId"
+                  element={
+                    <PrivateRoute>
+                      <ChatPage />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="cancel"
+                  element={
+                    <PrivateRoute>
+                      <PremiumCancel />
+                    </PrivateRoute>
+                  }
+                />
 
-              {/* Admin-only */}
-              <Route
-                path="admin"
-                element={
-                  <AdminRoute>
-                    <AdminPanel />
-                  </AdminRoute>
-                }
-              />
+                {/* Admin-only */}
+                <Route
+                  path="admin"
+                  element={
+                    <AdminRoute>
+                      <AdminPanel />
+                    </AdminRoute>
+                  }
+                />
 
-              {/* Auth-free */}
-              <Route path="login" element={<Login />} />
-              <Route path="register" element={<Register />} />
+                {/* Auth-free */}
+                <Route path="login" element={<Login />} />
+                <Route path="register" element={<Register />} />
 
-              {/* More protected routes */}
-              <Route
-                path="upgrade"
-                element={
-                  <PrivateRoute>
-                    <Upgrade />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="who-liked-me"
-                element={
-                  <PrivateRoute>
-                    <WhoLikedMe />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="map"
-                element={
-                  <PrivateRoute>
-                    <MapPage />
-                  </PrivateRoute>
-                }
-              />
+                {/* More protected routes */}
+                <Route
+                  path="upgrade"
+                  element={
+                    <PrivateRoute>
+                      <Upgrade />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="who-liked-me"
+                  element={
+                    <PrivateRoute>
+                      <WhoLikedMe />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="map"
+                  element={
+                    <PrivateRoute>
+                      <MapPage />
+                    </PrivateRoute>
+                  }
+                />
 
-              {/* Settings (protected) - standalone siblings */}
-              <Route
-                path="settings"
-                element={
-                  <PrivateRoute>
-                    <SettingsPage />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="settings/subscriptions"
-                element={
-                  <PrivateRoute>
-                    <SubscriptionSettings />
-                  </PrivateRoute>
-                }
-              />
+                {/* Settings (protected) */}
+                <Route
+                  path="settings"
+                  element={
+                    <PrivateRoute>
+                      <SettingsPage />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="settings/subscriptions"
+                  element={
+                    <PrivateRoute>
+                      <SubscriptionSettings />
+                    </PrivateRoute>
+                  }
+                />
 
-              {/* Password helpers */}
-              <Route path="forgot-password" element={<ForgotPassword />} />
-              <Route path="reset-password" element={<ResetPassword />} />
+                {/* Password helpers */}
+                <Route path="forgot-password" element={<ForgotPassword />} />
+                <Route path="reset-password" element={<ResetPassword />} />
 
-              {/* 404 */}
-              <Route path="*" element={<NotFound />} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
-      </Suspense>
-      {/* --- REPLACE END --- */}
+                {/* 404 */}
+                <Route path="*" element={<NotFound />} />
+              </Route>
+            </Routes>
+          </BrowserRouter>
+        </Suspense>
+      </QueryClientProvider>
     </ErrorBoundary>
   );
 }
+// --- REPLACE END ---
