@@ -69,3 +69,7 @@ client/public/locales/**/*.bak
 *.bak
 # --- REPLACE END --------------------------------------------------------------
 _trash/
+
+# Windows device ghost
+NUL
+nul
