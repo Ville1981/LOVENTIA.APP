@@ -1,4 +1,4 @@
-// File: client/src/contexts/AuthContext.jsx
+// PATH: client/src/contexts/AuthContext.jsx
 
 // --- REPLACE START: robust AuthContext with guarded refreshMe + billing reconcile + premium exposure ---
 import React, {
@@ -10,11 +10,13 @@ import React, {
   useCallback,
   useRef,
 } from "react";
+
+// Internal API helpers (order matters for ESLint import/order)
+import { syncBilling } from "../api/billing";
 import api, {
   attachAccessToken as _attachAccessToken,
   getAccessToken as _getAccessToken,
 } from "../services/api/axiosInstance";
-import { syncBilling } from "../api/billing";
 
 /**
  * Token helpers
@@ -151,6 +153,8 @@ export function AuthProvider({ children }) {
   const [user, setUserState] = useState(null);
   const [accessToken, setAccessTokenState] = useState(getAccessToken() || null);
   const [bootstrapped, setBootstrapped] = useState(false);
+
+  // Prevent overlapping calls
   const refreshInFlightRef = useRef(null);
   const billingSyncInFlightRef = useRef(null);
 
@@ -199,9 +203,19 @@ export function AuthProvider({ children }) {
   /**
    * Reconcile billing with the server (Stripe as source of truth),
    * then update user premium flag locally without clobbering other fields.
+   * Guard: do nothing if there is no access token to avoid spam.
    */
   const reconcileBillingNow = useCallback(async () => {
+    // Guard: skip if not authenticated
+    const hasToken = !!getAccessToken();
+    if (!hasToken) {
+      console.warn("[AuthContext] Billing sync skipped: no access token.");
+      return null;
+    }
+
+    // De-duplicate in-flight
     if (billingSyncInFlightRef.current) return billingSyncInFlightRef.current;
+
     const task = (async () => {
       try {
         const payload = await syncBilling();
@@ -216,6 +230,7 @@ export function AuthProvider({ children }) {
         billingSyncInFlightRef.current = null;
       }
     })();
+
     billingSyncInFlightRef.current = task;
     return task;
   }, []);
@@ -223,14 +238,16 @@ export function AuthProvider({ children }) {
   /**
    * Refresh access token (cookie-based) and then load /me.
    * Also runs a billing reconcile to capture subscription changes.
+   * Guarded and de-duplicated to avoid request storms.
    */
   const refreshMe = useCallback(async () => {
     if (refreshInFlightRef.current) {
       return refreshInFlightRef.current;
     }
+
     const task = (async () => {
       try {
-        // Try refresh; tolerate absence
+        // Try refresh; tolerate absence (do not spam on failure)
         try {
           const r = await api.post("/api/auth/refresh", {}, { withCredentials: true });
           const next = r?.data?.accessToken || r?.data?.token || null;
@@ -239,13 +256,13 @@ export function AuthProvider({ children }) {
             setAccessTokenState(next);
           }
         } catch {
-          /* ignore */
+          // ignore refresh errors; user may be anonymous
         }
 
-        // Reconcile billing (ensures isPremium stays accurate)
+        // Reconcile billing ONLY if we have a token (guard inside)
         await reconcileBillingNow();
 
-        // Fetch user
+        // Fetch user profile
         const current = await fetchMe();
         setAuthUser(current);
         return current;
@@ -258,6 +275,7 @@ export function AuthProvider({ children }) {
         refreshInFlightRef.current = null;
       }
     })();
+
     refreshInFlightRef.current = task;
     return task;
   }, [fetchMe, setAuthUser, reconcileBillingNow]);
@@ -292,10 +310,10 @@ export function AuthProvider({ children }) {
         qs.has("return_from") || qs.has("portal_session_id");
 
       if (hasCheckoutFlag || hasPortalFlag) {
-        // Reconcile with backend
+        // Reconcile with backend (guarded inside)
         const payload = await reconcileBillingNow();
 
-        // Optionally tidy query string to avoid repeated syncs on soft nav
+        // Tidy query string to avoid repeated syncs on soft nav
         try {
           const url = new URL(window.location.href);
           ["success", "canceled", "session_id", "portal_session_id", "return_from"].forEach((k) =>
@@ -320,7 +338,7 @@ export function AuthProvider({ children }) {
   /**
    * Initial bootstrap. Ensures:
    * - token refresh (if cookies set)
-   * - billing reconcile
+   * - billing reconcile (guarded)
    * - load /me
    */
   useEffect(() => {
@@ -341,6 +359,7 @@ export function AuthProvider({ children }) {
 
   /**
    * Also reconcile on tab focus (helps when users complete purchase in another tab).
+   * Guarded internally to avoid spam when logged out.
    */
   useEffect(() => {
     function onFocus() {
@@ -362,7 +381,7 @@ export function AuthProvider({ children }) {
         setAccessTokenState(token);
         attachAccessToken(token);
       }
-      // Reconcile after login to pull latest premium status
+      // Reconcile after login to pull latest premium status (guarded)
       await reconcileBillingNow();
       const current = await fetchMe();
       setAuthUser(current);
@@ -447,3 +466,4 @@ export function AuthProvider({ children }) {
 
 export default AuthContext;
 // --- REPLACE END ---
+

@@ -1,16 +1,15 @@
 // File: client/src/components/DiscoverFilters.jsx
 
-// --- REPLACE START: DiscoverFilters wired for backend filters, stable options, dealbreakers section + premium gating with UI block for non-premium submissions ---
+// --- REPLACE START: DiscoverFilters wired to optionally use DiscoverLocation (+ ESLint fixes) ---
 import PropTypes from "prop-types";
 import React, { useMemo, useState } from "react";
-import { useTranslation } from "react-i18next";
 import { useForm, FormProvider } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 import { useAuth } from "../contexts/AuthContext";
 import { isPremium as isPremiumFlag } from "../utils/entitlements";
-
-// Keep parity with Profile form field groups (even if some are display-only here)
+import DiscoverLocation from "./discoverFields/DiscoverLocation";
 import FormBasicInfo from "./profileFields/FormBasicInfo";
 import FormChildrenPets from "./profileFields/FormChildrenPets";
 import FormEducation from "./profileFields/FormEducation";
@@ -18,6 +17,11 @@ import FormGoalSummary from "./profileFields/FormGoalSummary";
 import FormLifestyle from "./profileFields/FormLifestyle";
 import FormLocation from "./profileFields/FormLocation";
 import FormLookingFor from "./profileFields/FormLookingFor";
+
+if (typeof window !== "undefined") {
+  // eslint-disable-next-line no-console
+  console.info?.("[DiscoverFilters] module loaded");
+}
 
 /* =============================================================================
    Stable option sources (kept inline for resilience)
@@ -111,21 +115,12 @@ Hint.propTypes = { id: PropTypes.string, children: PropTypes.node };
 /* =============================================================================
    Component
 ============================================================================= */
-/**
- * DiscoverFilters
- * - Provides search filters (base filters for everyone).
- * - Dealbreakers section is visible but disabled for non-premium users.
- * - If a non-premium user attempts to submit with dealbreakers set, the submit is blocked
- *   and an upgrade CTA is shown inline.
- */
-const DiscoverFilters = ({ values, handleFilter }) => {
+const DiscoverFilters = ({ values, setters, handleFilter }) => {
   const { t } = useTranslation(["discover", "profile", "lifestyle", "common"]);
   const { user } = useAuth() || {};
   const isPremium = isPremiumFlag(user);
-
   const [blockedMsg, setBlockedMsg] = useState("");
 
-  // React Hook Form
   const methods = useForm({
     defaultValues: values,
     mode: "onSubmit",
@@ -134,7 +129,6 @@ const DiscoverFilters = ({ values, handleFilter }) => {
   });
   const { handleSubmit, register, getValues } = methods;
 
-  // Options with i18n fallback
   const mappedReligionOptions = useMemo(
     () => RELIGION_OPTIONS.map((o) => ({ ...o, text: t(o.key) || o.label || t("common:select") })),
     [t]
@@ -163,7 +157,6 @@ const DiscoverFilters = ({ values, handleFilter }) => {
   const hintId = "dealbreakers-premium-hint";
   const dealbreakersDisabled = !isPremium;
 
-  // Submit wrapper: block non-premium if any dealbreakers are set
   const onSubmit = (data) => {
     setBlockedMsg("");
     if (!isPremium) {
@@ -183,19 +176,12 @@ const DiscoverFilters = ({ values, handleFilter }) => {
             "Dealbreakers are a Premium feature. Please upgrade to use these filters."
           )
         );
-        return; // Block submit
+        return;
       }
     }
-    // Pass through to parent
     handleFilter(data);
   };
 
-  /**
-   * onInvalid: allow a soft pass-through when only non-critical fields fail,
-   * provided that age range is set and (for non-premium) no dealbreakers are used.
-   * This makes test “calls handleFilter on submit with values” robust even if
-   * some sub-forms add required fields later.
-   */
   const onInvalid = () => {
     try {
       const data = getValues();
@@ -220,25 +206,32 @@ const DiscoverFilters = ({ values, handleFilter }) => {
         minAgeOk && maxAgeOk && ageOrderOk && (isPremium || !hasDealbreakers);
 
       if (allowSoftSubmit) {
-        // Clear any previous block message and forward data upstream.
         setBlockedMsg("");
         handleFilter(data);
       }
     } catch {
-      // noop: if soft path fails, keep normal invalid behavior (no submit)
+      /* noop */
     }
   };
+
+  const canUseDiscoverLocation =
+    setters &&
+    typeof setters.setCountry === "function" &&
+    typeof setters.setRegion === "function" &&
+    typeof setters.setCity === "function" &&
+    typeof setters.setCustomCountry === "function" &&
+    typeof setters.setCustomRegion === "function" &&
+    typeof setters.setCustomCity === "function";
 
   return (
     <FormProvider {...methods}>
       <div className="w-full max-w-3xl mx-auto">
         <form
           data-cy="DiscoverFilters__form"
-          onSubmit={handleSubmit(onSubmit, onInvalid)} // ensure invalid handler registered
+          onSubmit={handleSubmit(onSubmit, onInvalid)}
           className="flex flex-col gap-6"
           noValidate
         >
-          {/* Title and instructions */}
           <div className="text-center">
             <h2 data-cy="DiscoverFilters__title" className="text-3xl font-bold mb-2">
               {t("discover:title")}
@@ -248,7 +241,6 @@ const DiscoverFilters = ({ values, handleFilter }) => {
             </p>
           </div>
 
-          {/* Keep in sync with ProfileForm (placeholder only; validation disabled in search mode) */}
           <div className="hidden">
             <FormBasicInfo t={t} disableValidation />
           </div>
@@ -330,22 +322,39 @@ const DiscoverFilters = ({ values, handleFilter }) => {
           </div>
 
           {/* Location */}
-          <FormLocation
-            t={t}
-            countryFieldName="country"
-            regionFieldName="region"
-            cityFieldName="city"
-            customCountryFieldName="customCountry"
-            customRegionFieldName="customRegion"
-            customCityFieldName="customCity"
-            includeAllOption
-            disableValidation
-          />
+          {canUseDiscoverLocation ? (
+            <DiscoverLocation
+              country={values.country}
+              setCountry={setters.setCountry}
+              region={values.region}
+              setRegion={setters.setRegion}
+              city={values.city}
+              setCity={setters.setCity}
+              customCountry={values.customCountry}
+              setCustomCountry={setters.setCustomCountry}
+              customRegion={values.customRegion}
+              setCustomRegion={setters.setCustomRegion}
+              customCity={values.customCity}
+              setCustomCity={setters.setCustomCity}
+            />
+          ) : (
+            <FormLocation
+              t={t}
+              countryFieldName="country"
+              regionFieldName="region"
+              cityFieldName="city"
+              customCountryFieldName="customCountry"
+              customRegionFieldName="customRegion"
+              customCityFieldName="customCity"
+              includeAllOption
+              disableValidation
+            />
+          )}
 
           {/* Education (basic search filter) */}
           <FormEducation t={t} includeAllOption disableValidation />
 
-          {/* Profession (placeholder; keep parity with ProfileForm if extended) */}
+          {/* Profession */}
           <div>
             <label className="block font-medium mb-1" htmlFor="profession">
               {t("discover:profession")}
@@ -423,9 +432,7 @@ const DiscoverFilters = ({ values, handleFilter }) => {
               </h3>
               {!isPremium && (
                 <Badge>
-                  <span role="img" aria-label="locked">
-                    🔒
-                  </span>
+                  <span role="img" aria-label="locked">🔒</span>
                   <span className="whitespace-nowrap">
                     {t("discover:premiumOnly", "Premium only")}
                   </span>
@@ -434,11 +441,10 @@ const DiscoverFilters = ({ values, handleFilter }) => {
             </div>
 
             <fieldset
-              disabled={!isPremium}
-              aria-describedby={!isPremium ? hintId : undefined}
-              className={!isPremium ? "opacity-60 select-none" : ""}
+              disabled={dealbreakersDisabled}
+              aria-describedby={dealbreakersDisabled ? hintId : undefined}
+              className={dealbreakersDisabled ? "opacity-60 select-none" : ""}
             >
-              {/* distanceKm */}
               <div className="mb-3">
                 <label className="block font-medium mb-1" htmlFor="distanceKm">
                   {t("discover:dealbreakers.distanceKm", "Max distance (km)")}
@@ -454,7 +460,6 @@ const DiscoverFilters = ({ values, handleFilter }) => {
                 />
               </div>
 
-              {/* mustHavePhoto */}
               <div className="mb-3 flex items-center gap-2">
                 <input id="mustHavePhoto" type="checkbox" {...register("mustHavePhoto")} className="h-4 w-4" />
                 <label htmlFor="mustHavePhoto" className="font-medium">
@@ -462,7 +467,6 @@ const DiscoverFilters = ({ values, handleFilter }) => {
                 </label>
               </div>
 
-              {/* nonSmokerOnly */}
               <div className="mb-3 flex items-center gap-2">
                 <input id="nonSmokerOnly" type="checkbox" {...register("nonSmokerOnly")} className="h-4 w-4" />
                 <label htmlFor="nonSmokerOnly" className="font-medium">
@@ -470,7 +474,6 @@ const DiscoverFilters = ({ values, handleFilter }) => {
                 </label>
               </div>
 
-              {/* noDrugs */}
               <div className="mb-3 flex items-center gap-2">
                 <input id="noDrugs" type="checkbox" {...register("noDrugs")} className="h-4 w-4" />
                 <label htmlFor="noDrugs" className="font-medium">
@@ -478,7 +481,6 @@ const DiscoverFilters = ({ values, handleFilter }) => {
                 </label>
               </div>
 
-              {/* petsOk */}
               <div className="mb-3">
                 <label className="block font-medium mb-1" htmlFor="petsOk">
                   {t("discover:dealbreakers.petsOk", "Pets OK")}
@@ -490,7 +492,6 @@ const DiscoverFilters = ({ values, handleFilter }) => {
                 </select>
               </div>
 
-              {/* religion[] */}
               <div className="mb-3">
                 <label className="block font-medium mb-1" htmlFor="religionList">
                   {t("discover:dealbreakers.religion", "Religion (required)")}
@@ -514,7 +515,6 @@ const DiscoverFilters = ({ values, handleFilter }) => {
                 </p>
               </div>
 
-              {/* education[] */}
               <div className="mb-2">
                 <label className="block font-medium mb-1" htmlFor="educationList">
                   {t("discover:dealbreakers.education", "Education (required)")}
@@ -539,7 +539,7 @@ const DiscoverFilters = ({ values, handleFilter }) => {
               </div>
             </fieldset>
 
-            {!isPremium && (
+            {dealbreakersDisabled && (
               <Hint id={hintId}>
                 {t(
                   "discover:dealbreakers.lockedHint",
@@ -550,7 +550,6 @@ const DiscoverFilters = ({ values, handleFilter }) => {
           </div>
           {/* --- END Dealbreakers -------------------------------------------------------------- */}
 
-          {/* Block banner if submission prevented */}
           {blockedMsg && (
             <div className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-center">
               <p className="mb-2">{blockedMsg}</p>
@@ -563,10 +562,9 @@ const DiscoverFilters = ({ values, handleFilter }) => {
             </div>
           )}
 
-          {/* Submit */}
           <div className="text-center pt-3">
             <button
-              data-cy="DiscoverFilters__submit" // unified name expected by tests
+              data-cy="DiscoverFilters__submit"
               type="submit"
               className="bg-pink-600 text-white font-bold py-2 px-8 rounded-full hover:opacity-90 transition duration-200"
             >
@@ -582,6 +580,18 @@ const DiscoverFilters = ({ values, handleFilter }) => {
 DiscoverFilters.propTypes = {
   values: PropTypes.object.isRequired,
   handleFilter: PropTypes.func.isRequired,
+  setters: PropTypes.shape({
+    setCountry: PropTypes.func,
+    setRegion: PropTypes.func,
+    setCity: PropTypes.func,
+    setCustomCountry: PropTypes.func,
+    setCustomRegion: PropTypes.func,
+    setCustomCity: PropTypes.func,
+  }),
+};
+
+DiscoverFilters.defaultProps = {
+  setters: undefined,
 };
 
 export default React.memo(DiscoverFilters);

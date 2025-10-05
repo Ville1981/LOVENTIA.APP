@@ -1,7 +1,23 @@
+// PATH: client/src/pages/PublicProfile.jsx
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import api from "../utils/axiosInstance";
+// --- REPLACE START: add helper to build absolute image URLs safely ---
+import { BACKEND_BASE_URL } from "../utils/config";
+
+/** Build a safe absolute URL for images.
+ * - Leaves http(s) URLs as-is
+ * - Normalizes relative paths to start with a single '/'
+ * - Prefixes with BACKEND_BASE_URL for server-hosted uploads
+ */
+function buildImgSrc(p) {
+  if (!p || typeof p !== "string") return "";
+  if (/^https?:\/\//i.test(p)) return p;
+  const norm = p.startsWith("/") ? p : `/${p}`;
+  return `${BACKEND_BASE_URL}${norm}`;
+}
+// --- REPLACE END ---
 
 const PublicProfile = () => {
   const { id } = useParams();
@@ -10,17 +26,17 @@ const PublicProfile = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        // Haetaan julkinen profiili api-instanssilla
+        // Fetch public profile via shared axios instance
         const res = await api.get(`/users/${id}`);
         setUser(res.data);
       } catch (err) {
-        console.error("Käyttäjän lataus epäonnistui:", err);
+        console.error("Failed to load user:", err);
       }
     };
     fetchProfile();
   }, [id]);
 
-  if (!user) return <p>Ladataan profiilia...</p>;
+  if (!user) return <p>Loading profile…</p>;
 
   return (
     <div className="max-w-4xl mx-auto p-4">
@@ -30,9 +46,16 @@ const PublicProfile = () => {
 
       {user.profilePicture && (
         <img
-          src={`/user.profilePicture`}
-          alt="Profiilikuva"
+          // --- REPLACE START: fix literal string; use helper to resolve URL ---
+          src={buildImgSrc(user.profilePicture)}
+          // --- REPLACE END ---
+          alt="Profile picture"
           className="w-40 h-40 object-cover rounded-full mx-auto mb-4"
+          onError={(e) => {
+            // fallback to a neutral placeholder if the src fails
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = "/placeholder-avatar-male.png";
+          }}
         />
       )}
 
@@ -41,9 +64,15 @@ const PublicProfile = () => {
           {user.extraImages.map((img, i) => (
             <img
               key={i}
-              src={`/img`}
-              alt="Lisäkuva"
+              // --- REPLACE START: fix literal string; use helper to resolve URL ---
+              src={buildImgSrc(img)}
+              // --- REPLACE END ---
+              alt={`Extra photo ${i + 1}`}
               className="w-24 h-24 object-cover rounded"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = "/placeholder-avatar-male.png";
+              }}
             />
           ))}
         </div>
@@ -51,38 +80,38 @@ const PublicProfile = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
         <div>
-          <strong>Suhdetila:</strong> {user.status}
+          <strong>Relationship status:</strong> {user.status}
         </div>
         <div>
-          <strong>Uskonto/arvot:</strong> {user.religion}
+          <strong>Religion/values:</strong> {user.religion}
         </div>
         <div>
-          <strong>Lapsia:</strong> {user.children}
+          <strong>Children:</strong> {user.children}
         </div>
         <div>
-          <strong>Lemmikkejä:</strong> {user.pets}
+          <strong>Pets:</strong> {user.pets}
         </div>
         <div>
-          <strong>Pituus:</strong> {user.height}
+          <strong>Height:</strong> {user.height}
         </div>
         <div>
-          <strong>Paino:</strong> {user.weight}
+          <strong>Weight:</strong> {user.weight}
         </div>
       </div>
 
       <div className="mt-4">
         <p>
-          <strong>📖 Itsekuvaus:</strong>
+          <strong>📖 About me:</strong>
           <br />
           {user.summary}
         </p>
         <p className="mt-2">
-          <strong>🎯 Tavoitteet:</strong>
+          <strong>🎯 Goals:</strong>
           <br />
           {user.goal}
         </p>
         <p className="mt-2">
-          <strong>💞 Mitä etsin:</strong>
+          <strong>💞 What I’m looking for:</strong>
           <br />
           {user.lookingFor}
         </p>

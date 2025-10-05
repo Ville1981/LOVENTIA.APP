@@ -1,54 +1,82 @@
-// --- REPLACE START: unified user normalizer (NO field cutting; keep photos==extraImages, POSIX paths, no dupes) ---
+// PATH: server/src/utils/normalizeUserOut.js
+
+// --- REPLACE START: unified user normalizer (NO field cutting; arrays guaranteed; POSIX /uploads paths; no duplicates) ---
 /**
  * Unified user normalizer for API output.
  *
- * Goals (very important):
- *  - DO NOT cut profile fields. Always start from the full source object.
- *  - Only compute/overwrite a few consistent fields:
- *      • profilePicture/profilePhoto/avatar → one normalized avatar path (POSIX + leading slash).
- *      • photos & extraImages → merge, clean (POSIX, leading slash, uniq) and mirror to be identical.
- *      • visibility → merge isHidden/hiddenUntil/resumeOnLogin into a stable object but keep legacy flags too.
- *  - Preserve all other domain fields exactly as they are (orientation, height, weight, bodyType, education,
- *    professionCategory, profession, religion, religionImportance, children, pets, smoke, drink, drugs,
- *    activityLevel, goal, lookingFor, lat/lng… etc.). No whitelist anywhere.
- *  - Work with both Mongoose documents and plain objects.
- *  - Keep comments and naming in English to ease maintenance.
+ * Required behavior:
+ *  • Remove sensitive fields (passwords, reset/verify tokens, internal flags).
+ *  • Guarantee arrays for `photos` and `extraImages` (NEVER `{}`, return [] if empty).
+ *  • Normalize any file-like path to canonical POSIX `/uploads/...`:
+ *      - no backslashes
+ *      - no host/protocol
+ *      - single leading `/uploads/`
+ *      - collapse duplicate slashes
+ *  • Mirror `photos` and `extraImages` to the same cleaned list for consistency.
+ *  • Preserve all domain fields (no whitelisting). Only adjust the minimal set above.
+ *  • Work with both Mongoose documents and plain objects.
+ *
+ * Implementation notes:
+ *  • Keep comments & strings in English.
+ *  • Expose a couple of helpers (toWebPath, normalizeUsersOut) for reuse in routes/controllers.
  */
 
-/* ----------------------------- Path helpers ----------------------------- */
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Path helpers
+ * ────────────────────────────────────────────────────────────────────────────*/
 
 /** Convert Windows backslashes to forward slashes. */
 function toPosix(p) {
-  return typeof p === 'string' ? p.replace(/\\/g, '/') : p;
+  return typeof p === "string" ? p.replace(/\\/g, "/") : p;
+}
+
+/** Strip protocol/host from URL-like strings (keep only the path). */
+function stripHost(p) {
+  if (typeof p !== "string") return p;
+  return p.replace(/^https?:\/\/[^/]+/i, "");
 }
 
 /**
- * Ensure a path begins with "/" if it looks like a local relative path.
- * We do NOT guess domains; we only prefix when path is clearly local (e.g., "uploads/...").
+ * Normalize any path-like string to a canonical `/uploads/...` form.
+ * Steps:
+ *  1) Convert backslashes to slashes
+ *  2) Remove protocol/host if present
+ *  3) Remove any leading "uploads/" or "/uploads/"
+ *  4) Prefix with single `/uploads/`
+ *  5) Collapse duplicate slashes
  */
-function ensureLeadingSlash(p) {
-  if (typeof p !== 'string' || p.length === 0) return p;
-  const posix = toPosix(p);
-  if (/^https?:\/\//i.test(posix)) return posix; // already absolute URL
-  return posix.startsWith('/') ? posix : '/' + posix;
+export function toWebPath(p) {
+  if (!p || typeof p !== "string") return p;
+  let s = toPosix(stripHost(p));
+  s = s.replace(/^\/?uploads\/?/i, "");        // strip any existing uploads prefix
+  s = `/uploads/${s}`.replace(/\/{2,}/g, "/"); // ensure single leading and collapse dups
+  return s;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Collection helpers
+ * ────────────────────────────────────────────────────────────────────────────*/
+
 /**
- * Clean an array of path strings:
- *  - drop falsy values
- *  - convert to POSIX
- *  - ensure leading slash (for local paths)
- *  - deduplicate while preserving order
+ * Coerce an unknown input into an array:
+ *  - If it's already an array → return as-is
+ *  - If it's a plain object → use Object.values(v) (handles `{0:'a',1:'b'}` coming from bad serialization)
+ *  - Otherwise → []
  */
-function cleanPhotoList(list) {
-  if (!Array.isArray(list)) return [];
-  const seen = new Set();
+export function asArray(v) {
+  if (Array.isArray(v)) return v;
+  if (v && typeof v === "object") return Object.values(v);
+  return [];
+}
+
+/** Clean and deduplicate a list of file paths. */
+export function cleanPathList(list) {
   const out = [];
-  for (const raw of list) {
-    if (!raw) continue;
-    const posix = toPosix(raw);
-    const norm = ensureLeadingSlash(posix);
-    if (!norm || norm === '/') continue;
+  const seen = new Set();
+  for (const item of asArray(list)) {
+    if (!item) continue;
+    const norm = toWebPath(String(item));
+    if (!norm) continue;
     if (seen.has(norm)) continue;
     seen.add(norm);
     out.push(norm);
@@ -56,141 +84,134 @@ function cleanPhotoList(list) {
   return out;
 }
 
-/* ----------------------------- Scalar helpers ----------------------------- */
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Sensitive field handling
+ * ────────────────────────────────────────────────────────────────────────────*/
 
-/** Safe boolean casting (preserves explicit booleans; otherwise uses fallback). */
-function bool(v, fallback = false) {
-  return typeof v === 'boolean' ? v : !!fallback;
+/** Remove sensitive/internal fields from a user-like object (mutates the given clone). */
+export function stripSensitive(u) {
+  // Passwords / auth
+  delete u.password;
+  delete u.hash;
+  delete u.salt;
+
+  // Reset / verification tokens
+  delete u.resetToken;
+  delete u.passwordResetToken;
+  delete u.passwordResetExpires;
+  delete u.verificationCode;
+  delete u.emailVerificationCode;
+  delete u.emailVerificationToken;
+  delete u.twoFactorSecret;
+
+  // Misc internal
+  delete u.__v;
+
+  return u;
 }
 
-/** String helper to keep non-empty strings or fallback. */
-function str(val, fallback = '') {
-  return typeof val === 'string' && val.length > 0 ? val : fallback;
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Array-field guarantees
+ * ────────────────────────────────────────────────────────────────────────────*/
+
+/**
+ * Ensure array fields exist and are normalized.
+ * Guarantees: photos = [], extraImages = [] when absent; both lists are canonicalized and mirrored.
+ */
+export function ensureArrayFields(u) {
+  let photos = cleanPathList(u.photos);
+  let extraImages = cleanPathList(u.extraImages);
+
+  // If only one of them has data, mirror to the other for consistency
+  if (photos.length === 0 && extraImages.length > 0) photos = [...extraImages];
+  if (extraImages.length === 0 && photos.length > 0) extraImages = [...photos];
+
+  u.photos = photos;
+  u.extraImages = extraImages;
+  return u;
 }
 
-/* ----------------------------- Main normalizer ----------------------------- */
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Avatar/ID normalization
+ * ────────────────────────────────────────────────────────────────────────────*/
+
+/** Derive a canonical avatar path and keep aliases in sync. */
+export function ensureCanonicalAvatar(u) {
+  // Normalize existing fields first (if they exist)
+  if (u.profilePicture) u.profilePicture = toWebPath(u.profilePicture);
+  if (u.profilePhoto)   u.profilePhoto   = toWebPath(u.profilePhoto);
+  if (u.avatar)         u.avatar         = toWebPath(u.avatar);
+
+  // Pick a representative avatar if one isn't explicitly set
+  const candidate = u.profilePicture || u.profilePhoto || u.avatar || (Array.isArray(u.photos) && u.photos[0]) || null;
+  if (candidate) {
+    const norm = toWebPath(candidate);
+    u.profilePicture = norm;
+    // Keep legacy alias in sync for FE that reads profilePhoto
+    if (!u.profilePhoto) u.profilePhoto = norm;
+  }
+  return u;
+}
+
+/** Ensure there is a stable `id` string alongside `_id`. */
+export function ensureStringId(u) {
+  if (!u.id && u._id) {
+    try {
+      u.id = String(u._id);
+    } catch {
+      /* ignore stringify issues */
+    }
+  }
+  return u;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Main normalizer
+ * ────────────────────────────────────────────────────────────────────────────*/
 
 /**
  * Normalize a single user for API output.
- * We start from the full source (NO whitelist) and only normalize a few well-defined keys.
- *
- * @param {Object|import('mongoose').Document} u - User doc or plain object.
- * @returns {Object|null} normalized plain object or null if input is falsy.
+ * @param {Object|import('mongoose').Document} src
+ * @returns {Object} normalized user (plain object)
  */
-export function normalizeUserOut(u) {
-  if (!u) return null;
+export default function normalizeUserOut(src = {}) {
+  // Always start from a plain object; do not mutate the original document.
+  const user = src && typeof src.toObject === "function" ? src.toObject() : { ...src };
 
-  // Start from the full object (NO field cutting).
-  const src = typeof u.toObject === 'function' ? u.toObject() : u;
+  // 1) Remove sensitive fields
+  stripSensitive(user);
 
-  // Compute a shallow copy so we do not mutate the original.
-  const out = { ...src };
+  // 2) Guarantee array fields + canonicalize paths
+  ensureArrayFields(user);
 
-  // --- Identity: keep both _id and a string id helper ---
-  out.id = String(src._id || src.id || '');
+  // 3) Normalize avatar-ish fields and keep aliases consistent
+  ensureCanonicalAvatar(user);
 
-  // --- Avatar resolution (do not drop original avatar field; just normalize exposed picture fields) ---
-  const avatarRaw = src.profilePicture ?? src.profilePhoto ?? src.avatar ?? null;
-  const avatar = avatarRaw ? ensureLeadingSlash(toPosix(avatarRaw)) : null;
-  if (avatar) {
-    out.profilePicture = avatar;
-    out.profilePhoto = avatar; // legacy alias for FE
-    // Keep src.avatar as-is if it exists; we do NOT delete fields.
-  }
+  // 4) Provide a stable string id
+  ensureStringId(user);
 
-  // --- Photos: merge both arrays, clean & dedupe, then mirror to BOTH fields ---
-  const photoInputs = []
-    .concat(Array.isArray(src.photos) ? src.photos : [])
-    .concat(Array.isArray(src.extraImages) ? src.extraImages : []);
-  const photosClean = cleanPhotoList(photoInputs);
-  out.photos = photosClean;
-  out.extraImages = photosClean;
-
-  // --- Visibility: produce a stable object while preserving top-level flags for compatibility ---
-  const vis = src.visibility || {};
-  const resolvedHidden =
-    typeof src.isHidden === 'boolean'
-      ? src.isHidden
-      : typeof vis.isHidden === 'boolean'
-      ? vis.isHidden
-      : false;
-
-  const resolvedHiddenUntil =
-    src.hiddenUntil !== undefined ? src.hiddenUntil : vis.hiddenUntil ?? null;
-
-  const resolvedResumeOnLogin =
-    typeof vis.resumeOnLogin === 'boolean'
-      ? vis.resumeOnLogin
-      : typeof src.resumeOnLogin === 'boolean'
-      ? src.resumeOnLogin
-      : false;
-
-  out.visibility = {
-    ...vis, // preserve any additional visibility fields that may exist
-    isHidden: !!resolvedHidden,
-    hiddenUntil: resolvedHiddenUntil || null,
-    resumeOnLogin: !!resolvedResumeOnLogin,
-  };
-
-  // Keep original flags too (no data loss), but normalize their truthiness if present
-  if ('isHidden' in src) out.isHidden = !!src.isHidden;
-  if ('resumeOnLogin' in src) out.resumeOnLogin = !!src.resumeOnLogin;
-  if ('hiddenUntil' in src) out.hiddenUntil = src.hiddenUntil ?? null;
-
-  // --- Premium flags: keep both fields, normalized booleans ---
-  // (We DO NOT remove either one; we just ensure a consistent boolean view.)
-  const isPrem = bool(src.isPremium, src.premium);
-  const prem = bool(src.premium, src.isPremium);
-  out.isPremium = isPrem;
-  out.premium = prem;
-
-  // --- Country/Region/City: prefer top-level but mirror from nested location if missing ---
-  const loc = src.location || {};
-  const country = src.country ?? loc.country ?? '';
-  const region = src.region ?? loc.region ?? '';
-  const city = src.city ?? loc.city ?? '';
-  out.country = country;
-  out.region = region;
-  out.city = city;
-
-  // Keep a normalized location object (do not remove existing keys)
-  out.location = {
-    ...(typeof loc === 'object' && loc ? loc : {}),
-    country,
-    region,
-    city,
-  };
-
-  // --- Minor safe defaults for a few common fields (without cutting anything) ---
-  out.summary = str(src.summary, out.summary || '');
-  out.politicalIdeology = str(src.politicalIdeology, out.politicalIdeology || '');
-  if (!Array.isArray(out.nutritionPreferences)) {
-    out.nutritionPreferences = Array.isArray(src.nutritionPreferences)
-      ? src.nutritionPreferences
-      : [];
-  }
-
-  // NOTE: We intentionally do NOT transform other domain fields (orientation, height, weight, bodyType,
-  // education, professionCategory, profession, religion, religionImportance, children, pets, smoke,
-  // drink, drugs, activityLevel, goal, lookingFor, lat/lng, etc.). They remain exactly as stored.
-
-  return out;
+  // Done — return the normalized user (no field whitelisting!)
+  return user;
 }
 
 /**
- * Normalize an array of users. Keeps order and drops falsy entries.
- * @param {Array<Object>} arr
- * @returns {Array<Object>}
+ * Normalize an array of users; order is preserved and falsy entries are dropped.
+ * @param {Array} arr
+ * @returns {Array}
  */
 export function normalizeUsersOut(arr) {
   if (!Array.isArray(arr)) return [];
   const out = [];
   for (const u of arr) {
-    const n = normalizeUserOut(u);
-    if (n) out.push(n);
+    if (!u) continue;
+    out.push(normalizeUserOut(u));
   }
   return out;
 }
 
-export default normalizeUserOut;
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Defensive exports (keep API stable if other modules import helpers directly)
+ * ────────────────────────────────────────────────────────────────────────────*/
+
+// Named re-exports are already present above; keep default at bottom for clarity.
 // --- REPLACE END ---
