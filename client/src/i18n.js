@@ -1,15 +1,18 @@
-// --- REPLACE START: robust i18n init with test-aware guard, HttpBackend/Detector, namespaces & helpers ---
+// client/src/i18n.js
+// --- REPLACE START: add "countries" namespace + preload, fix import order, keep behavior intact ---
 /* eslint-env browser */
+/* eslint-disable import/no-named-as-default-member, import/no-named-as-default */
+
 import i18n from "i18next";
-import { initReactI18next } from "react-i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import HttpBackend from "i18next-http-backend";
+import { initReactI18next } from "react-i18next";
 
 /**
  * IMPORTANT NOTES
  * - Expects translation files in: /public/locales/{lng}/{ns}.json
  * - Namespaces are split by feature:
- *   "common", "profile", "lifestyle", "discover", "chat", "navbar", "footer", "translation"
+ *   "common", "profile", "lifestyle", "discover", "chat", "navbar", "footer", "translation", "countries"
  * - Changing language will:
  *     1) persist to localStorage
  *     2) update <html lang=".."> and dir attribute
@@ -31,7 +34,9 @@ export const NAMESPACES = [
   "chat",
   "navbar",
   "footer",
-  "translation"
+  "translation",
+  // ↓ ADDED: ensure country names are available to the UI out of the box
+  "countries"
 ];
 
 const FALLBACK_LANG = "en";
@@ -87,6 +92,7 @@ if (process.env.NODE_ENV === "test") {
       ns: NAMESPACES,
       defaultNS: "common",
       fallbackNS: ["common", "translation"],
+      // keeping resources minimal in tests
       resources: {
         en: {
           common: {
@@ -101,8 +107,10 @@ if (process.env.NODE_ENV === "test") {
               empty: "No conversations",
             },
           },
+          // tests do not need full countries list
         },
       },
+      // i18next options
       nsSeparator: ":",
       keySeparator: ".",
       interpolation: { escapeValue: false },
@@ -110,9 +118,11 @@ if (process.env.NODE_ENV === "test") {
       returnEmptyString: false,
       parseMissingKeyHandler: (key) => key,
       react: { useSuspense: false, bindI18n: "languageChanged loaded" },
+      // preload is harmless here; resources are inline anyway
+      preload: ["en"], // ensures parity with app init
     })
     .then(() => {
-      // Ensure i18n.dir() exists in tests.
+      // Ensure i18n.dir() exists in tests (some libs call it)
       if (typeof i18n.dir !== "function") {
         // @ts-ignore
         i18n.dir = () => (isRtl(i18n.language) ? "rtl" : "ltr");
@@ -147,22 +157,23 @@ if (process.env.NODE_ENV === "test") {
       supportedLngs: SUPPORTED_LANGS,
       fallbackLng: FALLBACK_LANG,
       lng: persisted,
+
+      // ↓ This now includes "countries"
       ns: NAMESPACES,
       defaultNS: "common",
       fallbackNS: ["common", "translation"],
-      load: "currentOnly",
 
+      // ↓ Preload English so /locales/en/countries.json is fetched immediately
+      preload: ["en"],
+
+      load: "currentOnly",
       nsSeparator: ":",
       keySeparator: ".",
-
       interpolation: { escapeValue: false },
-
       debug: Boolean(import.meta?.env?.DEV),
-
       returnNull: false,
       returnEmptyString: false,
       parseMissingKeyHandler: (key) => key,
-
       saveMissing: false,
       nonExplicitSupportedLngs: true,
       cleanCode: true,
@@ -185,13 +196,14 @@ if (process.env.NODE_ENV === "test") {
           localStorage.setItem(STORAGE_KEY, norm);
           applyHtmlLang(norm);
         } catch {
-          // ignore
+          // ignore storage errors
         }
       });
 
-      // --- REPLACE START: expose i18n for console debugging (non-test only) ---
+      // Expose i18n for console debugging (non-test only)
       if (typeof window !== "undefined" && window && !window.i18next) {
         window.i18next = i18n;
+        // handy: window.t('ns:key')
         window.t = i18n.t.bind(i18n);
         // eslint-disable-next-line no-console
         console.info("[i18n] window.i18next exposed:", {
@@ -200,11 +212,11 @@ if (process.env.NODE_ENV === "test") {
           nsSeparator: i18n.options?.nsSeparator,
         });
       }
+
       i18n.on("initialized", (opts) => {
         // eslint-disable-next-line no-console
         console.log("[i18n] initialized", opts, "current lang:", i18n.language);
       });
-      // --- REPLACE END ---
     })
     .catch((err) => {
       if (import.meta?.env?.DEV) {

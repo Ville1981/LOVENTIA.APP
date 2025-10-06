@@ -1,4 +1,4 @@
-// File: server/src/routes/userRoutes.js
+﻿// PATH: server/src/routes/userRoutes.js
 
 // --- REPLACE START: migrate file to ESM and unify output normalizer across /me, /profile & PUT /profile ---
 import express from "express";
@@ -30,7 +30,7 @@ async function getUserModel() {
 // NOTE: Removed invalid/duplicate `const User = UserModule.default || UserModule;`
 // --- REPLACE END ---
 
-// ✅ Use the single shared normalizer — do NOT re-implement
+// Use the single shared normalizer — do NOT re-implement
 import normalizeUserOut, {
   normalizeUsersOut,
 } from "../utils/normalizeUserOut.js";
@@ -144,12 +144,19 @@ function authenticateToken(req, res, next) {
 /* =============================================================================
    PATH HELPERS (used in image helpers and a few legacy flows)
 ============================================================================= */
+// --- REPLACE START: stronger normalization to enforce `/uploads/...` canonical paths ---
 function toWebPath(p) {
   if (!p || typeof p !== "string") return p;
-  let s = p.replace(/\\\\/g, "/").replace(/\\/g, "/");
-  if (!/^https?:\/\//i.test(s) && !s.startsWith("/")) s = `/${s}`;
+  let s = String(p).replace(/\\\\/g, "/").replace(/\\/g, "/");
+  // strip host if present
+  s = s.replace(/^https?:\/\/[^/]+/i, "");
+  // remove leading /uploads/ if repeated; keep single
+  s = s.replace(/^\/?uploads\/?/i, "");
+  // ensure single leading /uploads/
+  s = `/uploads/${s}`.replace(/\/{2,}/g, "/");
   return s;
 }
+// --- REPLACE END ---
 
 /* =============================================================================
    COMMON MIDDLEWARE
@@ -201,7 +208,7 @@ function maybeUpload(fields) {
     if (ct.toLowerCase().startsWith("multipart/form-data")) {
       return fieldsMw(req, res, next);
     }
-    // Not multipart → skip file parsing so JSON bodies work
+    // Not multipart — skip file parsing so JSON bodies work
     return next();
   };
 }
@@ -604,7 +611,7 @@ router.put(
 
       const updated = await user.save();
 
-      // ✅ Return the full normalized payload (exactly equals subsequent GET)
+      // Return the full normalized payload (exactly equals subsequent GET)
       return res.json(normalizeUserOut(updated));
     } catch (err) {
       console.error("PUT /profile error:", err?.message || err);
@@ -681,7 +688,7 @@ router.get("/matches", authenticateToken, async (req, res, next) => {
    SOCIAL GRAPH (Like / Superlike / Block)
 ============================================================================= */
 
-// --- REPLACE START: ❤️ Like with FREE daily quota enforcement (from legacy) ---
+// --- REPLACE START: ❤ Like with FREE daily quota enforcement (from legacy) ---
 function startOfTodayUTC() {
   const d = new Date();
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, 0, 0, 0));
@@ -813,6 +820,9 @@ router.post("/superlike/:id", authenticateToken, async (req, res) => {
       console.warn("[superlike] notification failed:", notifyErr?.message || notifyErr);
     }
 
+    // File: server/src/routes/userRoutes.js  (tail continuation)
+
+// --- REPLACE START: tail continuation from the truncated section ---
     return res.json({
       message: "Superliked successfully",
       window: "48h",
@@ -891,43 +901,246 @@ router.post(
   }
 );
 
+// --- REPLACE START: direct upload-photos without controller; normalize and return full user ---
 router.post(
   "/:id/upload-photos",
   authenticateToken,
   mustBeSelfOrAdmin,
-  upload.array("photos", 8),
-  async (req, res, next) => {
-    const { uploadExtraPhotos } = await getUserController();
-    return typeof uploadExtraPhotos === "function" ? uploadExtraPhotos(req, res, next) : res.sendStatus(404);
+  // Accept both "photos" and "photos[]" field names
+  upload.fields([{ name: "photos", maxCount: 8 }, { name: "photos[]", maxCount: 8 }]),
+  async (req, res) => {
+    try {
+      console.log("[upload-photos] HIT direct handler (no controller)");
+
+      const User = await getUserModel();
+      if (!User) return res.status(500).json({ error: "User model not available" });
+
+      // Collect files from both field variants
+      const files =
+        [
+          ...(req.files?.photos || []),
+          ...(req.files?.["photos[]"] || []),
+        ] || [];
+
+      if (!files.length) {
+        return res.status(400).json({ error: "No files uploaded (use field 'photos')" });
+      }
+
+      const userId = req.params.id;
+      const user = await User.findById(userId);
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      // Merge new paths to existing list (keep existing order)
+      const newPaths = files.map((f) => f.path);
+      const current = Array.isArray(user.photos) && user.photos.length
+        ? user.photos
+        : (user.extraImages || []);
+
+      const merged = [...current, ...newPaths];
+      user.photos = merged;
+      user.extraImages = merged;
+
+      // Ensure avatar/profilePicture exists
+      if (!user.profilePicture && merged.length) {
+        user.profilePicture = merged[0];
+      }
+
+      await user.save();
+      return res.json(normalizeUserOut(user));
+    } catch (err) {
+      console.error("upload-photos (direct) error:", err?.message || err);
+      return res.status(500).json({ error: "Upload photos failed" });
+    }
   }
 );
+// --- REPLACE END ---
 
+// --- REPLACE START: safer res.json interception for upload-photo-step ---
 router.post(
   "/:id/upload-photo-step",
   authenticateToken,
   mustBeSelfOrAdmin,
   upload.single("photo"),
   async (req, res, next) => {
-    const { uploadPhotoStep } = await getUserController();
-    return typeof uploadPhotoStep === "function" ? uploadPhotoStep(req, res, next) : res.sendStatus(404);
+    try {
+      const { uploadPhotoStep } = await getUserController();
+      if (typeof uploadPhotoStep !== "function") return res.sendStatus(404);
+
+
+      const User = await getUserModel();
+      let wrote = false;
+
+      // Preserve original res.json and override safely
+      const originalJson = res.json.bind(res);
+      res.json = async (payload) => {
+        try {
+          if (User) {
+            const fresh = await User.findById(req.params.id).select("-password");
+            wrote = true;
+            return originalJson(normalizeUserOut(fresh || payload));
+          }
+        } catch {
+          /* fall through and return original payload */
+        }
+        wrote = true;
+        return originalJson(payload);
+      };
+
+      await uploadPhotoStep(req, res, next);
+
+      // Restore original res.json
+      res.json = originalJson;
+
+      if (!wrote) {
+        try {
+          const fresh = await User.findById(req.params.id).select("-password");
+          return res.json(normalizeUserOut(fresh));
+        } catch {
+          return res.status(200).json({ ok: true });
+        }
+      }
+    } catch (err) {
+      console.error("upload-photo-step handler error:", err?.message || err);
+      return res.status(500).json({ error: "Upload photo step failed" });
+    }
   }
 );
+// --- REPLACE END ---
 
+// Support both REST styles:
+// 1) DELETE /:id/photos/:slot
+// 2) DELETE /:id/photos?index=… | ?path=…
+
+// --- REPLACE START: direct delete-by-slot; no controller; always return normalized user ---
 router.delete(
   "/:id/photos/:slot",
   authenticateToken,
   mustBeSelfOrAdmin,
-  async (req, _res, next) => {
-    if (!req.query) req.query = {};
-    if (typeof req.query.slot === "undefined") req.query.slot = req.params.slot;
-    if (typeof req.query.index === "undefined") req.query.index = req.params.slot;
-    next();
-  },
-  async (req, res, next) => {
-    const { deletePhotoSlot } = await getUserController();
-    return typeof deletePhotoSlot === "function" ? deletePhotoSlot(req, res, next) : res.sendStatus(404);
+  async (req, res) => {
+    try {
+      const User = await getUserModel();
+      if (!User) return res.status(500).json({ error: "User model not available" });
+
+      const { id, slot } = req.params;
+      const idx = Number(slot);
+
+      if (!Number.isInteger(idx) || idx < 0) {
+        return res.status(400).json({ error: "Invalid slot index" });
+      }
+
+      const user = await User.findById(id);
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      const list = Array.isArray(user.photos) && user.photos.length
+        ? user.photos
+        : (user.extraImages || []);
+
+      if (idx >= list.length) {
+        return res.status(400).json({ error: "Invalid slot index (out of range)" });
+      }
+
+      // Best-effort: remove physical file
+      removeFile(list[idx]);
+
+      // Remove from arrays
+      const next = list.filter((_, i) => i !== idx);
+      user.photos = next;
+      user.extraImages = next;
+
+      // Keep avatar/profilePicture consistent
+      if (next.length) {
+        // If current avatar not in list, move first as avatar
+        const normalizedNext = next.map(toWebPath);
+        const currentAvatar = toWebPath(user.profilePicture || "");
+        if (!normalizedNext.includes(currentAvatar)) {
+          user.profilePicture = next[0];
+        }
+      } else {
+        user.profilePicture = undefined;
+      }
+
+      await user.save();
+      return res.json(normalizeUserOut(user));
+    } catch (err) {
+      console.error("DELETE /:id/photos/:slot (direct) error:", err?.message || err);
+      return res.status(500).json({ error: "Delete photo failed" });
+    }
   }
 );
+// --- REPLACE END ---
+
+
+// --- REPLACE START: direct query-only photo delete; no controller; always return normalized user ---
+router.delete(
+  "/:id/photos",
+  authenticateToken,
+  mustBeSelfOrAdmin,
+  async (req, res) => {
+    try {
+      const User = await getUserModel();
+      if (!User) return res.status(500).json({ error: "User model not available" });
+
+      const { id } = req.params;
+      const user = await User.findById(id);
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      const list = Array.isArray(user.photos) && user.photos.length
+        ? user.photos
+        : (user.extraImages || []);
+
+      let didRemove = false;
+
+      // Prefer ?index=... when provided
+      if (typeof req.query.index !== "undefined") {
+        const idx = Number(req.query.index);
+        if (!Number.isInteger(idx) || idx < 0 || idx >= list.length) {
+          return res.status(400).json({ error: "Invalid index" });
+        }
+        // Best-effort remove file from disk
+        removeFile(list[idx]);
+        const next = list.filter((_, i) => i !== idx);
+        user.photos = next;
+        user.extraImages = next;
+        didRemove = true;
+      } else if (typeof req.query.path === "string" && req.query.path.trim().length) {
+        const norm = toWebPath(String(req.query.path));
+        const mapped = list.map(toWebPath);
+        if (!mapped.includes(norm)) {
+          return res.status(400).json({ error: "Path not found in user photos" });
+        }
+        // Best-effort remove file from disk
+        removeFile(norm);
+        const next = list.filter((p) => toWebPath(p) !== norm);
+        user.photos = next;
+        user.extraImages = next;
+        didRemove = true;
+      } else {
+        return res.status(400).json({ error: "Provide 'index' or 'path'" });
+      }
+
+      // Keep avatar/profilePicture consistent
+      if (didRemove) {
+        if (user.photos.length) {
+          const normalizedNext = user.photos.map(toWebPath);
+          const currentAvatar = toWebPath(user.profilePicture || "");
+          if (!normalizedNext.includes(currentAvatar)) {
+            user.profilePicture = user.photos[0];
+          }
+        } else {
+          user.profilePicture = undefined;
+        }
+      }
+
+      await user.save();
+      return res.json(normalizeUserOut(user));
+    } catch (err) {
+      console.error('DELETE /:id/photos (direct) error:', err?.message || err);
+      return res.status(500).json({ error: "Delete photo failed" });
+    }
+  }
+);
+// --- REPLACE END ---
+
 
 // Legacy: DELETE /:id/photo (kept to avoid breaking older clients)
 router.delete(
@@ -1122,13 +1335,7 @@ router.get("/users/all", authenticateToken, async (req, res) => {
 });
 // --- REPLACE END ---
 
-// Validate :id before hitting public profile route
-router.param("id", (_req, res, next, id) => {
-  if (!mongoose.Types.ObjectId.isValid(String(id))) {
-    return res.status(400).json({ error: "Invalid user ID" });
-  }
-  return next();
-});
+// (Removed duplicate router.param("id") definition that previously appeared here)
 
 // Public profile by ID (safe exclusions for public exposure)
 router.get("/:id", async (req, res) => {
@@ -1149,6 +1356,28 @@ router.get("/:id", async (req, res) => {
 
 export default router;
 
+// --- REPLACE START: CJS compatibility export for app.js tryRequireRoute ---
+/**
+ * Ensure the router is visible both to ESM `import` (default)
+ * and to any CommonJS/require-based loader that expects a function.
+ * This helps when app.js uses a generic tryRequireRoute and checks
+ * `typeof userRoutes === "function"` before mounting.
+ */
+try {
+  // eslint-disable-next-line no-undef
+  if (typeof module !== "undefined" && module && typeof module.exports !== "undefined") {
+    // Expose the router directly for `require(...)`
+    // so that code doing `typeof x === "function"` passes.
+    // eslint-disable-next-line no-undef
+    module.exports = router;
+    // eslint-disable-next-line no-undef
+    module.exports.default = router;
+  }
+} catch (_e) {
+  /* noop */
+}
+// --- REPLACE END ---
+
 /* =============================================================================
    NOTES
    - Brought over from legacy user.js:
@@ -1162,4 +1391,22 @@ export default router;
      only exclusive selects (minus sensitive fields) are used.
    - The replacement regions are marked between // --- REPLACE START and // --- REPLACE END
      so you can verify exactly what changed.
+   - Change in this update:
+     * Added CommonJS interop export block (at the very end) to satisfy app.js
+       `tryRequireRoute` function checks.
+     * Removed a duplicate `router.param("id")` definition to avoid redundancy.
 ============================================================================= */
+
+
+
+
+
+
+
+
+
+
+
+
+
+

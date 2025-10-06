@@ -1,5 +1,3 @@
-// PATH: server/config/multer.js
-
 // --- REPLACE START: core imports ---
 import multer from 'multer';
 import path from 'path';
@@ -12,6 +10,11 @@ import fs from 'fs';
  * - Unique, sanitized filenames to avoid collisions
  * - Restrict uploads to image files only (JPG, PNG, WEBP, GIF)
  * - Enforce file size limits (10 MB)
+ *
+ * IMPORTANT:
+ * - We only write to the local filesystem here. Converting saved paths to web paths
+ *   like "/uploads/..." is handled by route/controller logic (via toWebPath()) so that
+ *   values persisted in DB are relative (no absolute host URLs).
  */
 
 // --- REPLACE START: ensure upload directories exist (profiles & extra) ---
@@ -38,6 +41,7 @@ const EXTRA_DIR    = path.join(process.cwd(), 'uploads', 'extra');
  *
  * Filename:
  *  - <sanitized-original-base>-<unique>.ext
+ *  - Avoid special characters to ensure cross-platform safety
  */
 const storage = multer.diskStorage({
   destination: (_req, file, cb) => {
