@@ -9,7 +9,7 @@
  * Hardened for tests/bootstraps:
  * - Safely handles missing/undefined req or res.
  * - Calls `next` only if it is a function (avoids "next is not a function").
- * - Wraps property access in guards so we never throw on req.body/req.query/req.params.
+ * - **Sanitizes IN PLACE** to avoid "has only a getter" errors when assigning to req.query/body/params.
  *
  * Export is **dual-mode** (keeps prior behavior while being ESM compatible):
  *   1) Factory style (recommended):
@@ -48,19 +48,40 @@ function stripDangerousTokens(str) {
   return v;
 }
 
+// In-place sanitizer helpers (mirrors xssSanitizer approach)
 function sanitizeValue(val) {
   if (val == null) return val;
-  if (Array.isArray(val)) return val.map(sanitizeValue);
-  if (typeof val === "object") return sanitizeObject(val);
+
+  if (Array.isArray(val)) {
+    for (let i = 0; i < val.length; i++) {
+      const item = val[i];
+      if (item && typeof item === "object") {
+        walkAndSanitize(item);
+      } else {
+        val[i] = stripDangerousTokens(item);
+      }
+    }
+    return val;
+  }
+
+  if (typeof val === "object") {
+    walkAndSanitize(val);
+    return val;
+  }
+
   return stripDangerousTokens(val);
 }
 
-function sanitizeObject(obj) {
-  const out = Array.isArray(obj) ? [] : {};
+function walkAndSanitize(obj) {
+  if (!obj || typeof obj !== "object") return;
   for (const key of Object.keys(obj)) {
-    out[key] = sanitizeValue(obj[key]);
+    const current = obj[key];
+    if (current && typeof current === "object") {
+      sanitizeValue(current); // recurse in place
+    } else {
+      obj[key] = stripDangerousTokens(current);
+    }
   }
-  return out;
 }
 
 /**
@@ -71,14 +92,23 @@ function runSanitizer(req, _res, next /* , opts */) {
   try {
     const hasReq = req && typeof req === "object";
 
-    if (hasReq && req.body && typeof req.body === "object") {
-      req.body = sanitizeObject(req.body);
-    }
+    // Sanitize IN PLACE; do not reassign req.query/body/params
     if (hasReq && req.query && typeof req.query === "object") {
-      req.query = sanitizeObject(req.query);
+      walkAndSanitize(req.query);
+    }
+    if (hasReq && req.body && typeof req.body === "object") {
+      walkAndSanitize(req.body);
     }
     if (hasReq && req.params && typeof req.params === "object") {
-      req.params = sanitizeObject(req.params);
+      walkAndSanitize(req.params);
+    }
+
+    // Optional: expose sanitized references (same objects, post-sanitization)
+    if (hasReq) {
+      req.sanitized = req.sanitized || {};
+      req.sanitized.query = req.query;
+      req.sanitized.body = req.body;
+      req.sanitized.params = req.params;
     }
   } catch (err) {
     // eslint-disable-next-line no-console
@@ -113,3 +143,4 @@ export default function sqlSanitizerDual(/* optsOrReq, res, next */) {
   };
 }
 // --- REPLACE END ---
+

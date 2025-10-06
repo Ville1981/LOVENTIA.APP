@@ -30,7 +30,7 @@
     "clean": "rimraf node_modules package-lock.json client/node_modules server/node_modules",
     "reinstall": "npm run clean && npm install",
     "postinstall": "node -e \"console.log('[postinstall] Workspaces ready:', !!require('./package.json').workspaces)\"",
-    "prepare": "husky"
+    "prepare": "husky || echo \"husky not installed (optional) — skipping prepare\""
   },
   "dependencies": {
     "react": "18.3.1",

@@ -1,6 +1,8 @@
-// File: server/routes/billing.js
-// Thin shim to keep index.js compatibility after consolidating into payment.js
+// File: server/src/routes/billing.js
+// Shim: map /api/billing → /api/payment router
+// Purpose: keep compatibility after consolidating billing logic into payment.js
 
 // --- REPLACE START: delegate cleanly to payment.js (only one default export) ---
-export { default } from "./payment.js";
+import router from "./payment.js";
+export default router;
 // --- REPLACE END ---
