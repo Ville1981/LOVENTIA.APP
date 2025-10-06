@@ -3,6 +3,7 @@
 // --- REPLACE START: functional subscriptions page (axios + checkout + billing portal + cancel now) ---
 import React, { useCallback, useMemo, useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+
 import { useAuth } from "../contexts/AuthContext";
 import api from "../utils/axiosInstance";
 

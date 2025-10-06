@@ -37,7 +37,6 @@ export function useRenderProbe(name) {
   const countRef = React.useRef(0);
   React.useEffect(() => {
     countRef.current += 1;
-    // Render logs every commit
     console.log(`[render] ${name} #${countRef.current}`);
   });
   React.useEffect(() => {
@@ -65,9 +64,8 @@ export function useSelectProbes(name) {
     });
   }, [name]);
 
-  // Native <select> doesn’t expose “open”, approximate via key/mouse triggers.
   const onKeyDown = React.useCallback((e) => {
-    if (e.key === "ArrowDown" || e.key === "Enter" || e.key === " " /* Space */) {
+    if (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ") {
       openRef.current = true;
       lastOpenTs.current = nowTs();
       console.log(`[open? ] ${name} (keydown)`, { key: e.key });
@@ -84,7 +82,6 @@ export function useSelectProbes(name) {
     const t = nowTs();
     const dtFromFocus = (t - lastFocusTs.current).toFixed(1);
     const dtFromOpen = (t - lastOpenTs.current).toFixed(1);
-    // If blur happens very soon after an “open” trigger, likely external focus loss.
     console.log(`[blur ] ${name}`, {
       name: e?.target?.name,
       value: e?.target?.value,
@@ -96,11 +93,12 @@ export function useSelectProbes(name) {
     openRef.current = false;
   }, [name]);
 
-  // Detect document-level clicks that might close the select (outside handlers)
+  // Detect document-level clicks that might close the select
   React.useEffect(() => {
+    let timerId;
     function onDocPointer(e) {
-      // Small delay to let blur log first
-      setTimeout(() => {
+      clearTimeout(timerId);
+      timerId = setTimeout(() => {
         const path = e?.composedPath ? e.composedPath() : [];
         const nodeName = path && path[0] && path[0].nodeName;
         console.log(`[doc  ] click after blur? ${name}`, { nodeName });
@@ -110,26 +108,19 @@ export function useSelectProbes(name) {
       document.addEventListener("mousedown", onDocPointer, true);
       document.addEventListener("touchstart", onDocPointer, true);
       return () => {
+        clearTimeout(timerId);
         document.removeEventListener("mousedown", onDocPointer, true);
         document.removeEventListener("touchstart", onDocPointer, true);
       };
     }
   }, [name]);
 
-  return {
-    onFocus,
-    onBlur,
-    onKeyDown,
-    onMouseDown,
-  };
+  return { onFocus, onBlur, onKeyDown, onMouseDown };
 }
 
 /**
  * StickyDisabled
- * Helper to make a boolean “sticky once true”.
- * Useful for `disabled={!ready}` patterns that can flap during loading:
- *   const readySticky = useStickyTrue(ready);
- *   <select disabled={!readySticky} />
+ * Make a boolean “sticky once true”.
  */
 export function useStickyTrue(flag) {
   const [sticky, setSticky] = React.useState(!!flag);
@@ -141,10 +132,8 @@ export function useStickyTrue(flag) {
 
 /**
  * Memo helpers
- * Use these to stabilize option lists and onChange handlers.
  */
 export function useStableOptions(options) {
-  // Avoid re-creating arrays if contents are equal; helps reduce re-renders.
   const ref = React.useRef([]);
   const key = JSON.stringify(options ?? []);
   return React.useMemo(() => {
@@ -156,9 +145,9 @@ export function useStableOptions(options) {
 }
 
 export function useStableCallback(fn) {
-  // Stabilize handler identities across renders
   const ref = React.useRef(fn);
   React.useEffect(() => { ref.current = fn; }, [fn]);
   return React.useCallback((...args) => ref.current?.(...args), []);
 }
 // --- REPLACE END ---
+
