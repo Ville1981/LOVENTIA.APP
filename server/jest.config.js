@@ -1,42 +1,10 @@
-// File: server/jest.config.js
+// PATH: server/jest.config.js
 
-// --- REPLACE START: ESM-ready Jest config with Babel transform & allowed ESM deps ---
+// --- REPLACE START: Shim to ensure a single source of truth ---
 /**
- * Jest config for the server package (ESM).
- * - Uses Node test environment
- * - Ignores manual E2E-like tests under tests/manual in CI
- * - Transpiles ESM syntax in tests/sources via babel-jest
- * - Allows selected ESM deps from node_modules to be transformed (e.g., node-fetch, supertest)
+ * Shim configuration.
+ * Delegates to `jest.config.cjs` so tools that auto-pick `jest.config.js`
+ * still use the canonical config.
  */
-export default {
-  testEnvironment: "node",
-
-  // Ignore manual test folder and node_modules
-  testPathIgnorePatterns: ["/node_modules/", "/tests/manual/"],
-
-  // Use babel-jest inline so no separate babel.config.* is required
-  transform: {
-    "^.+\\.[jt]sx?$": [
-      "babel-jest",
-      {
-        presets: [
-          [
-            "@babel/preset-env",
-            {
-              targets: { node: "current" },
-              modules: "auto",
-            },
-          ],
-        ],
-      },
-    ],
-  },
-
-  // By default node_modules is skipped; whitelist ESM deps that need transpilation
-  transformIgnorePatterns: [
-    "/node_modules/(?!node-fetch|undici|superagent|supertest)/",
-  ],
-
-  coverageProvider: "v8",
-};
+module.exports = require("./jest.config.cjs");
 // --- REPLACE END ---

@@ -2,8 +2,9 @@
 // --- REPLACE START ---
 // Ensure jest-dom matchers are available in Vitest environment
 import "@testing-library/jest-dom";
-import React from "react";
 import { render, screen } from "@testing-library/react";
+import React from "react";
+
 import App from "../App.jsx";
 
 // Load the app's i18n so useTranslation() has a real instance.

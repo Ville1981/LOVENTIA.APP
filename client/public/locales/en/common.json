@@ -1,6 +1,8 @@
+
 {
   "appName": "Loventia",
   "select": "Select",
+  "selectCountry": "Select country",
   "all": "All",
   "other": "Other",
   "filter": "Filter",

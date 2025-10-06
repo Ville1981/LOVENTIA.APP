@@ -14,6 +14,25 @@
 
 "use strict";
 
+// File: server/src/app.js
+
+// --- REPLACE START: import likes/superlike routers and roleAuthorize (keeps existing imports intact) ---
+// Keep your other existing imports here as-is.
+
+// Use existing roleAuthorization middleware and provide a local roleAuthorize shim.
+import roleAuthorization from "./middleware/roleAuthorization.js";
+const roleAuthorize = (roles) => {
+  const list = Array.isArray(roles) ? roles : [roles];
+  return roleAuthorization(list);
+};
+
+// Routers for likes and superlikes
+import likesRoutes from "./routes/likes.js";
+import superlikeRouter from "./routes/superlike.js";
+import superlikesRouter from "./routes/superlikes.js";
+import discoverLikesAliasRouter from "./routes/discoverLikesAlias.js";
+// --- REPLACE END ---
+
 // --- REPLACE START: ESM compatibility (provide `require`, `__dirname`, and load .env) ---
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
@@ -47,14 +66,16 @@ const { v4: uuidv4 } = require("uuid");
 let swagger; // resolved below after helpers are defined
 // --- REPLACE END ---
 
+
 // ──────────────────────────────────────────────────────────────────────────────
-// Dynamic-import helpers (CJS/ESM interop)
+/* Dynamic-import helpers (CJS/ESM interop) */
 // ──────────────────────────────────────────────────────────────────────────────
 // --- REPLACE START: helpers to load CJS or ESM seamlessly ---
 /**
  * Try require() first (fast for CJS), then dynamic import() for ESM.
  * Returns the module namespace; prefer .default if present.
  */
+
 async function loadModule(modulePath) {
   try {
     const mod = require(modulePath);
@@ -167,7 +188,22 @@ const corsConfig = await loadModule("./config/corsConfig.js");
 const securityHeaders = await loadModule("./utils/securityHeaders.js");
 const xssSanitizer = await loadModule("./middleware/xssSanitizer.js");
 const sqlSanitizer = await loadModule("./middleware/sqlSanitizer.js");
-const roleAuthorization = await loadModule("./middleware/roleAuthorization.js");
+
+// --- REPLACE START: auth middlewares (dedupe roleAuthorization) ---
+// NOTE: We intentionally avoid the identifier name `authenticate` here
+// to prevent clashes with any local `function authenticate(...)` in this file.
+const authMwModule = await loadModule("./middleware/authenticate.js");
+function useAuthMw(req, res, next) {
+  const fn =
+    typeof authMwModule === "function"
+      ? authMwModule
+      : authMwModule && typeof authMwModule.default === "function"
+      ? authMwModule.default
+      : null;
+  return fn ? fn(req, res, next) : next();
+}
+// --- REPLACE END ---
+
 const { validateBody } = await loadModuleNamed("./middleware/validateRequest.js", ["validateBody"]);
 
 // cookieOptions may be in src/utils or project root utils; try src first, then fallback
@@ -187,6 +223,7 @@ try {
 // Load Swagger config via dynamic import (ESM-safe)
 swagger = await loadModule("./swagger-config.js");
 // --- REPLACE END ---
+
 
 // --- REPLACE START: prefer correct controller path from /src ---
 let authController;
@@ -304,13 +341,15 @@ async function authenticate(req, res, next) {
 // --- REPLACE END ---
 
 // ──────────────────────────────────────────────────────────────────────────────
-// App bootstrap
+/* App bootstrap */
 // ──────────────────────────────────────────────────────────────────────────────
 const app = express();
 
 const IS_TEST = process.env.NODE_ENV === "test";
 const IS_PROD = process.env.NODE_ENV === "production";
 const IS_DEV = !IS_TEST && !IS_PROD;
+
+// File: server/src/app.js
 
 // Optional i18n static (server-served locales). Client can also serve these.
 if (process.env.USE_SERVER_LOCALES === "true") {
@@ -346,6 +385,17 @@ app.use(compression());
 // --- REPLACE START: use dynamically-loaded swagger (ESM-safe) ---
 app.use("/api-docs", swagger.serve, swagger.setup);
 // --- REPLACE END ---
+
+// --- REPLACE START: mount discover like alias (early, before /api/likes) ---
+app.use("/api/discover", discoverLikesAliasRouter);
+// --- REPLACE END ---
+
+
+// File: server/src/app.js
+
+
+
+/// --- REPLACE END ---
 
 // ──────────────────────────────────────────────────────────────────────────────
 /* MongoDB connection */
@@ -505,11 +555,12 @@ if (!IS_TEST) {
 // ──────────────────────────────────────────────────────────────────────────────
 /* Body parsers */
 // ──────────────────────────────────────────────────────────────────────────────
+// --- REPLACE START: ensure JSON parser is mounted BEFORE any routes that need req.body (e.g., photos/reorder, set-avatar) ---
 app.use(express.json({ limit: "1mb", strict: true, type: "application/json" }));
 app.use(express.urlencoded({ extended: true }));
+// --- REPLACE END ---
 
 // ──────────────────────────────────────────────────────────────────────────────
-// PATH: server/src/app.js
 
 // --- REPLACE START: safe sanitizer wrappers for Express 5 (read-only req.query) ---
 /**
@@ -636,8 +687,6 @@ app.get("/test-alerts", async (_req, res) => {
     res.status(500).send("Alert test failed");
   }
 });
-
-// PATH: server/src/app.js
 
 // --- REPLACE START: ultra-safe diagnostics endpoints (/__routes and /__routes_full) ---
 /**
@@ -794,6 +843,7 @@ try {
   console.warn("⚠️ Could not ensure /uploads directory tree:", e && e.message ? e.message : e);
 }
 
+// --- REPLACE START: ensure /uploads static is mounted (FE expects /uploads/...) ---
 app.use(
   "/uploads",
   express.static(uploadsRoot, {
@@ -811,6 +861,7 @@ app.use(
     },
   })
 );
+// --- REPLACE END ---
 
 // Optionally serve client build (controlled by env; harmless if not present)
 if (process.env.SERVE_CLIENT === "true") {
@@ -974,8 +1025,6 @@ if (IS_TEST) {
 }
 // --- REPLACE END ---
 
-// PATH: server/src/app.js
-
 // --- REPLACE START: force-mount /api/search and /api/rewind (ESM-safe, with logging) ---
 try {
   const searchURL = pathToFileURL(path.resolve(__dirname, "./routes/search.js")).href;
@@ -1062,23 +1111,51 @@ if (!IS_TEST) {
     // optional feature
   }
 
-  // Messages
-  try {
-    let messageRoutes = tryRequireRoute(
-      "./routes/messageRoutes.js",
-      "./routes/message.js",
-      path.resolve(__dirname, "../routes/messageRoutes.js"),
-      { silent: true }
-    );
-    messageRoutes = messageRoutes instanceof Promise ? await messageRoutes : messageRoutes;
-    if (typeof messageRoutes === "function") {
-      app.use("/api/messages", authenticate, roleAuthorization("user"), messageRoutes);
-    } else {
-      console.warn("⚠️ /api/messages not mounted (messages routes file not found).");
+  // File: server/src/app.js
+
+// --- REPLACE START: mount messages router (ESM, prefer src over legacy) ---
+try {
+  // Force-load the ESM messages router from src
+  const messagesURL = pathToFileURL(
+    path.resolve(__dirname, "./routes/messages.js")
+  ).href;
+
+  const mod = await import(messagesURL);
+  const messagesRouter = (mod && (mod.default || mod.router || mod)) || null;
+
+  if (messagesRouter && (typeof messagesRouter === "function" || typeof messagesRouter.use === "function")) {
+    // Remove any previously-mounted /api/messages routers to avoid conflicts (old CJS/legacy handlers)
+    if (Array.isArray(app._router?.stack)) {
+      app._router.stack = app._router.stack.filter((layer) => {
+        return !(
+          layer?.name === "router" &&
+          /\/api\/messages(?:\/|$)/.test(layer?.regexp?.source || "")
+        );
+      });
     }
-  } catch {
-    // optional feature
+
+    // Use the same auth/role protection convention as elsewhere
+    const messagesProtection = [
+      authenticate,
+      // if roleAuthorize exists, require user or admin; otherwise just authenticate
+      ...(typeof roleAuthorize === "function" ? [roleAuthorize(["user", "admin"])] : [])
+    ];
+
+    app.use("/api/messages", messagesProtection, messagesRouter);
+    console.log("✉️  Mounted /api/messages (src/routes/messages.js)");
+  } else {
+    console.warn("⚠️  /api/messages not mounted (bad export in src/routes/messages.js).");
   }
+} catch (e) {
+  console.warn(
+    "⚠️  /api/messages not mounted (failed to import src/routes/messages.js):",
+    e?.message || e
+  );
+}
+// --- REPLACE END ---
+
+
+
 
   // Payments
   try {
@@ -1098,28 +1175,34 @@ if (!IS_TEST) {
     // optional
   }
 
+// File: server/src/app.js
+
+// --- REPLACE START: robust ESM import & mount for /api/billing ---
   // Billing (Stripe Checkout/Portal/Synchronization)
   try {
-    // --- REPLACE START: remove wrong ./src candidate & make silent ---
-    let billingRoutes = tryRequireRoute(
-      "./routes/billing.js",
-      path.resolve(__dirname, "../routes/billing.js"),
-      { silent: true }
-    );
-    billingRoutes = billingRoutes instanceof Promise ? await billingRoutes : billingRoutes;
+    // Import explicitly as ESM to avoid require()/ESM ristiriidat
+    const mod = await import("./routes/billing.js");
+    const billingRoutes = (mod && (mod.default || mod.router || mod)) || mod;
+
     if (typeof billingRoutes === "function") {
-      app.use("/api/billing", dbReady, authenticate, roleAuthorization("user"), billingRoutes);
-      console.log("🧾 Mounted /api/billing routes");
+      app.use(
+        "/api/billing",
+        dbReady,
+        authenticate,
+        roleAuthorization("user"),
+        billingRoutes
+      );
+      console.log("🧾 Mounted /api/billing routes (via ESM)");
     } else {
-      console.warn("⚠️ /api/billing not mounted (billing routes file not found).");
+      console.warn("⚠️ /api/billing not mounted: export is not a router function.");
     }
-    // --- REPLACE END ---
   } catch (e) {
     console.warn(
-      "⚠️ /api/billing not mounted (missing file or bad export):",
-      (e && e.message) ? e.message : e
+      "⚠️ /api/billing not mounted (ESM import failed):",
+      e?.message || e
     );
   }
+// --- REPLACE END ---
 
   // Admin
   try {
@@ -1139,89 +1222,162 @@ if (!IS_TEST) {
     // optional
   }
 
-  // Discover
-  // --- REPLACE START: force direct mount from src/routes/discoverRoutes.js with absolute ESM import ---
-  try {
-    const discoverURL = pathToFileURL(path.resolve(__dirname, "./routes/discoverRoutes.js")).href;
-    const mod = await import(discoverURL);
-    const discoverRouter = (mod && (mod.default || mod.router || mod)) || null;
+  // --- REPLACE START: Discover + Likes/Superlikes + Rewind mounts (consistent, deduped, ESM-safe) ---
 
-    if (typeof discoverRouter === "function") {
-      app.use("/api/discover", authenticate, roleAuthorization("user"), discoverRouter);
-      console.log("🧭 Mounted /api/discover (src/routes/discoverRoutes.js)");
-    } else {
-      console.warn("⚠️ /api/discover not mounted (bad export in src/routes/discoverRoutes.js).");
-    }
-  } catch (e) {
-    console.warn(
-      "⚠️ /api/discover not mounted (failed to import src/routes/discoverRoutes.js):",
-      (e && e.message) ? e.message : e
-    );
+// ──────────────────────────────────────────────────────────────────────────────
+// Discover
+// ──────────────────────────────────────────────────────────────────────────────
+try {
+  // Force direct mount from src/routes/discoverRoutes.js with absolute ESM import
+  const discoverURL = pathToFileURL(
+    path.resolve(__dirname, "./routes/discoverRoutes.js")
+  ).href;
+
+  const mod = await import(discoverURL);
+  const discoverRouter = (mod && (mod.default || mod.router || mod)) || null;
+
+  if (discoverRouter && (typeof discoverRouter === "function" || typeof discoverRouter.use === "function")) {
+    // NOTE: useAuthMw is our auth wrapper to avoid duplicate `authenticate` identifiers
+    app.use("/api/discover", useAuthMw, roleAuthorize(["user", "admin"]), discoverRouter);
+    console.log("🧭 Mounted /api/discover (src/routes/discoverRoutes.js)");
+  } else {
+    console.warn("⚠️ /api/discover not mounted (bad export in src/routes/discoverRoutes.js).");
   }
-  // --- REPLACE END ---
+} catch (e) {
+  console.warn(
+    "⚠️ /api/discover not mounted (failed to import src/routes/discoverRoutes.js):",
+    e?.message || e
+  );
+}
 
-  // Likes
-  try {
-    // --- REPLACE START: remove wrong ./src candidate & make silent ---
-    let likesRoutes = tryRequireRoute(
-      "./routes/likes.js",
-      path.resolve(__dirname, "../routes/likes.js"),
-      { silent: true }
-    );
-    likesRoutes = likesRoutes instanceof Promise ? await likesRoutes : likesRoutes;
-    if (typeof likesRoutes === "function") {
-      app.use("/api/likes", authenticate, roleAuthorization("user"), likesRoutes);
-    } else {
-      console.warn("⚠️ /api/likes not mounted (likes routes file not found).");
-    }
-    // --- REPLACE END ---
-  } catch {
-    // optional
+// ──────────────────────────────────────────────────────────────────────────────
+// Likes, Superlikes & Rewind mounts (consistent roleAuthorize + no duplicates)
+// ──────────────────────────────────────────────────────────────────────────────
+try {
+  // Try load likes routes (keep the structure; silent fallback)
+  let likesRoutes = await tryRequireRoute(
+    "./routes/likes.js",
+    path.resolve(__dirname, "../routes/likes.js"),
+    { silent: true }
+  );
+
+  // Normalize possible ESM default export
+  if (likesRoutes && typeof likesRoutes.default === "function") {
+    likesRoutes = likesRoutes.default;
   }
 
-  // Super Likes
-  try {
-    // --- REPLACE START: remove wrong ./src candidate & make silent ---
-    let superlikesRoutes = tryRequireRoute(
+  if (typeof likesRoutes === "function") {
+    // Use the same middleware everywhere for consistency
+    app.use("/api/likes", useAuthMw, roleAuthorize(["user", "admin"]), likesRoutes);
+  } else {
+    console.warn("⚠️ /api/likes not mounted (likes routes file not found).");
+  }
+
+  // Avoid duplicate mounts if code paths change later
+  const hasSuperlikes =
+    Array.isArray(app._router?.stack) &&
+    app._router.stack.some(
+      (layer) => layer?.name === "router" && /\/api\/superlikes(?:\/|$)/.test(layer?.regexp?.source || "")
+    );
+
+  if (!hasSuperlikes) {
+    // Collection alias (POST body { id }) — keep this alias
+    app.use("/api/superlikes", useAuthMw, roleAuthorize(["user", "admin"]), superlikesRouter);
+  } else {
+    console.log("ℹ️ /api/superlikes already mounted — skipping duplicate.");
+  }
+
+  const hasSuperlikeSingle =
+    Array.isArray(app._router?.stack) &&
+    app._router.stack.some(
+      (layer) => layer?.name === "router" && /\/api\/superlike(?:\/|$)/.test(layer?.regexp?.source || "")
+    );
+
+  if (!hasSuperlikeSingle) {
+    // Single route to fix 404 on /api/superlike/:id
+    app.use("/api/superlike", useAuthMw, roleAuthorize(["user", "admin"]), superlikeRouter);
+  } else {
+    console.log("ℹ️ /api/superlike already mounted — skipping duplicate.");
+  }
+} catch (err) {
+  console.error("❌ Failed to mount likes/superlike routes:", err?.message || err);
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+/**
+ * Super Likes (fallback loader)
+ * - Keep separate try/catch but avoid duplicate superlikes mounting.
+ * - Only runs if previous block didn’t mount them.
+ */
+// ──────────────────────────────────────────────────────────────────────────────
+try {
+  // Check if already mounted above
+  const hasSuperlikesMount =
+    Array.isArray(app._router?.stack) &&
+    app._router.stack.some(
+      (layer) => layer?.name === "router" && /\/api\/superlikes(?:\/|$)/.test(layer?.regexp?.source || "")
+    );
+
+  if (!hasSuperlikesMount) {
+    let superlikesRoutes = await tryRequireRoute(
       "./routes/superlikes.js",
       path.resolve(__dirname, "../routes/superlikes.js"),
       { silent: true }
     );
-    superlikesRoutes = superlikesRoutes instanceof Promise ? await superlikesRoutes : superlikesRoutes;
+
+    if (superlikesRoutes && typeof superlikesRoutes.default === "function") {
+      superlikesRoutes = superlikesRoutes.default;
+    }
+
     if (typeof superlikesRoutes === "function") {
-      app.use("/api/superlikes", authenticate, roleAuthorization("user"), superlikesRoutes);
+      app.use("/api/superlikes", useAuthMw, roleAuthorize(["user", "admin"]), superlikesRoutes);
+      console.log("🌟 Mounted /api/superlikes via fallback loader.");
     } else {
       console.warn("⚠️ /api/superlikes not mounted (superlikes routes file not found).");
     }
-    // --- REPLACE END ---
-  } catch {
-    // optional
   }
+} catch (err) {
+  console.error("❌ Superlikes mount fallback failed:", err?.message || err);
+}
 
-  // --- REPLACE START: skip legacy rewind mount attempt if already mounted ---
+// ──────────────────────────────────────────────────────────────────────────────
+// Rewind (skip if already mounted)
+// ──────────────────────────────────────────────────────────────────────────────
 try {
-  // If /api/rewind was already mounted above (⏪ log line), skip silently
-  const alreadyMounted = Array.isArray(app._router?.stack)
-    && app._router.stack.some(layer =>
-      layer?.name === "router" &&
-      /\/api\/rewind(?:\/|$)/.test(layer?.regexp?.source || "")
+  const rewindAlreadyMounted =
+    Array.isArray(app._router?.stack) &&
+    app._router.stack.some(
+      (layer) => layer?.name === "router" && /\/api\/rewind(?:\/|$)/.test(layer?.regexp?.source || "")
     );
 
-  if (!alreadyMounted) {
-    let rewindRoutes = tryRequireRoute(
+  if (!rewindAlreadyMounted) {
+    let rewindRoutes = await tryRequireRoute(
       "./routes/rewind.js",
       path.resolve(__dirname, "../routes/rewind.js"),
       { silent: true }
     );
-    rewindRoutes = rewindRoutes instanceof Promise ? await rewindRoutes : rewindRoutes;
-    if (typeof rewindRoutes === "function") {
-      app.use("/api/rewind", authenticate, roleAuthorization("user"), rewindRoutes);
+
+    if (rewindRoutes && typeof rewindRoutes.default === "function") {
+      rewindRoutes = rewindRoutes.default;
     }
+
+    if (typeof rewindRoutes === "function") {
+      app.use("/api/rewind", useAuthMw, roleAuthorize(["user", "admin"]), rewindRoutes);
+      console.log("⏪ Mounted /api/rewind");
+    } else {
+      console.warn("⚠️ /api/rewind not mounted (rewind routes file not found).");
+    }
+  } else {
+    console.log("ℹ️ /api/rewind already mounted — skipping duplicate.");
   }
-} catch {
-  // optional — no warning if skipped or not found
+} catch (err) {
+  // Optional — no warning if skipped or not found
+  console.error("❌ Rewind mount attempt failed:", err?.message || err);
 }
 // --- REPLACE END ---
+
+
+
 
 
   // --- REPLACE START: skip legacy search mount attempt if already mounted ---
@@ -1249,68 +1405,70 @@ try {
 }
 // --- REPLACE END ---
 
-  // --- REPLACE START: mount /api/dealbreakers directly from src/routes/dealbreakers.js ---
-  try {
-    const dealbreakersURL = pathToFileURL(path.resolve(__dirname, "./routes/dealbreakers.js")).href;
-    const mod = await import(dealbreakersURL);
-    const dealbreakersRouter = (mod && (mod.default || mod.router || mod)) || null;
+  // File: server/src/app.js
 
-    if (typeof dealbreakersRouter === "function") {
-      app.use("/api/dealbreakers", authenticate, roleAuthorization("user"), dealbreakersRouter);
-      console.log("🪓 Mounted /api/dealbreakers");
-    } else {
-      console.warn("⚠️ /api/dealbreakers not mounted (bad export in src/routes/dealbreakers.js).");
-    }
-  } catch (e) {
-    console.warn(
-      "⚠️ /api/dealbreakers not mounted (failed to import src/routes/dealbreakers.js):",
-      (e && e.message) ? e.message : e
-    );
+// --- REPLACE START: mount /api/dealbreakers directly from src/routes/dealbreakers.js ---
+try {
+  const dealbreakersURL = pathToFileURL(
+    path.resolve(__dirname, "./routes/dealbreakers.js")
+  ).href;
+  const mod = await import(dealbreakersURL);
+  const dealbreakersRouter = (mod && (mod.default || mod.router || mod)) || null;
+
+  if (typeof dealbreakersRouter === "function") {
+    app.use("/api/dealbreakers", authenticate, roleAuthorization("user"), dealbreakersRouter);
+    console.log("🪓 Mounted /api/dealbreakers");
+  } else {
+    console.warn("⚠️ /api/dealbreakers not mounted (bad export in src/routes/dealbreakers.js).");
   }
-  // --- REPLACE END ---
+} catch (e) {
+  console.warn(
+    "⚠️ /api/dealbreakers not mounted (failed to import src/routes/dealbreakers.js):",
+    (e && e.message) ? e.message : e
+  );
+}
+// --- REPLACE END ---
 
-  // Notifications (ESM/CJS compatibility)
-  (async () => {
+// --- REPLACE START: mount /api/notifications (ESM/CJS compatible, no stray braces) ---
+try {
+  const candidates = [
+    path.resolve(__dirname, "./routes/notifications.js"),
+    path.resolve(__dirname, "../routes/notifications.js"),
+  ];
+
+  let notificationsRouter = null;
+
+  for (const p of candidates) {
     try {
-      // --- REPLACE START: remove wrong ./src candidate ---
-      const candidates = [
-        path.resolve(__dirname, "./routes/notifications.js"),
-        path.resolve(__dirname, "../routes/notifications.js"),
-      ];
-      // --- REPLACE END ---
-      let notificationsRouter = null;
-
-      for (const p of candidates) {
+      // Try require first (CJS)
+      const mod = require(p);
+      notificationsRouter = mod && (mod.default || mod.router || mod);
+      if (notificationsRouter) break;
+    } catch (err) {
+      // Fallback to ESM dynamic import if needed
+      if (String(err?.code || err?.message || "").includes("ERR_REQUIRE_ESM")) {
         try {
-          // Try require first (works if CJS)
-          const mod = require(p);
-          notificationsRouter = mod && (mod.default || mod.router || mod);
+          const esm = await import(pathToFileURL(p).href);
+          notificationsRouter = esm && (esm.default || esm.router || esm);
           if (notificationsRouter) break;
-        } catch (err) {
-          // Fallback to ESM dynamic import on ERR_REQUIRE_ESM
-          if (String((err && (err.code || err.message)) || "").includes("ERR_REQUIRE_ESM")) {
-            try {
-              const esm = await import(pathToFileURL(p).href);
-              notificationsRouter = esm && (esm.default || esm.router || esm);
-              if (notificationsRouter) break;
-            } catch {
-              // try next candidate
-            }
-          }
+        } catch {
+          // try next candidate
         }
       }
-
-      if (notificationsRouter && typeof notificationsRouter === "function") {
-        app.use("/api/notifications", authenticate, notificationsRouter);
-        console.log("🔔 Mounted /api/notifications");
-      } else {
-        console.warn("⚠️ Notifications route not mounted (file missing or invalid export).");
-      }
-    } catch (e) {
-      console.warn("⚠️ Failed to mount /api/notifications:", (e && (e.message || e)) );
     }
-  })();
+  }
+
+  if (typeof notificationsRouter === "function") {
+    app.use("/api/notifications", authenticate, notificationsRouter);
+    console.log("🔔 Mounted /api/notifications");
+  } else {
+    console.warn("⚠️ Notifications route not mounted (file missing or invalid export).");
+  }
+} catch (e) {
+  console.warn("⚠️ Failed to mount /api/notifications:", e?.message || e);
 }
+// --- REPLACE END ---
+
 
 // ──────────────────────────────────────────────────────────────────────────────
 /* Temporary mock users endpoint (kept for backward compatibility) */
@@ -1371,6 +1529,9 @@ if (!IS_TEST) {
   console.log("ℹ️ Test mode: HTTP server is not started.");
 }
 
+// Close any still-open route mount block from around line 1039
+} // ← this closes the unclosed if/try from the route-mount section above
+
 // ──────────────────────────────────────────────────────────────────────────────
 /* Graceful shutdown (SIGINT/SIGTERM) */
 // ──────────────────────────────────────────────────────────────────────────────
@@ -1390,15 +1551,16 @@ async function shutdown(signal) {
     process.exit(1);
   }
 }
+
 if (!IS_TEST) {
   process.on("SIGINT", () => shutdown("SIGINT"));
   process.on("SIGTERM", () => shutdown("SIGTERM"));
 }
 
-// --- REPLACE START: export in ESM-friendly way (and keep CJS support if available) ---
-export default app;
-if (typeof module !== "undefined") {
-  module.exports = app;
-}
-// --- REPLACE END ---
+// PATH: server/src/app.js
 
+// --- REPLACE START: restore ESM export for app.js ---
+// Export Express app for Jest and for the server launcher
+// This must remain a clean ESM export because "type": "module" is set in package.json.
+export default app;
+// --- REPLACE END ---

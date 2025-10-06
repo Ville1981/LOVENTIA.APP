@@ -6,6 +6,9 @@
  * and strips common script injection patterns. Intentionally conservative to
  * avoid breaking legitimate data; extend as needed.
  *
+ * IMPORTANT: We sanitize IN PLACE to avoid assigning to req.query/req.body/req.params,
+ * which can throw "has only a getter" errors in some Express setups.
+ *
  * Exports:
  *  - default export (ESM):   import xssSanitizer from "./xssSanitizer.js"
  *  - CJS interop (optional): const xssSanitizer = require("./xssSanitizer.js")
@@ -24,7 +27,7 @@ function sanitizeString(value) {
   v = v.replace(/\bjavascript\s*:/gi, "");
   v = v.replace(/\bdata\s*:/gi, "");
 
-  // Angle brackets are common attack vector; strip them (safe, but conservative)
+  // Angle brackets are common attack vector; strip them (conservative)
   v = v.replace(/[<>]/g, "");
 
   return v;
@@ -32,30 +35,55 @@ function sanitizeString(value) {
 
 function sanitizeValue(val) {
   if (val == null) return val;
-  if (Array.isArray(val)) return val.map(sanitizeValue);
-  if (typeof val === "object") return sanitizeObject(val);
+  if (Array.isArray(val)) {
+    // sanitize array in place
+    for (let i = 0; i < val.length; i++) {
+      const item = val[i];
+      if (item && typeof item === "object") {
+        walkAndSanitize(item);
+      } else {
+        val[i] = sanitizeString(item);
+      }
+    }
+    return val;
+  }
+  if (typeof val === "object") {
+    walkAndSanitize(val);
+    return val;
+  }
   return sanitizeString(val);
 }
 
-function sanitizeObject(obj) {
-  const out = Array.isArray(obj) ? [] : {};
+function walkAndSanitize(obj) {
+  if (!obj || typeof obj !== "object") return;
   for (const key of Object.keys(obj)) {
-    out[key] = sanitizeValue(obj[key]);
+    const current = obj[key];
+    if (current && typeof current === "object") {
+      sanitizeValue(current); // recurse / in-place
+    } else {
+      obj[key] = sanitizeString(current);
+    }
   }
-  return out;
 }
 
 export default function xssSanitizer(req, _res, next) {
   try {
-    if (req && req.body && typeof req.body === "object") {
-      req.body = sanitizeObject(req.body);
+    // Sanitize in place; DO NOT reassign req.query/body/params
+    if (req?.query && typeof req.query === "object") {
+      walkAndSanitize(req.query);
     }
-    if (req && req.query && typeof req.query === "object") {
-      req.query = sanitizeObject(req.query);
+    if (req?.body && typeof req.body === "object") {
+      walkAndSanitize(req.body);
     }
-    if (req && req.params && typeof req.params === "object") {
-      req.params = sanitizeObject(req.params);
+    if (req?.params && typeof req.params === "object") {
+      walkAndSanitize(req.params);
     }
+
+    // Optional: expose sanitized references (same objects, post-sanitization)
+    req.sanitized = req.sanitized || {};
+    req.sanitized.query = req.query;
+    req.sanitized.body = req.body;
+    req.sanitized.params = req.params;
   } catch (err) {
     // Do not fail the request on sanitizer errors; just log and continue
     // eslint-disable-next-line no-console

@@ -1,10 +1,25 @@
-// src/components/UserCardList.jsx
+// PATH: client/src/components/UserCardList.jsx
 
 import PropTypes from "prop-types";
 import React, { memo } from "react";
 
 import UserCard from "./UserCard";
 import { BACKEND_BASE_URL } from "../utils/config";
+
+// --- REPLACE START: safely prefix backend only for relative URLs ---
+/**
+ * Resolve an image URL:
+ * - Leaves absolute http(s) URLs untouched.
+ * - Normalizes relative paths to start with a single '/' and prefixes BACKEND_BASE_URL.
+ */
+function resolveImgUrl(input) {
+  const src = typeof input === "string" ? input : input?.url || "";
+  if (!src) return "";
+  if (/^https?:\/\//i.test(src)) return src; // already absolute
+  const norm = src.startsWith("/") ? src : `/${src}`;
+  return `${BACKEND_BASE_URL}${norm}`;
+}
+// --- REPLACE END ---
 
 /**
  * UserCardList: displays a vertical list of UserCard components.
@@ -23,15 +38,15 @@ const UserCardList = ({ users, onAction }) => {
     <div className="flex flex-col items-center mt-6 space-y-6">
       {users.map((user) => (
         <div key={user._id} className="w-full max-w-[800px]">
-          {/* Pass prefixed image URLs into UserCard */}
+          {/* Pass image URLs into UserCard (prefix backend only when needed) */}
           <UserCard
             user={{
               ...user,
-              photos: user.photos.map((p) => ({
+              photos: (user.photos || []).map((p) => ({
                 ...p,
-                // --- REPLACE START: prefix backend URL for carousel images
-                url: `${BACKEND_BASE_URL || ""}${p.url}`,
-                // --- REPLACE END
+                // --- REPLACE START: prefix only relative URLs; keep absolute as-is
+                url: resolveImgUrl(p),
+                // --- REPLACE END ---
               })),
             }}
             onAction={onAction}

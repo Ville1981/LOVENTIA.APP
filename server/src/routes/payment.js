@@ -6,6 +6,9 @@ import 'dotenv/config';
 
 // Use the same auth middleware module name used elsewhere in the app
 import authenticate from '../middleware/authenticate.js';
+
+// Import centralized Stripe config (urls are static-imported to avoid dynamic pitfalls)
+import { billingUrls } from '../../config/stripe.js';
 // --- REPLACE END ---
 
 /* ──────────────────────────────────────────────────────────────────────────────
@@ -18,7 +21,8 @@ let stripe = null;
 async function getStripe() {
   if (stripe) return stripe;
   try {
-    const mod = await import('../config/stripe.js');
+    // FIX PATH: routes/ → ../../config/stripe.js
+    const mod = await import('../../config/stripe.js');
     stripe = mod.default || mod;
   } catch (_e) {
     stripe = null;
@@ -88,10 +92,10 @@ const payPalClient = new paypal.core.PayPalHttpClient(payPalEnv);
 
 /**
  * getClientUrl()
- * Returns the base URL where the frontend lives; used for Stripe return URLs.
+ * Returns the base URL where the frontend lives; used for non-Stripe flows.
  */
 function getClientUrl() {
-  // Where to send users back after Stripe checkout/portal
+  // Where to send users back after PayPal flows (Stripe uses billingUrls)
   return process.env.CLIENT_URL || 'http://localhost:5174';
 }
 
@@ -277,7 +281,6 @@ router.post('/create-checkout-session', authenticate, async (req, res) => {
 
     const { email, customerId: bodyCustomerId } = req.body || {};
     const uid = req.userId || req.user?._id || req.user?.id || null;
-    const clientUrl = getClientUrl();
 
     // Resolve existing customer to avoid creating duplicates
     let resolvedCustomerId =
@@ -313,8 +316,10 @@ router.post('/create-checkout-session', authenticate, async (req, res) => {
     const params = {
       mode: 'subscription',
       line_items: [{ price: getPremiumPriceId(), quantity: 1 }],
-      success_url: `${clientUrl}/settings/subscriptions?success=1&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${clientUrl}/settings/subscriptions?canceled=1`,
+      // --- REPLACE START: use centralized billingUrls for success/cancel ---
+      success_url: billingUrls.successUrl,
+      cancel_url: billingUrls.cancelUrl,
+      // --- REPLACE END ---
       allow_promotion_codes: true,
       // Force English UI for Checkout
       locale: 'en',
@@ -349,19 +354,24 @@ router.post('/create-checkout-session', authenticate, async (req, res) => {
   }
 });
 
+// File: server/src/routes/payment.js
+
+// --- REPLACE START: factor portal logic into a shared handler + robust alias ---
 /**
- * POST /api/billing/portal
- * Opens Stripe Billing Portal (and creates a customer if missing).
- * Adds `locale: 'en'` to the Portal session to keep it English.
+ * Shared implementation for opening the Stripe Billing Portal.
+ * Ensures a Stripe customer exists, then creates a portal session.
+ * Uses centralized billingUrls.returnUrl (with safe fallback) and forces locale:'en'.
  */
-router.post('/portal', authenticate, async (req, res) => {
+async function _openStripePortal(req, res) {
   try {
     assertStripeKey();
 
     const uid = req.userId || req.user?._id || req.user?.id || null;
-    if (!uid && !req.user) return res.status(401).json({ error: 'Unauthorized' });
+    if (!uid && !req.user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
 
-    // Ensure we have a Stripe customer
+    // Resolve or lazily create a Stripe customer for this user
     let customerId =
       req.body?.customerId ||
       req.user?.stripeCustomerId ||
@@ -389,41 +399,62 @@ router.post('/portal', authenticate, async (req, res) => {
 
     const _stripe = await getStripe();
     if (!_stripe) {
-      return res.status(501).json({ error: 'Billing not configured: missing Stripe client.' });
+      return res
+        .status(501)
+        .json({ error: 'Billing not configured: missing Stripe client.' });
     }
+
+    // Prefer centralized URL if available; otherwise fall back to client URL
+    const safeReturnUrl =
+      (typeof billingUrls?.returnUrl === 'string' && billingUrls.returnUrl) ||
+      (getClientUrl() + '/settings/subscriptions');
+
     const portal = await _stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url: getClientUrl() + '/settings/subscriptions',
-      // Keep Portal in English
+      return_url: safeReturnUrl,
+      // Keep Portal UI in English for consistency
       locale: 'en',
     });
 
     return res.json({ url: portal.url });
   } catch (err) {
     console.error('portal error:', err);
-    if (err.code === 'NO_STRIPE_KEY') {
-      return res.status(501).json({ error: 'Billing not configured: missing STRIPE_SECRET_KEY.' });
+    if (err?.code === 'NO_STRIPE_KEY') {
+      return res
+        .status(501)
+        .json({ error: 'Billing not configured: missing STRIPE_SECRET_KEY.' });
     }
-    // Keep generic error to avoid leaking internals
-    return res.status(500).json({ error: 'Unable to open billing portal' });
+    // Surface a clearer error for diagnostics
+    return res.status(500).json({
+      error: 'Unable to open billing portal',
+      detail: err?.message || String(err),
+    });
   }
-});
+}
+
+// --- REPLACE START: factor portal logic into a shared handler + robust alias ---
+/**
+ * POST /api/billing/portal
+ * Opens Stripe Billing Portal using the shared handler above.
+ */
+router.post('/portal', authenticate, _openStripePortal);
 
 /**
- * Legacy alias kept for backward compatibility:
- * POST /api/billing/create-portal-session → delegates to /portal
+ * Legacy alias for backward compatibility:
+ * POST /api/billing/create-portal-session
+ * Call the same handler directly; never recurse via router.handle().
+ * Let errors bubble to the global error handler.
  */
-router.post('/create-portal-session', authenticate, async (req, res) => {
-  // Delegate to /portal to avoid duplicating logic
-  req.url = '/portal';
-  return router.handle(req, res);
-});
+router.post(
+  '/create-portal-session',
+  authenticate,
+  (req, res, next) => _openStripePortal(req, res).catch(next)
+);
+// --- REPLACE END ---
 
-/**
- * POST /api/billing/cancel-now
- * Cancels all ACTIVE/TRIALING subscriptions now, then re-syncs DB state.
- * Body (optional): { customerId?: string } – helpful for admin/testing
- */
+
+
+
 router.post('/cancel-now', authenticate, async (req, res) => {
   try {
     assertStripeKey();
@@ -630,8 +661,10 @@ router.post('/stripe-session', authenticate, async (req, res) => {
       // Keep locale English here as well for consistency
       locale: 'en',
       metadata: { userId: req.userId || req.user?.id || '' },
-      success_url: `${getClientUrl()}/settings/subscriptions?success=1&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${getClientUrl()}/settings/subscriptions?canceled=1`,
+      // --- REPLACE START: use centralized billingUrls for success/cancel (legacy path) ---
+      success_url: billingUrls.successUrl,
+      cancel_url: billingUrls.cancelUrl,
+      // --- REPLACE END ---
     });
     res.json({ url: session.url });
   } catch (err) {

@@ -1,20 +1,20 @@
-// File: client/src/pages/Discover.jsx
+// PATH: client/src/pages/Discover.jsx
 
-// --- REPLACE START: Discover page – enforce order [self → bunny → others], keep full UI, and skip API for self/bunny while advancing locally ---
-import React, { useState, useEffect, useMemo } from "react";
+// --- REPLACE START: pause API while any <select> is focused + fix import order + add clearTimeout cleanup ---
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { getDealbreakers, updateDealbreakers } from "../api/dealbreakers";
+import AdBanner from "../components/AdBanner";
 import ProfileCardList from "../components/discover/ProfileCardList";
 import DiscoverFilters from "../components/DiscoverFilters";
-import SkeletonCard from "../components/SkeletonCard";
+import FeatureGate from "../components/FeatureGate";
 import HiddenStatusBanner from "../components/HiddenStatusBanner";
 import PremiumGate from "../components/PremiumGate";
-import FeatureGate from "../components/FeatureGate";
-import AdBanner from "../components/AdBanner";
+import SkeletonCard from "../components/SkeletonCard";
+import { BACKEND_BASE_URL } from "../config";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../services/api/axiosInstance";
-import { BACKEND_BASE_URL } from "../config";
-import { getDealbreakers, updateDealbreakers } from "../api/dealbreakers";
 
 // Bunny placeholder for empty/error states (card only, never avatar fallback)
 const bunnyUser = {
@@ -40,7 +40,6 @@ function absolutizeImage(pathOrUrl) {
   if (/^https?:\/\//i.test(s)) return s;
   // Normalize slashes and leading dot segments
   s = s.replace(/\\/g, "/").replace(/^\.\//, "").replace(/\/+/g, "/");
-  // Common server upload roots
   if (s.startsWith("/uploads/")) s = s.replace(/^\/uploads\/uploads\//, "/uploads/");
   else if (s.startsWith("uploads/")) s = "/" + s;
   else if (!s.startsWith("/")) s = "/uploads/" + s;
@@ -56,7 +55,7 @@ const Discover = () => {
   const [error, setError] = useState("");
   const [filterKey, setFilterKey] = useState("initial");
 
-  // local filter states (kept as separate fields to preserve structure/rivimäärä)
+  // local filter states
   const [username, setUsername] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
@@ -82,7 +81,7 @@ const Discover = () => {
   const [minAge, setMinAge] = useState(18);
   const [maxAge, setMaxAge] = useState(120);
 
-  // 🔓 Premium detection (tier OR legacy flags)
+  // Premium detection
   const isPremium = useMemo(() => {
     return (
       authUser?.entitlements?.tier === "premium" ||
@@ -91,32 +90,88 @@ const Discover = () => {
     );
   }, [authUser]);
 
-  // Upsell modal state (shown when free user tries paid action)
   const [showUpsell, setShowUpsell] = useState(false);
 
+  // --- Focus pause + cleanup ---
+  const [selectHasFocus, setSelectHasFocus] = useState(false);
+  const blurTimerRef = useRef(null);
+
+  const onAnySelectFocus = useCallback(() => {
+    if (blurTimerRef.current) {
+      clearTimeout(blurTimerRef.current);
+      blurTimerRef.current = null;
+    }
+    setSelectHasFocus(true);
+  }, []);
+
+  const onAnySelectBlur = useCallback(() => {
+    if (blurTimerRef.current) clearTimeout(blurTimerRef.current);
+    blurTimerRef.current = setTimeout(() => {
+      const el = typeof document !== "undefined" ? document.activeElement : null;
+      setSelectHasFocus(Boolean(el && el.tagName === "SELECT"));
+      blurTimerRef.current = null;
+    }, 0);
+  }, []);
+
   useEffect(() => {
-    if ("scrollRestoration" in window.history)
+    return () => {
+      if (blurTimerRef.current) clearTimeout(blurTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    function onFocusIn(e) {
+      if (e?.target?.tagName === "SELECT") onAnySelectFocus();
+    }
+    function onFocusOut(e) {
+      if (e?.target?.tagName === "SELECT") onAnySelectBlur();
+    }
+    document.addEventListener("focusin", onFocusIn);
+    document.addEventListener("focusout", onFocusOut);
+    return () => {
+      document.removeEventListener("focusin", onFocusIn);
+      document.removeEventListener("focusout", onFocusOut);
+    };
+  }, [onAnySelectFocus, onAnySelectBlur]);
+
+  const probeFocusProps = { onFocus: onAnySelectFocus, onBlur: onAnySelectBlur };
+
+  // pending queries
+  const pendingQueryRef = useRef(null);
+  const flushPendingAfterBlur = useCallback(() => {
+    if (!selectHasFocus && pendingQueryRef.current) {
+      const params = pendingQueryRef.current;
+      pendingQueryRef.current = null;
+      loadUsers(params);
+    }
+  }, [selectHasFocus]);
+
+  useEffect(() => {
+    flushPendingAfterBlur();
+  }, [selectHasFocus, flushPendingAfterBlur]);
+
+  useEffect(() => {
+    if ("scrollRestoration" in window.history) {
       window.history.scrollRestoration = "manual";
+    }
     if (!bootstrapped) return;
-
-    // ✅ always include self in discover
     const initialParams = { includeSelf: 1 };
-    loadUsers(initialParams);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bootstrapped]);
+    if (selectHasFocus) {
+      pendingQueryRef.current = initialParams;
+    } else {
+      loadUsers(initialParams);
+    }
+  }, [bootstrapped, selectHasFocus]);
 
-  // Seed min/max age from dealbreakers (if available)
   useEffect(() => {
     let mounted = true;
     const seedFromDealbreakers = async () => {
       try {
-        if (!bootstrapped) return;
+        if (!bootstrapped || selectHasFocus) return;
         const db = await getDealbreakers();
         if (!mounted || !db) return;
-        if (typeof db.ageMin === "number" && Number.isFinite(db.ageMin))
-          setMinAge(db.ageMin);
-        if (typeof db.ageMax === "number" && Number.isFinite(db.ageMax))
-          setMaxAge(db.ageMax);
+        if (typeof db.ageMin === "number" && Number.isFinite(db.ageMin)) setMinAge(db.ageMin);
+        if (typeof db.ageMax === "number" && Number.isFinite(db.ageMax)) setMaxAge(db.ageMax);
       } catch {
         /* silent */
       }
@@ -125,9 +180,13 @@ const Discover = () => {
     return () => {
       mounted = false;
     };
-  }, [bootstrapped]);
+  }, [bootstrapped, selectHasFocus]);
 
   const loadUsers = async (params = {}) => {
+    if (selectHasFocus) {
+      pendingQueryRef.current = params;
+      return;
+    }
     setIsLoading(true);
     setError("");
     try {
@@ -147,25 +206,18 @@ const Discover = () => {
           })
         : [];
 
-      // ✅ Order: [self] → [bunny] → [others]
-      const selfId =
-        authUser?._id?.toString?.() || authUser?.id?.toString?.() || null;
-      const selfUser = selfId
-        ? normalized.find((u) => (u.id || u._id)?.toString() === selfId)
-        : null;
-      const others = selfId
-        ? normalized.filter((u) => (u.id || u._id)?.toString() !== selfId)
-        : normalized;
+      const selfId = authUser?._id?.toString?.() || authUser?.id?.toString?.() || null;
+      const selfUser = selfId ? normalized.find((u) => (u.id || u._id)?.toString() === selfId) : null;
+      const others = selfId ? normalized.filter((u) => (u.id || u._id)?.toString() !== selfId) : normalized;
 
-      const ordered = []; // ensure defined before .push()
+      const ordered = [];
       if (selfUser) ordered.push(selfUser);
-      ordered.push(bunnyUser); // demo card second
+      ordered.push(bunnyUser);
       ordered.push(...others);
 
       setUsers(ordered.length ? ordered : [bunnyUser]);
       setFilterKey(Date.now().toString());
     } catch (err) {
-      // eslint-disable-next-line no-console
       console.error("Error loading users:", err);
       setError(t("discover:error"));
       setUsers([bunnyUser]);
@@ -175,46 +227,43 @@ const Discover = () => {
     }
   };
 
+  const scrollTimerRef = useRef(null);
+
   const handleAction = (userId, actionType) => {
-    // 🚧 Free users: allow only "pass". Like/Superlike triggers upsell.
     if (!isPremium && actionType !== "pass") {
       setShowUpsell(true);
       return;
     }
-
     const currentScroll = window.scrollY;
-
-    // Remove card from UI immediately (optimistic) → ProfileCardList will advance to next
     setUsers((prev) => prev.filter((u) => (u.id || u._id) !== userId));
 
-    // Keep the viewport stable (no page jump)
     requestAnimationFrame(() => {
-      setTimeout(() => {
+      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+      scrollTimerRef.current = setTimeout(() => {
         window.scrollTo({ top: currentScroll, behavior: "auto" });
+        scrollTimerRef.current = null;
       }, 0);
     });
 
-    // ✅ Skip API for self and bunny demo
-    const currentUserId =
-      authUser?._id?.toString?.() || authUser?.id?.toString?.() || null;
-
+    const currentUserId = authUser?._id?.toString?.() || authUser?.id?.toString?.() || null;
     if (userId === bunnyUser.id) {
-      // eslint-disable-next-line no-console
       console.warn(`[Discover] Skipping API call for bunny ${actionType}`);
       return;
     }
     if (currentUserId && userId === currentUserId) {
-      // eslint-disable-next-line no-console
       console.warn(`[Discover] Skipping API call for self ${actionType}`);
       return;
     }
-
-    // Normal case: send to server
     api.post(`/discover/${userId}/${actionType}`).catch((err) => {
-      // eslint-disable-next-line no-console
       console.error(`Error executing ${actionType}:`, err);
     });
   };
+
+  useEffect(() => {
+    return () => {
+      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+    };
+  }, []);
 
   const handleFilter = async (formValues) => {
     const query = {
@@ -222,10 +271,9 @@ const Discover = () => {
       country: formValues.customCountry || formValues.country,
       region: formValues.customRegion || formValues.region,
       city: formValues.customCity || formValues.city,
-      includeSelf: 1, // ✅ always include self
+      includeSelf: 1,
     };
 
-    // Mirror age fields to dealbreakers (non-fatal)
     try {
       const patch = {};
       const parsedMin = Number(formValues.minAge);
@@ -234,7 +282,6 @@ const Discover = () => {
       if (Number.isFinite(parsedMax)) patch.ageMax = parsedMax;
       if (Object.keys(patch).length > 0) await updateDealbreakers(patch);
     } catch (e) {
-      // eslint-disable-next-line no-console
       console.warn("updateDealbreakers failed (non-fatal):", e?.message || e);
     }
 
@@ -262,6 +309,10 @@ const Discover = () => {
       delete query.maxAge;
     }
 
+    if (selectHasFocus) {
+      pendingQueryRef.current = query;
+      return;
+    }
     loadUsers(query);
   };
 
@@ -291,6 +342,7 @@ const Discover = () => {
     minAge,
     maxAge,
   };
+
   const setters = {
     setUsername,
     setAge,
@@ -319,75 +371,57 @@ const Discover = () => {
   };
 
   const handleUnhiddenRefresh = () => {
-    const params = { includeSelf: 1 }; // ✅ always include self
+    const params = { includeSelf: 1 };
+    if (selectHasFocus) {
+      pendingQueryRef.current = params;
+      return;
+    }
     loadUsers(params);
   };
 
   return (
-    <div
-      className="w-full flex flex-col items-center bg-gray-100 min-h-screen"
-      style={{ overflowAnchor: "none" }}
-    >
+    <div className="w-full flex flex-col items-center bg-gray-100 min-h-screen" style={{ overflowAnchor: "none" }}>
       <div className="w-full max-w-[1400px] flex flex-col lg:flex-row justify-between px-4 mt-6">
         <aside className="hidden lg:block w-[200px] sticky top-[160px] space-y-6" />
 
         <main className="flex-1">
-          {/* 🔔 Hidden account banner (visible only when hidden) */}
           <HiddenStatusBanner user={authUser} onUnhidden={handleUnhiddenRefresh} />
 
           <div className="bg-white border rounded-lg shadow-md p-6 max-w-3xl mx-auto mt-4">
-            {/* Top capability row – visibility via FeatureGate (kept intact) */}
             <div className="mb-4 flex flex-wrap items-center gap-2">
-              {/* See who liked you */}
-              <FeatureGate
-                feature="seeLikedYou"
-                fallback={
-                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-600">
-                    <span role="img" aria-label="eyes">👀</span>
-                    <span>See who liked you</span>
-                    <span className="ml-1 text-[10px] text-amber-700">Premium</span>
-                  </span>
-                }
-              >
-                <a
-                  href="/who-liked-me"
-                  className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-emerald-600 text-white"
-                  title="Open 'Who liked me'"
-                >
+              <FeatureGate feature="seeLikedYou" fallback={
+                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-600">
+                  <span role="img" aria-label="eyes">👀</span>
+                  <span>See who liked you</span>
+                  <span className="ml-1 text-[10px] text-amber-700">Premium</span>
+                </span>
+              }>
+                <a href="/who-liked-me" className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-emerald-600 text-white" title="Open 'Who liked me'">
                   <span role="img" aria-label="eyes">👀</span>
                   <span>Who liked you</span>
                 </a>
               </FeatureGate>
 
-              {/* No ads – show badge for premium; show subtle “Ads” pill for free */}
-              <FeatureGate
-                feature="noAds"
-                invert={false}
-                fallback={
-                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-600">
-                    <span role="img" aria-label="ad">🪧</span>
-                    <span>Ads</span>
-                    <span className="ml-1 text-[10px] text-amber-700">Premium removes</span>
-                  </span>
-                }
-              >
+              <FeatureGate feature="noAds" invert={false} fallback={
+                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-600">
+                  <span role="img" aria-label="ad">🪧</span>
+                  <span>Ads</span>
+                  <span className="ml-1 text-[10px] text-amber-700">Premium removes</span>
+                </span>
+              }>
                 <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-indigo-600 text-white">
                   <span role="img" aria-label="no-ads">🚫</span>
                   <span>No ads</span>
                 </span>
               </FeatureGate>
 
-              {/* Dealbreakers visibility */}
-              <FeatureGate
-                feature="dealbreakers"
-                fallback={
-                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-600">
-                    <span role="img" aria-label="filter">🧩</span>
-                    <span>Dealbreakers</span>
-                    <span className="ml-1 text-[10px] text-amber-700">Premium</span>
-                  </span>
-                }
-              >
+              <FeatureGate feature="dealbreakers" fallback={
+                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-600">
+                  <span role="img" aria-label="filter">🧩</span>
+                  <span>Dealbreakers</span>
+                  <span className="ml-1 text-[10px] text-amber-700">Premium</span>
+                </span>
+              }>
                 <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-pink-600 text-white">
                   <span role="img" aria-label="filter">🧩</span>
                   <span>Dealbreakers</span>
@@ -395,10 +429,9 @@ const Discover = () => {
               </FeatureGate>
             </div>
 
-            <DiscoverFilters values={values} handleFilter={handleFilter} />
+            <DiscoverFilters values={values} handleFilter={handleFilter} setters={setters} probeFocusProps={probeFocusProps} />
           </div>
 
-          {/* Render ad banner for free users (FeatureGate invert on noAds) */}
           <div className="max-w-3xl mx-auto w-full">
             <FeatureGate feature="noAds" invert fallback={null}>
               <AdBanner />
@@ -417,12 +450,7 @@ const Discover = () => {
                 <div className="mt-12 text-center text-red-600">{error}</div>
               ) : (
                 <>
-                  {/* ✅ Free users can browse; Like/Superlike blocked in handleAction when not premium */}
-                  <ProfileCardList
-                    key={filterKey}
-                    users={users}
-                    onAction={handleAction}
-                  />
+                  <ProfileCardList key={filterKey} users={users} onAction={handleAction} />
                   {users.length === 0 && (
                     <div className="mt-12 text-center text-gray-500">
                       🔍 {t("discover:noResults")}
@@ -437,21 +465,12 @@ const Discover = () => {
         <aside className="hidden lg:block w-[200px] sticky top-[160px] space-y-6" />
       </div>
 
-      {/* Upsell appears only when a free user tries a paid action */}
       {showUpsell && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4">
           <div className="w-full sm:max-w-xl">
-            <PremiumGate
-              mode="block"
-              requireFeature="unlimitedLikes"
-              onUpgraded={() => setShowUpsell(false)}
-            />
+            <PremiumGate mode="block" requireFeature="unlimitedLikes" onUpgraded={() => setShowUpsell(false)} />
             <div className="mt-2 flex justify-center">
-              <button
-                type="button"
-                onClick={() => setShowUpsell(false)}
-                className="px-4 py-2 rounded-md bg-white border text-gray-700 hover:bg-gray-50"
-              >
+              <button type="button" onClick={() => setShowUpsell(false)} className="px-4 py-2 rounded-md bg-white border text-gray-700 hover:bg-gray-50">
                 Close
               </button>
             </div>
@@ -464,3 +483,22 @@ const Discover = () => {
 
 export default Discover;
 // --- REPLACE END ---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
