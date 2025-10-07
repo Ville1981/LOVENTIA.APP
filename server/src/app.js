@@ -962,7 +962,7 @@ if (IS_TEST) {
     return res.json({ message: "Logout successful" });
   });
 
-  app.use("/api/auth", testAuth);
+  // DISABLED: app.use("/api/auth", testAuth);
   console.log("✅ Mounted /api/auth (test-mode) in app.js");
 } else {
   // Resolve the dedicated auth router module (ESM/CJS compatible)

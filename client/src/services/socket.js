@@ -3,13 +3,34 @@
 // @ts-nocheck
 import { io } from "socket.io-client";
 
-// Use environment variable or fallback to current origin (safe on SSR/tests)
-// --- REPLACE START: robust URL + token retrieval without touching window at module top ---
-const SOCKET_URL =
-  (typeof import.meta !== "undefined" &&
-    import.meta.env &&
-    import.meta.env.VITE_SOCKET_URL) ||
-  (typeof window !== "undefined" ? window.location.origin : "http://localhost");
+// --- REPLACE START: robust URL + token retrieval + dev-port remap (5173/5174 -> 5000) ---
+/**
+ * Resolve backend URL for Socket.IO.
+ * Priority:
+ *  1) VITE_SOCKET_URL (or VITE_BACKEND_URL / VITE_API_BASE_URL)
+ *  2) current origin, but map common Vite dev ports 5173/5174 to 5000
+ */
+function resolveSocketURL() {
+  try {
+    if (typeof import.meta !== "undefined" && import.meta.env) {
+      const env =
+        import.meta.env.VITE_SOCKET_URL ||
+        import.meta.env.VITE_BACKEND_URL ||
+        import.meta.env.VITE_API_BASE_URL ||
+        "";
+      if (env) return String(env).replace(/\/+$/, "");
+    }
+  } catch {
+    /* ignore */
+  }
+  const origin =
+    (typeof window !== "undefined" && window.location?.origin) ||
+    "http://localhost:5173";
+  // Map dev ports to backend :5000
+  return origin.replace(/:5173|:5174/i, ":5000").replace(/\/+$/, "");
+}
+
+const SOCKET_URL = resolveSocketURL();
 
 /**
  * Read the current JWT from storage in a test/SSR-safe way.
@@ -27,10 +48,11 @@ function getToken() {
 
 // Initialize socket with authentication and reconnection options
 // (auth is updated right before connect to avoid stale tokens)
-// --- REPLACE START: configure socket with reconnect and dynamic auth payload ---
+// --- REPLACE START: configure socket with reconnect and dynamic auth payload + polling fallback ---
 export const socket = io(SOCKET_URL, {
+  path: "/socket.io",
   auth: {}, // set just-in-time in connectSocket()
-  transports: ["websocket"], // enforce WebSocket only
+  transports: ["websocket", "polling"], // try websocket first, then fallback
   autoConnect: false, // connect manually via connectSocket()
   reconnection: true,
   reconnectionAttempts: Infinity, // keep trying indefinitely
@@ -166,4 +188,3 @@ export function offNewMessage(callback) {
 
 // The replacement region is marked between // --- REPLACE START and // --- REPLACE END
 // so you can verify exactly what changed.
-

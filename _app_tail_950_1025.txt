@@ -1,0 +1,120 @@
+  app.use("/api/healthz", healthRoute); // alias
+  app.use("/api/_health", healthRoute); // extra alias for older infra
+} catch {
+  // If health route missing, keep the /healthcheck basic endpoint above
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+/* Auth routes — mount HERE before any /api aggregator */
+// ──────────────────────────────────────────────────────────────────────────────
+// --- REPLACE START: mount /api/auth in app.js with richer diagnostics ---
+if (IS_TEST) {
+  // Minimal JWT auth for tests (kept as before)
+  const jwt = require("jsonwebtoken");
+  const testAuth = express.Router();
+
+  const TEST_JWT_SECRET = process.env.JWT_SECRET || "test_secret";
+  const TEST_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || "test_refresh_secret";
+  const noValidate = (_req, _res, next) => next();
+
+  testAuth.post("/login", noValidate, (req, res) => {
+    const { email } = req.body || {};
+    const userId = "000000000000000000000001";
+    const role = "user";
+
+    const accessToken = jwt.sign({ id: userId, userId, role, email }, TEST_JWT_SECRET, { expiresIn: "15m" });
+    const refreshToken = jwt.sign({ id: userId, userId, role }, TEST_REFRESH_SECRET, { expiresIn: "30d" });
+
+    res.cookie("refreshToken", refreshToken, {
+      ...cookieOptions,
+      httpOnly: true,
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+
+    return res.status(200).json({ accessToken });
+  });
+
+  testAuth.post("/refresh", (req, res) => {
+    const token = req.cookies && req.cookies.refreshToken;
+    if (!token) return res.status(401).json({ error: "No refresh token provided" });
+
+    try {
+      const payload = jwt.verify(token, TEST_REFRESH_SECRET);
+      const accessToken = jwt.sign(
+        { id: payload.userId || payload.id, userId: payload.userId || payload.id, role: payload.role },
+        TEST_JWT_SECRET,
+        { expiresIn: "15m" }
+      );
+      return res.json({ accessToken });
+    } catch {
+      return res.status(403).json({ error: "Invalid or expired refresh token" });
+    }
+  });
+
+  testAuth.post("/logout", (_req, res) => {
+    const { maxAge, ...withoutMaxAge } = cookieOptions || {};
+    res.clearCookie("refreshToken", withoutMaxAge);
+    return res.json({ message: "Logout successful" });
+  });
+
+  app.use("/api/auth", testAuth);
+  console.log("✅ Mounted /api/auth (test-mode) in app.js");
+} else {
+  // Resolve the dedicated auth router module (ESM/CJS compatible)
+  let authRouter = null;
+  const authCandidates = [
+    path.resolve(__dirname, "./routes/auth.js"),
+    path.resolve(__dirname, "../routes/auth.js"),
+  ];
+  const tried = [];
+  for (const p of authCandidates) {
+    tried.push(p);
+    try {
+      const mod = require(p);
+      const r = (mod && (mod.default || mod.router || mod)) || mod;
+      if (typeof r === "function") {
+        authRouter = r;
+        break;
+      }
+    } catch (e) {
+      // Always try dynamic import on any require error
+      try {
+        const esm = await import(pathToFileURL(p).href);
+        const r = (esm && (esm.default || esm.router || esm)) || esm;
+        if (typeof r === "function") {
+          authRouter = r;
+          break;
+        }
+      } catch {
+        // continue to next candidate
+      }
+    }
+  }
+
+  if (!authRouter && authController && (authController.login || authController.register)) {
+    // Fallback mini-router that wires controller handlers, to guarantee availability
+    const r = express.Router();
+    const pass = (_req, _res, next) => next();
+    if (authController.login) {
+      r.post("/login", dbReady, pass, authController.login);
+    }
+    if (authController.register) {
+      r.post("/register", dbReady, pass, authController.register);
+    }
+    // Optional pass-throughs (if controller exposes them)
+    if (authController.refresh) r.post("/refresh", pass, authController.refresh);
+    if (authController.logout) r.post("/logout", pass, authController.logout);
+    if (authController.me) r.get("/me", pass, authController.me);
+    if (authController.profile) r.get("/profile", pass, authController.profile);
+    authRouter = r;
+    console.warn("⚠️ Using fallback inline auth router (authController-based). Check routes/auth.js and its imports.");
+  }
+
+  if (typeof authRouter === "function") {
+    app.use("/api/auth", authRouter);
+    const stackLen = authRouter.stack?.length ?? 0;
+    console.log(`✅ Mounted /api/auth via router in app.js (handlers=${stackLen})`);
+  } else {
+    console.warn("⚠️ /api/auth not mounted (auth router not found). Candidates tried:\n" + tried.join("\n"));
+  }
+}
