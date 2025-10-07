@@ -8,7 +8,9 @@
     "start": "cross-env NODE_ENV=production  PORT=5000 node ./src/app.js",
     "server": "cross-env NODE_ENV=development PORT=5000 node ./src/app.js",
     "test": "cross-env NODE_ENV=test jest --config ./jest.config.cjs --runInBand",
-    "test:watch": "cross-env NODE_ENV=test jest --config ./jest.config.cjs --watch"
+    "test:watch": "cross-env NODE_ENV=test jest --config ./jest.config.cjs --watch",
+    "postinstall": "node -e \"const fs=require('fs'); const p='.env', e='.env.example'; if(!fs.existsSync(p)&&fs.existsSync(e)){ fs.copyFileSync(e,p); console.log('[env] Created .env from .env.example'); } else { console.log('[env] .env present or no example, no action'); }\"",
+    "ensure-env": "node -e \"const fs=require('fs'); const p='.env', e='.env.example'; if(!fs.existsSync(p)&&fs.existsSync(e)){ fs.copyFileSync(e,p); console.log('[env] Created .env from .env.example'); } else { console.log('[env] .env present or no example, no action'); }\""
   },
   "devDependencies": {
     "cross-env": "^10.1.0",
@@ -53,3 +55,4 @@
     "yamljs": "^0.3.0"
   }
 }
+
