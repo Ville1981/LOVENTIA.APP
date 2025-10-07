@@ -1,4 +1,4 @@
-// PATH: client/src/services/api/axiosInstance.js
+// PATH: client/src/api/axios.js
 
 // --- REPLACE START: resilient Axios instance with refresh lock + credentials (prevents parallel spam) ---
 import axios from "axios";
@@ -329,6 +329,16 @@ api.interceptors.response.use(
     if (!original) return Promise.reject(error);
 
     const status = error?.response?.status;
+
+    // --- REPLACE START: flag intro feature lock (403) for UI handling ---
+    // If backend denies first-message (intro) for non-premium, surface a clear signal.
+    if (status === 403) {
+      const data = error?.response?.data;
+      if (data && (data.feature === "intros" || data.code === "FEATURE_LOCKED")) {
+        error.isIntroLocked = true;
+      }
+    }
+    // --- REPLACE END ---
 
     // Do not refresh for auth endpoints
     if (isAuthPath(original.url || "")) {
