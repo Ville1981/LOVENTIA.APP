@@ -452,9 +452,6 @@ router.post(
 );
 // --- REPLACE END ---
 
-
-
-
 router.post('/cancel-now', authenticate, async (req, res) => {
   try {
     assertStripeKey();
@@ -757,9 +754,11 @@ router.post('/paypal-webhook', express.raw({ type: 'application/json' }), async 
     cert_url: certUrl,
     transmission_id: transmissionId,
     transmission_sig: transmissionSig,
-    transmission_time: transmissionTime,
-    webhook_id: webhookId,
-    webhook_event: JSON.parse(body),
+    // File: server/src/routes/payment.js
+
+  transmission_time: transmissionTime,
+  webhook_id: webhookId,
+  webhook_event: JSON.parse(body),
   });
 
   try {

@@ -1,0 +1,21 @@
+name: lighthouse
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 4 * * 1"
+
+jobs:
+  lhci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Lighthouse CI against staging
+        uses: treosh/lighthouse-ci-action@v11
+        with:
+          urls: |
+            https://staging.example.com/
+            https://staging.example.com/discover
+            https://staging.example.com/chat
+          configPath: ./lighthouse.config.json
+          temporaryPublicStorage: true

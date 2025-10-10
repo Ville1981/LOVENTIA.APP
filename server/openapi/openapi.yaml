@@ -1,0 +1,331 @@
+# File: server/openapi/openapi.yaml
+
+# --- REPLACE START: initial OpenAPI surface for Loventia (auth, users, messages, billing, webhooks, health) ---
+openapi: 3.0.3
+info:
+  title: Loventia API
+  version: "1.0.0"
+  description: >
+    Public HTTP API for Loventia. This spec covers the primary endpoints used by
+    the web client (auth, users, messages, billing) and operational health checks.
+servers:
+  - url: http://localhost:5000
+    description: Local dev
+  - url: https://api.staging.loventia.example
+    description: Staging
+  - url: https://api.loventia.example
+    description: Production
+
+tags:
+  - name: auth
+  - name: users
+  - name: messages
+  - name: billing
+  - name: webhooks
+  - name: health
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    AuthLoginRequest:
+      type: object
+      required: [ email, password ]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 6 }
+    AuthLoginResponse:
+      type: object
+      properties:
+        accessToken: { type: string, description: "JWT access token (Bearer)" }
+    RegisterRequest:
+      type: object
+      required: [ email, password ]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 6 }
+    User:
+      type: object
+      properties:
+        _id: { type: string }
+        email: { type: string, format: email }
+        name: { type: string }
+        premium: { type: boolean }
+        isPremium: { type: boolean }
+        photos:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    Message:
+      type: object
+      properties:
+        _id: { type: string }
+        from: { type: string }
+        to: { type: string }
+        text: { type: string }
+        createdAt: { type: string, format: date-time }
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+
+security:
+  - BearerAuth: []
+
+paths:
+  /api/health:
+    get:
+      tags: [health]
+      summary: Basic health JSON
+      security: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  ts: { type: number }
+
+  /health:
+    get:
+      tags: [health]
+      summary: Plaintext health
+      security: []
+      responses:
+        "200":
+          description: OK (text/plain)
+
+  /api/auth/register:
+    post:
+      tags: [auth]
+      summary: Register a new user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RegisterRequest" }
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: Bad request
+          content:
+            application/json: { schema: { $ref: "#/components/schemas/Error" } }
+
+  /api/auth/login:
+    post:
+      tags: [auth]
+      summary: Login and get an access token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AuthLoginRequest" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthLoginResponse" }
+        "401":
+          description: Invalid credentials
+          content:
+            application/json: { schema: { $ref: "#/components/schemas/Error" } }
+
+  /api/auth/refresh:
+    post:
+      tags: [auth]
+      summary: Refresh access token from httpOnly cookie
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthLoginResponse" }
+        "401":
+          description: Not authorized
+
+  /api/auth/logout:
+    post:
+      tags: [auth]
+      summary: Clear refresh cookie and logout
+      responses:
+        "200":
+          description: OK
+
+  /api/users/me:
+    get:
+      tags: [users]
+      summary: Get current user profile
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "401":
+          description: Not authorized
+    put:
+      tags: [users]
+      summary: Update current user (partial)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200": { description: OK }
+        "400": { description: Bad request }
+
+  /api/users/{userId}/photos/reorder:
+    put:
+      tags: [users]
+      summary: Reorder photo array
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ order ]
+              properties:
+                order:
+                  type: array
+                  items: { type: string }
+      responses:
+        "200": { description: Reordered }
+        "400": { description: Invalid order }
+        "403": { description: Forbidden }
+
+  /api/messages/overview:
+    get:
+      tags: [messages]
+      summary: Conversation overview
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Message" }
+
+  /api/messages/{peerId}:
+    get:
+      tags: [messages]
+      summary: Get a thread with peer
+      parameters:
+        - in: path
+          name: peerId
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Message" }
+    post:
+      tags: [messages]
+      summary: Send message to peer
+      parameters:
+        - in: path
+          name: peerId
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ text ]
+              properties:
+                text: { type: string, minLength: 1, maxLength: 4000 }
+      responses:
+        "201": { description: Created }
+        "400": { description: Bad request }
+
+  /api/billing/create-checkout-session:
+    post:
+      tags: [billing]
+      summary: Create Stripe Checkout Session and redirect user
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { type: string, format: email }
+      responses:
+        "200":
+          description: URL to redirect
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url: { type: string, format: uri }
+        "401": { description: Unauthorized }
+        "501": { description: Billing not configured }
+
+  /api/billing/create-portal-session:
+    post:
+      tags: [billing]
+      summary: Create Stripe Billing Portal Session and redirect
+      responses:
+        "200":
+          description: URL to redirect
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url: { type: string, format: uri }
+        "401": { description: Unauthorized }
+        "501": { description: Billing not configured }
+
+  /api/billing/cancel-now:
+    post:
+      tags: [billing]
+      summary: Cancel active subscription immediately
+      responses:
+        "200": { description: OK }
+        "401": { description: Unauthorized }
+        "404": { description: No active subscription }
+        "501": { description: Billing not configured }
+
+  /api/payment/stripe-webhook:
+    post:
+      tags: [webhooks]
+      summary: Stripe webhook (raw body)
+      security: []   # Stripe calls are unauthenticated; signature is verified by Stripe SDK
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: true }
+      responses:
+        "200": { description: Acknowledge }
+        "400": { description: Signature invalid }
+        "500": { description: Not configured }
+# --- REPLACE END ---

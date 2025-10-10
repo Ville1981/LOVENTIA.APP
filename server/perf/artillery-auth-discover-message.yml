@@ -1,0 +1,47 @@
+# --- REPLACE START: Artillery basic perf smoke against STAGING_URL ---
+config:
+  target: "${TARGET:-https://staging.example.com}"
+  phases:
+    - duration: 60
+      arrivalRate: 3
+  plugins:
+    expect: {}
+  processor: |
+    function setAuth(req, ctx, ee, next) {
+      if (ctx.vars.token) req.headers['Authorization'] = `Bearer ${ctx.vars.token}`;
+      return next();
+    }
+scenarios:
+  - name: auth -> me -> discover -> messages (light)
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "{{ $randomEmail }}"
+            password: "Passw0rd!234"
+          expect:
+            - statusCode: [200,201]
+          afterResponse: |
+            function (req, res, ctx, ee, next) {
+              try {
+                const body = JSON.parse(res.body);
+                ctx.vars.token = body.accessToken || body.token;
+              } catch {}
+              return next();
+            }
+      - get:
+          url: "/api/users/me"
+          beforeRequest: setAuth
+          expect:
+            - statusCode: [200,401]
+      - get:
+          url: "/api/discover"
+          beforeRequest: setAuth
+          expect:
+            - statusCode: [200,401]
+      - get:
+          url: "/api/messages/overview"
+          beforeRequest: setAuth
+          expect:
+            - statusCode: [200,401]
+# --- REPLACE END ---

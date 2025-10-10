@@ -1,0 +1,21 @@
+// --- REPLACE START: Lighthouse performance budget (strict but realistic) ---
+[
+  {
+    "path": "/*",
+    "resourceSizes": [
+      { "resourceType": "total", "budget": 350 },   // ~350KB gz
+      { "resourceType": "script", "budget": 180 },
+      { "resourceType": "document", "budget": 30 },
+      { "resourceType": "image", "budget": 140 }
+    ],
+    "timings": [
+      { "metric": "first-contentful-paint", "budget": 1800 },
+      { "metric": "interactive", "budget": 3000 },
+      { "metric": "speed-index", "budget": 2200 },
+      { "metric": "total-blocking-time", "budget": 150 },
+      { "metric": "largest-contentful-paint", "budget": 2200 },
+      { "metric": "cumulative-layout-shift", "budget": 0.1 }
+    ]
+  }
+]
+// --- REPLACE END ---
