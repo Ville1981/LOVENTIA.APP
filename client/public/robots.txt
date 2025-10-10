@@ -1,0 +1,8 @@
+# File: client/public/robots.txt
+
+# --- REPLACE START: basic robots for staging/prod (adjust host if needed) ---
+User-agent: *
+Allow: /
+
+Sitemap: https://loventia.example/sitemap.xml
+# --- REPLACE END ---

@@ -1,12 +1,11 @@
-// File: client/src/components/Navbar.jsx
-
 // --- REPLACE START: read auth from AuthContext.user + bootstrapped + use t('common:nav.*') keys ---
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 import LanguageSwitcher from "./LanguageSwitcher";
-import LogoutButton from "./LogoutButton";
+// Replaced component-based logout with direct hook usage for immediate client cleanup
+import { useLogout } from "../auth/useLogout";
 import { useAuth } from "../contexts/AuthContext";
 
 /**
@@ -47,6 +46,8 @@ const Navbar = () => {
     "common:nav.premium": "Premium",
     "common:nav.settings": "Settings",
     "common:nav.admin": "Admin",
+    // Added logout default to keep labels consistent
+    "common:nav.logout": "Logout",
   };
 
   // NOTE: keep only keys here, no t(...) calls inside arrays so language switches live-update
@@ -93,6 +94,9 @@ const Navbar = () => {
       : isLoggedIn
       ? [...commonLinks, ...filteredUserLinks]
       : [...commonLinks, ...guestLinks];
+
+  // Hook for immediate client-side logout (clears tokens, cache, and navigates)
+  const logout = useLogout();
 
   return (
     <nav
@@ -146,7 +150,17 @@ const Navbar = () => {
         ))}
 
         {/* Logout visible only if logged in and bootstrapped */}
-        {isLoggedIn && bootstrapped && <LogoutButton />}
+        {isLoggedIn && bootstrapped && (
+          <button
+            type="button"
+            onClick={logout}
+            className={linkClass}
+            aria-label={t("common:nav.logout", { defaultValue: defaults["common:nav.logout"] })}
+            title={t("common:nav.logout", { defaultValue: defaults["common:nav.logout"] })}
+          >
+            {t("common:nav.logout", { defaultValue: defaults["common:nav.logout"] })}
+          </button>
+        )}
       </div>
     </nav>
   );
@@ -154,4 +168,3 @@ const Navbar = () => {
 
 export default Navbar;
 // --- REPLACE END ---
-

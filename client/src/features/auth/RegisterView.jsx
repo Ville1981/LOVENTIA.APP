@@ -5,6 +5,23 @@ import React, { useState } from "react";
 import axios, { attachAccessToken } from "../../utils/axiosInstance";
 // --- REPLACE END ---
 
+// --- REPLACE START: pass referralCode from localStorage when registering ---
+/* inside your Register component file */
+function getReferralCode() {
+  try { return localStorage.getItem("loventia:referral") || undefined; } catch { return undefined; }
+}
+
+// ... siellä missä lähetät POST /api/auth/register (tai oma reitti):
+// await api.post('/auth/register', { email, password, ... })
+const payload = {
+  email,
+  password,
+  /* your other fields */,
+  referralCode: getReferralCode(), // <— add this line
+};
+// --- REPLACE END ---
+
+
 export default function RegisterView() {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [loading, setLoading] = useState(false);

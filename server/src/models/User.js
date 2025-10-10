@@ -20,6 +20,7 @@
  *     avatar:         String
  *     photos:         [String]
  *     extraImages:    [String]
+ *     stripeCustomerId: String (indexed, sparse)
  *
  * Fallbacks:
  * - First tries to load the CommonJS model at: ../../models/User.cjs
@@ -99,12 +100,30 @@ try {
     if (!s.path("photos"))       additions.photos       = { type: [String], default: [] };
     if (!s.path("extraImages"))  additions.extraImages  = { type: [String], default: [] };
 
+    // Stripe customer id required for billing integration (indexed + sparse).
+    if (!s.path("stripeCustomerId")) {
+      additions.stripeCustomerId = {
+        type: String,
+        index: true,
+        sparse: true,
+        default: undefined
+      };
+    } else {
+      // Ensure an index exists even if field already present without index options.
+      // This is idempotent; Mongoose/MongoDB will handle duplicate index definitions gracefully.
+      try {
+        s.index({ stripeCustomerId: 1 }, { sparse: true, name: "idx_stripeCustomerId_sparse" });
+      } catch {
+        // no-op: index creation hints are best-effort here
+      }
+    }
+
     // Apply in one go if we added anything.
     if (Object.keys(additions).length > 0) {
       s.add(additions);
       // eslint-disable-next-line no-console
       console.warn(
-        "[server/src/models/User.js] Schema augmented with missing image fields:",
+        "[server/src/models/User.js] Schema augmented with missing fields:",
         Object.keys(additions).join(", ")
       );
     }
@@ -128,3 +147,4 @@ export default LoadedUser;
 export const User = LoadedUser;
 export const UserModel = LoadedUser;
 // --- REPLACE END ---
+

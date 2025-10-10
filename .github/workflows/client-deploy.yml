@@ -1,0 +1,72 @@
+# File: .github/workflows/client-deploy.yml
+
+# --- REPLACE START: build Vite client, deploy to S3, invalidate CloudFront (staging on develop, prod on main) ---
+name: client-deploy
+
+on:
+  push:
+    branches: [ develop, main ]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    env:
+      # Adjust region if your S3/CF live elsewhere
+      AWS_REGION: eu-north-1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      # If you need environment vars for Vite at build time, add them here:
+      # - name: Create .env file for Vite (optional)
+      #   run: |
+      #     echo "VITE_API_BASE=${{ secrets.VITE_API_BASE }}" >> .env
+
+      - name: Build
+        run: npm run build
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Upload to S3
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
+            BUCKET="${{ secrets.S3_BUCKET_PROD }}"
+          else
+            BUCKET="${{ secrets.S3_BUCKET_STAGING }}"
+          fi
+          echo "Syncing dist/ to s3://${BUCKET}"
+          aws s3 sync dist "s3://${BUCKET}" --delete
+
+      - name: Invalidate CloudFront
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
+            DIST_ID="${{ secrets.CLOUDFRONT_DISTRIBUTION_ID_PROD }}"
+          else
+            DIST_ID="${{ secrets.CLOUDFRONT_DISTRIBUTION_ID_STAGING }}"
+          fi
+          echo "Creating CloudFront invalidation for distribution ${DIST_ID}"
+          aws cloudfront create-invalidation --distribution-id "${DIST_ID}" --paths "/*"
+# --- REPLACE END ---

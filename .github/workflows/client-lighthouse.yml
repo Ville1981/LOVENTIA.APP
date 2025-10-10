@@ -1,0 +1,99 @@
+# File: .github/workflows/client-lighthouse.yml
+
+# --- REPLACE START: Lighthouse CI (runs on pushes/PRs) ---
+name: client-lighthouse
+
+on:
+  pull_request:
+  push:
+    branches: [ main, develop ]
+
+jobs:
+  lhci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build client
+        run: npm run build
+
+      - name: Start static server
+        run: npx http-server ./dist -p 4173 & sleep 3
+
+      - name: Run Lighthouse against local build
+        uses: treosh/lighthouse-ci-action@v11
+        with:
+          urls: 'http://localhost:4173/'
+          temporaryPublicStorage: true
+          configPath: .lighthouserc.json
+          uploadArtifacts: true
+# --- REPLACE END ---
+# File: .github/workflows/client-lighthouse.yml
+
+# --- REPLACE START: Lighthouse performance budget (staging) ---
+name: client-lighthouse
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 5 * * *" # joka aamu UTC
+  push:
+    branches: [ develop ]
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    env:
+      STAGING_URL: https://staging.example.com
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Wait for site (optional)
+        run: |
+          echo "Pinging $STAGING_URL"
+          for i in {1..30}; do
+            if curl -sSfL "$STAGING_URL" > /dev/null; then
+              echo "Up!"
+              exit 0
+            fi
+            echo "Try $i/30"; sleep 5
+          done
+          echo "Site did not respond in time" && exit 1
+
+      - name: Run Lighthouse (mobile)
+        uses: treosh/lighthouse-ci-action@v10
+        with:
+          urls: |
+            ${{ env.STAGING_URL }}/
+            ${{ env.STAGING_URL }}/discover
+            ${{ env.STAGING_URL }}/chat
+          configPath: ./.github/lighthouse/lhci-mobile.json
+          runs: 3
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+
+      - name: Run Lighthouse (desktop)
+        uses: treosh/lighthouse-ci-action@v10
+        with:
+          urls: |
+            ${{ env.STAGING_URL }}/
+            ${{ env.STAGING_URL }}/discover
+            ${{ env.STAGING_URL }}/chat
+          configPath: ./.github/lighthouse/lhci-desktop.json
+          runs: 3
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+# --- REPLACE END ---

@@ -37,6 +37,48 @@ import Support from "./pages/Support";
 import Terms from "./pages/Terms";
 import Upgrade from "./pages/Upgrade";
 import WhoLikedMe from "./pages/WhoLikedMe";
+// --- REPLACE START: mount ConsentBanner (add near root layout) ---
+import ConsentBanner from "@/components/privacy/ConsentBanner";
+
+// File: client/src/App.jsx  (tai client/src/router.jsx tms.)
+
+// --- REPLACE START: add routes for Privacy & Cookies (react-router v6) ---
+import { Routes, Route } from "react-router-dom";
+import Privacy from "./pages/Privacy.jsx";
+import Cookies from "./pages/Cookies.jsx";
+
+// ...inside your component's return:
+<Routes>
+  {/* ...your existing routes... */}
+  <Route path="/privacy" element={<Privacy />} />
+  <Route path="/cookies" element={<Cookies />} />
+</Routes>
+// --- REPLACE END ---
+
+// ...
+function App() {
+  return (
+    <>
+      {/* ...your providers/layouts... */}
+      <ConsentBanner />
+    </>
+  );
+}
+
+// File: client/src/App.jsx (example route addition)
+
+// --- REPLACE START: add admin dashboard route (example) ---
+// import AdminDashboard from "./pages/admin/AdminDashboard";
+// <Route path="/admin/kpi" element={<AdminDashboard />} />
+// --- REPLACE END ---
+
+// --- REPLACE END ---
+
+// --- REPLACE START: add route for Referral page (example) ---
+// import Referral from "./pages/Referral";
+// <Route path="/referral" element={<Referral />} />
+// --- REPLACE END ---
+
 
 // React Query client with calmer defaults to avoid refetch bursts while selects are open
 const queryClient = new QueryClient({

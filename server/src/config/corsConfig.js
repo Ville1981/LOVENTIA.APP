@@ -13,6 +13,36 @@ function normalizeUrl(u) {
   return u.replace(/\/+$/, "");
 }
 
+// --- REPLACE START: stricter CORS defaults with env-based allowlist ---
+import cors from 'cors';
+
+const RAW_ORIGINS =
+  process.env.CORS_ORIGIN ||
+  process.env.CLIENT_URL ||
+  '';
+
+const allowList = RAW_ORIGINS
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+export default function corsConfig(req, callback) {
+  const origin = req.header('Origin');
+  let corsOptions;
+
+  if (!origin || allowList.length === 0) {
+    // No Origin header (e.g., curl, server-to-server) -> allow basic
+    corsOptions = { origin: false, credentials: true };
+  } else if (allowList.includes(origin)) {
+    corsOptions = { origin: true, credentials: true };
+  } else {
+    corsOptions = { origin: false, credentials: true };
+  }
+
+  return cors(corsOptions)(req, callback);
+}
+// --- REPLACE END ---
+
 /**
  * Build whitelist from env + common localhost variants.
  * You can extend this list for staging/production as needed.

@@ -1,0 +1,13 @@
+// File: client/cypress/fixtures/admin/metrics.json
+// --- REPLACE START: fixture for /api/admin/metrics ---
+{
+  "activeUsers": 1234,
+  "newSignups30d": 89,
+  "messages24h": 456,
+  "topCountries": [
+    { "code": "US", "count": 400 },
+    { "code": "FI", "count": 220 },
+    { "code": "DE", "count": 160 }
+  ]
+}
+// --- REPLACE END ---
