@@ -1,6 +1,6 @@
 // File: client/src/pages/settings/SubscriptionSettings.jsx
 
-// --- REPLACE START: functional subscriptions page (axios + checkout + billing portal + cancel now) ---
+// --- REPLACE START: functional subscriptions page with testids + mock return refresh ---
 import React, { useCallback, useMemo, useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -14,8 +14,9 @@ import api from "../utils/axiosInstance";
  * - Cancel Now: POST -> /billing/cancel-now                  -> cancels immediately (server talks to Stripe).
  *
  * Uses the shared Axios instance so Authorization + refresh cookies are handled automatically.
- * If your app keeps this file under a different name (e.g. SubscriptionSettings.jsx),
- * the component remains the same.
+ * This variant adds:
+ *   - data-testid attributes (upgrade-button, open-portal-button, premium-badge)
+ *   - "mock return" hook: refreshes /api/users/me if URL contains ?mockCheckout=1 or ?mockPortal=1
  */
 
 const Row = ({ title, children }) => (
@@ -61,7 +62,14 @@ const Subscriptions = () => {
       searchParams.get("success") === "true" ||
       searchParams.get("canceled") === "true";
 
-    if (returnedFromStripe) {
+    // NEW: handle mock redirects from E2E (server mock switch)
+    const returnedFromMock =
+      searchParams.get("mockCheckout") === "1" ||
+      searchParams.get("mockPortal") === "1" ||
+      searchParams.get("mockCheckout") === "true" ||
+      searchParams.get("mockPortal") === "true";
+
+    if (returnedFromStripe || returnedFromMock) {
       // Clear possible stale banners and refresh user from API/context
       setMsg("");
       setSuccess("");
@@ -230,9 +238,18 @@ const Subscriptions = () => {
       )}
 
       <Row title="Current Plan">
-        <p>
+        <p className="flex items-center gap-2">
           You are currently on the{" "}
           <strong>{isPremium ? "Premium" : "Free"}</strong> plan.
+          {isPremium && (
+            <span
+              data-testid="premium-badge"
+              className="inline-flex items-center px-2 py-0.5 text-xs rounded-full bg-emerald-100 border border-emerald-300"
+              title="Premium active"
+            >
+              Premium
+            </span>
+          )}
         </p>
       </Row>
 
@@ -245,6 +262,7 @@ const Subscriptions = () => {
         <div className="flex flex-col sm:flex-row gap-3">
           <button
             type="button"
+            data-testid="upgrade-button"
             onClick={handleStartPremium}
             disabled={busy || isPremium}
             className={`px-6 py-2 rounded bg-yellow-500 text-white font-semibold hover:bg-yellow-600 transition ${
@@ -257,6 +275,7 @@ const Subscriptions = () => {
 
           <button
             type="button"
+            data-testid="open-portal-button"
             onClick={handleOpenPortal}
             disabled={busy || !isPremium}
             className={`px-6 py-2 rounded bg-blue-600 text-white font-semibold hover:bg-blue-700 transition ${
@@ -299,3 +318,4 @@ const Subscriptions = () => {
 
 export default Subscriptions;
 // --- REPLACE END ---
+

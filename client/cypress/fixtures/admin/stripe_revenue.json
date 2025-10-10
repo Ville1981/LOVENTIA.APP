@@ -1,0 +1,16 @@
+// File: client/cypress/fixtures/admin/stripe_revenue.json
+// --- REPLACE START: fixture for /api/admin/stripe/revenue ---
+{
+  "enabled": true,
+  "mode": "test",
+  "start": "2025-09-01T00:00:00.000Z",
+  "end": "2025-09-30T23:59:59.000Z",
+  "total": 123450,
+  "currency": "usd",
+  "count": 7,
+  "items": [
+    { "id": "pi_test_1", "amount": 1999, "currency": "usd", "created": 1696212345, "customer": "cus_test_1" },
+    { "id": "pi_test_2", "amount": 999,  "currency": "usd", "created": 1696215345, "customer": "cus_test_2" }
+  ]
+}
+// --- REPLACE END ---

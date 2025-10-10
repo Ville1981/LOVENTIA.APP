@@ -1,0 +1,24 @@
+// File: .github/lighthouse/lhci-mobile.json
+
+// --- REPLACE START: mobile LHCI config + budgets ---
+{
+  "ci": {
+    "collect": {
+      "settings": {
+        "preset": "mobile",
+        "throttlingMethod": "devtools"
+      }
+    },
+    "assert": {
+      "assertions": {
+        "categories:performance": ["error", { "minScore": 0.90 }],
+        "categories:accessibility": ["warn", { "minScore": 0.90 }],
+        "categories:seo": ["warn", { "minScore": 0.90 }],
+        "unsized-images": "warn",
+        "uses-text-compression": "warn",
+        "uses-optimized-images": "warn"
+      }
+    }
+  }
+}
+// --- REPLACE END ---

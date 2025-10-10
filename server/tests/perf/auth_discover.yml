@@ -1,0 +1,39 @@
+# File: server/tests/perf/auth_discover.yml
+
+# --- REPLACE START: Artillery scenario (login -> discover) ---
+config:
+  target: "http://localhost:5000"   # overridden by GHA secret
+  phases:
+    - duration: 60
+      arrivalRate: 5
+  processor: ./processors.js
+  defaults:
+    headers:
+      content-type: application/json
+  ensure:
+    p95: 1000
+    p99: 2000
+  plugins:
+    expect: {}
+
+scenarios:
+  - name: Login and fetch discover
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "{{ email }}"
+            password: "{{ password }}"
+          capture:
+            - json: "$.token"
+              as: "token"
+          expect:
+            - statusCode: 200
+      - get:
+          url: "/api/discover"
+          headers:
+            authorization: "Bearer {{ token }}"
+          expect:
+            - statusCode: 200
+            - contentType: json
+# --- REPLACE END ---

@@ -1,0 +1,8 @@
+# File: .github/zap/zap-rules.tsv
+
+# --- REPLACE START: Zap rules (downgrade some infos to warn) ---
+# id  threshold   action
+10020   WARN    ignore  # X-Frame-Options header not set (use CSP frame-ancestors in prod)
+10038   WARN    ignore  # Content Security Policy (if not enforcing yet)
+10021   WARN    ignore  # X-Content-Type-Options missing (helmet should add; warn until enforced)
+# --- REPLACE END ---

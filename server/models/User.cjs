@@ -421,6 +421,13 @@ userSchema.virtual('photos')
     this.extraImages = Array.isArray(arr) ? arr.filter(Boolean) : [];
   });
 
+  // --- REPLACE START: referral fields in User schema ---
+/* inside your Mongoose UserSchema definition object: */
+referralCode: { type: String, index: true, sparse: true, unique: false }, // unique=false to avoid deploy issues; we check manually
+referredBy:   { type: String, index: true }, // store inviter's userId or referralCode, depending on approach
+// --- REPLACE END ---
+
+
 // - `hidden` (legacy) ↔ `isHidden`
 userSchema.virtual('hidden')
   .get(function () { return !!(this.isHidden || (this.visibility && this.visibility.isHidden)); })

@@ -1,0 +1,120 @@
+# File: .github/workflows/server-ci.yml
+
+# --- REPLACE START: Lint → test → coverage → build → artifacts (no deploy) ---
+name: server-ci
+
+on:
+  pull_request:
+  push:
+    branches: [ main, develop ]
+
+permissions:
+  contents: read
+
+jobs:
+  server-ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+
+    # Spin up MongoDB for integration tests (change version if needed)
+    services:
+      mongo:
+        image: mongo:6
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd="mongosh --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      # Make tests deterministic & self-contained
+      NODE_ENV: test
+      MONGO_URI: mongodb://127.0.0.1:27017/loventia_ci
+      JWT_SECRET: test_secret
+      JWT_REFRESH_SECRET: test_refresh_secret
+      STRIPE_MOCK_MODE: "1"
+      # If your code reads these, keep harmless placeholders:
+      STRIPE_SECRET_KEY: sk_test_dummy
+      STRIPE_WEBHOOK_SECRET: whsec_dummy
+      STRIPE_PRICE_ID: price_dummy
+      CLIENT_URL: http://localhost:5174
+      # Optional output path for jest-junit (if installed)
+      JEST_JUNIT_OUTPUT: ./test-results/junit.xml
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      # Run Jest with coverage. If you already have a test script, this honors it.
+      # The extra flags are harmless if jest-junit isn't installed.
+      - name: Test (Jest) with coverage
+        run: |
+          mkdir -p test-results
+          npm test --if-present -- \
+            --ci \
+            --coverage \
+            --reporters=default \
+            --reporters=jest-junit
+
+      # Persist coverage summary and raw coverage data
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-coverage
+          path: |
+            server/coverage
+          if-no-files-found: warn
+
+      # Persist JUnit XML (if produced)
+      - name: Upload test-results (JUnit)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-test-results
+          path: |
+            server/test-results
+          if-no-files-found: ignore
+
+      # Build step (TypeScript transpile / bundling etc.) — safe no-op if not present
+      - name: Build
+        run: npm run build --if-present
+
+      # Upload distributables and any API docs (e.g., OpenAPI) as artifacts
+      - name: Upload build artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-build
+          path: |
+            server/dist
+            server/openapi
+          if-no-files-found: ignore
+
+      # Helpful on failures: dump npm/yarn logs if present
+      - name: Upload npm logs (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-npm-logs
+          path: |
+            ~/.npm/_logs
+          if-no-files-found: ignore
+# --- REPLACE END ---

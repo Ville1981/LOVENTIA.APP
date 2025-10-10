@@ -61,6 +61,177 @@ const compression = require("compression");
 const responseTime = require("response-time");
 const { v4: uuidv4 } = require("uuid");
 
+// --- REPLACE START: swagger route (add if missing) ---
+import swaggerUi from 'swagger-ui-express';
+import YAML from 'yamljs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const openapiPath = path.join(__dirname, '..', 'openapi', 'openapi.yaml');
+
+try {
+  const openapiDoc = YAML.load(openapiPath);
+  if (process.env.NODE_ENV !== 'production') {
+    app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openapiDoc));
+    console.log('📘 Swagger UI at /api/docs');
+  }
+} catch (e) {
+  console.warn('Swagger not loaded:', e.message);
+}
+
+// --- REPLACE START: mount admin router ---
+import adminRouter from './routes/admin.js';
+app.use('/api/admin', adminRouter);
+// --- REPLACE END ---
+
+// --- REPLACE END ---
+
+// --- REPLACE START: mount stripeMock before billing routes ---
+import stripeMock from './middleware/stripeMock.js';
+import billingRouter from './routes/billing.js';
+
+// ...
+app.use(stripeMock);                // <- lisää tämä YHDEN kerran
+app.use('/api/billing', billingRouter);
+
+// File: server/src/app.js
+
+// --- REPLACE START: imports for billing + mock middleware ---
+import express from 'express';
+// ... (existing imports)
+
+import stripeMock from './middleware/stripeMock.js';
+import billingRouter from './routes/billing.js';
+// --- REPLACE END ---
+
+
+const app = express();
+
+// --- REPLACE START: body parsers + mock + billing mount ---
+// Global JSON parser (webhook reitillä käytetään express.raw, joten tämä on ok)
+app.use(express.json({ limit: '1mb' }));
+
+// Stripe mock -lippu kaikkiin pyyntöihin (ENV tai header)
+app.use(stripeMock);
+
+// Mounttaa billing-reitit: /api/billing/*
+app.use('/api/billing', billingRouter);
+// --- REPLACE END ---
+
+// File: server/src/app.js
+
+// --- REPLACE START: global body parsers BEFORE routes ---
+/**
+ * Keep global JSON parser enabled for most routes.
+ * Stripe webhook inside billingRouter uses express.raw() on its own path,
+ * so this global parser won't break signature verification.
+ */
+app.use(express.json({ limit: '1mb', strict: true }));
+app.use(express.urlencoded({ extended: true }));
+// --- REPLACE END ---
+
+
+// --- REPLACE END ---
+
+// File: server/src/app.js
+
+// --- REPLACE START: imports for billing + mock middleware ---
+import express from 'express';
+// (keep your existing imports as-is)
+
+
+// --- REPLACE START: add helmet + limiters imports ---
+import helmet from 'helmet';
+import { authLimiter, billingLimiter } from './middleware/rateLimit.js';
+// --- REPLACE END ---
+
+// --- REPLACE START: logger + sentry wiring (minimal, non-invasive) ---
+import logger from './utils/logger.js';
+import { initSentry } from './utils/sentry.js';
+
+// ... existing code ...
+
+const app = express();
+
+// Initialize Sentry early (no-op if DSN missing)
+const SentryNS = initSentry(app);
+
+// Replace console.* with logger.* in a few key spots if you want,
+// but keep existing console logs intact to avoid large diffs.
+
+// ... routes & middlewares ...
+
+// Place Sentry error handler just before your global error handler:
+if (SentryNS) {
+  app.use(SentryNS.Handlers.errorHandler());
+}
+
+// File: server/src/app.js
+
+// --- REPLACE START: mount /api/admin without touching webhook/raw-body order ---
+/**
+ * NOTE:
+ * - Keep your existing mount order for JSON, Stripe mocks, and webhook raw parser.
+ * - This patch only shows the *added* import and mount lines for /api/admin.
+ */
+import adminRoutes from './routes/adminRoutes.js';
+
+// ... your existing middleware and routers ...
+
+// Example (place AFTER auth JWT middleware, BEFORE 404 handler):
+app.use('/api/admin', authMiddleware, adminRoutes);
+
+// --- REPLACE END ---
+
+// Your existing global error handler remains as-is below.
+// --- REPLACE END ---
+// --- REPLACE START: mount OG route (safe, optional) ---
+import ogRouter from './routes/og.js';
+app.use('/og', ogRouter);
+console.log('🖼️  Mounted /og dynamic tags');
+// --- REPLACE END ---
+// File: server/src/app.js  (ONLY the small mount patch; keep your existing order!)
+
+// --- REPLACE START: mount /api/admin/metrics after json() and before error handlers ---
+/**
+ * Admin metrics (KPI) API
+ * - Keep the existing middleware order: express.json() → routes → error handlers
+ * - Do not place metrics in front of raw webhook parser.
+ */
+import adminMetricsRouter from "./routes/adminMetrics.js";
+app.use("/api/admin/metrics", adminMetricsRouter);
+// --- REPLACE END ---
+// File: server/src/app.js  (lisätään vain mountit oikeaan kohtaan)
+
+
+// --- REPLACE START: add referral attribution + route mounts (kept minimal) ---
+// Ensure these imports exist near the top with your other imports:
+import referralAttribution from './middleware/referralAttribution.js';
+import referralRouter from './routes/referral.js';
+
+// In your app factory (AFTER express.json() and BEFORE other routers is fine,
+// BUT do NOT place it before Stripe webhook raw body! Keep your current Stripe mount order intact.)
+//
+// Example order snippet (do not duplicate existing lines, just insert attribution + router):
+//
+// app.use(express.json());
+// app.use(stripeMock); // if you have this
+// app.use(referralAttribution({
+//   cookieName: 'lv_ref',
+//   maxAgeDays: 30,
+// }));
+// app.use('/api/referral', referralRouter);
+//
+// Keep your billing/webhook mounts exactly as you already arranged (raw body for webhook etc).
+// --- REPLACE END ---
+// in server/src/app.js
+import cookieParser from 'cookie-parser';
+app.use(cookieParser());
+
+
+
 // --- REPLACE START: load swagger-config.js via dynamic import (ESM-safe) ---
 // const swagger = require("./swagger-config.js");
 let swagger; // resolved below after helpers are defined
@@ -1535,6 +1706,42 @@ if (!IS_TEST) {
 // ──────────────────────────────────────────────────────────────────────────────
 /* Graceful shutdown (SIGINT/SIGTERM) */
 // ──────────────────────────────────────────────────────────────────────────────
+// --- REPLACE START: security hardening (helmet) + selective rate limits ---
+/**
+ * Helmet — sensible defaults for an API.
+ * - Disable strict CSP by default to avoid breaking Swagger UI / dev tooling.
+ *   (Enable CSP in production if you have a curated policy.)
+ * - Allow cross-origin resource policy to avoid blocking static uploads by accident.
+ */
+app.use(
+  helmet({
+    contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    crossOriginEmbedderPolicy: false, // keeps Swagger & PDF renderers happy
+  })
+);
+
+/**
+ * Rate limits — mount BEFORE routers for the target prefixes.
+ * Keep Stripe/PayPal webhooks untouched (they are not under /api/billing or /api/auth here).
+ *
+ * NOTE on order for billing:
+ *   express.json() -> stripeMock -> [billingLimiter] -> app.use('/api/billing', billingRouter)
+ * We only add the limiter hook — do NOT duplicate billing router mounts.
+ */
+try {
+  app.use('/api/auth', authLimiter);
+} catch { /* no-op if the import fails in exotic setups */ }
+
+try {
+  // IMPORTANT: place this AFTER stripeMock but BEFORE the billing router mount.
+  app.use('/api/billing', billingLimiter);
+} catch { /* no-op */ }
+// --- REPLACE END ---
+
+
+
+
 async function shutdown(signal) {
   try {
     console.log(`\n${signal} received: closing server...`);
