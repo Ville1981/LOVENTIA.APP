@@ -1,0 +1,29 @@
+// File: client/cypress/fixtures/admin_metrics_summary.json
+{
+  "totals": {
+    "users": 1234,
+    "premium": 111,
+    "revenueMtd": 4567.89
+  },
+  "activity": { "dau": 321, "wau": 789, "mau": 1599 },
+  "series": {
+    "signups7d": [
+      { "label": "Dec 25", "value": 10 },
+      { "label": "Dec 26", "value": 12 },
+      { "label": "Dec 27", "value": 8 },
+      { "label": "Dec 28", "value": 15 },
+      { "label": "Dec 29", "value": 20 },
+      { "label": "Dec 30", "value": 18 },
+      { "label": "Dec 31", "value": 25 }
+    ],
+    "messages7d": [
+      { "label": "Dec 25", "value": 100 },
+      { "label": "Dec 26", "value": 120 },
+      { "label": "Dec 27", "value": 80 },
+      { "label": "Dec 28", "value": 150 },
+      { "label": "Dec 29", "value": 200 },
+      { "label": "Dec 30", "value": 180 },
+      { "label": "Dec 31", "value": 250 }
+    ]
+  }
+}

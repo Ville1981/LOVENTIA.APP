@@ -1,0 +1,91 @@
+# File: .github/workflows/client-ci.yml
+
+# --- REPLACE START: Client CI (unit + Cypress e2e headless) ---
+name: client-ci
+
+on:
+  pull_request:
+  push:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    env:
+      # Provide safe defaults for CI; override in repo/Org env if needed.
+      NODE_ENV: test
+      VITE_API_BASE_URL: http://localhost:5000/api
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # ---- Unit tests (Vitest/Jest) ----
+      - name: Run unit tests
+        run: |
+          if npm run | grep -qE "^ *test(:unit)? *"; then
+            npm run test:unit --if-present || npm test --if-present -- --ci
+          else
+            echo "No unit test script; skipping."
+          fi
+
+      # ---- Build the client (speeds up Cypress start) ----
+      - name: Build
+        run: npm run build --if-present
+
+      # ---- Cypress e2e (uses cypress-io GH Action) ----
+      - name: Cypress run (headless)
+        uses: cypress-io/github-action@v6
+        with:
+          working-directory: client
+          # If you have "start": "vite" or similar, the action will auto-start the dev server.
+          # If you rely on a custom script, set start: "npm run dev" and wait-on accordingly.
+          start: npm run dev
+          wait-on: 'http://localhost:5173'
+          browser: chrome
+          component: false
+          # If you have a dedicated "e2e" script, you can pass 'command: npm run cypress:run'
+        env:
+          # Provide any runtime env to your app during e2e
+          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+          # If you use Cypress Dashboard, uncomment:
+          # CYPRESS_PROJECT_ID: ${{ secrets.CYPRESS_PROJECT_ID }}
+
+      # ---- Upload Cypress artifacts no matter what ----
+      - name: Upload Cypress screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-screenshots
+          path: client/cypress/screenshots
+          if-no-files-found: ignore
+
+      - name: Upload Cypress videos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-videos
+          path: client/cypress/videos
+          if-no-files-found: ignore
+
+      # ---- (Optional) Upload coverage if you generate it in client/coverage ----
+      - name: Upload client coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-coverage
+          path: client/coverage
+          if-no-files-found: ignore
+# --- REPLACE END ---

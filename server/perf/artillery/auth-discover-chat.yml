@@ -1,0 +1,46 @@
+# File: perf/artillery/auth-discover-chat.yml
+
+# --- REPLACE START: light perf scenario (auth -> discover -> send chat) ---
+config:
+  target: "{{ $processEnvironment.PERF_TARGET || 'https://staging.example.com' }}"
+  phases:
+    - duration: 60
+      arrivalRate: 2
+      name: warmup
+    - duration: 120
+      arrivalRate: 5
+      name: ramp
+  processor: "./processors.js"
+  defaults:
+    headers:
+      content-type: "application/json"
+
+scenarios:
+  - name: "Auth → Discover → Chat"
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "{{ $processEnvironment.PERF_EMAIL || 'test@example.com' }}"
+            password: "{{ $processEnvironment.PERF_PASSWORD || 'Passw0rd!234' }}"
+          capture:
+            - json: "$.token"
+              as: token
+      - think: 1
+      - get:
+          url: "/api/discover"
+          headers:
+            authorization: "Bearer {{ token }}"
+      - think: 1
+      - get:
+          url: "/api/messages/overview"
+          headers:
+            authorization: "Bearer {{ token }}"
+      - think: 1
+      - post:
+          url: "/api/messages/{{ $randomNumber(1000,2000) }}"
+          headers:
+            authorization: "Bearer {{ token }}"
+          json:
+            text: "hello from artillery"
+# --- REPLACE END ---

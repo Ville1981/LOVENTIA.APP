@@ -27,19 +27,30 @@ const stripe = new Stripe(STRIPE_SECRET_KEY, {
   timeout: 20000, // 20s request timeout
 });
 
-// Provide unified fallback URLs for portal/checkout flows.
-// These can be overridden via ENV without code changes.
+// Provide unified URLs for portal/checkout flows.
+// Supports both new ENV names (preferred) and legacy ones for backward compatibility.
+const RETURN_URL =
+  process.env.BILLING_RETURN_URL ??
+  process.env.STRIPE_RETURN_URL ?? // legacy fallback if used
+  'http://localhost:5174/settings/subscriptions';
+
+const SUCCESS_URL =
+  process.env.CHECKOUT_SUCCESS_URL ??
+  process.env.STRIPE_SUCCESS_URL ?? // legacy fallback used elsewhere
+  'http://localhost:5174/settings/subscriptions?status=success';
+
+const CANCEL_URL =
+  process.env.CHECKOUT_CANCEL_URL ??
+  process.env.STRIPE_CANCEL_URL ?? // legacy fallback used elsewhere
+  'http://localhost:5174/settings/subscriptions?status=cancel';
+
+// Export as a frozen object to avoid accidental mutation at runtime.
 export const billingUrls = Object.freeze({
-  returnUrl:
-    process.env.BILLING_RETURN_URL ??
-    'http://localhost:5174/settings/subscriptions',
-  successUrl:
-    process.env.CHECKOUT_SUCCESS_URL ??
-    'http://localhost:5174/settings/subscriptions?status=success',
-  cancelUrl:
-    process.env.CHECKOUT_CANCEL_URL ??
-    'http://localhost:5174/settings/subscriptions?status=cancel',
+  returnUrl: RETURN_URL,
+  successUrl: SUCCESS_URL,
+  cancelUrl: CANCEL_URL,
 });
 // --- REPLACE END ---
 
 export default stripe;
+

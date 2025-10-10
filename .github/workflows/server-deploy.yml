@@ -1,0 +1,89 @@
+# File: .github/workflows/server-deploy-ecs.yml
+
+# --- REPLACE START: Build Docker image → push to ECR → update ECS service (staging/prod) ---
+name: server-deploy
+
+on:
+  # Auto-deploy only when the server-ci workflow for main/develop has succeeded
+  workflow_run:
+    workflows: [ "server-ci" ]
+    types: [ completed ]
+    branches: [ main, develop ]
+  # Allow manual runs if needed
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: server-deploy-${{ github.event.workflow_run.head_branch || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    # Only proceed when the upstream CI passed (for workflow_run trigger)
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_REGION: eu-north-1
+      # Pick staging vs prod secrets based on the source branch of the CI run (or current ref for manual)
+      BRANCH_NAME: ${{ github.event.workflow_run.head_branch || github.ref_name }}
+      ECR_REPOSITORY: ${{ (github.event.workflow_run.head_branch || github.ref_name) == 'main' && secrets.ECR_REPO_PROD || secrets.ECR_REPO_STAGING }}
+      ECS_CLUSTER:     ${{ (github.event.workflow_run.head_branch || github.ref_name) == 'main' && secrets.ECS_CLUSTER_PROD || secrets.ECS_CLUSTER_STAGING }}
+      ECS_SERVICE:     ${{ (github.event.workflow_run.head_branch || github.ref_name) == 'main' && secrets.ECS_SERVICE_PROD || secrets.ECS_SERVICE_STAGING }}
+      TASK_FAMILY:     ${{ (github.event.workflow_run.head_branch || github.ref_name) == 'main' && secrets.ECS_TASK_FAMILY_PROD || secrets.ECS_TASK_FAMILY_STAGING }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Verify ecs-taskdef.json exists
+        run: |
+          test -f server/ecs-taskdef.json || { echo "Missing server/ecs-taskdef.json"; exit 1; }
+          jq -e '.' server/ecs-taskdef.json >/dev/null || { echo "ecs-taskdef.json is not valid JSON"; exit 1; }
+
+      - name: Build & Push Docker image
+        working-directory: server
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+        run: |
+          set -euo pipefail
+          IMAGE="${REGISTRY}/${ECR_REPOSITORY}:${GITHUB_SHA}"
+          # Optional second tag by branch (e.g., :main or :develop) for quick rollbacks
+          BRANCH_TAG="${REGISTRY}/${ECR_REPOSITORY}:${{ env.BRANCH_NAME }}"
+          echo "Building image: $IMAGE"
+          docker build -t "$IMAGE" -t "$BRANCH_TAG" .
+          docker push "$IMAGE"
+          docker push "$BRANCH_TAG"
+          echo "IMAGE_URI=$IMAGE" >> "$GITHUB_ENV"
+
+      - name: Render task definition with new image
+        run: |
+          jq '.containerDefinitions[0].image |= env.IMAGE_URI
+              | .family |= env.TASK_FAMILY' \
+            server/ecs-taskdef.json > taskdef.rendered.json
+          echo "Rendered task definition:"
+          jq -C '.family, .containerDefinitions[0].image' taskdef.rendered.json
+
+      - name: Deploy ECS service
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: taskdef.rendered.json
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+# --- REPLACE END ---

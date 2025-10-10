@@ -12,12 +12,34 @@ import "leaflet/dist/leaflet.css";
 import "./styles/ads.css";
 
 import App from "./App";
+import ConsentBanner from "./components/ConsentBanner.jsx";
+import { ConsentProvider } from "./components/ConsentProvider.jsx";
 import { AuthProvider } from "./contexts/AuthContext";
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // --- REPLACE START: wait for i18n to be initialized before mounting ---
 import i18n from "i18next";
 // --- REPLACE END ---
+
+// File: client/src/main.jsx  (tai vastaava root render)
+
+// --- REPLACE START: wrap the app with ConsentProvider ---
+
+
+
+
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <React.StrictMode>
+    <ConsentProvider>
+      <App />
+      {/* Place near root so it's visible everywhere */}
+      <ConsentBanner />
+    </ConsentProvider>
+  </React.StrictMode>
+);
+// --- REPLACE END ---
+
 
 const queryClient = new QueryClient();
 

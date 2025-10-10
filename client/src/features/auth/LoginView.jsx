@@ -1,10 +1,11 @@
 // File: client/src/features/auth/LoginView.jsx
 import React, { useState, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
+
 // --- REPLACE START: fix context import path to plural 'contexts' ---
+import LoginForm from "../../components/forms/LoginForm";
 import { useAuth } from "../../contexts/AuthContext";
 // --- REPLACE END ---
-import LoginForm from "../../components/forms/LoginForm";
 
 export default function LoginView() {
   const navigate = useNavigate();

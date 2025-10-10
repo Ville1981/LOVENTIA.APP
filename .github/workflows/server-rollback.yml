@@ -1,0 +1,51 @@
+# --- REPLACE START: ECS rollback to previous task definition ---
+name: server-rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "staging or prod"
+        required: true
+        default: "staging"
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: eu-north-1
+      ECS_CLUSTER: ${{ github.event.inputs.environment == 'prod' && secrets.ECS_CLUSTER_PROD || secrets.ECS_CLUSTER_STAGING }}
+      ECS_SERVICE: ${{ github.event.inputs.environment == 'prod' && secrets.ECS_SERVICE_PROD || secrets.ECS_SERVICE_STAGING }}
+    steps:
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Describe current service
+        id: svc
+        run: |
+          aws ecs describe-services --cluster "$ECS_CLUSTER" --services "$ECS_SERVICE" > svc.json
+          cat svc.json
+
+      - name: Find previous task definition
+        id: prev
+        run: |
+          TD=$(jq -r '.services[0].taskDefinition' svc.json)
+          FAMILY=$(echo "$TD" | awk -F: '{print $1}')
+          echo "Current TD: $TD"
+          # List previous revisions, pick the one before current
+          aws ecs list-task-definitions --family-prefix "$FAMILY" --sort DESC > tds.json
+          PREV=$(jq -r --arg CUR "$TD" '.taskDefinitionArns | map(select(. != $CUR)) | .[0]' tds.json)
+          if [ -z "$PREV" ] || [ "$PREV" = "null" ]; then
+            echo "No previous task definition found"; exit 1
+          fi
+          echo "prev=$PREV" >> $GITHUB_OUTPUT
+
+      - name: Update service to previous TD
+        run: |
+          aws ecs update-service --cluster "$ECS_CLUSTER" --service "$ECS_SERVICE" --task-definition "${{ steps.prev.outputs.prev }}" --force-new-deployment
+          aws ecs wait services-stable --cluster "$ECS_CLUSTER" --services "$ECS_SERVICE"
+# --- REPLACE END ---

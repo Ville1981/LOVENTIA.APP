@@ -1,0 +1,4 @@
+# --- REPLACE START: relax a few noisy rules (warn) ---
+10021	IGNORE	# X-Frame-Options header not set (handled by CloudFront/ALB sometimes)
+10038	WARN	# Content Security Policy (report as warn)
+# --- REPLACE END ---

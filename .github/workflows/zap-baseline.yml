@@ -1,0 +1,71 @@
+# --- REPLACE START: ZAP baseline scan (manual + cron) ---
+name: zap-baseline
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Public URL to scan (staging/prod)"
+        required: true
+        default: "https://staging.example.com"
+  schedule:
+    - cron: "0 2 * * *" # daily UTC
+
+jobs:
+  zap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.10.0
+        with:
+          target: ${{ github.event.inputs.target || 'https://staging.example.com' }}
+          rules_file_name: .zap/rules.tsv
+          cmd_options: "-a"
+      - name: Upload ZAP artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-baseline
+          path: |
+            report_html.html
+            report_md.md
+            zap.out
+# --- REPLACE END ---
+
+
+  # File: .github/workflows/zap-baseline.yml
+
+# --- REPLACE START: OWASP ZAP baseline scan (staging) ---
+name: zap-baseline
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * *" # joka aamu UTC
+  push:
+    branches: [ develop ]
+
+jobs:
+  zap:
+    runs-on: ubuntu-latest
+    env:
+      TARGET: https://staging.example.com
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.11.0
+        with:
+          target: ${{ env.TARGET }}
+          rules_file_name: .github/zap/zap-rules.tsv
+          cmd_options: >
+            -a
+            -d
+            -m 5
+            -t ${{ env.TARGET }}
+            -x zap-report.xml
+      - name: Upload ZAP report
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-report
+          path: zap-report.xml
+# --- REPLACE END ---
