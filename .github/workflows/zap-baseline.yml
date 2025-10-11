@@ -1,3 +1,8 @@
+env:
+
+  TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+  PERF_PASSWORD: ${{ secrets.PERF_PASSWORD }}
+  CYPRESS_TEST_PASSWORD: ${{ secrets.CYPRESS_TEST_PASSWORD }}
 # --- REPLACE START: ZAP baseline scan (manual + cron) ---
 name: zap-baseline
 
