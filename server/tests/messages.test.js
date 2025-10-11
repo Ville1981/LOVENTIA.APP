@@ -25,7 +25,7 @@ describe('Messages basics', () => {
     const now = Date.now();
     const emailA = `a+${now}@example.com`;
     const emailB = `b+${now}@example.com`;
-    const password = 'Passw0rd!234';
+    const password = process.env.TEST_PASSWORD || ("e2e-" + Date.now() + "A1!");
 
     // Register both users (some implementations return 200 instead of 201)
     await request(app).post('/api/auth/register').send({ email: emailA, password }).expect((r) => {

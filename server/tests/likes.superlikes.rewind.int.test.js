@@ -7,7 +7,7 @@ describe('Likes / Superlikes / Rewind (auth-required)', () => {
   let tokenA, tokenB, userA, userB;
 
   beforeAll(async () => {
-    const password = 'Passw0rd!234';
+    const password = process.env.TEST_PASSWORD || ("e2e-" + Date.now() + "A1!");
     const emailA = `a+${Date.now()}@example.com`;
     const emailB = `b+${Date.now()}@example.com`;
 

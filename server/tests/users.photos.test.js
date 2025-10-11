@@ -36,7 +36,7 @@ describe('Users / photos basics', () => {
   beforeAll(async () => {
     // Assumption: /api/auth/register returns 201 and /api/auth/login returns 200 with { token | accessToken }
     const email = `test+${Date.now()}@example.com`;
-    const password = 'Passw0rd!234';
+    const password = process.env.TEST_PASSWORD || ("e2e-" + Date.now() + "A1!");
 
     await request(app).post('/api/auth/register').send({ email, password }).expect((res) => {
       expect([200, 201]).toContain(res.status); // Some implementations return 200
