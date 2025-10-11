@@ -50,18 +50,27 @@ declare global {
 
 export {};
 
-function resolveTestCreds(opts?: { email?: string; password?: string }) {
-  const fallbackEmail =
-    Cypress.env('TEST_EMAIL') ||
-    `e2e+${Date.now()}@example.com`;
-  const fallbackPassword =
-    Cypress.env('TEST_PASSWORD') || 'Passw0rd!234';
-
-  return {
-    email: (opts && opts.email) || fallbackEmail,
-    password: (opts && opts.password) || fallbackPassword,
-  };
+// Drop-in korvaus: ei kovakoodattua salasanaa
+function generateEphemeralPassword(): string {
+  // Riittävän vahva testisalasana (ei salaisuus): satunnainen + vaaditut merkkiluokat
+  const rand = Math.random().toString(36).slice(-10);
+  return `e2e-${Date.now().toString(36)}-${rand}A1!`;
 }
+
+export function resolveTestCreds(opts?: { email?: string; password?: string }) {
+  const email =
+    opts?.email ??
+    (Cypress.env('TEST_EMAIL') as string | undefined) ??
+    `e2e+${Date.now()}@example.com`;
+
+  const password =
+    opts?.password ??
+    (Cypress.env('TEST_PASSWORD') as string | undefined) ??
+    generateEphemeralPassword();
+
+  return { email, password };
+}
+
 
 /**
  * Tolerant register: treat 200/201 as success and 409 as "already exists".
