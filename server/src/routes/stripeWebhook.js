@@ -311,3 +311,123 @@ router.post('/payment/stripe-webhook', rawJson, stripeWebhookHandler);
 
 export default router;
 
+
+
+
+
+
+// server/src/routes/stripeWebhook.js
+// --- REPLACE START: add mock endpoints under STRIPE_MOCK_MODE ---
+import express from 'express';
+import authenticate from '../middleware/authenticate.js';
+import User from '../models/User.js';
+
+const router = express.Router();
+
+// ⬇️ OLEMASSA OLEVA WEBHOOK (älä poista)
+router.post('/stripe-webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  // ... nykyinen allekirjoituksen validointi + premium sync ...
+  // pidä tämä osuus koskemattomana
+});
+
+// ⬇️ Uudet mock-endpointit: aktivoidaan vain testimoodissa
+if (process.env.STRIPE_MOCK_MODE === '1') {
+  // Premium ON (simuloi checkout.session.completed)
+  router.post('/mock/checkout-complete', authenticate, async (req, res) => {
+    try {
+      const user = await User.findById(req.user.id);
+      if (!user) return res.status(404).json({ error: 'User not found' });
+
+      // Päivitä premium-kentät yhdenmukaisesti
+      user.isPremium = true;
+      user.premium = {
+        ...(user.premium || {}),
+        active: true,
+        tier: 'premium',
+        since: new Date(),
+      };
+      await user.save();
+
+      return res.json({ ok: true, isPremium: user.isPremium, premium: user.premium });
+    } catch (err) {
+      console.error('[mock/checkout-complete]', err);
+      return res.status(500).json({ error: 'Server Error' });
+    }
+  });
+
+  // Premium OFF (simuloi customer.subscription.deleted)
+  router.post('/mock/subscription-canceled', authenticate, async (req, res) => {
+    try {
+      const user = await User.findById(req.user.id);
+      if (!user) return res.status(404).json({ error: 'User not found' });
+
+      user.isPremium = false;
+      user.premium = {
+        ...(user.premium || {}),
+        active: false,
+        canceledAt: new Date(),
+      };
+      await user.save();
+
+      return res.json({ ok: true, isPremium: user.isPremium, premium: user.premium });
+    } catch (err) {
+      console.error('[mock/subscription-canceled]', err);
+      return res.status(500).json({ error: 'Server Error' });
+    }
+  });
+}
+
+export default router;
+// --- REPLACE END ---,
+
+
+// server/src/routes/stripeWebhook.js
+// --- REPLACE START: add optional billing event logging ---
+import mongoose from 'mongoose';
+
+// ... (yläosassa muut importit ja router.post('/stripe-webhook', ...) olemassa) ...
+
+router.post('/stripe-webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  try {
+    // 1) Verify signature & construct event (pidä teillä jo oleva koodi)
+    // const sig = req.headers['stripe-signature']; ...
+    // const event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+
+    const event = /* teidän valmis event-olio */ null; // <-- jätä pois jos teillä jo käytössä
+
+    // 2) (UUSI) Kirjaa tapahtuma, jos sallittu
+    if (process.env.STRIPE_LOG_EVENTS === '1') {
+      try {
+        const BillingEvents = mongoose.connection.collection('billing_events');
+        // Huom: älä talleta raakaa korttidataa; vain meta + object ilman sensitiivistä dataa
+        await BillingEvents.insertOne({
+          type: event?.type ?? 'unknown',
+          id: event?.id ?? null,
+          created: new Date(),
+          raw: {
+            // Tallenna vain turvallinen suppea osa:
+            type: event?.type,
+            dataObject: event?.data?.object ? {
+              id: event.data.object.id,
+              customer: event.data.object.customer ?? null,
+              subscription: event.data.object.subscription ?? null,
+              status: event.data.object.status ?? null,
+              email: event.data.object.customer_email ?? null,
+            } : null,
+          }
+        });
+      } catch (logErr) {
+        console.warn('[stripe-webhook][log] failed to log billing event', logErr?.message);
+      }
+    }
+
+    // 3) Teidän nykyinen premium-sync -koodi (pidä koskemattomana)
+    // switch(event.type) { ... }
+
+    return res.status(200).send({ received: true });
+  } catch (err) {
+    console.error('[stripe-webhook] error', err);
+    return res.status(400).send(`Webhook Error`);
+  }
+});
+// --- REPLACE END ---

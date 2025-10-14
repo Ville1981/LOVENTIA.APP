@@ -1,86 +1,63 @@
-// PATH: client/src/App.jsx
-
-// --- REPLACE START: add React Query defaults + fix import order + keep behavior intact ---
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+// --- REPLACE START: dedupe imports, keep behavior intact, add ConsentBanner cleanly ---
 import React, { Suspense, useEffect } from "react";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
-
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
+// Core wrappers
 import ErrorBoundary from "./components/ErrorBoundary";
-import { ForgotPassword } from "./components/ForgotPassword";
 import MainLayout from "./components/MainLayout";
-import { ResetPassword } from "./components/ResetPassword";
+
+// Auth context
 import { useAuth } from "./contexts/AuthContext";
-import About from "./pages/About";
-import AdminPanel from "./pages/AdminPanel";
-import ChatPage from "./pages/ChatPage";
-import Cookies from "./pages/Cookies";
-import Discover from "./pages/Discover";
+
+// Pages (public)
 import Etusivu from "./pages/Etusivu";
+import Discover from "./pages/Discover";
+import About from "./pages/About";
+import Support from "./pages/Support";
+import Security from "./pages/Security";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import Terms from "./pages/Terms";
+import Cookies from "./pages/Cookies"; // <- single, consistent import (no .jsx suffix)
+import NotFound from "./pages/NotFound";
+
+// Pages (auth)
+import ProfileHub from "./pages/ProfileHub";
 import ExtraPhotosPage from "./pages/ExtraPhotosPage";
-import Login from "./pages/Login";
-import MapPage from "./pages/MapPage";
 import MatchPage from "./pages/MatchPage";
 import MessagesOverview from "./pages/MessagesOverview";
-import NotFound from "./pages/NotFound";
+import ChatPage from "./pages/ChatPage";
 import PremiumCancel from "./pages/PremiumCancel";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import ProfileHub from "./pages/ProfileHub";
-import Register from "./pages/Register";
-import Security from "./pages/Security";
-import SubscriptionSettings from "./pages/settings/SubscriptionSettings";
-import SettingsPage from "./pages/SettingsPage";
-import Support from "./pages/Support";
-import Terms from "./pages/Terms";
 import Upgrade from "./pages/Upgrade";
 import WhoLikedMe from "./pages/WhoLikedMe";
-// --- REPLACE START: mount ConsentBanner (add near root layout) ---
-import ConsentBanner from "@/components/privacy/ConsentBanner";
+import MapPage from "./pages/MapPage";
+import SettingsPage from "./pages/SettingsPage";
+import SubscriptionSettings from "./pages/settings/SubscriptionSettings";
 
-// File: client/src/App.jsx  (tai client/src/router.jsx tms.)
+// Pages (auth flows)
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import { ForgotPassword } from "./components/ForgotPassword";
+import { ResetPassword } from "./components/ResetPassword";
 
-// --- REPLACE START: add routes for Privacy & Cookies (react-router v6) ---
-import { Routes, Route } from "react-router-dom";
-import Privacy from "./pages/Privacy.jsx";
-import Cookies from "./pages/Cookies.jsx";
+// Admin
+import AdminPanel from "./pages/AdminPanel";
 
-// ...inside your component's return:
-<Routes>
-  {/* ...your existing routes... */}
-  <Route path="/privacy" element={<Privacy />} />
-  <Route path="/cookies" element={<Cookies />} />
-</Routes>
+// PATH: client/src/App.jsx
+
+// --- REPLACE START: remove unresolved alias import of ConsentBanner ---
+// import ConsentBanner from "@/components/privacy/ConsentBanner";
 // --- REPLACE END ---
 
-// ...
-function App() {
-  return (
-    <>
-      {/* ...your providers/layouts... */}
-      <ConsentBanner />
-    </>
-  );
-}
-
-// File: client/src/App.jsx (example route addition)
-
-// --- REPLACE START: add admin dashboard route (example) ---
-// import AdminDashboard from "./pages/admin/AdminDashboard";
-// <Route path="/admin/kpi" element={<AdminDashboard />} />
-// --- REPLACE END ---
-
-// --- REPLACE END ---
-
-// --- REPLACE START: add route for Referral page (example) ---
-// import Referral from "./pages/Referral";
-// <Route path="/referral" element={<Referral />} />
-// --- REPLACE END ---
+// (Leave all your other imports and the rest of the file as-is.)
+// Also ensure there is no <ConsentBanner /> inside App.jsx’s JSX tree,
+// because main.jsx already renders it globally.
 
 
-// React Query client with calmer defaults to avoid refetch bursts while selects are open
+// React Query client with calm defaults (avoid refetch bursts)
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -106,7 +83,7 @@ function AdminRoute({ children }) {
   return user.role === "admin" ? children : <Navigate to="/" replace />;
 }
 
-// Only attempt to start MSW in dev when explicitly enabled, never during Vitest.
+// Dev-only: start MSW if enabled (never during Vitest)
 if (
   typeof window !== "undefined" &&
   import.meta?.env?.MODE !== "test" &&
@@ -120,12 +97,13 @@ if (
         await mod.worker.start({ onUnhandledRequest: "bypass" });
       }
     } catch {
-      // Silently skip MSW if mocks are not present in this build
+      // Silently skip if mocks are not present
     }
   })();
 }
 
-export default function App() {
+// --- REPLACE START: ensure single App component + single default export ---
+function App() {
   useEffect(() => {
     if ("scrollRestoration" in window.history) {
       window.history.scrollRestoration = "manual";
@@ -143,6 +121,9 @@ export default function App() {
               v7_relativeSplatPath: true,
             }}
           >
+            {/* Global privacy banner near the root */}
+            <ConsentBanner />
+
             <Routes>
               <Route path="/" element={<MainLayout />}>
                 {/* Public routes */}
@@ -156,6 +137,12 @@ export default function App() {
                 <Route path="privacy" element={<PrivacyPolicy />} />
                 <Route path="terms" element={<Terms />} />
                 <Route path="cookies" element={<Cookies />} />
+
+                {/* Auth-free auth routes */}
+                <Route path="login" element={<Login />} />
+                <Route path="register" element={<Register />} />
+                <Route path="forgot-password" element={<ForgotPassword />} />
+                <Route path="reset-password" element={<ResetPassword />} />
 
                 {/* Auth-protected */}
                 <Route
@@ -214,22 +201,6 @@ export default function App() {
                     </PrivateRoute>
                   }
                 />
-
-                {/* Admin-only */}
-                <Route
-                  path="admin"
-                  element={
-                    <AdminRoute>
-                      <AdminPanel />
-                    </AdminRoute>
-                  }
-                />
-
-                {/* Auth-free */}
-                <Route path="login" element={<Login />} />
-                <Route path="register" element={<Register />} />
-
-                {/* More protected routes */}
                 <Route
                   path="upgrade"
                   element={
@@ -273,9 +244,15 @@ export default function App() {
                   }
                 />
 
-                {/* Password helpers */}
-                <Route path="forgot-password" element={<ForgotPassword />} />
-                <Route path="reset-password" element={<ResetPassword />} />
+                {/* Admin-only */}
+                <Route
+                  path="admin"
+                  element={
+                    <AdminRoute>
+                      <AdminPanel />
+                    </AdminRoute>
+                  }
+                />
 
                 {/* 404 */}
                 <Route path="*" element={<NotFound />} />
@@ -287,4 +264,7 @@ export default function App() {
     </ErrorBoundary>
   );
 }
+
+export default App;
 // --- REPLACE END ---
+

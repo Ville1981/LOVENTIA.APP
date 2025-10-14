@@ -35,3 +35,70 @@ if (missing.length) {
 } else {
   console.log('i18n audit OK');
 }
+
+
+
+// client/scripts/i18n-audit.mjs
+// --- REPLACE START: i18n audit script ---
+import fs from 'node:fs';
+import path from 'node:path';
+
+const localesDir = path.resolve('public', 'locales'); // run from /client
+const baseLang = 'en';
+
+// flatten nested keys to dot.notation
+const flatten = (obj, prefix = '') => Object.entries(obj ?? {}).reduce((acc, [k, v]) => {
+  const p = prefix ? `${prefix}.${k}` : k;
+  if (v && typeof v === 'object' && !Array.isArray(v)) Object.assign(acc, flatten(v, p));
+  else acc[p] = true;
+  return acc;
+}, {});
+
+const readJson = (p) => JSON.parse(fs.readFileSync(p, 'utf8'));
+
+const langs = fs.readdirSync(localesDir)
+  .filter((f) => fs.statSync(path.join(localesDir, f)).isDirectory());
+
+if (!langs.includes(baseLang)) {
+  console.error(`[i18n-audit] Base language '${baseLang}' not found under ${localesDir}`);
+  process.exit(1);
+}
+
+const namespaces = fs.readdirSync(path.join(localesDir, baseLang))
+  .filter((f) => f.endsWith('.json'))
+  .map((f) => path.basename(f, '.json'));
+
+let missingCount = 0;
+for (const lang of langs) {
+  if (lang === baseLang) continue;
+
+  for (const ns of namespaces) {
+    const basePath = path.join(localesDir, baseLang, `${ns}.json`);
+    const targetPath = path.join(localesDir, lang, `${ns}.json`);
+
+    if (!fs.existsSync(targetPath)) {
+      console.error(`[i18n-audit] ${lang}/${ns}.json MISSING (base has it)`);
+      missingCount++;
+      continue;
+    }
+
+    const baseKeys = Object.keys(flatten(readJson(basePath)));
+    const targetKeysObj = flatten(readJson(targetPath));
+    const missingKeys = baseKeys.filter((k) => !targetKeysObj[k]);
+
+    if (missingKeys.length) {
+      missingCount += missingKeys.length;
+      console.error(`\n[i18n-audit] Missing keys in ${lang}/${ns}.json (${missingKeys.length}):`);
+      // show up to 50 to keep CI logs readable
+      missingKeys.slice(0, 50).forEach((k) => console.error(`  - ${k}`));
+      if (missingKeys.length > 50) console.error(`  ...and ${missingKeys.length - 50} more`);
+    }
+  }
+}
+
+if (missingCount > 0) {
+  console.error(`\n[i18n-audit] ❌ Found ${missingCount} missing translation keys.`);
+  process.exit(1);
+}
+console.log('[i18n-audit] ✅ All translation keys present across locales.');
+// --- REPLACE END ---

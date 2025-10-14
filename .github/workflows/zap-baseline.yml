@@ -74,3 +74,36 @@ jobs:
           name: zap-report
           path: zap-report.xml
 # --- REPLACE END ---
+
+
+  name: ZAP Baseline Scan
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * *"  # päivittäin 03:00 UTC
+
+jobs:
+  zap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout (rules etc.)
+        uses: actions/checkout@v4
+
+      - name: Run ZAP Baseline (staging)
+        uses: zaproxy/action-baseline@v0.10.0
+        with:
+          target: ${{ vars.STAGING_URL }}   # esim. https://staging.loventia.com
+          rules_file_name: .github/zap/rules.tsv
+          cmd_options: >-
+            -a -m 5
+        continue-on-error: true  # pehmeä kynnys – ei pysäytä CI:tä
+
+      - name: Upload ZAP report
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-report
+          path: |
+            report.html
+            zap.out

@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, Link } from "react-router-dom";
+
 import api from "../services/api/axiosInstance";
 import { BACKEND_BASE_URL } from "../utils/config";
 

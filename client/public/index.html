@@ -1,24 +1,42 @@
-<!-- --- REPLACE START: minimal OG defaults (safe for any route) --- -->
-<meta property="og:type" content="website" />
-<meta property="og:site_name" content="Loventia" />
-<meta property="og:title" content="Loventia — meet new people" />
-<meta property="og:description" content="Discover matches, chat and connect. Join Loventia." />
-<meta property="og:url" content="https://app.example.com/" />
-<meta property="og:image" content="https://app.example.com/og/og-default.jpg" />
-<meta property="twitter:card" content="summary_large_image" />
-<meta property="twitter:title" content="Loventia — meet new people" />
-<meta property="twitter:description" content="Discover matches, chat and connect. Join Loventia." />
-<meta property="twitter:image" content="https://app.example.com/og/og-default.jpg" />
-<!-- File: client/public/index.html  (varmistetaan OG fallback; älä poista aiempia meta-tageja) -->
+<!-- PATH: client/index.html -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
 
-<!-- --- REPLACE START: minimal OG + Twitter tags (keeps existing) --->
-<!-- Ensure these exist near your other <meta> tags -->
-<meta property="og:title" content="Loventia" />
-<meta property="og:description" content="Find your match." />
-<meta property="og:type" content="website" />
-<meta property="og:image" content="/og/og-default.jpg" />
-<meta property="og:url" content="/" />
-<meta name="twitter:card" content="summary_large_image" />
-<!-- --- REPLACE END --->
+    <title>Loventia — meet new people</title>
+    <link rel="icon" href="/favicon.ico" />
 
-<!-- --- REPLACE END --- -->
+    <!-- --- REPLACE START: minimal OG + Twitter defaults (safe for any route) --- -->
+    <!-- Keep these as global fallbacks; route-specific pages can override via react-helmet -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Loventia" />
+    <meta property="og:title" content="Loventia — meet new people" />
+    <meta
+      property="og:description"
+      content="Discover matches, chat and connect. Join Loventia."
+    />
+    <!-- Use relative paths served from /public for local/dev; replace with prod URL in deploy if needed -->
+    <meta property="og:url" content="/" />
+    <meta property="og:image" content="/og/og-default.jpg" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Loventia — meet new people" />
+    <meta
+      name="twitter:description"
+      content="Discover matches, chat and connect. Join Loventia."
+    />
+    <meta name="twitter:image" content="/og/og-default.jpg" />
+    <!-- --- REPLACE END --- -->
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <!-- Vite entry -->
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

@@ -1,5 +1,3 @@
-// File: server/tests/messages.int.test.js
-
 // --- REPLACE START: integration tests for messages (send → thread → overview → invalid/auth paths) ---
 /* eslint-env jest */
 import request from 'supertest';
@@ -13,7 +11,7 @@ function expectAuthDenied(status) {
   expect([401, 403]).toContain(status);
 }
 
-/** Helper: extract token from { token | accessToken } */
+/** Helper: extract token from { token | accessToken | jwt } */
 function pickToken(body) {
   return body?.token || body?.accessToken || body?.jwt || null;
 }
@@ -25,15 +23,22 @@ describe('Messages basics', () => {
     const now = Date.now();
     const emailA = `a+${now}@example.com`;
     const emailB = `b+${now}@example.com`;
-    const password = process.env.TEST_PASSWORD || ("e2e-" + Date.now() + "A1!");
+    const password = process.env.TEST_PASSWORD || `e2e-${Date.now()}A1!`;
 
     // Register both users (some implementations return 200 instead of 201)
-    await request(app).post('/api/auth/register').send({ email: emailA, password }).expect((r) => {
-      expect([200, 201]).toContain(r.status);
-    });
-    await request(app).post('/api/auth/register').send({ email: emailB, password }).expect((r) => {
-      expect([200, 201]).toContain(r.status);
-    });
+    await request(app)
+      .post('/api/auth/register')
+      .send({ email: emailA, password })
+      .expect((r) => {
+        expect([200, 201]).toContain(r.status);
+      });
+
+    await request(app)
+      .post('/api/auth/register')
+      .send({ email: emailB, password })
+      .expect((r) => {
+        expect([200, 201]).toContain(r.status);
+      });
 
     // Login and capture tokens
     const logA = await request(app).post('/api/auth/login').send({ email: emailA, password });
@@ -174,4 +179,3 @@ describe('Messages basics', () => {
   });
 });
 // --- REPLACE END ---
-

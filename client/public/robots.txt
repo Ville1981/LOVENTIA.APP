@@ -6,3 +6,18 @@ Allow: /
 
 Sitemap: https://loventia.example/sitemap.xml
 # --- REPLACE END ---
+
+
+// File: client/public/robots.txt
+
+# --- REPLACE START: basic robots rules for SPA ---
+User-agent: *
+Allow: /
+
+# Disallow internal/debug routes if any (keep or remove as needed)
+Disallow: /admin
+Disallow: /debug
+
+# Point crawlers to the sitemap
+Sitemap: https://YOUR_DOMAIN/sitemap.xml
+# --- REPLACE END ---

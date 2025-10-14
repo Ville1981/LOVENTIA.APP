@@ -1,5 +1,3 @@
-// File: server/tests/users.photos.int.test.js
-
 // --- REPLACE START: integration tests for users/photos (upload → reorder → set avatar → delete) ---
 /* eslint-env jest */
 import request from 'supertest';
@@ -27,6 +25,29 @@ function expectAuthDenied(status) {
   expect([401, 403]).toContain(status);
 }
 
+/** Extract a photo identifier from heterogeneous response shapes (id/_id/key or url fallback) */
+function extractPhotoId(resBody, fallbackLabel = 'photo-fallback') {
+  let pid =
+    resBody?.photoId ||
+    resBody?.id ||
+    resBody?.data?.id ||
+    resBody?.data?.photoId ||
+    resBody?.photo?.id ||
+    resBody?.photo?._id ||
+    null;
+
+  if (!pid) {
+    const arr = Array.isArray(resBody?.photos) ? resBody.photos : [];
+    if (arr.length) {
+      const last = arr[arr.length - 1];
+      pid = last?.id || last?._id || last?.key || null;
+    }
+  }
+
+  const url = resBody?.url || resBody?.data?.url;
+  return pid || url || fallbackLabel;
+}
+
 describe('Users / photos basics', () => {
   let token;
   let userId;
@@ -36,11 +57,15 @@ describe('Users / photos basics', () => {
   beforeAll(async () => {
     // Assumption: /api/auth/register returns 201 and /api/auth/login returns 200 with { token | accessToken }
     const email = `test+${Date.now()}@example.com`;
-    const password = process.env.TEST_PASSWORD || ("e2e-" + Date.now() + "A1!");
+    const password = process.env.TEST_PASSWORD || `e2e-${Date.now()}A1!`;
 
-    await request(app).post('/api/auth/register').send({ email, password }).expect((res) => {
-      expect([200, 201]).toContain(res.status); // Some implementations return 200
-    });
+    await request(app)
+      .post('/api/auth/register')
+      .send({ email, password })
+      .expect((res) => {
+        // Some implementations return 200 instead of 201 on register
+        expect([200, 201]).toContain(res.status);
+      });
 
     const login = await request(app).post('/api/auth/login').send({ email, password });
     expect([200, 201]).toContain(login.status);
@@ -91,33 +116,9 @@ describe('Users / photos basics', () => {
 
     expect([200, 201]).toContain(res.status);
 
-    // Try to extract a photo id from common response shapes
-    // Possible shapes:
-    //  - { photoId, url }
-    //  - { data: { id, url } }
-    //  - { photos: [{ id|_id|key|url }] }
-    let pid =
-      res.body?.photoId ||
-      res.body?.id ||
-      res.body?.data?.id ||
-      res.body?.data?.photoId ||
-      res.body?.photo?.id ||
-      res.body?.photo?._id ||
-      null;
-
-    if (!pid) {
-      const arr = Array.isArray(res.body?.photos) ? res.body.photos : [];
-      if (arr.length) {
-        const first = arr[0];
-        pid = first?.id || first?._id || first?.key || null;
-      }
-    }
-
-    // Some APIs only return an URL; accept URL key as fallback, but also push placeholder id
-    const url = res.body?.url || res.body?.data?.url;
-    expect(pid || url).toBeTruthy();
-
-    uploadedPhotoIds.push(pid || url || 'photo-0');
+    const pid = extractPhotoId(res.body, 'photo-0');
+    expect(pid).toBeTruthy();
+    uploadedPhotoIds.push(pid);
   });
 
   test('POST upload second photo (for reorder test)', async () => {
@@ -128,27 +129,9 @@ describe('Users / photos basics', () => {
 
     expect([200, 201]).toContain(res.status);
 
-    let pid =
-      res.body?.photoId ||
-      res.body?.id ||
-      res.body?.data?.id ||
-      res.body?.data?.photoId ||
-      res.body?.photo?.id ||
-      res.body?.photo?._id ||
-      null;
-
-    if (!pid) {
-      const arr = Array.isArray(res.body?.photos) ? res.body.photos : [];
-      if (arr.length) {
-        const last = arr[arr.length - 1];
-        pid = last?.id || last?._id || last?.key || null;
-      }
-    }
-
-    const url = res.body?.url || res.body?.data?.url;
-    expect(pid || url).toBeTruthy();
-
-    uploadedPhotoIds.push(pid || url || 'photo-1');
+    const pid = extractPhotoId(res.body, 'photo-1');
+    expect(pid).toBeTruthy();
+    uploadedPhotoIds.push(pid);
     expect(uploadedPhotoIds.length).toBeGreaterThanOrEqual(2);
   });
 
@@ -212,11 +195,6 @@ describe('Users / photos basics', () => {
   });
 });
 // --- REPLACE END ---
-
-
-
-
-
 
 
 
