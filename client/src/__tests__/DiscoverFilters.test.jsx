@@ -1,4 +1,5 @@
-// --- REPLACE START ---
+// PATH: client/src/__tests__/DiscoverFilters.test.jsx
+
 // Ensure RTL matchers are available and Vitest globals are in scope
 import "@testing-library/jest-dom";
 import React from "react";
@@ -8,6 +9,31 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi } from "vitest"; // keep locals to avoid "describe is not defined"
 import i18n from "../i18n";
 import DiscoverFilters from "../components/DiscoverFilters";
+
+// --- REPLACE START: single timer neutralizer (removed duplicate/vi-based stub) ---
+/**
+ * Neutralize long timers (>= 1000ms) in test env only.
+ * We patch global.setTimeout once per file without importing beforeAll/afterAll,
+ * avoiding duplicate symbol errors across test files.
+ */
+let __timersPatched = false;
+let __realSetTimeout = global.setTimeout;
+
+beforeAll(() => {
+  if (__timersPatched) return;
+  __realSetTimeout = global.setTimeout;
+  global.setTimeout = (fn, ms, ...args) =>
+    __realSetTimeout(fn, ms >= 1000 ? 0 : ms, ...args);
+  __timersPatched = true;
+});
+
+afterAll(() => {
+  if (__timersPatched && __realSetTimeout) {
+    global.setTimeout = __realSetTimeout;
+    __timersPatched = false;
+  }
+});
+// --- REPLACE END ---
 
 /**
  * NOTE FOR FUTURE MAINTAINERS:
@@ -166,7 +192,11 @@ describe("DiscoverFilters", () => {
   it("renders form title and instructions", () => {
     // Provide minimal required props to avoid prop-type warnings
     renderWithProviders(
-      <DiscoverFilters values={{ minAge: 18, maxAge: 99 }} handleFilter={() => {}} onApply={() => {}} />
+      <DiscoverFilters
+        values={{ minAge: 18, maxAge: 99 }}
+        handleFilter={() => {}}
+        onApply={() => {}}
+      />
     );
 
     // Accept either translated text OR i18n keys
@@ -185,7 +215,11 @@ describe("DiscoverFilters", () => {
 
   it("accepts age range input", () => {
     renderWithProviders(
-      <DiscoverFilters values={{ minAge: 18, maxAge: 99 }} handleFilter={() => {}} onApply={() => {}} />
+      <DiscoverFilters
+        values={{ minAge: 18, maxAge: 99 }}
+        handleFilter={() => {}}
+        onApply={() => {}}
+      />
     );
 
     const { min, max } = getAgeInputs();
@@ -310,5 +344,3 @@ describe("DiscoverFilters", () => {
     expect(premiumMsg).toBeInTheDocument();
   });
 });
-// --- REPLACE END ---
-

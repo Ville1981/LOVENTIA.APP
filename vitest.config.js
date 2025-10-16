@@ -1,6 +1,6 @@
 // File: vitest.config.js
 
-// --- REPLACE START: Vitest config wired to src/setupTests.js, jsdom env, and modern deps optimizer ---
+// --- REPLACE START: Vitest config wired to setupTests.js, jsdom env, and modern deps optimizer ---
 import { defineConfig } from "vitest/config";
 import path from "node:path";
 import url from "node:url";
@@ -38,9 +38,9 @@ export default defineConfig({
     },
 
     // 2) Global setup (router & i18n stubs, polyfills, jest-dom, etc.)
-    //    IMPORTANT: In src/setupTests.js, import the Vitest flavor:
+    //    IMPORTANT: In setupTests.js, import the Vitest flavor:
     //      import "@testing-library/jest-dom/vitest";
-    setupFiles: ["src/setupTests.js"],
+    setupFiles: ["./setupTests.js"],
 
     // 3) Vitest globals (fixes "describe/it/expect is not defined")
     globals: true,
@@ -108,18 +108,4 @@ export default defineConfig({
   },
 });
 // --- REPLACE END ---
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

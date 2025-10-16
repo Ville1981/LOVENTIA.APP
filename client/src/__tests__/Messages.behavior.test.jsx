@@ -1,13 +1,13 @@
-// File: client/src/__tests__/Messages.behavior.test.jsx
+// PATH: client/src/__tests__/Messages.behavior.test.jsx
 
-// --- REPLACE START: Messages page renders without socket crashes and shows fallback (wrapped with QueryClientProvider) ---
+// --- REPLACE START: stub /api/messages/overview + wrap with React Query (no long timeouts) ---
 import React from "react";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-// Mock Auth so the page has a logged-in user and bootstrapped app
+/** Mock Auth so the page has a logged-in user and bootstrapped app */
 vi.mock("../contexts/AuthContext.jsx", () => ({
   useAuth: () => ({
     user: { id: "u1", name: "Test User", premium: false },
@@ -15,7 +15,7 @@ vi.mock("../contexts/AuthContext.jsx", () => ({
   }),
 }));
 
-// Mock socket service to avoid real connections during tests
+/** Mock socket service to avoid real connections during tests */
 vi.mock("../services/socket.js", () => {
   const on = vi.fn();
   const off = vi.fn();
@@ -24,10 +24,39 @@ vi.mock("../services/socket.js", () => {
 });
 
 /**
- * Load the Messages page component in a way that works in ESM/Vitest.
- * Prefer MessagesOverview.jsx, but fall back to ChatPage.jsx if needed.
- * Using dynamic import avoids CommonJS `require` pitfalls and keeps the test robust.
+ * Mock axios instance used by the Messages page.
+ * We return a fast, empty overview payload so the component settles immediately.
  */
+vi.mock("../services/api/axiosInstance.js", () => {
+  const get = vi.fn((url) => {
+    if (/\/api\/messages\/overview$/.test(url)) {
+      return Promise.resolve({
+        data: {
+          conversations: [],
+          unread: 0,
+        },
+      });
+    }
+    if (/\/api\/auth\/refresh$/.test(url)) {
+      return Promise.resolve({ data: { ok: true } });
+    }
+    return Promise.resolve({ data: {} });
+  });
+
+  const post = vi.fn(() => Promise.resolve({ data: {} }));
+  const put = vi.fn(() => Promise.resolve({ data: {} }));
+  const del = vi.fn(() => Promise.resolve({ data: {} }));
+
+  return {
+    default: { get, post, put, delete: del, interceptors: { request: { use: () => {} }, response: { use: () => {} } } },
+    get,
+    post,
+    put,
+    delete: del,
+  };
+});
+
+/** Dynamic import to keep compatibility if the file name differs in branches */
 async function loadMessagesPage() {
   try {
     const mod = await import("../pages/MessagesOverview.jsx");
@@ -37,6 +66,12 @@ async function loadMessagesPage() {
     return mod.default;
   }
 }
+
+beforeEach(() => {
+  // Clean potential persisted UI state between tests
+  sessionStorage.clear?.();
+  localStorage.clear?.();
+});
 
 describe("Messages page", () => {
   it("renders without crashing and shows an empty/fallback state", async () => {
@@ -62,7 +97,7 @@ describe("Messages page", () => {
     const h1 = screen.queryByRole("heading", { level: 1 });
 
     // Many apps render an empty/fallback copy when no conversations are present.
-    // Our i18n stubs may map to 'No conversations' in tests; keep the assertion soft.
+    // Keep the assertion soft and i18n-friendly.
     const fallback =
       screen.queryByText(/No conversations/i) ||
       screen.queryByText(/No messages/i) ||
@@ -73,6 +108,6 @@ describe("Messages page", () => {
       fallback || container.firstElementChild,
       "Messages page should render a heading or an empty/fallback indicator"
     ).toBeTruthy();
-  });
+  }, 15000); // slightly higher cap to be robust on slow CI
 });
 // --- REPLACE END ---

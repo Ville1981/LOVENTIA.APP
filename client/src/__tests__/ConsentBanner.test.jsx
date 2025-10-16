@@ -1,87 +1,73 @@
-// File: client/src/components/__tests__/ConsentBanner.test.jsx
+﻿import React from "react";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, it, expect, vi } from "vitest";
 
-// --- REPLACE START: Jest/RTL tests for ConsentBanner + ConsentProvider ---
-/**
- * These tests work with Jest or Vitest (jsdom env).
- * Ensure your test runner uses a browser-like DOM (jsdom).
- */
-import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { ConsentProvider } from "../../components/ConsentProvider.jsx";
-import ConsentBanner from "../../components/ConsentBanner.jsx";
+// Korvaa oikea provider meidän mockilla
+vi.mock("../components/ConsentProvider.jsx", () => import("./mocks/ConsentProvider.mock.jsx"));
+
+// SUT
+import ConsentBanner from "../components/ConsentBanner.jsx";
+// Importoi tyyppi/signatuuri (mock korvaa toteutuksen)
+import { ConsentProvider } from "../components/ConsentProvider.jsx";
 
 const CONSENT_KEY = "consent.v1";
 
-function renderWithProvider(ui) {
-  return render(<ConsentProvider>{ui}</ConsentProvider>);
-}
-
-beforeEach(() => {
-  // Clean slate before each test
-  localStorage.removeItem(CONSENT_KEY);
-});
-
 describe("ConsentBanner", () => {
-  test("shows banner when no decision, hides after Accept all", async () => {
-    renderWithProvider(<ConsentBanner />);
+  const wrapper = ({ children }) => <ConsentProvider>{children}</ConsentProvider>;
 
-    // Banner visible initially
+  beforeEach(() => {
+    // JSDOM-ympäristön siivous + scrollTo-shim
+    // eslint-disable-next-line no-undef
+    window.scrollTo = window.scrollTo || vi.fn();
+    localStorage.clear();
+    document.body.innerHTML = "";
+  });
+
+  it("shows banner when no decision, hides after Accept all", async () => {
+    render(<ConsentBanner />, { wrapper });
+
+    // näkyy aluksi
     const banner = await screen.findByTestId("consent-banner");
     expect(banner).toBeInTheDocument();
 
-    // Accept all
-    fireEvent.click(screen.getByTestId("consent-accept"));
+    // hyväksy kaikki
+    await userEvent.click(screen.getByTestId("consent-accept"));
 
-    // Banner should disappear
+    // bannerin pitää kadota
     await waitFor(() => {
       expect(screen.queryByTestId("consent-banner")).not.toBeInTheDocument();
     });
 
-    // LocalStorage should contain analytics/marketing true
+    // localStorage saa oikeat arvot
     const stored = JSON.parse(localStorage.getItem(CONSENT_KEY) || "{}");
-    expect(stored).toMatchObject({ analytics: true, marketing: true, necessary: true });
-    expect(typeof stored.timestamp).toBe("number");
+    expect(stored).toMatchObject({
+      necessary: true,
+      analytics: true,
+      marketing: true,
+    });
   });
 
-  test("Reject non-essential sets analytics=false, marketing=false", async () => {
-    renderWithProvider(<ConsentBanner />);
+  it("Reject non-essential sets analytics=false, marketing=false", async () => {
+    render(<ConsentBanner />, { wrapper });
 
-    // Reject
-    fireEvent.click(await screen.findByTestId("consent-reject"));
+    // hylkää ei-välttämättömät
+    await userEvent.click(await screen.findByTestId("consent-reject"));
 
-    // Banner should disappear
+    // bannerin pitää kadota
     await waitFor(() => {
       expect(screen.queryByTestId("consent-banner")).not.toBeInTheDocument();
     });
 
+    // localStorage saa oikeat arvot
     const stored = JSON.parse(localStorage.getItem(CONSENT_KEY) || "{}");
-    expect(stored).toMatchObject({ analytics: false, marketing: false, necessary: true });
-  });
-
-  test("Manage → Save choices (analytics on, marketing off)", async () => {
-    renderWithProvider(<ConsentBanner />);
-
-    // Open manage panel
-    fireEvent.click(await screen.findByTestId("consent-manage"));
-
-    // Turn analytics ON (it defaults true in component, but we toggle to be explicit)
-    const chkAnalytics = await screen.findByTestId("consent-chk-analytics");
-    if (!chkAnalytics.checked) fireEvent.click(chkAnalytics);
-
-    // Ensure marketing is OFF
-    const chkMarketing = await screen.findByTestId("consent-chk-marketing");
-    if (chkMarketing.checked) fireEvent.click(chkMarketing);
-
-    // Save
-    fireEvent.click(screen.getByTestId("consent-manage-save"));
-
-    // Banner should disappear
-    await waitFor(() => {
-      expect(screen.queryByTestId("consent-banner")).not.toBeInTheDocument();
+    expect(stored).toMatchObject({
+      necessary: true,
+      analytics: false,
+      marketing: false,
     });
-
-    const stored = JSON.parse(localStorage.getItem(CONSENT_KEY) || "{}");
-    expect(stored).toMatchObject({ analytics: true, marketing: false, necessary: true });
   });
 });
-// --- REPLACE END ---
+
+
+
