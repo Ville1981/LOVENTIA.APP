@@ -48,6 +48,13 @@ import AdminPanel from "./pages/AdminPanel";
 
 // PATH: client/src/App.jsx
 
+// --- REPLACE START: ConsentBanner import (use relative path, not "@") ---
+import ConsentBanner from "./components/privacy/ConsentBanner.jsx";
+// --- REPLACE END ---
+
+
+// PATH: client/src/App.jsx
+
 // --- REPLACE START: remove unresolved alias import of ConsentBanner ---
 // import ConsentBanner from "@/components/privacy/ConsentBanner";
 // --- REPLACE END ---

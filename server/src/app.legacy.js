@@ -19,6 +19,10 @@
 
 // Use existing roleAuthorization middleware and provide a local roleAuthorize shim.
 import roleAuthorization from "./middleware/roleAuthorization.js";
+
+// --- REPLACE START: centralized CORS import (added) ---
+import corsConfig from './config/corsConfig.js';
+// --- REPLACE END ---
 const roleAuthorize = (roles) => {
   const list = Array.isArray(roles) ? roles : [roles];
   return roleAuthorization(list);
@@ -1084,14 +1088,8 @@ app.use(
     index: false,
     maxAge: 0,
     setHeaders(res) {
-      // Ensure assets are viewable cross-origin (e.g., from Vite dev server)
-      res.setHeader("Access-Control-Allow-Origin", "*");
-      res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-      res.setHeader(
-        "Access-Control-Allow-Headers",
-        "Origin, X-Requested-With, Content-Type, Accept, Authorization"
-      );
-    },
+  // (removed) Manual CORS header manipulation removed — corsConfig governs CORS now
+},
   })
 );
 // --- REPLACE END ---
