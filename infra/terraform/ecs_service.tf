@@ -66,3 +66,32 @@ resource "aws_ecs_service" "server" {
   depends_on = [aws_lb_listener.http]
 }
 // --- REPLACE END ---
+
+
+
+# infra/terraform/ecs_service.tf
+# --- REPLACE START: ECS service health grace period ---
+resource "aws_ecs_service" "api_service" {
+  name            = "${var.project}-api"
+  cluster         = aws_ecs_cluster.cluster.id
+  task_definition = aws_ecs_task_definition.api_task.arn
+  desired_count   = var.api_desired_count
+  launch_type     = "FARGATE"
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.api_tg.arn
+    container_name   = "server"
+    container_port   = 5000
+  }
+
+  health_check_grace_period_seconds = 60
+
+  network_configuration {
+    subnets         = var.private_subnets
+    security_groups = [aws_security_group.api_sg.id]
+    assign_public_ip = false
+  }
+
+  depends_on = [aws_lb_listener.api_http]
+}
+# --- REPLACE END ---

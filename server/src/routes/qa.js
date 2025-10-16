@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // server/routes/qa.js
 // --- REPLACE START: Q&A visibility routes (premium-gated skeleton) ---
 'use strict';
@@ -9,6 +10,23 @@ const router = express.Router();
 
 const requireAuth = require('../middleware/auth');
 const User = require('../models/User');
+=======
+// server/src/routes/qa.js
+// --- REPLACE START: Q&A visibility routes (premium-gated skeleton) ---
+'use strict';
+
+// --- REPLACE START: switch to ESM imports (Express + auth shim + User model) ---
+import express from 'express';
+import authenticate from '../middleware/auth.js';     // ESM shim for auth (replaces require('../middleware/auth'))
+import User from '../models/User.js';                 // ESM bridge for User model (kept for future DB use)
+// --- REPLACE END ---
+
+const router = express.Router();
+
+// (Optional but safe) ensure JSON body parsing for this router,
+// even if the app has a global parser. Harmless duplication.
+router.use(express.json());
+>>>>>>> 7c16647faa28a92e621c9de1cf05c57fcaf11466
 
 // Helper to check entitlement
 function hasFeature(user, feature) {
@@ -27,7 +45,11 @@ function hasFeature(user, feature) {
  * - If premium user (qaVisibilityAll), show all answers.
  * - If free user, return only "public" subset.
  */
+<<<<<<< HEAD
 router.get('/qa', requireAuth, async (req, res) => {
+=======
+router.get('/qa', authenticate, async (req, res) => {
+>>>>>>> 7c16647faa28a92e621c9de1cf05c57fcaf11466
   try {
     const canSeeAll = hasFeature(req.user, 'qaVisibilityAll');
 
@@ -52,20 +74,35 @@ router.get('/qa', requireAuth, async (req, res) => {
  * POST /api/qa
  * Allows a user to submit their own Q&A answer (always allowed).
  */
+<<<<<<< HEAD
 router.post('/qa', requireAuth, async (req, res) => {
   try {
     const { question, answer, visibility = 'public' } = req.body;
+=======
+router.post('/qa', authenticate, async (req, res) => {
+  try {
+    const { question, answer, visibility = 'public' } = req.body || {};
+>>>>>>> 7c16647faa28a92e621c9de1cf05c57fcaf11466
     if (!question || !answer) {
       return res.status(400).json({ error: 'Missing question or answer' });
     }
 
+<<<<<<< HEAD
     // TODO: Persist in DB
     console.log(`[qa] ${req.user._id} answered: ${question} = ${answer} (${visibility})`);
+=======
+    // TODO: Persist in DB (User model imported for future use)
+    console.log(`[qa] ${req.user?._id || 'unknown'} answered: ${question} = ${answer} (${visibility})`);
+>>>>>>> 7c16647faa28a92e621c9de1cf05c57fcaf11466
 
     return res.json({
       success: true,
       entry: {
+<<<<<<< HEAD
         user: req.user.username,
+=======
+        user: req.user?.username || 'unknown',
+>>>>>>> 7c16647faa28a92e621c9de1cf05c57fcaf11466
         q: question,
         a: answer,
         visibility,

@@ -1,3 +1,4 @@
+
 {
   "family": "REPLACE_WITH_TASK_FAMILY",
   "networkMode": "awsvpc",
@@ -7,6 +8,7 @@
   "executionRoleArn": "arn:aws:iam::REPLACE_WITH_ACCOUNT_ID:role/ecsTaskExecutionRole",
   "taskRoleArn": "arn:aws:iam::REPLACE_WITH_ACCOUNT_ID:role/loventiaServerTaskRole",
   "runtimePlatform": { "cpuArchitecture": "X86_64", "operatingSystemFamily": "LINUX" },
+
   "containerDefinitions": [
     {
       "name": "server",
@@ -16,7 +18,8 @@
         { "containerPort": 5000, "hostPort": 5000, "protocol": "tcp" }
       ],
       "healthCheck": {
-        "command": ["CMD-SHELL", "curl -fsS http://localhost:5000/health || exit 1"],
+        
+        "command": ["CMD-SHELL", "curl -fsS http://localhost:5000/healthz || exit 1"],
         "interval": 30,
         "timeout": 5,
         "retries": 3,
@@ -31,24 +34,54 @@
         }
       },
       "secrets": [
-        { "name": "NODE_ENV",                "valueFrom": "arn:aws:ssm:eu-north-1:REPLACE_WITH_ACCOUNT_ID:parameter/loventia/prod/NODE_ENV" },
-        { "name": "PORT",                    "valueFrom": "arn:aws:ssm:eu-north-1:REPLACE_WITH_ACCOUNT_ID:parameter/loventia/prod/PORT" },
-        { "name": "MONGO_URI",               "valueFrom": "arn:aws:ssm:eu-north-1:REPLACE_WITH_ACCOUNT_ID:parameter/loventia/prod/MONGO_URI" },
-        { "name": "JWT_SECRET",              "valueFrom": "arn:aws:ssm:eu-north-1:REPLACE_WITH_ACCOUNT_ID:parameter/loventia/prod/JWT_SECRET" },
-        { "name": "JWT_REFRESH_SECRET",      "valueFrom": "arn:aws:ssm:eu-north-1:REPLACE_WITH_ACCOUNT_ID:parameter/loventia/prod/JWT_REFRESH_SECRET" },
+        { "name": "NODE_ENV",              "valueFrom": "arn:aws:ssm:eu-north-1:REPLACE_WITH_ACCOUNT_ID:parameter/loventia/prod/NODE_ENV" },
+        { "name": "PORT",                  "valueFrom": "arn:aws:ssm:eu-north-1:REPLACE_WITH_ACCOUNT_ID:parameter/loventia/prod/PORT" },
+        { "name": "MONGO_URI",             "valueFrom": "arn:aws:ssm:eu-north-1:REPLACE_WITH_ACCOUNT_ID:parameter/loventia/prod/MONGO_URI" },
+        { "name": "JWT_SECRET",            "valueFrom": "arn:aws:ssm:eu-north-1:REPLACE_WITH_ACCOUNT_ID:parameter/loventia/prod/JWT_SECRET" },
+        { "name": "JWT_REFRESH_SECRET",    "valueFrom": "arn:aws:ssm:eu-north-1:REPLACE_WITH_ACCOUNT_ID:parameter/loventia/prod/JWT_REFRESH_SECRET" },
 
-        { "name": "STRIPE_SECRET_KEY",       "valueFrom": "arn:aws:ssm:eu-north-1:REPLACE_WITH_ACCOUNT_ID:parameter/loventia/prod/STRIPE_SECRET_KEY" },
-        { "name": "STRIPE_PRICE_ID",         "valueFrom": "arn:aws:ssm:eu-north-1:REPLACE_WITH_ACCOUNT_ID:parameter/loventia/prod/STRIPE_PRICE_ID" },
-        { "name": "STRIPE_WEBHOOK_SECRET",   "valueFrom": "arn:aws:ssm:eu-north-1:REPLACE_WITH_ACCOUNT_ID:parameter/loventia/prod/STRIPE_WEBHOOK_SECRET" },
-        { "name": "CHECKOUT_SUCCESS_URL",    "valueFrom": "arn:aws:ssm:eu-north-1:REPLACE_WITH_ACCOUNT_ID:parameter/loventia/prod/CHECKOUT_SUCCESS_URL" },
-        { "name": "CHECKOUT_CANCEL_URL",     "valueFrom": "arn:aws:ssm:eu-north-1:REPLACE_WITH_ACCOUNT_ID:parameter/loventia/prod/CHECKOUT_CANCEL_URL" },
-        { "name": "BILLING_RETURN_URL",      "valueFrom": "arn:aws:ssm:eu-north-1:REPLACE_WITH_ACCOUNT_ID:parameter/loventia/prod/BILLING_RETURN_URL" },
-        { "name": "STRIPE_MOCK_MODE",        "valueFrom": "arn:aws:ssm:eu-north-1:REPLACE_WITH_ACCOUNT_ID:parameter/loventia/prod/STRIPE_MOCK_MODE" },
+        { "name": "STRIPE_SECRET_KEY",     "valueFrom": "arn:aws:ssm:eu-north-1:REPLACE_WITH_ACCOUNT_ID:parameter/loventia/prod/STRIPE_SECRET_KEY" },
+        { "name": "STRIPE_PRICE_ID",       "valueFrom": "arn:aws:ssm:eu-north-1:REPLACE_WITH_ACCOUNT_ID:parameter/loventia/prod/STRIPE_PRICE_ID" },
+        { "name": "STRIPE_WEBHOOK_SECRET", "valueFrom": "arn:aws:ssm:eu-north-1:REPLACE_WITH_ACCOUNT_ID:parameter/loventia/prod/STRIPE_WEBHOOK_SECRET" },
+        { "name": "CHECKOUT_SUCCESS_URL",  "valueFrom": "arn:aws:ssm:eu-north-1:REPLACE_WITH_ACCOUNT_ID:parameter/loventia/prod/CHECKOUT_SUCCESS_URL" },
+        { "name": "CHECKOUT_CANCEL_URL",   "valueFrom": "arn:aws:ssm:eu-north-1:REPLACE_WITH_ACCOUNT_ID:parameter/loventia/prod/CHECKOUT_CANCEL_URL" },
+        { "name": "BILLING_RETURN_URL",    "valueFrom": "arn:aws:ssm:eu-north-1:REPLACE_WITH_ACCOUNT_ID:parameter/loventia/prod/BILLING_RETURN_URL" },
+        { "name": "STRIPE_MOCK_MODE",      "valueFrom": "arn:aws:ssm:eu-north-1:REPLACE_WITH_ACCOUNT_ID:parameter/loventia/prod/STRIPE_MOCK_MODE" },
 
-        { "name": "S3_UPLOADS_BUCKET",       "valueFrom": "arn:aws:ssm:eu-north-1:REPLACE_WITH_ACCOUNT_ID:parameter/loventia/prod/S3_UPLOADS_BUCKET" },
-        { "name": "S3_REGION",               "valueFrom": "arn:aws:ssm:eu-north-1:REPLACE_WITH_ACCOUNT_ID:parameter/loventia/prod/S3_REGION" },
-        { "name": "CORS_ORIGIN",             "valueFrom": "arn:aws:ssm:eu-north-1:REPLACE_WITH_ACCOUNT_ID:parameter/loventia/prod/CORS_ORIGIN" }
+        { "name": "S3_UPLOADS_BUCKET",     "valueFrom": "arn:aws:ssm:eu-north-1:REPLACE_WITH_ACCOUNT_ID:parameter/loventia/prod/S3_UPLOADS_BUCKET" },
+        { "name": "S3_REGION",             "valueFrom": "arn:aws:ssm:eu-north-1:REPLACE_WITH_ACCOUNT_ID:parameter/loventia/prod/S3_REGION" },
+        { "name": "CORS_ORIGIN",           "valueFrom": "arn:aws:ssm:eu-north-1:REPLACE_WITH_ACCOUNT_ID:parameter/loventia/prod/CORS_ORIGIN" }
       ]
+    },
+
+    {
+      "name": "aws-otel-collector",
+      "image": "public.ecr.aws/aws-observability/aws-otel-collector:latest",
+      "essential": false,
+      "dependsOn": [
+        { "containerName": "server", "condition": "START" }
+      ],
+      "environment": [
+        { "name": "AWS_REGION", "value": "eu-north-1" }
+      ],
+      "secrets": [
+        
+        { "name": "AMP_REMOTE_WRITE_URL", "valueFrom": "arn:aws:ssm:eu-north-1:REPLACE_WITH_ACCOUNT_ID:parameter/loventia/prod/AMP_REMOTE_WRITE_URL" }
+      ],
+      "command": [
+        "sh",
+        "-lc",
+        "cat <<'YAML' > /tmp/collector.yaml\nreceivers:\n  prometheus:\n    config:\n      global:\n        scrape_interval: 15s\n      scrape_configs:\n        - job_name: 'loventia'\n          static_configs:\n            - targets: ['127.0.0.1:5000']\nexporters:\n  prometheusremotewrite:\n    endpoint: '$AMP_REMOTE_WRITE_URL'\n    auth:\n      authenticator: sigv4auth\nextensions:\n  sigv4auth:\n    region: 'eu-north-1'\nservice:\n  extensions: [sigv4auth]\n  pipelines:\n    metrics:\n      receivers: [prometheus]\n      exporters: [prometheusremotewrite]\nYAML\n/awscollector --config /tmp/collector.yaml"
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/loventia/otel",
+          "awslogs-region": "eu-north-1",
+          "awslogs-stream-prefix": "collector"
+        }
+      },
+      "readonlyRootFilesystem": true
     }
   ]
 }

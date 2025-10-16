@@ -1,331 +1,522 @@
-# File: server/openapi/openapi.yaml
-
-# --- REPLACE START: initial OpenAPI surface for Loventia (auth, users, messages, billing, webhooks, health) ---
-openapi: 3.0.3
+# --- REPLACE START
+openapi: 3.1.0
 info:
-  title: Loventia API
-  version: "1.0.0"
-  description: >
-    Public HTTP API for Loventia. This spec covers the primary endpoints used by
-    the web client (auth, users, messages, billing) and operational health checks.
-servers:
-  - url: http://localhost:5000
-    description: Local dev
-  - url: https://api.staging.loventia.example
-    description: Staging
-  - url: https://api.loventia.example
-    description: Production
+  title: Data App API
+  version: 1.0.0
+  description: |
+    OpenAPI specification for the Data App.
+    Includes authentication, user management, image upload, feedback, billing,
+    admin CSV exports, and health endpoints.
 
-tags:
-  - name: auth
-  - name: users
-  - name: messages
-  - name: billing
-  - name: webhooks
-  - name: health
+servers:
+  - url: http://localhost:3000
+    description: Local development server
 
 components:
   securitySchemes:
-    BearerAuth:
+    bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
   schemas:
-    AuthLoginRequest:
-      type: object
-      required: [ email, password ]
-      properties:
-        email: { type: string, format: email }
-        password: { type: string, minLength: 6 }
-    AuthLoginResponse:
+    AuthRequest:
       type: object
       properties:
-        accessToken: { type: string, description: "JWT access token (Bearer)" }
-    RegisterRequest:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - email
+        - password
+    AuthResponse:
       type: object
-      required: [ email, password ]
       properties:
-        email: { type: string, format: email }
-        password: { type: string, minLength: 6 }
+        token:
+          type: string
+          description: JWT access token
     User:
       type: object
       properties:
-        _id: { type: string }
-        email: { type: string, format: email }
-        name: { type: string }
-        premium: { type: boolean }
-        isPremium: { type: boolean }
-        photos:
-          type: array
-          items:
-            type: object
-            additionalProperties: true
-    Message:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        avatarUrl:
+          type: string
+          format: uri
+      required:
+        - id
+        - name
+        - email
+    NewUser:
       type: object
       properties:
-        _id: { type: string }
-        from: { type: string }
-        to: { type: string }
-        text: { type: string }
-        createdAt: { type: string, format: date-time }
-    Error:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - name
+        - email
+        - password
+    ImageUploadResponse:
       type: object
       properties:
-        error: { type: string }
-
-security:
-  - BearerAuth: []
+        url:
+          type: string
+          format: uri
+        filename:
+          type: string
+    Feedback:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        message:
+          type: string
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - name
+        - email
+        - message
+    FeedbackInput:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        message:
+          type: string
+        rating:
+          type: integer
+      required:
+        - name
+        - email
+        - message
 
 paths:
-  /api/health:
-    get:
-      tags: [health]
-      summary: Basic health JSON
-      security: []
+  # ---------------- Authentication ----------------
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: User login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthRequest'
       responses:
-        "200":
-          description: OK
+        '200':
+          description: Authentication successful
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  ok: { type: boolean }
-                  ts: { type: number }
-
-  /health:
-    get:
-      tags: [health]
-      summary: Plaintext health
-      security: []
-      responses:
-        "200":
-          description: OK (text/plain)
-
-  /api/auth/register:
-    post:
-      tags: [auth]
-      summary: Register a new user
-      security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/RegisterRequest" }
-      responses:
-        "201":
-          description: Created
-        "400":
-          description: Bad request
-          content:
-            application/json: { schema: { $ref: "#/components/schemas/Error" } }
-
-  /api/auth/login:
-    post:
-      tags: [auth]
-      summary: Login and get an access token
-      security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/AuthLoginRequest" }
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/AuthLoginResponse" }
-        "401":
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
           description: Invalid credentials
-          content:
-            application/json: { schema: { $ref: "#/components/schemas/Error" } }
 
-  /api/auth/refresh:
-    post:
-      tags: [auth]
-      summary: Refresh access token from httpOnly cookie
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/AuthLoginResponse" }
-        "401":
-          description: Not authorized
-
-  /api/auth/logout:
-    post:
-      tags: [auth]
-      summary: Clear refresh cookie and logout
-      responses:
-        "200":
-          description: OK
-
-  /api/users/me:
+  # ---------------- Users ----------------
+  /users:
     get:
-      tags: [users]
-      summary: Get current user profile
+      tags: [Users]
+      summary: List all users
+      security:
+        - bearerAuth: []
       responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/User" }
-        "401":
-          description: Not authorized
-    put:
-      tags: [users]
-      summary: Update current user (partial)
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              additionalProperties: true
-      responses:
-        "200": { description: OK }
-        "400": { description: Bad request }
-
-  /api/users/{userId}/photos/reorder:
-    put:
-      tags: [users]
-      summary: Reorder photo array
-      parameters:
-        - in: path
-          name: userId
-          required: true
-          schema: { type: string }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [ order ]
-              properties:
-                order:
-                  type: array
-                  items: { type: string }
-      responses:
-        "200": { description: Reordered }
-        "400": { description: Invalid order }
-        "403": { description: Forbidden }
-
-  /api/messages/overview:
-    get:
-      tags: [messages]
-      summary: Conversation overview
-      responses:
-        "200":
-          description: OK
+        '200':
+          description: Array of user objects
           content:
             application/json:
               schema:
                 type: array
-                items: { $ref: "#/components/schemas/Message" }
-
-  /api/messages/{peerId}:
-    get:
-      tags: [messages]
-      summary: Get a thread with peer
-      parameters:
-        - in: path
-          name: peerId
-          required: true
-          schema: { type: string }
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: "#/components/schemas/Message" }
+                items:
+                  $ref: '#/components/schemas/User'
     post:
-      tags: [messages]
-      summary: Send message to peer
-      parameters:
-        - in: path
-          name: peerId
-          required: true
-          schema: { type: string }
+      tags: [Users]
+      summary: Create a new user
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [ text ]
-              properties:
-                text: { type: string, minLength: 1, maxLength: 4000 }
+              $ref: '#/components/schemas/NewUser'
       responses:
-        "201": { description: Created }
-        "400": { description: Bad request }
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
 
-  /api/billing/create-checkout-session:
-    post:
-      tags: [billing]
-      summary: Create Stripe Checkout Session and redirect user
+  /users/{id}:
+    get:
+      tags: [Users]
+      summary: Retrieve a user by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: A single user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+    put:
+      tags: [Users]
+      summary: Update a user by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
       requestBody:
-        required: false
+        required: true
         content:
           application/json:
             schema:
+              $ref: '#/components/schemas/NewUser'
+      responses:
+        '200':
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    delete:
+      tags: [Users]
+      summary: Delete a user by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: User deleted
+
+  # ---------------- Images ----------------
+  /images/upload-avatar:
+    post:
+      tags: [Images]
+      summary: Upload user avatar
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
               type: object
               properties:
-                email: { type: string, format: email }
+                file:
+                  type: string
+                  format: binary
       responses:
-        "200":
-          description: URL to redirect
+        '200':
+          description: Upload successful
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  url: { type: string, format: uri }
-        "401": { description: Unauthorized }
-        "501": { description: Billing not configured }
+                $ref: '#/components/schemas/ImageUploadResponse'
 
-  /api/billing/create-portal-session:
+  # ---------------- Feedback ----------------
+  /feedback:
     post:
-      tags: [billing]
-      summary: Create Stripe Billing Portal Session and redirect
+      tags: [Feedback]
+      summary: Submit a new feedback entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackInput'
       responses:
-        "200":
-          description: URL to redirect
+        '201':
+          description: Feedback created successfully
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  url: { type: string, format: uri }
-        "401": { description: Unauthorized }
-        "501": { description: Billing not configured }
-
-  /api/billing/cancel-now:
-    post:
-      tags: [billing]
-      summary: Cancel active subscription immediately
+                $ref: '#/components/schemas/Feedback'
+    get:
+      tags: [Feedback]
+      summary: Retrieve all feedback entries
+      security:
+        - bearerAuth: []
       responses:
-        "200": { description: OK }
-        "401": { description: Unauthorized }
-        "404": { description: No active subscription }
-        "501": { description: Billing not configured }
+        '200':
+          description: A list of feedback entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Feedback'
 
+  /feedback/{id}:
+    get:
+      tags: [Feedback]
+      summary: Retrieve a single feedback entry by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Feedback entry found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feedback'
+        '404':
+          description: Feedback entry not found
+
+  # ---------------- Billing (Stripe) ----------------
   /api/payment/stripe-webhook:
     post:
-      tags: [webhooks]
-      summary: Stripe webhook (raw body)
-      security: []   # Stripe calls are unauthenticated; signature is verified by Stripe SDK
+      tags: [Billing]
+      summary: Stripe webhook (signed)
+      description: >
+        Accepts Stripe webhook events with a verified signature.
+        Flips user premium ON/OFF accordingly. **Raw body** required.
       requestBody:
         required: true
         content:
           application/json:
-            schema: { type: object, additionalProperties: true }
+            schema:
+              type: object
       responses:
-        "200": { description: Acknowledge }
-        "400": { description: Signature invalid }
-        "500": { description: Not configured }
-# --- REPLACE END ---
+        '200':
+          description: Acknowledged
+        '400':
+          description: Invalid signature or payload
+
+  /api/payment/mock/checkout-complete:
+    post:
+      tags: [Billing]
+      summary: (TEST) Set premium ON
+      description: >
+        Test-only endpoint, enabled when `STRIPE_MOCK_MODE=1`. Requires bearer auth.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Premium flipped ON
+
+  /api/payment/mock/subscription-canceled:
+    post:
+      tags: [Billing]
+      summary: (TEST) Set premium OFF
+      description: >
+        Test-only endpoint, enabled when `STRIPE_MOCK_MODE=1`. Requires bearer auth.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Premium flipped OFF
+
+  # ---------------- Admin CSV Exports ----------------
+  /api/admin/export/users.csv:
+    get:
+      tags: [Admin]
+      summary: Export users as CSV
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (admin only)
+
+  /api/admin/export/matches.csv:
+    get:
+      tags: [Admin]
+      summary: Export matches as CSV
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /api/admin/export/messages.csv:
+    get:
+      tags: [Admin]
+      summary: Export messages as CSV
+      description: >
+        Optional filters: `from` (ISO), `to` (ISO), `limit` (default 100000, max 200000).
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200000
+      responses:
+        '200':
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /api/admin/export/conversations.csv:
+    get:
+      tags: [Admin]
+      summary: Export conversations as CSV
+      description: >
+        Groups messages into conversations by user pair (threadKey).
+        Returns first/last message timestamps, count, last sender and last message text.
+        Supports optional query params: `from` (ISO), `to` (ISO), `limit` (default 100000, max 200000).
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200000
+      responses:
+        '200':
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /api/admin/export/billing-events.csv:
+    get:
+      tags: [Admin]
+      summary: Export billing events as CSV
+      description: >
+        Exports webhook billing events logged by the server (requires `STRIPE_LOG_EVENTS=1` to collect data).
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /api/admin/export/billing-subscriptions.csv:
+    get:
+      tags: [Admin]
+      summary: Export billing subscriptions per user as CSV
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  # ---------------- Health ----------------
+  /healthz:
+    get:
+      tags: [Health]
+      summary: Liveness probe
+      responses:
+        '200':
+          description: OK
+
+  /readiness:
+    get:
+      tags: [Health]
+      summary: Readiness probe
+      description: Returns 200 when dependencies are OK; 503 otherwise.
+      responses:
+        '200':
+          description: Ready
+        '503':
+          description: Not ready
+
+security:
+  - bearerAuth: []
+# --- REPLACE END

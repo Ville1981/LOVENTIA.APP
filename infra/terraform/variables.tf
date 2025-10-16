@@ -73,3 +73,16 @@ variable "slack_webhook_ssm_param" {
   default     = null
 }
 # --- REPLACE END ---
+
+
+variable "aws_region" { type = string }
+variable "alb_arn_suffix" { type = string }       # esim. app/my-alb/0123456789abcdef
+variable "alb_tg_arn_suffix" { type = string }    # esim. targetgroup/my-tg/0123456789abcdef
+variable "ecs_cluster_name" { type = string }
+variable "ecs_service_name" { type = string }
+variable "project" { type = string }
+
+
+variable "amp_workspace_id" { type = string }
+variable "aws_region"       { type = string }
+variable "project"          { type = string }

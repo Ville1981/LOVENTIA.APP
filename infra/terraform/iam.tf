@@ -40,3 +40,39 @@ resource "aws_iam_role_policy_attachment" "task_ssm_attach" {
   policy_arn = aws_iam_policy.task_ssm.arn
 }
 // --- REPLACE END ---
+
+
+# infra/terraform/iam.tf
+# --- ADD: AMP RemoteWrite policy for ECS task role ---
+data "aws_caller_identity" "current" {}
+
+# Oletetaan että sinulla on jo task role:
+# resource "aws_iam_role" "ecs_task_role" { ... }
+
+resource "aws_iam_policy" "amp_remote_write" {
+  name        = "${var.project}-amp-remote-write"
+  description = "Allow ADOT collector to remote_write to AMP"
+  policy      = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Sid: "RemoteWrite",
+        Effect: "Allow",
+        Action: [
+          "aps:RemoteWrite",
+          "aps:GetSeries",
+          "aps:GetLabels",
+          "aps:GetMetricMetadata"
+        ],
+        Resource: "*"
+        # Halutessasi rajoita workspace-resursseihin:
+        # Resource: "arn:aws:aps:${var.aws_region}:${data.aws_caller_identity.current.account_id}:workspace/${var.amp_workspace_id}"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_task_role_attach_amp" {
+  role       = aws_iam_role.ecs_task_role.name
+  policy_arn = aws_iam_policy.amp_remote_write.arn
+}

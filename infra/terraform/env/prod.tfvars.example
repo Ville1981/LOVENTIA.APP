@@ -1,0 +1,21 @@
+# --- PROD EXAMPLE VARS ---
+
+project              = "loventia-prod"
+aws_region           = "eu-west-1"
+
+alb_logs_bucket_name = "loventia-alb-logs-prod-CHANGE-ME"
+athena_results_s3    = "s3://loventia-athena-results-prod"
+
+amp_workspace_id     = "ws-YYYYYYYY-YYYY-YYYY-YYYY-YYYYYYYYYYYY"
+
+ecs_cluster_name     = "loventia-prod-cluster"
+ecs_service_name     = "loventia-prod-api"
+
+alb_arn_suffix       = "app/loventia-prod-alb/abcdef0123456789"
+alb_tg_arn_suffix    = "targetgroup/loventia-prod-tg/abcdef0123456789"
+
+vpc_id               = "vpc-abcdef0123456789"
+public_subnets       = ["subnet-111", "subnet-222"]
+private_subnets      = ["subnet-333", "subnet-444"]
+
+api_desired_count    = 3

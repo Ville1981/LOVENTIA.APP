@@ -1,8 +1,16 @@
+<<<<<<< HEAD
 // File: server/src/routes/referral.js
 
 // --- REPLACE START: minimal referral API (my-code & beacon) ---
 import express from 'express';
 import { codeFromUserId } from '../utils/referral.js';
+=======
+// File: server/src/api/routes/referral.js
+
+// --- REPLACE START: minimal referral API (my-code & beacon) ---
+import express from 'express';
+import { codeFromUserId } from '../../utils/referral.js';
+>>>>>>> 7c16647faa28a92e621c9de1cf05c57fcaf11466
 
 const router = express.Router();
 

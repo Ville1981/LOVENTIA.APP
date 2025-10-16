@@ -1,0 +1,28 @@
+# --- STAGING EXAMPLE VARS ---
+
+project              = "loventia-staging"
+aws_region           = "eu-west-1"
+
+# ALB access logs + Athena
+alb_logs_bucket_name = "loventia-alb-logs-staging-CHANGE-ME"
+athena_results_s3    = "s3://loventia-athena-results-staging"
+
+# AMP (Amazon Managed Prometheus) – jos käytät OTel-sidecaria
+amp_workspace_id     = "ws-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
+
+# ECS/ALB viittaukset dashboardia varten
+ecs_cluster_name     = "loventia-staging-cluster"
+ecs_service_name     = "loventia-staging-api"
+
+# HUOM: nämä ovat **ARN suffixit**, eivät koko ARN:t!
+# Saat arvot CloudWatch Metrics -näkymästä (dimension "LoadBalancer"/"TargetGroup")
+alb_arn_suffix       = "app/loventia-staging-alb/0123456789abcdef"
+alb_tg_arn_suffix    = "targetgroup/loventia-staging-tg/0123456789abcdef"
+
+# Verkkoparametrit (jos moduulit eivät tuota näitä)
+vpc_id               = "vpc-0123456789abcdef0"
+public_subnets       = ["subnet-aaa", "subnet-bbb"]
+private_subnets      = ["subnet-ccc", "subnet-ddd"]
+
+# ECS palvelun skaalaus
+api_desired_count    = 2

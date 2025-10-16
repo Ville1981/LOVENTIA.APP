@@ -1,3 +1,8 @@
+env:
+
+  TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+  PERF_PASSWORD: ${{ secrets.PERF_PASSWORD }}
+  CYPRESS_TEST_PASSWORD: ${{ secrets.CYPRESS_TEST_PASSWORD }}
 # File: .github/workflows/performance-tests.yml
 # --- REPLACE START: bump actions to v4 (checkout + upload-artifact), keep logic intact ---
 
