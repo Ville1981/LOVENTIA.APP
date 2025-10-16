@@ -1,8 +1,9 @@
-// server/src/routes/index.js
+// File: server/src/routes/index.js
 
 import express from 'express';
 
 // --- REPLACE START: Import modules in a robust way and normalize their exports ---
+// Central note: do NOT set CORS headers here. All CORS is handled by server/src/config/corsConfig.js.
 // Some route files export using `export default router` (ESM),
 // others may export as `{ router }` or `module.exports = router` (CJS interop compiled to ESM namespace).
 // To avoid "does not provide an export named 'default'" errors, we import as namespace and pick the router.
@@ -98,6 +99,9 @@ const use = (path, r, name) => {
  * app.js uses `app.use('/api', routes)` → mounting at '/' here means they show under /api/*.
  * To restore canonical paths (e.g. /api/auth/login, /api/users/*), we mount routers
  * under their expected base prefixes below. Avoid duplicates and keep order stable.
+ *
+ * IMPORTANT: Do not set any Access-Control-Allow-* headers here. CORS is handled globally
+ * by `server/src/config/corsConfig.js`, which is applied at the app level.
  */
 
 // Health + metrics at root of /api
@@ -163,3 +167,5 @@ use('/social', socialRoutes, 'socialRoutes');
 use('/billing', billing, 'billing');
 
 export default router;
+
+
