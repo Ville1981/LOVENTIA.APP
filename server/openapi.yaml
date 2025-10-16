@@ -1,13 +1,17 @@
-openapi: 3.0.1
+# --- REPLACE START
+openapi: 3.1.0
 info:
   title: Data App API
   version: 1.0.0
   description: |
     OpenAPI specification for the Data App.
-    Includes authentication, user management, image upload, and feedback endpoints.
+    Includes authentication, user management, image upload, feedback, billing,
+    admin CSV exports, and health endpoints.
+
 servers:
   - url: http://localhost:3000
     description: Local development server
+
 components:
   securitySchemes:
     bearerAuth:
@@ -112,7 +116,9 @@ components:
         - name
         - email
         - message
+
 paths:
+  # ---------------- Authentication ----------------
   /auth/login:
     post:
       tags: [Authentication]
@@ -132,6 +138,8 @@ paths:
                 $ref: '#/components/schemas/AuthResponse'
         '401':
           description: Invalid credentials
+
+  # ---------------- Users ----------------
   /users:
     get:
       tags: [Users]
@@ -163,6 +171,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
+
   /users/{id}:
     get:
       tags: [Users]
@@ -225,6 +234,8 @@ paths:
       responses:
         '204':
           description: User deleted
+
+  # ---------------- Images ----------------
   /images/upload-avatar:
     post:
       tags: [Images]
@@ -248,6 +259,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ImageUploadResponse'
+
+  # ---------------- Feedback ----------------
   /feedback:
     post:
       tags: [Feedback]
@@ -279,6 +292,7 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Feedback'
+
   /feedback/{id}:
     get:
       tags: [Feedback]
@@ -301,5 +315,208 @@ paths:
                 $ref: '#/components/schemas/Feedback'
         '404':
           description: Feedback entry not found
+
+  # ---------------- Billing (Stripe) ----------------
+  /api/payment/stripe-webhook:
+    post:
+      tags: [Billing]
+      summary: Stripe webhook (signed)
+      description: >
+        Accepts Stripe webhook events with a verified signature.
+        Flips user premium ON/OFF accordingly. **Raw body** required.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Acknowledged
+        '400':
+          description: Invalid signature or payload
+
+  /api/payment/mock/checkout-complete:
+    post:
+      tags: [Billing]
+      summary: (TEST) Set premium ON
+      description: >
+        Test-only endpoint, enabled when `STRIPE_MOCK_MODE=1`. Requires bearer auth.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Premium flipped ON
+
+  /api/payment/mock/subscription-canceled:
+    post:
+      tags: [Billing]
+      summary: (TEST) Set premium OFF
+      description: >
+        Test-only endpoint, enabled when `STRIPE_MOCK_MODE=1`. Requires bearer auth.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Premium flipped OFF
+
+  # ---------------- Admin CSV Exports ----------------
+  /api/admin/export/users.csv:
+    get:
+      tags: [Admin]
+      summary: Export users as CSV
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (admin only)
+
+  /api/admin/export/matches.csv:
+    get:
+      tags: [Admin]
+      summary: Export matches as CSV
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /api/admin/export/messages.csv:
+    get:
+      tags: [Admin]
+      summary: Export messages as CSV
+      description: >
+        Optional filters: `from` (ISO), `to` (ISO), `limit` (default 100000, max 200000).
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200000
+      responses:
+        '200':
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /api/admin/export/conversations.csv:
+    get:
+      tags: [Admin]
+      summary: Export conversations as CSV
+      description: >
+        Groups messages into conversations by user pair (threadKey).
+        Returns first/last message timestamps, count, last sender and last message text.
+        Supports optional query params: `from` (ISO), `to` (ISO), `limit` (default 100000, max 200000).
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200000
+      responses:
+        '200':
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /api/admin/export/billing-events.csv:
+    get:
+      tags: [Admin]
+      summary: Export billing events as CSV
+      description: >
+        Exports webhook billing events logged by the server (requires `STRIPE_LOG_EVENTS=1` to collect data).
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /api/admin/export/billing-subscriptions.csv:
+    get:
+      tags: [Admin]
+      summary: Export billing subscriptions per user as CSV
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  # ---------------- Health ----------------
+  /healthz:
+    get:
+      tags: [Health]
+      summary: Liveness probe
+      responses:
+        '200':
+          description: OK
+
+  /readiness:
+    get:
+      tags: [Health]
+      summary: Readiness probe
+      description: Returns 200 when dependencies are OK; 503 otherwise.
+      responses:
+        '200':
+          description: Ready
+        '503':
+          description: Not ready
+
 security:
   - bearerAuth: []
+# --- REPLACE END

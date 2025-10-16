@@ -27,34 +27,45 @@ module.exports = {
     },
   },
 
-  // --- REPLACE START: ignore axobject-query so ESLint never lints its broken files ---
+  // --- REPLACE START: keep ignore and add react-hooks plugin + config ---
   ignorePatterns: ["node_modules/axobject-query/**"],
   // --- REPLACE END ---
 
   extends: [
     "eslint:recommended",
     "plugin:react/recommended",
+    // --- REPLACE START: enable official React Hooks rules ---
+    "plugin:react-hooks/recommended",
+    // --- REPLACE END ---
     "plugin:import/errors",
     "plugin:import/warnings",
     "prettier",
   ],
 
-  plugins: ["react", "import"],
+  // --- REPLACE START: add react-hooks plugin ---
+  plugins: ["react", "import", "react-hooks"],
+  // --- REPLACE END ---
 
   rules: {
     // Turn off prop-types rule (we type-check elsewhere)
     "react/prop-types": "off",
     // Enable the new JSX transform (no need to import React in scope)
     "react/react-in-jsx-scope": "off",
+
+    // --- REPLACE START: React Hooks rules (matches recommended defaults) ---
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn",
+    // --- REPLACE END ---
+
     // Enforce import ordering and auto-fixable
     "import/order": [
       "error",
       {
-        "groups": ["builtin", "external", "internal", ["parent", "sibling"], "index"],
+        groups: ["builtin", "external", "internal", ["parent", "sibling"], "index"],
         "newlines-between": "always",
-        "alphabetize": { "order": "asc", "caseInsensitive": true }
-      }
-    ]
+        alphabetize: { order: "asc", caseInsensitive: true },
+      },
+    ],
   },
 
   overrides: [

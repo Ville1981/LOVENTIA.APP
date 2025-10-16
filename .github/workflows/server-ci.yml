@@ -1,3 +1,8 @@
+env:
+
+  TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+  PERF_PASSWORD: ${{ secrets.PERF_PASSWORD }}
+  CYPRESS_TEST_PASSWORD: ${{ secrets.CYPRESS_TEST_PASSWORD }}
 # File: .github/workflows/server-ci.yml
 
 # --- REPLACE START: Lint → test → coverage → build → artifacts (no deploy) ---
@@ -118,3 +123,70 @@ jobs:
             ~/.npm/_logs
           if-no-files-found: ignore
 # --- REPLACE END ---
+
+
+
+  # .github/workflows/server-ci.yml
+# --- REPLACE START: add OpenAPI validate/build step ---
+- name: Install deps (server)
+  working-directory: server
+  run: npm ci
+
+- name: OpenAPI validate & bundle
+  working-directory: server
+  run: npm run openapi:build
+
+- name: Upload OpenAPI artifacts
+  uses: actions/upload-artifact@v4
+  with:
+    name: openapi-dist
+    path: server/openapi/dist/*
+# --- REPLACE END ---
+
+
+  name: Server CI
+
+on:
+  push:
+    branches: [ "develop", "main" ]
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install deps (server)
+        working-directory: server
+        run: npm ci
+
+      - name: Lint & Test
+        working-directory: server
+        run: |
+          npm run lint --if-present
+          npm test --if-present
+
+      - name: OpenAPI validate & bundle
+        working-directory: server
+        run: npm run openapi:build
+
+      - name: Upload OpenAPI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-dist
+          path: server/openapi/dist/*
+
+      # ↓ jos teillä on erillinen build/push/deploy ECS:ään, jätä/siirrä se toiseen workflow’hun
+      - name: Build server (optional)
+        working-directory: server
+        run: npm run build --if-present

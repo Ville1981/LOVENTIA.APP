@@ -6,3 +6,6 @@
 10038   WARN    ignore  # Content Security Policy (if not enforcing yet)
 10021   WARN    ignore  # X-Content-Type-Options missing (helmet should add; warn until enforced)
 # --- REPLACE END ---
+10054	IGNORE	# Cookie without HttpOnly flag (consent libs)
+10055	IGNORE	# X-Content-Type-Options header missing (serve via CloudFront headers)
+10021	IGNORE	# X-Frame-Options header missing (handled by ALB/CF/WAF)

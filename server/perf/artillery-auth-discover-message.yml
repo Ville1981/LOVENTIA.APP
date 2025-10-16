@@ -18,7 +18,7 @@ scenarios:
           url: "/api/auth/login"
           json:
             email: "{{ $randomEmail }}"
-            password: "Passw0rd!234"
+            password: "{{ $processEnvironment.PERF_PASSWORD }}"
           expect:
             - statusCode: [200,201]
           afterResponse: |

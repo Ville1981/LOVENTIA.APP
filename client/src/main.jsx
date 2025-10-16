@@ -1,71 +1,48 @@
-// client/src/main.jsx
+// PATH: client/src/main.jsx
 
-// --- REPLACE START: ensure i18n is loaded before React tree (single init only) ---
-import "./i18n"; // load i18n once; DO NOT also import "./i18n/config"
-// --- REPLACE END ---
+// --- REPLACE START: Single, clean bootstrap (no double Router/QueryClient), i18n-first, optional MSW ---
+import "./i18n"; // Initialize i18n once at app start
+
 import React, { Suspense } from "react";
 import ReactDOM from "react-dom/client";
+import i18n from "i18next";
 
 import "./global.css";
-// import "./i18n/config"; // (removed – duplicated init would override nsSeparator)
 import "leaflet/dist/leaflet.css";
 import "./styles/ads.css";
 
-import App from "./App";
-import ConsentBanner from "./components/ConsentBanner.jsx";
-import { ConsentProvider } from "./components/ConsentProvider.jsx";
+// App root (App.jsx already owns the Router + its own QueryClientProvider)
+import App from "./App.jsx";
+
+// Auth + consent providers should live at the top; keep only one instance
 import { AuthProvider } from "./contexts/AuthContext";
+import { ConsentProvider } from "./components/ConsentProvider.jsx";
+import ConsentBanner from "./components/ConsentBanner.jsx";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
-// --- REPLACE START: wait for i18n to be initialized before mounting ---
-import i18n from "i18next";
-// --- REPLACE END ---
-
-// File: client/src/main.jsx  (tai vastaava root render)
-
-// --- REPLACE START: wrap the app with ConsentProvider ---
-
-
-
-
-ReactDOM.createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
-    <ConsentProvider>
-      <App />
-      {/* Place near root so it's visible everywhere */}
-      <ConsentBanner />
-    </ConsentProvider>
-  </React.StrictMode>
-);
-// --- REPLACE END ---
-
-
-const queryClient = new QueryClient();
-
-// --- REPLACE START: bootstrap app with i18n-ready + optional MSW ---
+// Root render (no BrowserRouter here, App.jsx already handles routing)
 function renderApp() {
   const rootEl = document.getElementById("root");
-  if (!rootEl) {
-    throw new Error('Root element with id="root" not found');
-  }
+  if (!rootEl) throw new Error('Root element with id="root" not found');
   const root = ReactDOM.createRoot(rootEl);
+
   root.render(
     <React.StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          {/* Suspense can stay even if not strictly required */}
+      <AuthProvider>
+        <ConsentProvider>
+          {/* Keep Suspense even if not strictly required (translations, lazy routes) */}
           <Suspense fallback={null}>
             <App />
           </Suspense>
-        </AuthProvider>
-      </QueryClientProvider>
+          {/* Render banner once at the top level so it's available site-wide */}
+          <ConsentBanner />
+        </ConsentProvider>
+      </AuthProvider>
     </React.StrictMode>
   );
 }
 
-function bootstrapReactApp() {
-  // If i18n already initialized, render immediately; otherwise wait for "initialized"
+// Defer mounting until i18n is ready to avoid flashing untranslated strings
+function bootstrap() {
   if (i18n.isInitialized) {
     renderApp();
     return;
@@ -77,22 +54,28 @@ function bootstrapReactApp() {
   i18n.on("initialized", onReady);
 }
 
-const enableMSW = import.meta.env.VITE_ENABLE_MSW === "true";
+// Optional: Mock Service Worker in dev when explicitly enabled
+const enableMSW =
+  (typeof import.meta !== "undefined" &&
+    import.meta.env &&
+    (import.meta.env.VITE_ENABLE_MSW === "true" ||
+      import.meta.env.VITE_MSW === "1")) ||
+  false;
 
-if (import.meta.env.DEV && enableMSW) {
+if (import.meta.env?.DEV && enableMSW) {
   import("./mocks/browser")
     .then(({ worker }) =>
       worker.start({
         onUnhandledRequest: "bypass",
       })
     )
-    .then(bootstrapReactApp)
+    .then(bootstrap)
     .catch((err) => {
       // eslint-disable-next-line no-console
-      console.error("MSW failed to start", err);
-      bootstrapReactApp();
+      console.error("[MSW] failed to start:", err);
+      bootstrap();
     });
 } else {
-  bootstrapReactApp();
+  bootstrap();
 }
 // --- REPLACE END ---

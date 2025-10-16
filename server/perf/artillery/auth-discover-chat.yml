@@ -22,7 +22,7 @@ scenarios:
           url: "/api/auth/login"
           json:
             email: "{{ $processEnvironment.PERF_EMAIL || 'test@example.com' }}"
-            password: "{{ $processEnvironment.PERF_PASSWORD || 'Passw0rd!234' }}"
+            password: "{{ $processEnvironment.PERF_PASSWORD }}"
           capture:
             - json: "$.token"
               as: token

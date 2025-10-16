@@ -8,7 +8,8 @@ import sharp from 'sharp';
 
 // Auth + upload middlewares (ESM)
 import authenticate from '../middleware/authenticate.js';
-import { upload } from '../config/multer.js';
+import { upload } from '../../config/multer.js';
+
 
 // Models (interop both ESM default and CJS module.exports)
 import * as UserModule from '../models/User.js';
