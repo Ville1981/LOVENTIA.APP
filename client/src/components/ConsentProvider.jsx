@@ -1,9 +1,21 @@
-// File: client/src/components/ConsentProvider.jsx
+// PATH: client/src/components/ConsentProvider.jsx
 
 // --- REPLACE START: tiny consent context (localStorage-based) ---
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
-const CONSENT_KEY = "consent.v1";
+/**
+ * IMPORTANT:
+ * Keep this storage key in sync with ConsentBanner.jsx.
+ * Banner mirrors/reads the same key to ensure one source of truth.
+ */
+const CONSENT_KEY = "loventia-consent-v1";
 
 const defaultConsent = Object.freeze({
   necessary: true,
@@ -14,7 +26,8 @@ const defaultConsent = Object.freeze({
 
 function readStoredConsent() {
   try {
-    const raw = localStorage.getItem(CONSENT_KEY);
+    if (typeof window === "undefined" || !("localStorage" in window)) return null;
+    const raw = window.localStorage.getItem(CONSENT_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     // Guard: keep only known keys
@@ -31,12 +44,13 @@ function readStoredConsent() {
 
 function writeStoredConsent(value) {
   try {
-    localStorage.setItem(
+    if (typeof window === "undefined" || !("localStorage" in window)) return;
+    window.localStorage.setItem(
       CONSENT_KEY,
       JSON.stringify({ ...value, necessary: true, timestamp: Date.now() })
     );
   } catch {
-    // ignore
+    // ignore storage errors
   }
 }
 
@@ -55,38 +69,46 @@ export const ConsentProvider = ({ children }) => {
     if (stored) {
       setConsentState(stored);
       setIsDecided(true);
-      queueMicrotask(() => {
-        window.dispatchEvent(new CustomEvent("consent:ready", { detail: stored }));
-      });
+      try {
+        const fire = () =>
+          window.dispatchEvent(new CustomEvent("consent:ready", { detail: stored }));
+        // queueMicrotask is not available in all test envs
+        if (typeof queueMicrotask === "function") queueMicrotask(fire);
+        else setTimeout(fire, 0);
+      } catch {
+        /* ignore event errors in non-DOM envs */
+      }
     }
   }, []);
 
   const setConsent = useCallback((next) => {
     const normalized = {
       necessary: true,
-      analytics: !!next.analytics,
-      marketing: !!next.marketing,
+      analytics: !!next?.analytics,
+      marketing: !!next?.marketing,
       timestamp: Date.now(),
     };
     setConsentState(normalized);
     setIsDecided(true);
     writeStoredConsent(normalized);
-    // Let other parts (e.g., analytics loader) react to changes
-    window.dispatchEvent(new CustomEvent("consent:changed", { detail: normalized }));
+    try {
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("consent:changed", { detail: normalized }));
+      }
+    } catch {
+      /* ignore */
+    }
   }, []);
 
-  const value = useMemo(() => ({ consent, setConsent, isDecided }), [consent, setConsent, isDecided]);
+  const value = useMemo(
+    () => ({ consent, setConsent, isDecided }),
+    [consent, setConsent, isDecided]
+  );
 
-  // Optional: wire a super-simple analytics loader (no external deps)
+  // Optional hook for analytics/marketing loaders; intentionally no-op in tests
   useEffect(() => {
     if (!isDecided) return;
-    if (consent.analytics) {
-      // Example hook – replace with your analytics init (GA/Plausible/etc.)
-      // window.plausible = window.plausible || function(){(window.plausible.q=window.plausible.q||[]).push(arguments)};
-      // Dynamically load your script here if needed.
-    } else {
-      // If you loaded analytics previously, consider disabling here.
-    }
+    // if (consent.analytics) { initAnalyticsOnce(); } else { disableAnalytics(); }
   }, [isDecided, consent.analytics]);
 
   return <ConsentContext.Provider value={value}>{children}</ConsentContext.Provider>;

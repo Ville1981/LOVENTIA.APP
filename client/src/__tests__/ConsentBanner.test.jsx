@@ -1,24 +1,34 @@
-// File: client/src/components/__tests__/ConsentBanner.test.jsx
-
-// --- REPLACE START: Jest/RTL tests for ConsentBanner + ConsentProvider ---
+﻿// --- REPLACE START: Fix LS key reset + keep imports relative to src/__tests__ ---
 /**
- * These tests work with Jest or Vitest (jsdom env).
- * Ensure your test runner uses a browser-like DOM (jsdom).
+ * Jest/Vitest + jsdom tests for ConsentBanner + ConsentProvider
+ * This file lives in `client/src/__tests__/`, so components are at `../components/*`.
+ * Important: clear BOTH legacy and canonical LS keys between tests.
  */
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { ConsentProvider } from "../../components/ConsentProvider.jsx";
-import ConsentBanner from "../../components/ConsentBanner.jsx";
+import { ConsentProvider } from "../components/ConsentProvider.jsx";
+import ConsentBanner from "../components/ConsentBanner.jsx";
+// --- REPLACE END ---
 
-const CONSENT_KEY = "consent.v1";
+// Legacy key used by older tests (keep clearing for compatibility)
+const LEGACY_CONSENT_KEY = "consent.v1";
+// Canonical key used by the component
+const LS_KEY = "loventia-consent-v1";
 
 function renderWithProvider(ui) {
   return render(<ConsentProvider>{ui}</ConsentProvider>);
 }
 
 beforeEach(() => {
-  // Clean slate before each test
-  localStorage.removeItem(CONSENT_KEY);
+  // Clean slate before each test (both keys!)
+  localStorage.removeItem(LEGACY_CONSENT_KEY);
+  localStorage.removeItem(LS_KEY);
+});
+
+afterEach(() => {
+  // Extra safety to avoid bleed between tests
+  localStorage.removeItem(LEGACY_CONSENT_KEY);
+  localStorage.removeItem(LS_KEY);
 });
 
 describe("ConsentBanner", () => {
@@ -38,9 +48,9 @@ describe("ConsentBanner", () => {
     });
 
     // LocalStorage should contain analytics/marketing true
-    const stored = JSON.parse(localStorage.getItem(CONSENT_KEY) || "{}");
+    const stored = JSON.parse(localStorage.getItem(LS_KEY) || "{}");
     expect(stored).toMatchObject({ analytics: true, marketing: true, necessary: true });
-    expect(typeof stored.timestamp).toBe("number");
+    expect(typeof stored.ts ?? stored.timestamp).toBe("number");
   });
 
   test("Reject non-essential sets analytics=false, marketing=false", async () => {
@@ -54,7 +64,7 @@ describe("ConsentBanner", () => {
       expect(screen.queryByTestId("consent-banner")).not.toBeInTheDocument();
     });
 
-    const stored = JSON.parse(localStorage.getItem(CONSENT_KEY) || "{}");
+    const stored = JSON.parse(localStorage.getItem(LS_KEY) || "{}");
     expect(stored).toMatchObject({ analytics: false, marketing: false, necessary: true });
   });
 
@@ -64,7 +74,7 @@ describe("ConsentBanner", () => {
     // Open manage panel
     fireEvent.click(await screen.findByTestId("consent-manage"));
 
-    // Turn analytics ON (it defaults true in component, but we toggle to be explicit)
+    // Turn analytics ON (toggle explicitly)
     const chkAnalytics = await screen.findByTestId("consent-chk-analytics");
     if (!chkAnalytics.checked) fireEvent.click(chkAnalytics);
 
@@ -80,8 +90,7 @@ describe("ConsentBanner", () => {
       expect(screen.queryByTestId("consent-banner")).not.toBeInTheDocument();
     });
 
-    const stored = JSON.parse(localStorage.getItem(CONSENT_KEY) || "{}");
+    const stored = JSON.parse(localStorage.getItem(LS_KEY) || "{}");
     expect(stored).toMatchObject({ analytics: true, marketing: false, necessary: true });
   });
 });
-// --- REPLACE END ---

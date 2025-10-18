@@ -1,129 +1,236 @@
-// PATH: client/src/components/privacy/ConsentBanner.jsx
-
-// --- REPLACE START: hardened, accessible consent banner with cross-tab sync ---
-import React, { useEffect, useState, useCallback } from "react";
-
-const STORAGE_KEY = "loventia-consent-v1";
-
+// --- REPLACE START: Full, explicit React-based consent banner (with Provider support) ---
 /**
- * Small helpers to safely access localStorage (SSR/Privacy modes friendly).
+ * ConsentBanner integrates with ConsentProvider (via useConsent) and mirrors
+ * decisions to localStorage under "loventia-consent-v1" for legacy/simple pages.
+ *
+ * Behavior (tested with RTL):
+ *  - data-testid="consent-banner" wraps the banner.
+ *  - "consent-accept": sets analytics=true, marketing=true, necessary=true and hides.
+ *  - "consent-reject": sets analytics=false, marketing=false, necessary=true and hides.
+ *  - "consent-manage": opens a <details data-testid="consent-manage-panel">.
+ *  - Checkboxes:
+ *      - data-testid="consent-chk-analytics"
+ *      - data-testid="consent-chk-marketing"
+ *  - "consent-manage-save": saves current toggles and hides.
+ *  - "consent-manage-reset": resets toggles to {analytics:false, marketing:false}.
+ *
+ * Notes:
+ *  - Guards window.scrollTo in jsdom (our setup overwrites it, but keep defensive try/catch).
+ *  - Performs a one-time bootstrap from localStorage into Provider if Provider undecided.
  */
-function readConsent() {
+
+import React, { useEffect, useMemo, useState, useRef } from "react";
+import PropTypes from "prop-types";
+import { useConsent } from "../ConsentProvider.jsx";
+
+const LS_KEY = "loventia-consent-v1";
+
+/* --------------------------------- Storage --------------------------------- */
+function readLS() {
   try {
-    if (typeof window === "undefined" || !window.localStorage) return null;
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    try {
-      return JSON.parse(raw);
-    } catch {
-      // Accept legacy non-JSON values by treating them as "accepted"
-      return { analytics: true, ts: Date.now(), _legacy: true };
-    }
+    const raw = localStorage.getItem(LS_KEY);
+    return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
 }
-
-function writeConsent(value) {
+function writeLS(val) {
   try {
-    if (typeof window === "undefined" || !window.localStorage) return;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
-  } catch {
-    // ignore write failures (private mode, blocked storage, etc.)
-  }
+    const payload = { ...val, necessary: true, ts: Date.now() };
+    localStorage.setItem(LS_KEY, JSON.stringify(payload));
+    if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
+      try {
+        window.dispatchEvent(new CustomEvent("consent:changed", { detail: payload }));
+      } catch {}
+    }
+  } catch {}
 }
 
-/**
- * Minimal Consent Banner:
- * - Shows until a choice is stored in localStorage.
- * - Dispatches 'consent:changed' CustomEvent for analytics loaders to react to.
- * - Syncs across tabs via 'storage' event.
- */
-export default function ConsentBanner() {
-  const [visible, setVisible] = useState(false);
-
-  // Do not render during tests (keeps Vitest/Cypress calmer)
-  const isTest = typeof import.meta !== "undefined" && import.meta.env?.MODE === "test";
-
-  const hideIfAlreadyConsented = useCallback(() => {
-    const v = readConsent();
-    setVisible(!v); // show only if nothing stored yet
-  }, []);
-
-  useEffect(() => {
-    if (isTest) return;
-    hideIfAlreadyConsented();
-
-    // Cross-tab sync: hide if user consents in another tab
-    const onStorage = (e) => {
-      if (e?.key === STORAGE_KEY) {
-        hideIfAlreadyConsented();
-      }
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, [hideIfAlreadyConsented, isTest]);
-
-  if (isTest || !visible) return null;
-
-  const dispatchChange = (analytics) => {
-    try {
-      window.dispatchEvent(
-        new CustomEvent("consent:changed", { detail: { analytics } })
-      );
-    } catch {
-      // no-op
-    }
-  };
-
-  const accept = () => {
-    const payload = { analytics: true, ts: Date.now() };
-    writeConsent(payload);
-    setVisible(false);
-    dispatchChange(true);
-  };
-
-  const decline = () => {
-    const payload = { analytics: false, ts: Date.now() };
-    writeConsent(payload);
-    setVisible(false);
-    dispatchChange(false);
-  };
-
+/* ------------------------------ Presentational ------------------------------ */
+function Row({ label, children }) {
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50">
-      <div
-        role="dialog"
-        aria-live="polite"
-        aria-label="Cookie consent"
-        className="mx-auto m-2 flex max-w-5xl flex-col items-center gap-3 rounded-2xl bg-white p-4 shadow-lg sm:flex-row"
-      >
-        <p className="text-sm">
-          We use cookies for essential functionality and, with your consent, for analytics. See our
-          <a href="/privacy" className="ml-1 underline">Privacy</a> and
-          <a href="/cookies" className="ml-1 underline">Cookies</a>.
-        </p>
-
-        <div className="ml-auto flex gap-2">
-          <button
-            onClick={decline}
-            type="button"
-            className="rounded-xl bg-gray-200 px-3 py-2"
-            aria-label="Decline analytics cookies"
-          >
-            Decline
-          </button>
-          <button
-            onClick={accept}
-            type="button"
-            className="rounded-xl bg-black px-3 py-2 text-white"
-            aria-label="Allow analytics cookies"
-          >
-            Allow analytics
-          </button>
-        </div>
-      </div>
+    <div className="flex items-center justify-between gap-4 py-1">
+      <span className="text-sm">{label}</span>
+      <span>{children}</span>
     </div>
   );
 }
+Row.propTypes = {
+  label: PropTypes.string.isRequired,
+  children: PropTypes.node,
+};
+
+/* --------------------------------- Banner ---------------------------------- */
+export default function ConsentBanner() {
+  // Align with ConsentProvider API: { consent, setConsent, isDecided }
+  const { isDecided, consent, setConsent } = useConsent();
+  const [openManage, setOpenManage] = useState(false);
+  const [analytics, setAnalytics] = useState(false);
+  const [marketing, setMarketing] = useState(false);
+  const bootstrappedRef = useRef(false);
+
+  // Bootstrap from LS once if Provider undecided
+  useEffect(() => {
+    if (isDecided || bootstrappedRef.current) return;
+    const fromLS = readLS();
+    if (fromLS && typeof setConsent === "function") {
+      setConsent({
+        analytics: !!fromLS.analytics,
+        marketing: !!fromLS.marketing,
+        necessary: true,
+      });
+    }
+    bootstrappedRef.current = true;
+  }, [isDecided, setConsent]);
+
+  // When Provider decides, mirror to LS and close/hide banner
+  useEffect(() => {
+    if (!isDecided) return;
+    writeLS({
+      analytics: !!consent?.analytics,
+      marketing: !!consent?.marketing,
+      necessary: true,
+    });
+  }, [isDecided, consent]);
+
+  // Keep local manage-state in sync with Provider when panel opens
+  useEffect(() => {
+    if (openManage) {
+      setAnalytics(!!consent?.analytics);
+      setMarketing(!!consent?.marketing);
+    }
+  }, [openManage, consent]);
+
+  const visible = !isDecided;
+
+  const onAcceptAll = () => {
+    // Provider normalizes necessary:true + timestamp internally
+    setConsent({ analytics: true, marketing: true, necessary: true });
+  };
+  const onRejectAll = () => {
+    setConsent({ analytics: false, marketing: false, necessary: true });
+  };
+  const onOpenManage = () => setOpenManage((v) => !v);
+  const onResetManage = () => {
+    setAnalytics(false);
+    setMarketing(false);
+  };
+  const onSaveManage = () => {
+    setConsent({ analytics: !!analytics, marketing: !!marketing, necessary: true });
+    try {
+      if (typeof window !== "undefined" && typeof window.scrollTo === "function") {
+        window.scrollTo(0, 0); // harmless in app; mocked/guarded in tests
+      }
+    } catch {} // jsdom safety
+  };
+
+  const containerStyle = useMemo(
+    () =>
+      "fixed inset-x-0 bottom-0 z-50 mx-auto max-w-3xl rounded-t-lg border border-gray-200 bg-white/95 p-4 shadow-xl backdrop-blur",
+    []
+  );
+
+  if (!visible) return null;
+
+  return (
+    <aside className={containerStyle} data-testid="consent-banner" role="dialog" aria-live="polite">
+      <h2 className="text-base font-semibold">We use cookies</h2>
+      <p className="mt-1 text-sm text-gray-700">
+        We use necessary cookies to make our site work. With your consent, we also use analytics and
+        marketing cookies to understand usage and improve your experience.
+      </p>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          className="rounded-md border px-3 py-1.5 text-sm"
+          data-testid="consent-reject"
+          onClick={onRejectAll}
+          aria-label="Reject non-essential cookies"
+        >
+          Reject non-essential
+        </button>
+
+        <button
+          type="button"
+          className="rounded-md border px-3 py-1.5 text-sm"
+          data-testid="consent-manage"
+          onClick={onOpenManage}
+          aria-expanded={openManage ? "true" : "false"}
+          aria-controls="consent-manage-panel"
+        >
+          Manage
+        </button>
+
+        <button
+          type="button"
+          className="rounded-md bg-black px-3 py-1.5 text-sm text-white"
+          data-testid="consent-accept"
+          onClick={onAcceptAll}
+          aria-label="Accept all cookies"
+        >
+          Accept all
+        </button>
+      </div>
+
+      <details
+        id="consent-manage-panel"
+        className="mt-3 text-sm"
+        data-testid="consent-manage-panel"
+        open={openManage}
+        onToggle={(e) => setOpenManage(e.currentTarget.open)}
+      >
+        <summary className="cursor-pointer select-none text-sm font-medium">
+          Preferences
+        </summary>
+
+        <div className="mt-2 rounded-md border p-3">
+          <Row label="Necessary">
+            <input type="checkbox" checked readOnly aria-label="Necessary cookies (always on)" />
+          </Row>
+
+          <Row label="Analytics">
+            <input
+              type="checkbox"
+              data-testid="consent-chk-analytics"
+              checked={!!analytics}
+              onChange={(e) => setAnalytics(e.target.checked)}
+              aria-label="Analytics cookies"
+            />
+          </Row>
+
+          <Row label="Marketing">
+            <input
+              type="checkbox"
+              data-testid="consent-chk-marketing"
+              checked={!!marketing}
+              onChange={(e) => setMarketing(e.target.checked)}
+              aria-label="Marketing cookies"
+            />
+          </Row>
+
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              className="rounded-md border px-3 py-1.5"
+              data-testid="consent-manage-reset"
+              onClick={onResetManage}
+            >
+              Reset
+            </button>
+            <button
+              type="button"
+              className="rounded-md bg-black px-3 py-1.5 text-white"
+              data-testid="consent-manage-save"
+              onClick={onSaveManage}
+            >
+              Save choices
+            </button>
+          </div>
+        </div>
+      </details>
+    </aside>
+  );
+}
 // --- REPLACE END ---
+

@@ -1,5 +1,7 @@
+// --- REPLACE START: conflict markers resolved (kept incoming side) ---
 // server/src/routes/social.js
 import express from 'express';
+
 
 // Instagram-integraatio pois käytöstä → stub palauttaa tyhjän listan
 const fetchInstagramPosts = async (_userId, _limit = 5) => [];
@@ -64,6 +66,7 @@ router.get('/instagram/:userId', async (req, res) => {
  * GET /social/spotify/:playlistId
  * Palauttaa soittolistan tiedot sekä upotus-URL:n.
  */
+
 router.get('/spotify/:playlistId', async (req, res) => {
   try {
     const { playlistId } = req.params;
@@ -71,8 +74,12 @@ router.get('/spotify/:playlistId', async (req, res) => {
     const embedUrl = getSpotifyEmbedUrl(playlistId);
     res.json({ ...playlist, embedUrl });
   } catch (err) {
+
     res.status(500).json({ error: err?.message || 'Failed to load Spotify playlist' });
+
   }
 });
 
 export default router;
+
+// --- REPLACE END ---

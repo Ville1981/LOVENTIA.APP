@@ -1,4 +1,6 @@
-// --- REPLACE START: dedupe imports, keep behavior intact, add ConsentBanner cleanly ---
+// PATH: client/src/App.jsx
+
+// --- REPLACE START: dedupe router imports and keep a single default export (fix Vitest transform errors) ---
 import React, { Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -6,14 +8,15 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
-// Core wrappers
 import ErrorBoundary from "./components/ErrorBoundary";
+import { ForgotPassword } from "./components/ForgotPassword";
+import { ResetPassword } from "./components/ResetPassword";
 import MainLayout from "./components/MainLayout";
-
-// Auth context
+// --- REPLACE START: fix alias import → relative path for ConsentBanner ---
+import ConsentBanner from "./components/privacy/ConsentBanner";
+// --- REPLACE END ---
 import { useAuth } from "./contexts/AuthContext";
 
-// Pages (public)
 import Etusivu from "./pages/Etusivu";
 import Discover from "./pages/Discover";
 import About from "./pages/About";
@@ -21,50 +24,30 @@ import Support from "./pages/Support";
 import Security from "./pages/Security";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Terms from "./pages/Terms";
-import Cookies from "./pages/Cookies"; // <- single, consistent import (no .jsx suffix)
-import NotFound from "./pages/NotFound";
+import Cookies from "./pages/Cookies";
 
-// Pages (auth)
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+
 import ProfileHub from "./pages/ProfileHub";
 import ExtraPhotosPage from "./pages/ExtraPhotosPage";
 import MatchPage from "./pages/MatchPage";
 import MessagesOverview from "./pages/MessagesOverview";
 import ChatPage from "./pages/ChatPage";
-import PremiumCancel from "./pages/PremiumCancel";
+import MapPage from "./pages/MapPage";
 import Upgrade from "./pages/Upgrade";
 import WhoLikedMe from "./pages/WhoLikedMe";
-import MapPage from "./pages/MapPage";
+import PremiumCancel from "./pages/PremiumCancel";
+
+import AdminPanel from "./pages/AdminPanel";
+
 import SettingsPage from "./pages/SettingsPage";
 import SubscriptionSettings from "./pages/settings/SubscriptionSettings";
 
-// Pages (auth flows)
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import { ForgotPassword } from "./components/ForgotPassword";
-import { ResetPassword } from "./components/ResetPassword";
-
-// Admin
-import AdminPanel from "./pages/AdminPanel";
-
-// PATH: client/src/App.jsx
-
-// --- REPLACE START: ConsentBanner import (use relative path, not "@") ---
-import ConsentBanner from "./components/privacy/ConsentBanner.jsx";
+import NotFound from "./pages/NotFound";
 // --- REPLACE END ---
 
-
-// PATH: client/src/App.jsx
-
-// --- REPLACE START: remove unresolved alias import of ConsentBanner ---
-// import ConsentBanner from "@/components/privacy/ConsentBanner";
-// --- REPLACE END ---
-
-// (Leave all your other imports and the rest of the file as-is.)
-// Also ensure there is no <ConsentBanner /> inside App.jsx’s JSX tree,
-// because main.jsx already renders it globally.
-
-
-// React Query client with calm defaults (avoid refetch bursts)
+// React Query client with calm defaults (prevents noisy refetches during tests)
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -90,7 +73,7 @@ function AdminRoute({ children }) {
   return user.role === "admin" ? children : <Navigate to="/" replace />;
 }
 
-// Dev-only: start MSW if enabled (never during Vitest)
+// Start MSW only in dev when explicitly enabled, never during Vitest
 if (
   typeof window !== "undefined" &&
   import.meta?.env?.MODE !== "test" &&
@@ -104,13 +87,13 @@ if (
         await mod.worker.start({ onUnhandledRequest: "bypass" });
       }
     } catch {
-      // Silently skip if mocks are not present
+      // Silently skip MSW if mocks are not present
     }
   })();
 }
 
-// --- REPLACE START: ensure single App component + single default export ---
-function App() {
+// --- REPLACE START: single canonical default export of App() ---
+export default function App() {
   useEffect(() => {
     if ("scrollRestoration" in window.history) {
       window.history.scrollRestoration = "manual";
@@ -128,7 +111,7 @@ function App() {
               v7_relativeSplatPath: true,
             }}
           >
-            {/* Global privacy banner near the root */}
+            {/* Consent is shown globally on all pages */}
             <ConsentBanner />
 
             <Routes>
@@ -145,11 +128,9 @@ function App() {
                 <Route path="terms" element={<Terms />} />
                 <Route path="cookies" element={<Cookies />} />
 
-                {/* Auth-free auth routes */}
+                {/* Auth-free */}
                 <Route path="login" element={<Login />} />
                 <Route path="register" element={<Register />} />
-                <Route path="forgot-password" element={<ForgotPassword />} />
-                <Route path="reset-password" element={<ResetPassword />} />
 
                 {/* Auth-protected */}
                 <Route
@@ -251,6 +232,10 @@ function App() {
                   }
                 />
 
+                {/* Password helpers */}
+                <Route path="forgot-password" element={<ForgotPassword />} />
+                <Route path="reset-password" element={<ResetPassword />} />
+
                 {/* Admin-only */}
                 <Route
                   path="admin"
@@ -271,7 +256,4 @@ function App() {
     </ErrorBoundary>
   );
 }
-
-export default App;
 // --- REPLACE END ---
-

@@ -1,10 +1,14 @@
+// --- REPLACE START: conflict markers resolved (kept incoming side) ---
+
 // File: server/src/routes/og.js
 
 // --- REPLACE START: resilient dynamic OG route with lazy User model resolution ---
+
 import express from 'express';
 import mongoose from 'mongoose';
 
 const router = express.Router();
+
 
 // Prefer explicit client URL from env; fall back to local dev
 const CLIENT_ORIGIN = process.env.CLIENT_URL || 'http://localhost:5174';
@@ -123,10 +127,13 @@ router.get('/profile/:username', async (req, res) => {
 </head>
 <body>Redirecting…</body>
 </html>`);
+
   } catch {
     return res.status(500).send('Server error');
   }
 });
 
 export default router;
+// --- REPLACE END ---
+
 // --- REPLACE END ---

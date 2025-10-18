@@ -1,8 +1,11 @@
+// --- REPLACE START: conflict markers resolved (kept incoming side) ---
+
 // File: server/src/api/routes/referral.js
 
 // --- REPLACE START: minimal referral API (my-code & beacon) ---
 import express from 'express';
 import { codeFromUserId } from '../../utils/referral.js';
+
 
 const router = express.Router();
 
@@ -37,4 +40,6 @@ router.post('/track', async (req, res) => {
 });
 
 export default router;
+// --- REPLACE END ---
+
 // --- REPLACE END ---

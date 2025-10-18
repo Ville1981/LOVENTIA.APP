@@ -1,3 +1,4 @@
+// --- REPLACE START: conflict markers resolved (kept incoming side) ---
 // File: server/src/routes/stripeWebhook.js
 
 // --- REPLACE START: ESM webhook route with raw body + centralized Stripe client ---
@@ -316,6 +317,7 @@ export default router;
 
 
 
+
 // server/src/routes/stripeWebhook.js
 // --- REPLACE START: add mock endpoints under STRIPE_MOCK_MODE ---
 import express from 'express';
@@ -430,4 +432,7 @@ router.post('/stripe-webhook', express.raw({ type: 'application/json' }), async 
     return res.status(400).send(`Webhook Error`);
   }
 });
+// --- REPLACE END ---
+
+
 // --- REPLACE END ---
