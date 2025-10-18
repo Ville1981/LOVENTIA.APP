@@ -1,4 +1,4 @@
-// --- REPLACE START: Full automated auth flow test using global fetch (Node 18+) ---
+﻿// --- REPLACE START: Full automated auth flow test using global fetch (Node 18+) ---
 /**
  * E2E auth flow smoke test:
  * 1) /health
@@ -18,22 +18,22 @@ function uniq(prefix='user') {
 }
 
 async function main() {
-  console.log(`▶ Using BASE=${BASE}`);
+  console.log(`â–¶ Using BASE=${BASE}`);
 
   // 1) health
-  console.log('\n1️⃣  /health');
+  console.log('\n1ï¸âƒ£  /health');
   let res = await fetch(`${BASE}/health`);
   let body = await res.text();
   console.log('Status:', res.status, body);
 
   // Prepare test identity
   const email    = `${uniq('test')}@example.com`;
-  const password = 'salasana123';
-  const name     = 'Testikäyttäjä';
+  const password = process.env.E2E_TEST_PASSWORD ?? 'Test-' + Date.now();
+  const name     = 'TestikÃ¤yttÃ¤jÃ¤';
   const username = uniq('testuser');
 
   // 2) register
-  console.log('\n2️⃣  POST /api/auth/register');
+  console.log('\n2ï¸âƒ£  POST /api/auth/register');
   res = await fetch(`${API}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -42,12 +42,12 @@ async function main() {
   body = await res.text();
   console.log('Status:', res.status, body);
   if (res.status >= 400) {
-    console.error('❌ Register failed – stopping.');
+    console.error('âŒ Register failed â€“ stopping.');
     return;
   }
 
   // 3) login
-  console.log('\n3️⃣  POST /api/auth/login');
+  console.log('\n3ï¸âƒ£  POST /api/auth/login');
   res = await fetch(`${API}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -57,16 +57,16 @@ async function main() {
   let json = await res.json().catch(() => ({}));
   console.log('Status:', res.status, json);
   if (res.status >= 400) {
-    console.error('❌ Login failed – stopping.');
+    console.error('âŒ Login failed â€“ stopping.');
     return;
   }
   const bearer = json?.accessToken ? `Bearer ${json.accessToken}` : '';
   const refreshCookie = (setCookie.match(/(^|,)\s*refreshToken=[^;]+/i) || [])[0]?.trim() || '';
 
-  if (!refreshCookie) console.warn('⚠️ No refreshToken cookie captured from login.');
+  if (!refreshCookie) console.warn('âš ï¸ No refreshToken cookie captured from login.');
 
   // 4) refresh
-  console.log('\n4️⃣  POST /api/auth/refresh');
+  console.log('\n4ï¸âƒ£  POST /api/auth/refresh');
   res  = await fetch(`${API}/auth/refresh`, {
     method: 'POST',
     headers: refreshCookie ? { cookie: refreshCookie } : {},
@@ -74,30 +74,32 @@ async function main() {
   json = await res.json().catch(() => ({}));
   console.log('Status:', res.status, json);
   if (res.status >= 400) {
-    console.error('❌ Refresh failed – stopping.');
+    console.error('âŒ Refresh failed â€“ stopping.');
     return;
   }
   const accessToken = json?.accessToken || (bearer.replace(/^Bearer\s+/, '') || '');
   const authHeader  = accessToken ? `Bearer ${accessToken}` : bearer;
 
   // 5) me
-  console.log('\n5️⃣  GET /api/users/me');
+  console.log('\n5ï¸âƒ£  GET /api/users/me');
   res  = await fetch(`${API}/users/me`, { headers: authHeader ? { Authorization: authHeader } : {} });
   body = await res.text();
   console.log('Status:', res.status, body);
 
   // 6) logout
-  console.log('\n6️⃣  POST /api/auth/logout');
+  console.log('\n6ï¸âƒ£  POST /api/auth/logout');
   res = await fetch(`${API}/auth/logout`, {
     method: 'POST',
     headers: refreshCookie ? { cookie: refreshCookie } : {},
   });
   console.log('Status:', res.status);
-  console.log('\n🎉 Done.');
+  console.log('\nðŸŽ‰ Done.');
 }
 
 main().catch((e) => {
-  console.error('❌ Test script error:', e);
+  console.error('âŒ Test script error:', e);
   process.exit(1);
 });
 // --- REPLACE END ---
+
+

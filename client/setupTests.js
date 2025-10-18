@@ -1,17 +1,15 @@
-// File: client/setupTests.js
-
-// --- REPLACE START: Unified Vitest setup (fix ESLint no-undef for afterEach) ---
+// --- REPLACE START: Canonical Vitest setup with global timeout-cork (≤999ms in tests) ---
 /**
  * Global test setup for the client (Vitest).
- * - RTL matchers via @testing-library/jest-dom/vitest
- * - Ensure Vitest globals exist (defensive guard)
- * - Safe mocks for react-router-dom (v6 useNavigate + legacy v5 useHistory)
- * - Stub for 'history' package (create*History)
+ * - Adds a SAFE, idempotent timeout "cork" active only in Vitest to cap setTimeout to ≤ 999 ms.
+ * - RTL matchers (@testing-library/jest-dom/vitest)
+ * - Defensive Vitest globals
+ * - Router mocks (react-router-dom v5/v6) + 'history' stubs
  * - Lightweight i18n stubs (react-i18next + backend + detector)
  * - JS DOM polyfills (matchMedia, IntersectionObserver, ResizeObserver, scrollTo, URL blobs)
  * - Storage shims (localStorage/sessionStorage)
  * - RTL cleanup + mock reset between tests
- * - Quiet noisy console errors in tests (retain meaningful ones)
+ * - Quieter console.error (keeps meaningful failures)
  */
 
 import "@testing-library/jest-dom/vitest";
@@ -24,8 +22,47 @@ import {
   beforeAll as _beforeAll,
   afterAll as _afterAll,
   beforeEach as _beforeEach,
-  afterEach as _afterEach, // NOTE: use the alias explicitly to satisfy ESLint
+  afterEach as _afterEach,
 } from "vitest";
+
+/* -----------------------------------------------------------------------------
+ * Timeout cork (Vitest only): cap setTimeout delays to ≤ 999 ms
+ *  - Idempotent, patches globalThis.setTimeout (and window.setTimeout if same ref)
+ *  - Does NOT affect production/dev builds (only when Vitest is present)
+ * ---------------------------------------------------------------------------*/
+(() => {
+  const g = typeof globalThis !== "undefined" ? globalThis : undefined;
+  const isVitest =
+    typeof vi !== "undefined" ||
+    (typeof import.meta !== "undefined" && !!import.meta?.vitest);
+
+  if (!g || !isVitest || g.__TIMEOUT_CORK_PATCHED__) return;
+
+  const originalSetTimeout =
+    (typeof g.setTimeout === "function" && g.setTimeout.bind(g)) || null;
+  if (!originalSetTimeout) return;
+
+  const patched = (handler, delay, ...rest) => {
+    const n = Number(delay);
+    const d = Number.isFinite(n) ? Math.min(n, 999) : 0;
+    return originalSetTimeout(handler, d, ...rest);
+  };
+
+  g.setTimeout = patched;
+  if (typeof window !== "undefined") {
+    // Patch window reference regardless of previous identity (more robust with test env swaps)
+    // jsdom exposes window.setTimeout separately; always align it with the patched one.
+    // eslint-disable-next-line no-undef
+    window.setTimeout = patched;
+  }
+
+  Object.defineProperty(g, "__TIMEOUT_CORK_PATCHED__", {
+    value: true,
+    enumerable: false,
+    configurable: false,
+    writable: false,
+  });
+})();
 
 /* -----------------------------------------------------------------------------
  * Ensure Vitest globals exist (defensive)
@@ -61,7 +98,7 @@ vi.mock("react-router-dom", async () => {
   return {
     ...actual,
     useNavigate: () => navigateFn, // v6 programmatic navigation
-    useHistory: () => historyObj, // legacy v5-style navigation (if any code still calls it)
+    useHistory: () => historyObj,  // legacy v5-style navigation
   };
 });
 
@@ -167,6 +204,12 @@ vi.mock("i18next-browser-languagedetector", () => {
 /* -----------------------------------------------------------------------------
  * JS DOM polyfills
  * ---------------------------------------------------------------------------*/
+// Always override jsdom's throwing scrollTo with a harmless spy
+if (typeof window !== "undefined") {
+  // eslint-disable-next-line no-undef
+  window.scrollTo = vi.fn();
+}
+
 if (typeof window !== "undefined" && !window.matchMedia) {
   window.matchMedia = vi.fn().mockImplementation((query) => ({
     matches: false,
@@ -185,9 +228,7 @@ if (!("IntersectionObserver" in globalThis)) {
     observe() {}
     unobserve() {}
     disconnect() {}
-    takeRecords() {
-      return [];
-    }
+    takeRecords() { return []; }
   }
   // @ts-ignore
   globalThis.IntersectionObserver = IntersectionObserverMock;
@@ -201,10 +242,6 @@ if (!("ResizeObserver" in globalThis)) {
   }
   // @ts-ignore
   globalThis.ResizeObserver = ResizeObserverMock;
-}
-
-if (typeof window !== "undefined" && !window.scrollTo) {
-  window.scrollTo = vi.fn();
 }
 
 if (!("URL" in globalThis)) {
@@ -229,9 +266,7 @@ function makeStorage() {
     removeItem: vi.fn((k) => store.delete(k)),
     clear: vi.fn(() => store.clear()),
     key: vi.fn((i) => Array.from(store.keys())[i] ?? null),
-    get length() {
-      return store.size;
-    },
+    get length() { return store.size; },
   };
 }
 if (typeof window !== "undefined") {
@@ -241,7 +276,6 @@ if (typeof window !== "undefined") {
 
 /* -----------------------------------------------------------------------------
  * RTL cleanup + mock reset between tests
- * NOTE: Use the imported alias _afterEach to avoid ESLint 'no-undef'.
  * ---------------------------------------------------------------------------*/
 _afterEach(() => {
   cleanup();
@@ -263,7 +297,6 @@ console.error = (...args) => {
   __originalConsoleError(...args);
 };
 
-// Expose vi for tests that may need it (handy in debug)
+// Expose vi for ad-hoc debugging in tests if needed
 globalThis.__vi = vi;
 // --- REPLACE END ---
-

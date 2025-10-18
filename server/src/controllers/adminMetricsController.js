@@ -1,4 +1,6 @@
+// --- REPLACE START: conflict markers resolved (kept incoming side) ---
 // File: server/src/controllers/adminMetricsController.js
+
 
 // --- REPLACE START: minimal metrics aggregation with safe fallbacks (de-duplicated single declarations) ---
 /**
@@ -12,19 +14,24 @@
 import dayjs from "dayjs";
 
 // Declare ONCE (do not redeclare these anywhere in this file)
+
 let UserModel = null;
 let MessageModel = null;
 let PaymentModel = null;
+
 
 /**
  * Lazily resolve models. Safe to call multiple times.
  * Each model is imported only if not already cached.
  */
+
 async function getModels() {
   if (!UserModel) {
     try {
       const m = await import("../models/User.js");
+
       UserModel = m?.default || m?.User || m || null;
+
     } catch {
       UserModel = null;
     }
@@ -32,7 +39,9 @@ async function getModels() {
   if (!MessageModel) {
     try {
       const m = await import("../models/Message.js");
+
       MessageModel = m?.default || m?.Message || m || null;
+
     } catch {
       MessageModel = null;
     }
@@ -40,12 +49,15 @@ async function getModels() {
   if (!PaymentModel) {
     try {
       const m = await import("../models/Payment.js");
+
       PaymentModel = m?.default || m?.Payment || m || null;
+
     } catch {
       PaymentModel = null;
     }
   }
 }
+
 
 /**
  * Small helper to guard countDocuments when model may be missing.
@@ -66,11 +78,13 @@ async function safeCount(model, query) {
  *   - activity: dau, wau, mau
  *   - series: 7-day signups and messages (label/value pairs)
  */
+
 export async function getSummary(req, res) {
   try {
     await getModels();
 
     // Totals
+
     const usersTotal = await safeCount(UserModel, {});
     const premiumTotal = await safeCount(UserModel, {
       $or: [{ isPremium: true }, { premium: true }, { "premium.active": true }],
@@ -83,25 +97,30 @@ export async function getSummary(req, res) {
       const paid = await PaymentModel.aggregate([
         { $match: { status: "succeeded", createdAt: { $gte: monthStart } } },
         { $group: { _id: null, sum: { $sum: "$amount" } } }, // amount unit depends on your schema (e.g., cents)
+
       ]);
       revenueMtd = paid?.[0]?.sum || 0;
     }
 
     // Activity windows
     const now = dayjs();
+
     const dau = await safeCount(UserModel, { lastActiveAt: { $gte: now.subtract(1, "day").toDate() } });
     const wau = await safeCount(UserModel, { lastActiveAt: { $gte: now.subtract(7, "day").toDate() } });
     const mau = await safeCount(UserModel, { lastActiveAt: { $gte: now.subtract(30, "day").toDate() } });
 
     // 7-day labels (today-6d → today)
+
     const labels = [];
     for (let i = 6; i >= 0; i--) {
       labels.push(dayjs().subtract(i, "day").format("MMM D"));
     }
 
+
     // Signups by day (7d)
     const signupsMap = new Map(labels.map((l) => [l, 0]));
     if (UserModel?.aggregate) {
+
       const since7 = dayjs().subtract(6, "day").startOf("day").toDate();
       const agg = await UserModel.aggregate([
         { $match: { createdAt: { $gte: since7 } } },
@@ -117,6 +136,7 @@ export async function getSummary(req, res) {
         },
         { $sort: { "_id.y": 1, "_id.m": 1, "_id.d": 1 } },
       ]);
+
       for (const g of agg) {
         const dt = dayjs(`${g._id.y}-${g._id.m}-${g._id.d}`).format("MMM D");
         signupsMap.set(dt, g.count);
@@ -126,6 +146,7 @@ export async function getSummary(req, res) {
     // Messages by day (7d)
     const msgsMap = new Map(labels.map((l) => [l, 0]));
     if (MessageModel?.aggregate) {
+
       const since7 = dayjs().subtract(6, "day").startOf("day").toDate();
       const agg = await MessageModel.aggregate([
         { $match: { createdAt: { $gte: since7 } } },
@@ -141,6 +162,7 @@ export async function getSummary(req, res) {
         },
         { $sort: { "_id.y": 1, "_id.m": 1, "_id.d": 1 } },
       ]);
+
       for (const g of agg) {
         const dt = dayjs(`${g._id.y}-${g._id.m}-${g._id.d}`).format("MMM D");
         msgsMap.set(dt, g.count);
@@ -154,6 +176,7 @@ export async function getSummary(req, res) {
 
     return res.json({
       totals: { users: usersTotal, premium: premiumTotal, revenueMtd },
+
       activity: { dau, wau, mau },
       series,
     });
@@ -163,5 +186,9 @@ export async function getSummary(req, res) {
   }
 }
 
+
 export default { getSummary };
+// --- REPLACE END ---
+
+
 // --- REPLACE END ---

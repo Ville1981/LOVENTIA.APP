@@ -1,3 +1,5 @@
+// --- REPLACE START: conflict markers resolved (kept incoming side) ---
+
 // server/src/routes/qa.js
 // --- REPLACE START: Q&A visibility routes (premium-gated skeleton) ---
 'use strict';
@@ -13,6 +15,7 @@ const router = express.Router();
 // (Optional but safe) ensure JSON body parsing for this router,
 // even if the app has a global parser. Harmless duplication.
 router.use(express.json());
+
 
 // Helper to check entitlement
 function hasFeature(user, feature) {
@@ -31,7 +34,9 @@ function hasFeature(user, feature) {
  * - If premium user (qaVisibilityAll), show all answers.
  * - If free user, return only "public" subset.
  */
+
 router.get('/qa', authenticate, async (req, res) => {
+
   try {
     const canSeeAll = hasFeature(req.user, 'qaVisibilityAll');
 
@@ -56,20 +61,26 @@ router.get('/qa', authenticate, async (req, res) => {
  * POST /api/qa
  * Allows a user to submit their own Q&A answer (always allowed).
  */
+
 router.post('/qa', authenticate, async (req, res) => {
   try {
     const { question, answer, visibility = 'public' } = req.body || {};
+
     if (!question || !answer) {
       return res.status(400).json({ error: 'Missing question or answer' });
     }
 
+
     // TODO: Persist in DB (User model imported for future use)
     console.log(`[qa] ${req.user?._id || 'unknown'} answered: ${question} = ${answer} (${visibility})`);
+
 
     return res.json({
       success: true,
       entry: {
+
         user: req.user?.username || 'unknown',
+
         q: question,
         a: answer,
         visibility,
@@ -84,4 +95,6 @@ router.post('/qa', authenticate, async (req, res) => {
 // --- REPLACE START: switch to ESM default export ---
 export default router;
 // --- REPLACE END ---
+// --- REPLACE END ---
+
 // --- REPLACE END ---

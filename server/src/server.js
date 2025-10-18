@@ -1,4 +1,4 @@
-// server/src/server.js
+// PATH: server/src/server.js
 
 // --- REPLACE START: minimal but robust server bootstrap with graceful shutdown ---
 import app from './app.js';
@@ -13,6 +13,7 @@ const HOST = env.HOST || process.env.HOST || '0.0.0.0';
 try {
   await connectMongo();
 } catch (e) {
+  // eslint-disable-next-line no-console
   console.warn('[server] Mongo connection attempt failed at startup:', e?.message || e);
 }
 
@@ -20,9 +21,11 @@ try {
 let httpServer;
 try {
   httpServer = app.listen(PORT, HOST, () => {
+    // eslint-disable-next-line no-console
     console.log(`[server] listening on ${HOST}:${PORT}`);
   });
 } catch (err) {
+  // eslint-disable-next-line no-console
   console.error('[server] failed to start:', err?.message || err);
   process.exit(1);
 }
@@ -30,12 +33,15 @@ try {
 // Graceful shutdown
 async function shutdown(signal = 'SIGTERM') {
   try {
+    // eslint-disable-next-line no-console
     console.log(`[server] ${signal} received: closing HTTP server…`);
     await new Promise((resolve) => httpServer?.close(resolve));
     // If connectMongo provided a close helper you can import/use it here.
+    // eslint-disable-next-line no-console
     console.log('[server] shutdown complete');
     process.exit(0);
   } catch (e) {
+    // eslint-disable-next-line no-console
     console.error('[server] error during shutdown:', e?.message || e);
     process.exit(1);
   }
@@ -47,9 +53,11 @@ process.on('SIGTERM', () => shutdown('SIGTERM'));
 // Helpful diagnostics for unhandled errors (does not crash the process)
 process.on('unhandledRejection', (reason) => {
   const msg = reason && reason.message ? reason.message : String(reason);
+  // eslint-disable-next-line no-console
   console.error('[server] unhandledRejection:', msg);
 });
 process.on('uncaughtException', (err) => {
+  // eslint-disable-next-line no-console
   console.error('[server] uncaughtException:', err?.message || err);
 });
 // --- REPLACE END ---

@@ -1,6 +1,6 @@
 // PATH: server/src/config/corsConfig.js
 
-// --- REPLACE START: centralized CORS config (ESM-compatible, no duplicate imports, env-driven allowlist) ---
+// --- REPLACE START: centralized CORS config (ESM-compatible, env allowlist, fixes X-Requested-With preflight) ---
 import cors from "cors";
 
 /**
@@ -81,11 +81,16 @@ export const corsOptions = {
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
+  /**
+   * Important: Access-Control-Allow-Headers must include every header the client
+   * will send on CORS requests. We include a safe superset here.
+   */
   allowedHeaders: [
     "Content-Type",
     "Authorization",
-    "X-Requested-With", // axios/fetch helpers sometimes send this
-    "x-requested-with",
+    "X-Requested-With", // axios / legacy fetch helpers
+    "x-requested-with", // some environments lowercase the header name
+    "X-CSRF-Token",
     "Accept",
     "Accept-Language",
     "Origin",
@@ -100,8 +105,9 @@ export const corsOptions = {
 };
 
 /**
- * Export configured middleware so app.js / loaders can `app.use(corsConfig)`
+ * Export configured middleware so the app can `app.use(corsConfig)`
  */
 const corsConfig = cors(corsOptions);
 export default corsConfig;
 // --- REPLACE END ---
+

@@ -1,3 +1,4 @@
+// --- REPLACE START: conflict markers resolved (kept incoming side) ---
 // PATH: server/routes/imageRoutes.js
 
 // --- REPLACE START: ESM imports & CJS interop (User/Image) + shared normalizers ---
@@ -8,7 +9,9 @@ import sharp from 'sharp';
 
 // Auth + upload middlewares (ESM)
 import authenticate from '../middleware/authenticate.js';
+
 import { upload } from '../../config/multer.js';
+
 
 
 // Models (interop both ESM default and CJS module.exports)
@@ -376,3 +379,5 @@ usersScopedRouter.delete('/:userId/photos/:slot', authenticate, handleDeleteSlot
 export default router;
 export { usersScopedRouter };
 // --- REPLACE START/END ---
+
+// --- REPLACE END ---

@@ -1,3 +1,5 @@
+// --- REPLACE START: conflict markers resolved (kept incoming side) ---
+
 // server/src/models/User.js
 // --- REPLACE START: robust ESM wrapper that loads (or defines) the User model ---
 //
@@ -200,3 +202,6 @@ export { User };
 
 
 
+
+
+// --- REPLACE END ---
