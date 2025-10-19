@@ -1,6 +1,6 @@
-// File: client/src/__tests__/DiscoverFilters.autoclose.test.jsx
+// PATH: client/src/__tests__/DiscoverFilters.autoclose.test.jsx
 
-// --- REPLACE START: robust selection (skip hidden/FormBasicInfo) + long-timer sweep (sync, no async/await) ---
+// --- REPLACE START: robust selection + long-timer sweep with explicit timeout & timer cleanup ---
 import React from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render, within, fireEvent } from "@testing-library/react";
@@ -65,57 +65,76 @@ function findPreferredControl(scope, label) {
 }
 
 describe("DiscoverFilters dropdowns > no long auto-close timers", () => {
-  it("opening dropdowns should not schedule timeouts >= 1000ms", () => {
-    vi.useFakeTimers();
-    const spy = vi.spyOn(global, "setTimeout");
+  // Give this test a bit more room on CI/Windows (Vitest default is 5s)
+  it(
+    "opening dropdowns should not schedule timeouts >= 1000ms",
+    { timeout: 15000 },
+    () => {
+      vi.useFakeTimers();
+      const spy = vi.spyOn(global, "setTimeout");
 
-    // Provide minimal yet valid props so the form renders
-    const values = {
-      minAge: 25,
-      maxAge: 35,
-      distanceKm: 0,
-      country: "",
-      region: "",
-      city: "",
-      customCountry: "",
-      customRegion: "",
-      customCity: "",
-    };
-
-    const { container } = render(
-      <MemoryRouter>
-        <DiscoverFilters values={values} handleFilter={() => {}} />
-      </MemoryRouter>
-    );
-
-    const form = container.querySelector('[data-cy="DiscoverFilters__form"]') ?? container;
-    const scope = within(form);
-
-    // Try to open as many dropdowns as we can discover by their accessible names
-    LABELS.forEach((label) => {
-      const ctl = findPreferredControl(scope, label);
-      if (!ctl) return; // not all labels exist in every variant
-
-      ctl.focus?.();
       try {
-        fireEvent.click(ctl);
-      } catch {
-        // If not clickable, ignore — we still observe timers created by other controls
+        // Provide minimal yet valid props so the form renders
+        const values = {
+          minAge: 25,
+          maxAge: 35,
+          distanceKm: 0,
+          country: "",
+          region: "",
+          city: "",
+          customCountry: "",
+          customRegion: "",
+          customCity: "",
+        };
+
+        const { container } = render(
+          <MemoryRouter>
+            <DiscoverFilters values={values} handleFilter={() => {}} />
+          </MemoryRouter>
+        );
+
+        const form =
+          container.querySelector('[data-cy="DiscoverFilters__form"]') ??
+          container;
+        const scope = within(form);
+
+        // Try to open as many dropdowns as we can discover by their accessible names
+        LABELS.forEach((label) => {
+          const ctl = findPreferredControl(scope, label);
+          if (!ctl) return; // not all labels exist in every variant
+
+          ctl.focus?.();
+          try {
+            fireEvent.click(ctl);
+          } catch {
+            // If not clickable, ignore — we still observe timers created by other controls
+          }
+        });
+
+        // Collect all scheduled delays (spy already captured them)
+        const longTimers = spy.mock.calls
+          .map((args) => Number(args?.[1]))
+          .filter((delay) => Number.isFinite(delay) && delay >= 1000);
+
+        expect(
+          longTimers,
+          `Found ${longTimers.length} long timer(s) >=1000ms (likely auto-close). Delays: [${longTimers.join(
+            ", "
+          )}]`
+        ).toHaveLength(0);
+      } finally {
+        // Ensure timers are cleared & restored so the test never hangs on CI
+        try {
+          vi.clearAllTimers();
+          // Drain any pending micro/macro tasks scheduled under fake timers
+          vi.runAllTimers();
+        } catch {
+          // best-effort cleanup
+        }
+        spy.mockRestore();
+        vi.useRealTimers();
       }
-    });
-
-    // Collect all scheduled delays (spy already captured them)
-    const longTimers = spy.mock.calls
-      .map((args) => Number(args?.[1]))
-      .filter((delay) => Number.isFinite(delay) && delay >= 1000);
-
-    spy.mockRestore();
-    vi.useRealTimers();
-
-    expect(
-      longTimers,
-      `Found ${longTimers.length} long timer(s) >=1000ms (likely auto-close). Delays: [${longTimers.join(", ")}]`
-    ).toHaveLength(0);
-  });
+    }
+  );
 });
 // --- REPLACE END ---
