@@ -73,3 +73,7 @@ _trash/
 # Windows device ghost
 NUL
 nul
+
+# Diagnostic/pack bundles (keep out of git)
+_diag/
+_pack/
