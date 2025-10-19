@@ -23,6 +23,7 @@
     "lint:fix": "npm --workspace client run lint:fix",
     "i18n:audit": "npm --workspace client run i18n:audit",
     "i18n:sync": "npm --workspace client run i18n:sync",
+    "gensitemap": "node scripts/generate-sitemap.mjs",
     "cy:run": "npm --workspace client run cy:run",
     "perf:socket": "npm --workspace client run perf:socket",
     "scan:zap": "npm --workspace client run scan:zap",

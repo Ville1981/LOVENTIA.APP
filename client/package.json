@@ -19,9 +19,7 @@
     "i18n:audit": "node scripts/i18nAudit.mjs",
     "i18n:sync": "node scripts/i18nSync.mjs",
     "gensitemap": "node ./scripts/generate-sitemap.mjs",
-    
-    "prebuild": "npm run gensitemap"
-    
+    "prebuild": "node ./scripts/generate-sitemap.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
