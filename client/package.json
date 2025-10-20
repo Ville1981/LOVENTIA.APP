@@ -8,7 +8,7 @@
     "dev:host": "vite --host",
     "msw:init": "msw init public --save",
     "build": "vite build",
-    "preview": "vite preview",
+    "preview": "vite preview --port 5174",
     "test": "vitest run --config ./vitest.config.js --coverage",
     "cy:run": "cypress run",
     "perf:socket": "artillery run performance/socket-reconnect.test.js -o report.json",

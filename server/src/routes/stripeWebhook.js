@@ -1,23 +1,26 @@
-// --- REPLACE START: conflict markers resolved (kept incoming side) ---
-// File: server/src/routes/stripeWebhook.js
-
-// --- REPLACE START: ESM webhook route with raw body + centralized Stripe client ---
+// --- REPLACE START: unified Stripe webhook router (raw body, mocks, logging) ---
 import express from 'express';
 import 'dotenv/config';
 
+// Keep a single router instance for this module
 const router = express.Router();
 
 /* ──────────────────────────────────────────────────────────────────────────────
    Lazy loaders (paths are relative to server/src/routes/*)
+   - Stripe client comes from a centralized initializer.
+   - User model is resolved lazily to avoid import cycles in tests.
 ────────────────────────────────────────────────────────────────────────────── */
 let stripeClient = null;
 async function getStripe() {
   if (stripeClient) return stripeClient;
   try {
-    // Centralized Stripe config lives in: server/config/stripe.js
-    const mod = await import('../../config/stripe.js');
-    stripeClient = mod.default || mod; // default export is the initialized Stripe instance
-  } catch {
+    // Centralized Stripe config should export an initialized Stripe instance as default
+    // Adjust the path if your config lives elsewhere (likely ../config/stripe.js from routes/)
+    const mod = await import('../config/stripe.js');
+    stripeClient = mod.default || mod; // support both default and module shape
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error('[webhook] Failed to load Stripe client:', e?.message || e);
     stripeClient = null;
   }
   return stripeClient;
@@ -27,19 +30,19 @@ let UserModel = null;
 async function getUserModel() {
   if (UserModel) return UserModel;
   try {
-    // ESM wrapper that default-exports the Mongoose model
     const mod = await import('../models/User.js');
     UserModel = mod.default || mod.User || mod;
-  } catch {
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error('[webhook] Failed to load User model:', e?.message || e);
     UserModel = null;
   }
   return UserModel;
 }
 
 /* ──────────────────────────────────────────────────────────────────────────────
-   Helpers (always resolve models inside to avoid null references)
+   Helpers
 ────────────────────────────────────────────────────────────────────────────── */
-
 /**
  * Update user premium flags by userId. Optionally set stripeCustomerId and subscriptionId.
  * Writes both `isPremium` and `premium` for backward compatibility.
@@ -191,7 +194,8 @@ async function resolveUserFromCheckoutSession(session) {
 }
 
 /* ──────────────────────────────────────────────────────────────────────────────
-   Core handler (mounted at '/' and '/payment/stripe-webhook' for safety)
+   Core handler
+   NOTE: This handler expects req.body to be a Buffer (express.raw middleware).
 ────────────────────────────────────────────────────────────────────────────── */
 async function stripeWebhookHandler(req, res) {
   if (!process.env.STRIPE_WEBHOOK_SECRET) {
@@ -220,6 +224,31 @@ async function stripeWebhookHandler(req, res) {
   try {
     // eslint-disable-next-line no-console
     console.log(`[webhook] received event: ${event.type}`);
+
+    // Optional: light-weight billing event logging (safe subset only)
+    if (process.env.STRIPE_LOG_EVENTS === '1') {
+      try {
+        const { connection } = await import('mongoose');
+        const BillingEvents = connection.collection('billing_events');
+        await BillingEvents.insertOne({
+          type: event?.type ?? 'unknown',
+          id: event?.id ?? null,
+          created: new Date(),
+          raw: event?.data?.object
+            ? {
+                id: event.data.object.id,
+                customer: event.data.object.customer ?? null,
+                subscription: event.data.object.subscription ?? null,
+                status: event.data.object.status ?? null,
+                email: event.data.object.customer_email ?? null,
+              }
+            : null,
+        });
+      } catch (logErr) {
+        // eslint-disable-next-line no-console
+        console.warn('[stripe-webhook][log] failed to log billing event', logErr?.message || logErr);
+      }
+    }
 
     switch (event.type) {
       case 'checkout.session.completed': {
@@ -294,8 +323,9 @@ async function stripeWebhookHandler(req, res) {
 
 /* ──────────────────────────────────────────────────────────────────────────────
    Routes
-   NOTE: We expose both '/' and '/payment/stripe-webhook' to be resilient
-   against different app mounting styles. In app.js you should mount either:
+   We expose both '/' and '/payment/stripe-webhook' to be resilient against
+   different app mounting styles.
+   In app.js mount either:
      app.use('/api/payment/stripe-webhook', router)   // then path here should be '/'
    OR
      app.use('/api', router)                          // then path here should be '/payment/stripe-webhook'
@@ -308,39 +338,23 @@ router.post('/', rawJson, stripeWebhookHandler);
 // Back-compat: when mounted at /api
 router.post('/payment/stripe-webhook', rawJson, stripeWebhookHandler);
 
-// --- REPLACE END ---
-
-export default router;
-
-
-
-
-
-
-
-// server/src/routes/stripeWebhook.js
-// --- REPLACE START: add mock endpoints under STRIPE_MOCK_MODE ---
-import express from 'express';
-import authenticate from '../middleware/authenticate.js';
-import User from '../models/User.js';
-
-const router = express.Router();
-
-// ⬇️ OLEMASSA OLEVA WEBHOOK (älä poista)
-router.post('/stripe-webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  // ... nykyinen allekirjoituksen validointi + premium sync ...
-  // pidä tämä osuus koskemattomana
-});
-
-// ⬇️ Uudet mock-endpointit: aktivoidaan vain testimoodissa
+/* ──────────────────────────────────────────────────────────────────────────────
+   Optional mock endpoints (for tests and local E2E)
+   Activated only when STRIPE_MOCK_MODE === '1'
+────────────────────────────────────────────────────────────────────────────── */
 if (process.env.STRIPE_MOCK_MODE === '1') {
-  // Premium ON (simuloi checkout.session.completed)
+  // Auth middleware is only required for mocks; keep import local to avoid cycles
+  const { default: authenticate } = await import('../middleware/authenticate.js');
+
+  // Premium ON (simulate checkout.session.completed)
   router.post('/mock/checkout-complete', authenticate, async (req, res) => {
     try {
+      const User = await getUserModel();
+      if (!User) return res.status(500).json({ error: 'User model not available' });
+
       const user = await User.findById(req.user.id);
       if (!user) return res.status(404).json({ error: 'User not found' });
 
-      // Päivitä premium-kentät yhdenmukaisesti
       user.isPremium = true;
       user.premium = {
         ...(user.premium || {}),
@@ -352,14 +366,18 @@ if (process.env.STRIPE_MOCK_MODE === '1') {
 
       return res.json({ ok: true, isPremium: user.isPremium, premium: user.premium });
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error('[mock/checkout-complete]', err);
       return res.status(500).json({ error: 'Server Error' });
     }
   });
 
-  // Premium OFF (simuloi customer.subscription.deleted)
+  // Premium OFF (simulate customer.subscription.deleted)
   router.post('/mock/subscription-canceled', authenticate, async (req, res) => {
     try {
+      const User = await getUserModel();
+      if (!User) return res.status(500).json({ error: 'User model not available' });
+
       const user = await User.findById(req.user.id);
       if (!user) return res.status(404).json({ error: 'User not found' });
 
@@ -373,6 +391,7 @@ if (process.env.STRIPE_MOCK_MODE === '1') {
 
       return res.json({ ok: true, isPremium: user.isPremium, premium: user.premium });
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error('[mock/subscription-canceled]', err);
       return res.status(500).json({ error: 'Server Error' });
     }
@@ -380,59 +399,9 @@ if (process.env.STRIPE_MOCK_MODE === '1') {
 }
 
 export default router;
-// --- REPLACE END ---,
-
-
-// server/src/routes/stripeWebhook.js
-// --- REPLACE START: add optional billing event logging ---
-import mongoose from 'mongoose';
-
-// ... (yläosassa muut importit ja router.post('/stripe-webhook', ...) olemassa) ...
-
-router.post('/stripe-webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  try {
-    // 1) Verify signature & construct event (pidä teillä jo oleva koodi)
-    // const sig = req.headers['stripe-signature']; ...
-    // const event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
-
-    const event = /* teidän valmis event-olio */ null; // <-- jätä pois jos teillä jo käytössä
-
-    // 2) (UUSI) Kirjaa tapahtuma, jos sallittu
-    if (process.env.STRIPE_LOG_EVENTS === '1') {
-      try {
-        const BillingEvents = mongoose.connection.collection('billing_events');
-        // Huom: älä talleta raakaa korttidataa; vain meta + object ilman sensitiivistä dataa
-        await BillingEvents.insertOne({
-          type: event?.type ?? 'unknown',
-          id: event?.id ?? null,
-          created: new Date(),
-          raw: {
-            // Tallenna vain turvallinen suppea osa:
-            type: event?.type,
-            dataObject: event?.data?.object ? {
-              id: event.data.object.id,
-              customer: event.data.object.customer ?? null,
-              subscription: event.data.object.subscription ?? null,
-              status: event.data.object.status ?? null,
-              email: event.data.object.customer_email ?? null,
-            } : null,
-          }
-        });
-      } catch (logErr) {
-        console.warn('[stripe-webhook][log] failed to log billing event', logErr?.message);
-      }
-    }
-
-    // 3) Teidän nykyinen premium-sync -koodi (pidä koskemattomana)
-    // switch(event.type) { ... }
-
-    return res.status(200).send({ received: true });
-  } catch (err) {
-    console.error('[stripe-webhook] error', err);
-    return res.status(400).send(`Webhook Error`);
-  }
-});
 // --- REPLACE END ---
 
 
-// --- REPLACE END ---
+
+
+
