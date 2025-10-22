@@ -28,6 +28,10 @@ export default defineConfig(({ mode }) => {
       emptyOutDir: true,
       sourcemap: true,
       chunkSizeWarningLimit: 1200,
+      // --- REPLACE START: make target explicit to avoid esbuild TLA errors in CI ---
+      // Keep modern output while our source avoids top-level await.
+      target: "es2022",
+      // --- REPLACE END ---
     },
 
     plugins: [react()],
@@ -73,3 +77,19 @@ export default defineConfig(({ mode }) => {
     },
   };
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
