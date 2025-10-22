@@ -1,89 +1,162 @@
-env:
-
-  TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
-  PERF_PASSWORD: ${{ secrets.PERF_PASSWORD }}
-  CYPRESS_TEST_PASSWORD: ${{ secrets.CYPRESS_TEST_PASSWORD }}
-# File: .github/workflows/server-deploy-ecs.yml
+# File: .github/workflows/server-deploy.yml
 
 # --- REPLACE START: Build Docker image → push to ECR → update ECS service (staging/prod) ---
-name: server-deploy
+name: Server Deploy (ECR → ECS)
 
 on:
-  # Auto-deploy only when the server-ci workflow for main/develop has succeeded
+  # Auto-deploy when server CI has completed successfully for develop/main
   workflow_run:
     workflows: [ "server-ci" ]
     types: [ completed ]
-    branches: [ main, develop ]
-  # Allow manual runs if needed
+    branches: [ develop, main ]
+
+  # Allow manual runs (eg. hotfix, rollback)
   workflow_dispatch:
 
+# Keep token scope minimal. Allow OIDC (id-token) for future AWS keyless auth.
 permissions:
+  id-token: write
   contents: read
 
+# Ensure only one deploy per branch proceeds at a time.
 concurrency:
   group: server-deploy-${{ github.event.workflow_run.head_branch || github.ref_name }}
   cancel-in-progress: true
 
+# Shared test env (read from GitHub Secrets ONLY; never print).
+env:
+  TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+  PERF_PASSWORD: ${{ secrets.PERF_PASSWORD }}
+  CYPRESS_TEST_PASSWORD: ${{ secrets.CYPRESS_TEST_PASSWORD }}
+
 jobs:
   deploy:
-    # Only proceed when the upstream CI passed (for workflow_run trigger)
+    name: Build & Deploy server to ECS
+    # Only proceed when upstream CI passed (for workflow_run) OR manual dispatch.
     if: >
       github.event_name == 'workflow_dispatch' ||
       github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
 
+    # Region + branch-scoped infra values with safe fallbacks (vars preferred, then secrets).
     env:
-      AWS_REGION: eu-north-1
-      # Pick staging vs prod secrets based on the source branch of the CI run (or current ref for manual)
+      AWS_REGION: ${{ vars.AWS_REGION != '' && vars.AWS_REGION || 'eu-north-1' }}
       BRANCH_NAME: ${{ github.event.workflow_run.head_branch || github.ref_name }}
-      ECR_REPOSITORY: ${{ (github.event.workflow_run.head_branch || github.ref_name) == 'main' && secrets.ECR_REPO_PROD || secrets.ECR_REPO_STAGING }}
-      ECS_CLUSTER:     ${{ (github.event.workflow_run.head_branch || github.ref_name) == 'main' && secrets.ECS_CLUSTER_PROD || secrets.ECS_CLUSTER_STAGING }}
-      ECS_SERVICE:     ${{ (github.event.workflow_run.head_branch || github.ref_name) == 'main' && secrets.ECS_SERVICE_PROD || secrets.ECS_SERVICE_STAGING }}
-      TASK_FAMILY:     ${{ (github.event.workflow_run.head_branch || github.ref_name) == 'main' && secrets.ECS_TASK_FAMILY_PROD || secrets.ECS_TASK_FAMILY_STAGING }}
+      ECR_REPOSITORY: ${{ (github.event.workflow_run.head_branch || github.ref_name) == 'main'
+          && (vars.ECR_REPO_PROD != '' && vars.ECR_REPO_PROD || secrets.ECR_REPO_PROD)
+          || (vars.ECR_REPO_STAGING != '' && vars.ECR_REPO_STAGING || secrets.ECR_REPO_STAGING) }}
+      ECS_CLUSTER: ${{ (github.event.workflow_run.head_branch || github.ref_name) == 'main'
+          && (vars.ECS_CLUSTER_PROD != '' && vars.ECS_CLUSTER_PROD || secrets.ECS_CLUSTER_PROD)
+          || (vars.ECS_CLUSTER_STAGING != '' && vars.ECS_CLUSTER_STAGING || secrets.ECS_CLUSTER_STAGING) }}
+      ECS_SERVICE: ${{ (github.event.workflow_run.head_branch || github.ref_name) == 'main'
+          && (vars.ECS_SERVICE_PROD != '' && vars.ECS_SERVICE_PROD || secrets.ECS_SERVICE_PROD)
+          || (vars.ECS_SERVICE_STAGING != '' && vars.ECS_SERVICE_STAGING || secrets.ECS_SERVICE_STAGING) }}
+      TASK_FAMILY: ${{ (github.event.workflow_run.head_branch || github.ref_name) == 'main'
+          && (vars.ECS_TASK_FAMILY_PROD != '' && vars.ECS_TASK_FAMILY_PROD || secrets.ECS_TASK_FAMILY_PROD)
+          || (vars.ECS_TASK_FAMILY_STAGING != '' && vars.ECS_TASK_FAMILY_STAGING || secrets.ECS_TASK_FAMILY_STAGING) }}
 
     steps:
-      - name: Checkout repository
+      # -------------------------------------------------------------
+      # Checkout repository
+      # -------------------------------------------------------------
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
+      # -------------------------------------------------------------
+      # Sanity checks (fail fast with clear errors)
+      # -------------------------------------------------------------
+      - name: Verify required files exist
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f server/Dockerfile || { echo "::error::Missing server/Dockerfile"; exit 1; }
+          test -f server/ecs-taskdef.json || { echo "::error::Missing server/ecs-taskdef.json"; exit 1; }
+          jq -e '.' server/ecs-taskdef.json >/dev/null || { echo "::error::ecs-taskdef.json is not valid JSON"; exit 1; }
+
+      # -------------------------------------------------------------
+      # Configure AWS credentials
+      # We KEEP current static-keys method; OIDC alternative is below (commented).
+      # -------------------------------------------------------------
+      - name: Configure AWS credentials (static keys)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region:            ${{ env.AWS_REGION }}
 
+      # --- OIDC (future, recommended; requires IAM role trust for GitHub OIDC) ---
+      # - name: Configure AWS credentials (OIDC)
+      #   uses: aws-actions/configure-aws-credentials@v4
+      #   with:
+      #     role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}  # arn:aws:iam::<account>:role/<role-name>
+      #     aws-region:     ${{ env.AWS_REGION }}
+      #     audience:       sts.amazonaws.com
+      # ---------------------------------------------------------------------------
+
+      # -------------------------------------------------------------
+      # Login to ECR
+      # -------------------------------------------------------------
       - name: Login to Amazon ECR
         id: ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Verify ecs-taskdef.json exists
-        run: |
-          test -f server/ecs-taskdef.json || { echo "Missing server/ecs-taskdef.json"; exit 1; }
-          jq -e '.' server/ecs-taskdef.json >/dev/null || { echo "ecs-taskdef.json is not valid JSON"; exit 1; }
-
+      # -------------------------------------------------------------
+      # Build & push Docker image (tag: commit SHA + branch alias)
+      # -------------------------------------------------------------
       - name: Build & Push Docker image
         working-directory: server
         env:
           REGISTRY: ${{ steps.ecr.outputs.registry }}
+        shell: bash
         run: |
           set -euo pipefail
-          IMAGE="${REGISTRY}/${ECR_REPOSITORY}:${GITHUB_SHA}"
-          # Optional second tag by branch (e.g., :main or :develop) for quick rollbacks
-          BRANCH_TAG="${REGISTRY}/${ECR_REPOSITORY}:${{ env.BRANCH_NAME }}"
-          echo "Building image: $IMAGE"
-          docker build -t "$IMAGE" -t "$BRANCH_TAG" .
-          docker push "$IMAGE"
-          docker push "$BRANCH_TAG"
-          echo "IMAGE_URI=$IMAGE" >> "$GITHUB_ENV"
+          if [[ -z "${REGISTRY}" ]]; then
+            echo "::error::ECR registry not resolved."; exit 1;
+          fi
+          if [[ -z "${ECR_REPOSITORY}" ]]; then
+            echo "::error::ECR repository is empty (check repo Variables/Secrets)."; exit 1;
+          fi
 
-      - name: Render task definition with new image
+          IMAGE="${REGISTRY}/${ECR_REPOSITORY}:${GITHUB_SHA}"
+          BRANCH_TAG="${REGISTRY}/${ECR_REPOSITORY}:${BRANCH_NAME}"
+
+          echo "Building image:"
+          echo " - ${IMAGE}"
+          echo " - ${BRANCH_TAG}"
+
+          docker build \
+            --pull \
+            --tag "${IMAGE}" \
+            --tag "${BRANCH_TAG}" \
+            .
+
+          echo "Pushing images to ECR..."
+          docker push "${IMAGE}"
+          docker push "${BRANCH_TAG}"
+
+          # Export for later steps
+          echo "IMAGE_URI=${IMAGE}" >> "$GITHUB_ENV"
+          echo "BRANCH_TAG=${BRANCH_TAG}" >> "$GITHUB_ENV"
+
+      # -------------------------------------------------------------
+      # Render a task definition with the new image + family override
+      # -------------------------------------------------------------
+      - name: Render task definition (inject image + family)
+        shell: bash
         run: |
+          set -euo pipefail
           jq '.containerDefinitions[0].image |= env.IMAGE_URI
               | .family |= env.TASK_FAMILY' \
             server/ecs-taskdef.json > taskdef.rendered.json
-          echo "Rendered task definition:"
-          jq -C '.family, .containerDefinitions[0].image' taskdef.rendered.json
 
+          echo "Rendered task family:"
+          jq -r '.family' taskdef.rendered.json
+          echo "Rendered container image:"
+          jq -r '.containerDefinitions[0].image' taskdef.rendered.json
+
+      # -------------------------------------------------------------
+      # Deploy to ECS (wait for service stability)
+      # -------------------------------------------------------------
       - name: Deploy ECS service
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
@@ -91,4 +164,35 @@ jobs:
           service: ${{ env.ECS_SERVICE }}
           cluster: ${{ env.ECS_CLUSTER }}
           wait-for-service-stability: true
+
+      # -------------------------------------------------------------
+      # Optional: print brief summary (no secrets)
+      # -------------------------------------------------------------
+      - name: Deployment summary
+        shell: bash
+        run: |
+          echo "Branch:       ${BRANCH_NAME}"
+          echo "Region:       ${AWS_REGION}"
+          echo "Cluster:      ${ECS_CLUSTER}"
+          echo "Service:      ${ECS_SERVICE}"
+          echo "Task family:  ${TASK_FAMILY}"
+          echo "Image:        ${IMAGE_URI}"
 # --- REPLACE END ---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

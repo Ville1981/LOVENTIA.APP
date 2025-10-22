@@ -13,13 +13,52 @@ export default function expressLoader() {
   const app = express();
   app.set('trust proxy', 1);
 
-  // NOTE: If you verify Stripe signatures with raw body,
-  // mount those routes in webhooks BEFORE json() (see webhooks/stripe.js).
-  app.use(express.json({ limit: '1mb' }));
-  app.use(express.urlencoded({ extended: true }));
+  // --- REPLACE START: capture raw body for /webhooks so Stripe signature verification works ---
+  /**
+   * Capture the raw Buffer for webhook endpoints before JSON/urlencoded parsing.
+   * This preserves the original signed payload required by Stripe's constructEvent().
+   * NOTE: We only attach the raw buffer for URLs that start with /webhooks to avoid
+   *       unnecessary memory usage elsewhere.
+   */
+  const captureRawForWebhooks = (req, _res, buf) => {
+    try {
+      if (
+        req &&
+        typeof req.originalUrl === 'string' &&
+        req.originalUrl.startsWith('/webhooks') &&
+        Buffer.isBuffer(buf)
+      ) {
+        // Consumed later by the Stripe webhook controller:
+        //   stripe.webhooks.constructEvent(req.rawBody, sig, secret)
+        req.rawBody = buf;
+      }
+    } catch {
+      // Never throw inside verify() to avoid breaking request parsing.
+    }
+  };
+  // --- REPLACE END ---
+
+  // NOTE: Webhook routes are mounted before parsers in app.js,
+  // but we still provide verify() to guarantee req.rawBody is available.
+  // --- REPLACE START: attach verify() so req.rawBody is available on /webhooks ---
+  app.use(
+    express.json({
+      limit: '1mb',
+      verify: captureRawForWebhooks,
+    })
+  );
+  app.use(
+    express.urlencoded({
+      extended: true,
+      limit: '1mb',
+      verify: captureRawForWebhooks,
+    })
+  );
+  // --- REPLACE END ---
+
   app.use(compression());
 
-  // --- REPLACE START: remove inline cors({ origin: env.CLIENT_ORIGIN ... }) and mount centralized CORS ---
+  // --- REPLACE START: centralized CORS (no inline configs here) ---
   // All CORS behavior is enforced in server/src/config/corsConfig.js (credentials, allowed headers, preflight, etc.)
   app.use(corsConfig);
   // --- REPLACE END ---

@@ -1,4 +1,4 @@
-// File: server/src/routes/payment.js
+// PATH: server/src/routes/payment.js
 
 // --- REPLACE START: convert CommonJS to ES modules and export default router ---
 import express from 'express';
@@ -8,12 +8,13 @@ import 'dotenv/config';
 import authenticate from '../middleware/authenticate.js';
 
 // Import centralized Stripe config (urls are static-imported to avoid dynamic pitfalls)
-import { billingUrls } from '../../config/stripe.js';
+// NOTE: Correct path from routes/ → ../config/stripe.js
+import { billingUrls } from '../config/stripe.js';
 // --- REPLACE END ---
 
 /* ──────────────────────────────────────────────────────────────────────────────
    Stripe setup — USE CENTRALIZED CLIENT
-   We import the shared Stripe client from server/config/stripe.js so there is
+   We import the shared Stripe client from server/src/config/stripe.js so there is
    exactly one place that defines API version, retries, timeouts, etc.
 ────────────────────────────────────────────────────────────────────────────── */
 // --- REPLACE START: lazy-load Stripe client ---
@@ -21,8 +22,8 @@ let stripe = null;
 async function getStripe() {
   if (stripe) return stripe;
   try {
-    // FIX PATH: routes/ → ../../config/stripe.js
-    const mod = await import('../../config/stripe.js');
+    // FIXED PATH: routes/ → ../config/stripe.js
+    const mod = await import('../config/stripe.js');
     stripe = mod.default || mod;
   } catch (_e) {
     stripe = null;
@@ -253,6 +254,51 @@ async function reconcilePremiumForCustomer(customerId, userId = null) {
 }
 
 /* **********************************************************************
+ * DEV DIAGNOSTICS (optional):
+ * Keep a small in-memory ring buffer of the last webhook-driven updates.
+ * The Stripe webhook controller will call rememberEventRow() when it flips
+ * premium state, and this router exposes GET /api/billing/__diag to inspect.
+ * *********************************************************************/
+// --- REPLACE START: lightweight ring buffer and diag endpoint ---
+const BILLING_EVENT_LIMIT = 30;
+const _billingEvents = []; // [{ts,type,customerId,subscriptionId,isPremium,source}]
+
+function rememberEventRow(row) {
+  try {
+    const item = {
+      ts: new Date().toISOString(),
+      type: row?.type || 'unknown',
+      customerId: row?.customerId || null,
+      subscriptionId: row?.subscriptionId ?? null,
+      isPremium: typeof row?.isPremium === 'boolean' ? row.isPremium : null,
+      source: row?.source || 'webhook',
+      note: row?.note,
+    };
+    _billingEvents.push(item);
+    if (_billingEvents.length > BILLING_EVENT_LIMIT) _billingEvents.shift();
+  } catch {
+    // best-effort
+  }
+}
+
+function getRecentBillingEvents() {
+  return _billingEvents.slice().reverse();
+}
+
+// Expose GET /api/billing/__diag only in non-production by default
+router.get('/__diag', async (_req, res) => {
+  if (process.env.NODE_ENV === 'production' && process.env.ENABLE_BILLING_DIAG !== 'true') {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  return res.json({
+    limit: BILLING_EVENT_LIMIT,
+    count: _billingEvents.length,
+    items: getRecentBillingEvents(),
+  });
+});
+// --- REPLACE END ---
+
+/* **********************************************************************
  * NEW: Billing endpoints expected by the frontend
  *
  * IMPORTANT:
@@ -314,7 +360,7 @@ router.post('/create-checkout-session', authenticate, async (req, res) => {
 
     // Build params; send either `customer` or `customer_email`, not both
     const params = {
-      mode: 'subscription',
+      mode: 'subscription', // ← required mode
       line_items: [{ price: getPremiumPriceId(), quantity: 1 }],
       // --- REPLACE START: use centralized billingUrls for success/cancel ---
       success_url: billingUrls.successUrl,
@@ -323,8 +369,9 @@ router.post('/create-checkout-session', authenticate, async (req, res) => {
       allow_promotion_codes: true,
       // Force English UI for Checkout
       locale: 'en',
+      // --- IMPORTANT: attach the user linkage for webhook resolver ---
       metadata: {
-        userId: uid || '',
+        userId: uid || '',                 // ← important metadata
         username: req.user?.username || '',
       },
       client_reference_id: uid || undefined,
@@ -340,6 +387,8 @@ router.post('/create-checkout-session', authenticate, async (req, res) => {
     if (!_stripe) {
       return res.status(501).json({ error: 'Billing not configured: missing Stripe client.' });
     }
+
+    // --- This is the exact place that creates the Checkout Session ---
     const session = await _stripe.checkout.sessions.create(params);
     return res.json({ url: session.url });
   } catch (err) {
@@ -353,8 +402,6 @@ router.post('/create-checkout-session', authenticate, async (req, res) => {
     return res.status(500).json({ error: 'Unable to create checkout session' });
   }
 });
-
-// File: server/src/routes/payment.js
 
 // --- REPLACE START: factor portal logic into a shared handler + robust alias ---
 /**
@@ -432,7 +479,6 @@ async function _openStripePortal(req, res) {
   }
 }
 
-// --- REPLACE START: factor portal logic into a shared handler + robust alias ---
 /**
  * POST /api/billing/portal
  * Opens Stripe Billing Portal using the shared handler above.
@@ -651,13 +697,17 @@ router.post('/stripe-session', authenticate, async (req, res) => {
     if (!_stripe) {
       return res.status(501).json({ error: 'Billing not configured: missing Stripe client.' });
     }
+    const uid = req.userId || req.user?.id || null;
+
+    // --- This is the exact call with the explicit snippet you requested ---
     const session = await _stripe.checkout.sessions.create({
       payment_method_types: ['card'],
-      mode: 'subscription',
+      mode: 'subscription',                 // tai 'payment' — here it is subscription
       line_items: [{ price: getPremiumPriceId(), quantity: 1 }],
       // Keep locale English here as well for consistency
       locale: 'en',
-      metadata: { userId: req.userId || req.user?.id || '' },
+      metadata: { userId: uid || '' },      // ← important metadata
+      client_reference_id: uid || undefined,
       // --- REPLACE START: use centralized billingUrls for success/cancel (legacy path) ---
       success_url: billingUrls.successUrl,
       cancel_url: billingUrls.cancelUrl,
@@ -749,17 +799,17 @@ router.post('/paypal-webhook', express.raw({ type: 'application/json' }), async 
   const body = req.body.toString();
 
   const verifyReq = new paypal.notification.WebhookEventVerifySignatureRequest();
+  // --- REPLACE START: fix verify request body shape (no stray lines/comments) ---
   verifyReq.requestBody({
     auth_algo: authAlgo,
     cert_url: certUrl,
     transmission_id: transmissionId,
     transmission_sig: transmissionSig,
-    // File: server/src/routes/payment.js
-
-  transmission_time: transmissionTime,
-  webhook_id: webhookId,
-  webhook_event: JSON.parse(body),
+    transmission_time: transmissionTime,
+    webhook_id: webhookId,
+    webhook_event: JSON.parse(body),
   });
+  // --- REPLACE END ---
 
   try {
     const response = await payPalClient.execute(verifyReq);
@@ -799,6 +849,9 @@ router.post('/paypal-webhook', express.raw({ type: 'application/json' }), async 
   }
 });
 
-// --- REPLACE START: export default router ---
+// --- REPLACE START: export default router (and named diag helpers) ---
+// Include reconcilePremiumForCustomer so the webhook controller can import it.
+// This avoids duplicate definitions elsewhere and keeps a single source of truth.
 export default router;
+export { rememberEventRow, getRecentBillingEvents, reconcilePremiumForCustomer };
 // --- REPLACE END ---

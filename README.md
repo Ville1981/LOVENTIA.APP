@@ -1,3 +1,5 @@
+# PATH: README.md
+
 # Loventia.app
 
 A full-stack dating application with both **server** (Node.js/Express, MongoDB) and **client** (Vite + React, Tailwind CSS). Features include user registration, authentication, profile management, image uploads, subscription payments (Stripe & PayPal), and admin tools.
@@ -329,6 +331,30 @@ jobs:
       - run: npm test
       - run: npm run lint
 ```
+
+<!-- Stripe CLI smoke test snippet -->
+
+<!-- The replacement region marks exactly what was added for webhook testing -->
+
+<!-- Keep this section short and focused per the request -->
+
+<!-- --- REPLACE START: Stripe CLI smoke (dev) --- -->
+
+### Stripe CLI smoke (dev)
+
+Quick way to validate webhook-only flow locally (Test mode):
+
+```bash
+# 1) Forward events from Stripe → local webhook endpoint
+stripe listen --forward-to http://localhost:5000/webhooks/stripe
+
+# 2) Simulate subscription activation and cancellation/update
+stripe trigger checkout.session.completed
+stripe trigger customer.subscription.updated
+stripe trigger customer.subscription.deleted
+```
+
+<!-- --- REPLACE END --- -->
 
 ---
 

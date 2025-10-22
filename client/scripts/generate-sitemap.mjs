@@ -1,5 +1,3 @@
-// File: client/scripts/generate-sitemap.mjs
-
 // --- REPLACE START: single, robust sitemap generator (runs from client/) ---
 // Purpose:
 //  - Generate client/public/sitemap.xml for the SPA.

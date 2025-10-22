@@ -1,13 +1,28 @@
 // PATH: server/src/app.js
 
 // --- REPLACE START: core imports remain (ESM) ---
+import express from 'express'; // NEW: needed for express.raw()
 import expressLoader from './loaders/express.js';
 import { connectMongo } from './loaders/mongoose.js';
 import securityMiddleware from './middleware/security.js';
 import routes from './routes/index.js';
-import stripeWebhooks from './webhooks/stripe.js';
 import { notFound, errorHandler } from './middleware/error.js';
 import { env } from './config/env.js';
+
+// Stripe webhook handler (controller-level, single endpoint)
+import { stripeWebhookHandler } from './controllers/stripeWebhookController.js';
+
+// ⬇️ Billing/payment router (unchanged)
+import paymentRouter from './routes/payment.js';
+// --- REPLACE END ---
+
+// --- REPLACE START: add Swagger UI imports (non-breaking) ---
+/**
+ * Swagger UI is mounted AFTER JSON/body parsers.
+ * If your swaggerSpec lives elsewhere, update the import path below.
+ */
+import swaggerUi from 'swagger-ui-express';
+import swaggerSpec from './utils/swaggerSpec.js';
 // --- REPLACE END ---
 
 // Initialize Express app via loader (sets parsers, CORS, static, etc.)
@@ -22,8 +37,21 @@ const app = expressLoader();
  * 5) 404 and global error handler last.
  */
 
-// Webhooks (place raw-body handlers inside the webhooks module)
-app.use('/webhooks', stripeWebhooks);
+// --- REPLACE START: Stripe webhook — raw body route defined explicitly here ---
+/**
+ * IMPORTANT:
+ * - Stripe signature verification requires the *raw* request body.
+ * - This route uses express.raw() so that req.body is a Buffer.
+ * - Keep this route mounted as early as possible.
+ * - Other global parsers are already set by expressLoader(); this dedicated route
+ *   still works because it declares its own body parser at route-level.
+ */
+app.post(
+  '/webhooks/stripe',
+  express.raw({ type: 'application/json' }),
+  stripeWebhookHandler
+);
+// --- REPLACE END ---
 
 // Security middlewares bundle
 app.use(securityMiddleware);
@@ -70,6 +98,26 @@ if (process.env.NODE_ENV === 'test') {
 
 // API routes
 app.use('/api', routes);
+
+// --- REPLACE START: mount billing/payment routes (align with app.legacy.js) ---
+/**
+ * Mount billing routes under /api.
+ * Keeps legacy alias /api/payment for backward compatibility.
+ * This mirrors app.legacy.js and ensures /api/billing/* endpoints are reachable.
+ */
+app.use('/api/billing', paymentRouter);
+app.use('/api/payment', paymentRouter); // legacy compatibility
+// --- REPLACE END ---
+
+// --- REPLACE START: mount Swagger UI AFTER routes/parsers ---
+/**
+ * Swagger UI (OpenAPI) — served after global parsers and routes are defined.
+ * If you want to hide docs in production, guard with NODE_ENV or ENABLE_API_DOCS.
+ */
+if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_API_DOCS === 'true') {
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, { explorer: true }));
+}
+// --- REPLACE END ---
 
 // --- REPLACE START: plain /health endpoint for load balancers & tests ---
 /**
@@ -181,3 +229,4 @@ if (process.argv[1] && process.argv[1].endsWith('app.js')) {
 }
 
 export default app;
+

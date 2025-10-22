@@ -3,6 +3,16 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+// PATH: server/src/config/env.js
+// --- REPLACE START: lisää keskitetyt token-ajat ja salaisuudet ---
+export const JWT_SECRET = process.env.JWT_SECRET || 'change-me';
+export const REFRESH_TOKEN_SECRET = process.env.JWT_REFRESH_SECRET || process.env.REFRESH_TOKEN_SECRET || 'change-me-refresh';
+
+export const ACCESS_TOKEN_EXPIRES = process.env.ACCESS_TOKEN_EXPIRES || '2h';
+export const REFRESH_TOKEN_EXPIRES = process.env.REFRESH_TOKEN_EXPIRES || '30d';
+// --- REPLACE END ---
+
+
 export const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   PORT: parseInt(process.env.PORT || '5000', 10),

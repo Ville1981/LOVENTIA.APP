@@ -1,18 +1,13 @@
-# File: .github/workflows/server-ci.yml
+# File: .github/workflows/server-ci-prod.yml
 
-# NOTE:
-# - This workflow keeps the original structure (no unnecessary shortening) and
-#   adds what was missing: GitHub Environment (staging), least-privilege permissions,
-#   Mongo service for tests, wiring for ENV secrets, coverage & artifacts.
-# - The replacement region is clearly marked.
-
-# --- REPLACE START: maintain full pipeline (lint → test+coverage → OpenAPI → build → artifacts); keep env secrets ---
-name: server-ci
+# --- REPLACE START: production server CI (main → production env), keep tests/build, no deploy here ---
+name: Server CI (prod)
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
   pull_request:
+    branches: [ main ]
 
 # Least-privilege: allow reading repo and (optionally) OIDC later
 permissions:
@@ -20,44 +15,34 @@ permissions:
   contents: read
 
 jobs:
-  server-ci:
-    name: Server CI (lint • test • openapi • build)
+  server-ci-prod:
+    name: Server CI (prod) — lint • test • openapi • build
     runs-on: ubuntu-latest
-    # Use the GitHub Environment "staging" so this job gets environment-scoped secrets.
-    environment: staging
+    environment: production
 
-    # Keep commands scoped to the server workspace by default
     defaults:
       run:
         working-directory: server
 
-    # MongoDB service for integration tests. Version can be tuned if needed.
     services:
       mongo:
         image: mongo:6
         ports:
           - 27017:27017
-        # Basic healthcheck ensures DB is ready before tests begin.
         options: >-
           --health-cmd="mongosh --eval 'db.runCommand({ ping: 1 })'"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
 
-    # CI/test environment. We provide safe defaults; environment-scoped secrets
-    # will override selected vars in a step below (see: "Resolve env from secrets").
+    # Safe defaults for CI; resolve selected vars from production secrets below.
     env:
       NODE_ENV: test
       PORT: 5001
-
-      # Local Mongo for CI tests by default
       MONGO_URI: mongodb://127.0.0.1:27017/loventia_ci
       MONGODB_URI: mongodb://127.0.0.1:27017/loventia_ci
-
-      # Defaults so imports/config don’t explode in CI
       CLIENT_URL: http://localhost:5174
 
-      # JWT / Stripe placeholders (overridden by env secrets if present)
       JWT_SECRET: test_secret
       JWT_REFRESH_SECRET: test_refresh_secret
       STRIPE_MOCK_MODE: "1"
@@ -65,20 +50,16 @@ jobs:
       STRIPE_WEBHOOK_SECRET: whsec_dummy
       STRIPE_PRICE_ID: price_dummy
 
-      # JUnit output file (harmless if jest-junit is not installed)
       JEST_JUNIT_OUTPUT: ./test-results/junit.xml
 
-      # Optional test creds (from repo/environ secrets); do not echo
       TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
       PERF_PASSWORD: ${{ secrets.PERF_PASSWORD }}
       CYPRESS_TEST_PASSWORD: ${{ secrets.CYPRESS_TEST_PASSWORD }}
 
     steps:
-      # 1) Checkout repository
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 2) Node setup with npm cache scoped to /server lockfile
       - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
@@ -86,35 +67,31 @@ jobs:
           cache: npm
           cache-dependency-path: server/package-lock.json
 
-      # 3) Install dependencies
       - name: Install deps (server)
         run: npm ci
 
-      # 4) Resolve env from environment-scoped secrets (staging)
-      #    Only overwrite defaults if a secret is set (keeps local CI DB for tests).
-      - name: Resolve env from secrets (staging)
+      # Override defaults from production Environment secrets where provided.
+      - name: Resolve env from production secrets
         shell: bash
         run: |
           # URLs
           if [ -n "${{ secrets.CLIENT_URL }}" ]; then echo "CLIENT_URL=${{ secrets.CLIENT_URL }}" >> "$GITHUB_ENV"; fi
 
-          # Mongo (used by app build/start — tests still target local mongo via MONGO_URI above)
+          # Mongo (app build/start may read MONGODB_URI; tests keep local mongo via MONGO_URI)
           if [ -n "${{ secrets.MONGODB_URI }}" ]; then echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" >> "$GITHUB_ENV"; fi
 
           # JWT
           if [ -n "${{ secrets.JWT_SECRET }}" ]; then echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> "$GITHUB_ENV"; fi
           if [ -n "${{ secrets.JWT_REFRESH_SECRET }}" ]; then echo "JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}" >> "$GITHUB_ENV"; fi
 
-          # Stripe
+          # Stripe (prod keys)
           if [ -n "${{ secrets.STRIPE_SECRET_KEY }}" ]; then echo "STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}" >> "$GITHUB_ENV"; fi
           if [ -n "${{ secrets.STRIPE_WEBHOOK_SECRET }}" ]; then echo "STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}" >> "$GITHUB_ENV"; fi
           if [ -n "${{ secrets.STRIPE_PRICE_ID }}" ]; then echo "STRIPE_PRICE_ID=${{ secrets.STRIPE_PRICE_ID }}" >> "$GITHUB_ENV"; fi
 
-      # 5) Lint (no-op if script missing)
       - name: Lint
         run: npm run lint --if-present
 
-      # 6) Unit/Integration tests with coverage. Reporters line is safe even if jest-junit isn’t present.
       - name: Test (Jest) with coverage
         run: |
           mkdir -p test-results
@@ -124,58 +101,43 @@ jobs:
             --reporters=default \
             --reporters=jest-junit
 
-      # 7) Upload coverage folder regardless of success, for debugging flakes
       - name: Upload coverage artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: server-coverage
+          name: server-coverage-prod
           path: server/coverage
           if-no-files-found: warn
 
-      # 8) Upload JUnit XML (if produced)
       - name: Upload test-results (JUnit)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: server-test-results
+          name: server-test-results-prod
           path: server/test-results
           if-no-files-found: ignore
 
-      # 9) OpenAPI validate & bundle (no-op if script not defined)
       - name: OpenAPI validate & bundle
         run: npm run openapi:build --if-present
 
-      # 10) Upload OpenAPI distributables
       - name: Upload OpenAPI artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: openapi-dist
+          name: openapi-dist-prod
           path: server/openapi/dist/*
           if-no-files-found: ignore
 
-      # 11) Build (TS transpile / bundling). Safe if script not present.
       - name: Build server
         run: npm run build --if-present
 
-      # 12) Upload build output and (optionally) OpenAPI root dir if it exists
       - name: Upload build artifact
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: server-build
+          name: server-build-prod
           path: |
             server/dist
             server/openapi
-          if-no-files-found: ignore
-
-      # 13) On failure, publish npm logs for easier debugging
-      - name: Upload npm logs (on failure)
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: server-npm-logs
-          path: ~/.npm/_logs
           if-no-files-found: ignore
 # --- REPLACE END ---

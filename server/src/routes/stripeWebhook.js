@@ -1,3 +1,5 @@
+// PATH: server/src/webhooks/stripe.js
+
 // --- REPLACE START: unified Stripe webhook router (raw body, mocks, logging) ---
 import express from 'express';
 import 'dotenv/config';
@@ -6,7 +8,7 @@ import 'dotenv/config';
 const router = express.Router();
 
 /* ──────────────────────────────────────────────────────────────────────────────
-   Lazy loaders (paths are relative to server/src/routes/*)
+   Lazy loaders (paths are relative to server/src/webhooks/*)
    - Stripe client comes from a centralized initializer.
    - User model is resolved lazily to avoid import cycles in tests.
 ────────────────────────────────────────────────────────────────────────────── */
@@ -15,7 +17,7 @@ async function getStripe() {
   if (stripeClient) return stripeClient;
   try {
     // Centralized Stripe config should export an initialized Stripe instance as default
-    // Adjust the path if your config lives elsewhere (likely ../config/stripe.js from routes/)
+    // Path from webhooks/ → ../config/stripe.js
     const mod = await import('../config/stripe.js');
     stripeClient = mod.default || mod; // support both default and module shape
   } catch (e) {
@@ -30,6 +32,7 @@ let UserModel = null;
 async function getUserModel() {
   if (UserModel) return UserModel;
   try {
+    // Path from webhooks/ → ../models/User.js
     const mod = await import('../models/User.js');
     UserModel = mod.default || mod.User || mod;
   } catch (e) {
@@ -43,6 +46,23 @@ async function getUserModel() {
 /* ──────────────────────────────────────────────────────────────────────────────
    Helpers
 ────────────────────────────────────────────────────────────────────────────── */
+function isBuffer(v) {
+  return v && typeof v === 'object' && typeof v.length === 'number' && Buffer.isBuffer(v);
+}
+
+function getSignedPayload(req) {
+  // Prefer req.rawBody captured by express.json({ verify }) in the app loader.
+  if (isBuffer(req.rawBody)) return req.rawBody;
+  if (typeof req.rawBody === 'string') return Buffer.from(req.rawBody, 'utf8');
+
+  // If this route's express.raw() ran first, req.body is already a Buffer.
+  if (isBuffer(req.body)) return req.body;
+  if (typeof req.body === 'string') return Buffer.from(req.body, 'utf8');
+
+  // If body was parsed to object, signature verification is impossible.
+  return null;
+}
+
 /**
  * Update user premium flags by userId. Optionally set stripeCustomerId and subscriptionId.
  * Writes both `isPremium` and `premium` for backward compatibility.
@@ -99,7 +119,11 @@ async function setSubscriptionIdByCustomerId(customerId, subscriptionId) {
   if (!User) return false;
 
   if (subscriptionId === null) {
-    await User.findOneAndUpdate({ stripeCustomerId: customerId }, { $unset: { subscriptionId: '' } }, { new: true }).exec();
+    await User.findOneAndUpdate(
+      { stripeCustomerId: customerId },
+      { $unset: { subscriptionId: '' } },
+      { new: true }
+    ).exec();
     // eslint-disable-next-line no-console
     console.log(`[webhook] unset subscriptionId for customer=${customerId}`);
     return true;
@@ -195,7 +219,8 @@ async function resolveUserFromCheckoutSession(session) {
 
 /* ──────────────────────────────────────────────────────────────────────────────
    Core handler
-   NOTE: This handler expects req.body to be a Buffer (express.raw middleware).
+   NOTE: This handler expects req.body to be a Buffer (express.raw middleware) OR
+         req.rawBody to be present (from express.json({ verify }) in the app).
 ────────────────────────────────────────────────────────────────────────────── */
 async function stripeWebhookHandler(req, res) {
   if (!process.env.STRIPE_WEBHOOK_SECRET) {
@@ -210,11 +235,24 @@ async function stripeWebhookHandler(req, res) {
   }
 
   const signature = req.headers['stripe-signature'];
-  let event;
+  if (!signature) {
+    return res.status(400).send('Webhook Error: missing Stripe-Signature header');
+  }
 
+  // 🚩 The critical bit: use the raw, signed payload
+  const signedPayload = getSignedPayload(req);
+  if (!signedPayload) {
+    // eslint-disable-next-line no-console
+    console.error(
+      '[webhook] Signature verification failed: request body was parsed. ' +
+        'Ensure /webhooks uses express.raw() OR app-level express.json has a verify hook to capture req.rawBody.'
+    );
+    return res.status(400).send('Webhook Error: raw body not available for signature verification');
+  }
+
+  let event;
   try {
-    // req.body is a Buffer here (because of express.raw)
-    event = stripe.webhooks.constructEvent(req.body, signature, process.env.STRIPE_WEBHOOK_SECRET);
+    event = stripe.webhooks.constructEvent(signedPayload, signature, process.env.STRIPE_WEBHOOK_SECRET);
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('[webhook] Signature verification failed:', err?.message || err);
@@ -325,17 +363,15 @@ async function stripeWebhookHandler(req, res) {
    Routes
    We expose both '/' and '/payment/stripe-webhook' to be resilient against
    different app mounting styles.
-   In app.js mount either:
-     app.use('/api/payment/stripe-webhook', router)   // then path here should be '/'
-   OR
-     app.use('/api', router)                          // then path here should be '/payment/stripe-webhook'
+   In app.js we mount: app.use('/webhooks', router)
+   → endpoints are: POST /webhooks/  and  POST /webhooks/payment/stripe-webhook
 ────────────────────────────────────────────────────────────────────────────── */
 const rawJson = express.raw({ type: 'application/json' });
 
-// Preferred: when mounted at /api/payment/stripe-webhook
+// Preferred: when mounted at /webhooks
 router.post('/', rawJson, stripeWebhookHandler);
 
-// Back-compat: when mounted at /api
+// Back-compat: if mounted differently, this remains safe
 router.post('/payment/stripe-webhook', rawJson, stripeWebhookHandler);
 
 /* ──────────────────────────────────────────────────────────────────────────────
@@ -400,8 +436,4 @@ if (process.env.STRIPE_MOCK_MODE === '1') {
 
 export default router;
 // --- REPLACE END ---
-
-
-
-
 

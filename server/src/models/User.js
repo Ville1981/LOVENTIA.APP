@@ -1,6 +1,3 @@
-// --- REPLACE START: conflict markers resolved (kept incoming side) ---
-
-// server/src/models/User.js
 // --- REPLACE START: robust ESM wrapper that loads (or defines) the User model ---
 //
 // Why this file exists
@@ -17,7 +14,8 @@
 // - ESM-safe import for the model: `import User from '../../src/models/User.js'`
 // - If an external model exists, we use it. If not, we define a fallback schema.
 // - We augment the schema with image & billing fields if they are missing:
-//     profilePicture, profilePhoto, avatar, photos[], extraImages[], stripeCustomerId
+//     profilePicture, profilePhoto, avatar, photos[], extraImages[],
+//     stripeCustomerId, subscriptionId, isPremium, premium
 //
 // Replacement region markers let you diff future changes precisely.
 //
@@ -53,7 +51,8 @@ async function tryLoadESM(absPath) {
 
 function tryLoadCJS(absPath) {
   try {
-    const mod = require(absPath); // CJS
+    // eslint-disable-next-line import/no-dynamic-require, global-require
+    const mod = require(absPath);
     const mdl = pickModel(mod);
     return isModel(mdl) ? mdl : null;
   } catch {
@@ -61,14 +60,14 @@ function tryLoadCJS(absPath) {
   }
 }
 
-// Candidate locations (relative to this file: server/src/models/User.js)
+// Candidate locations (relative to project root and this file)
 const CANDIDATES = [
   // Root-level CJS/ESM
   path.resolve(process.cwd(), 'server/models/User.cjs'),
   path.resolve(process.cwd(), 'server/models/User.js'),
   path.resolve(process.cwd(), 'models/User.cjs'),
   path.resolve(process.cwd(), 'models/User.js'),
-  // Legacy relative fallbacks
+  // Legacy relative fallbacks (from server/src/models/User.js)
   path.resolve(path.dirname(new URL(import.meta.url).pathname), '../../models/User.cjs'),
   path.resolve(path.dirname(new URL(import.meta.url).pathname), '../../models/User.js'),
 ];
@@ -84,8 +83,6 @@ for (const candidate of CANDIDATES) {
     break;
   }
   // Try ESM next
-  // NOTE: We do ESM attempt only if CJS failed for this candidate.
-  // Keep loop order deterministic.
   // eslint-disable-next-line no-await-in-loop
   LoadedUser = await tryLoadESM(candidate);
   if (LoadedUser) {
@@ -107,7 +104,14 @@ if (!LoadedUser) {
       email: { type: String, index: true, sparse: true },
       name: String,
       role: { type: String, default: 'user' },
+
+      // Premium flags (keep both for compatibility)
       isPremium: { type: Boolean, default: false },
+      premium: { type: Boolean, default: false }, // legacy alias kept in sync
+
+      // Billing identifiers
+      stripeCustomerId: { type: String, index: true, sparse: true, default: undefined },
+      subscriptionId: { type: String, default: null },
 
       // Image-related fields (used by uploads/routes)
       profilePicture: { type: String, default: undefined },
@@ -135,9 +139,6 @@ if (!LoadedUser) {
       entitlements: {
         features: { type: Map, of: Boolean },
       },
-
-      // Billing
-      stripeCustomerId: { type: String, index: true, sparse: true, default: undefined },
     },
     {
       strict: false, // do not break unknown fields from older DBs
@@ -156,12 +157,14 @@ try {
   if (s) {
     const additions = {};
 
+    // Images
     if (!s.path('profilePicture')) additions.profilePicture = { type: String, default: undefined };
     if (!s.path('profilePhoto'))   additions.profilePhoto   = { type: String, default: undefined };
     if (!s.path('avatar'))         additions.avatar         = { type: String, default: undefined };
     if (!s.path('photos'))         additions.photos         = { type: [String], default: [] };
     if (!s.path('extraImages'))    additions.extraImages    = { type: [String], default: [] };
 
+    // Billing
     if (!s.path('stripeCustomerId')) {
       additions.stripeCustomerId = { type: String, index: true, sparse: true, default: undefined };
     } else {
@@ -171,10 +174,19 @@ try {
         // best effort
       }
     }
+    if (!s.path('subscriptionId')) {
+      additions.subscriptionId = { type: String, default: null };
+    }
+    if (!s.path('isPremium')) {
+      additions.isPremium = { type: Boolean, default: false };
+    }
+    if (!s.path('premium')) {
+      additions.premium = { type: Boolean, default: false };
+    }
 
     if (Object.keys(additions).length > 0) {
       s.add(additions);
-      console.warn('[UserModel] Schema augmented with:', Object.keys(additions).join(', '));
+      console.warn('[UserModel] Schema augmented with:', Object.keys(additions).sort().join(', '));
     }
   }
 } catch (e) {
@@ -187,21 +199,3 @@ export default User;
 export { User };
 // --- REPLACE END ---
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// --- REPLACE END ---

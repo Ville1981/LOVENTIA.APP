@@ -1,33 +1,56 @@
-env:
-
-  TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
-  PERF_PASSWORD: ${{ secrets.PERF_PASSWORD }}
-  CYPRESS_TEST_PASSWORD: ${{ secrets.CYPRESS_TEST_PASSWORD }}
 # File: .github/workflows/client-deploy.yml
 
-# --- REPLACE START: build Vite client, deploy to S3, invalidate CloudFront (staging on develop, prod on main) ---
-name: client-deploy
+# --- REPLACE START: unify workflow, add least-privilege permissions, expose test env vars, keep behavior intact ---
+name: Client Deploy
 
 on:
   push:
-    branches: [ develop, main ]
+    branches:
+      - develop
+      - main
+  # Manual trigger is handy during setup/debug
+  workflow_dispatch:
 
+# GitHub token scope for this workflow.
+# Keep read access for repo contents and allow OIDC (id-token) for a future AWS migration.
 permissions:
+  id-token: write
   contents: read
 
+# Test credentials used by client tests/e2e/perf (read from GitHub Secrets ONLY).
+# NOTE: These are available to all jobs/steps below; do not echo them.
+env:
+  TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+  PERF_PASSWORD: ${{ secrets.PERF_PASSWORD }}
+  CYPRESS_TEST_PASSWORD: ${{ secrets.CYPRESS_TEST_PASSWORD }}
+
 jobs:
-  build-and-deploy:
+  build-deploy:
+    name: Build client, deploy to S3, invalidate CloudFront
     runs-on: ubuntu-latest
+    # Use the GitHub Environment "staging" so this job gets environment-scoped secrets.
+    environment: staging
+
+    # Default working directory for all "run:" steps to keep file paths short/consistent.
     defaults:
       run:
         working-directory: client
+
+    # Keep an explicit region; allow repository variable override.
     env:
-      # Adjust region if your S3/CF live elsewhere
-      AWS_REGION: eu-north-1
+      # Prefer repository variable if set; otherwise fall back to this default.
+      AWS_REGION: ${{ vars.AWS_REGION != '' && vars.AWS_REGION || 'eu-north-1' }}
+
     steps:
+      # -------------------------------------------------------------
+      # Checkout sources
+      # -------------------------------------------------------------
       - name: Checkout
         uses: actions/checkout@v4
 
+      # -------------------------------------------------------------
+      # Node.js toolchain + dependency cache
+      # -------------------------------------------------------------
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -35,148 +58,153 @@ jobs:
           cache: npm
           cache-dependency-path: client/package-lock.json
 
-      - name: Install
+      - name: Install dependencies
         run: npm ci
 
-      # If you need environment vars for Vite at build time, add them here:
-      # - name: Create .env file for Vite (optional)
-      #   run: |
-      #     echo "VITE_API_BASE=${{ secrets.VITE_API_BASE }}" >> .env
+      # -------------------------------------------------------------
+      # i18n audit BEFORE build to keep bundles clean
+      # If this is too strict for now, use the soft-fail variant below.
+      # -------------------------------------------------------------
+      - name: i18n audit
+        run: npm run i18n:audit
+        # Soft-fail alternative (uncomment to warn instead of fail):
+        # run: npm run i18n:audit || echo "::warning::i18n audit failed but continuing"
 
+      # -------------------------------------------------------------
+      # Build production client bundle
+      # IMPORTANT: pass Environment-scoped secrets to Vite build and sitemap generator.
+      # -------------------------------------------------------------
       - name: Build
+        env:
+          CLIENT_URL: ${{ secrets.CLIENT_URL }}
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
         run: npm run build
 
-      - name: Configure AWS Credentials
+      # -------------------------------------------------------------
+      # AWS credentials configuration
+      # We KEEP your current static-keys method (from GitHub Secrets).
+      # When you migrate to OIDC, use the commented block below instead.
+      # -------------------------------------------------------------
+      - name: Configure AWS credentials (static keys)
+        if: github.ref_name == 'develop' || github.ref_name == 'main'
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region:            ${{ env.AWS_REGION }}
 
+      # --- OIDC (future, recommended) --------------------------------
+      # - name: Configure AWS credentials (OIDC)
+      #   if: github.ref_name == 'develop' || github.ref_name == 'main'
+      #   uses: aws-actions/configure-aws-credentials@v4
+      #   with:
+      #     role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}    # ex: arn:aws:iam::<account>:role/<role-name>
+      #     aws-region:     ${{ env.AWS_REGION }}
+      #     audience:       sts.amazonaws.com
+      # ---------------------------------------------------------------
+
+      # -------------------------------------------------------------
+      # Resolve target S3 bucket by branch.
+      # Prefer repository variables; fall back to old per-env secrets.
+      # -------------------------------------------------------------
+      - name: Resolve S3 bucket (staging/prod)
+        id: bucket
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
+            # Prod branch
+            if [[ -n "${{ vars.S3_BUCKET_PROD }}" ]]; then
+              echo "value=${{ vars.S3_BUCKET_PROD }}" >> "$GITHUB_OUTPUT"
+            else
+              echo "value=${{ secrets.S3_BUCKET_PROD }}" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            # Staging branch (develop)
+            if [[ -n "${{ vars.S3_BUCKET_STAGING }}" ]]; then
+              echo "value=${{ vars.S3_BUCKET_STAGING }}" >> "$GITHUB_OUTPUT"
+            else
+              echo "value=${{ secrets.S3_BUCKET_STAGING }}" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+          echo "Selected bucket: $(cat $GITHUB_OUTPUT | cut -d= -f2- | tail -n1)"
+
+      # -------------------------------------------------------------
+      # Upload built assets to S3 (sync keeps bucket tidy)
+      # -------------------------------------------------------------
       - name: Upload to S3
         shell: bash
         run: |
-          if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
-            BUCKET="${{ secrets.S3_BUCKET_PROD }}"
-          else
-            BUCKET="${{ secrets.S3_BUCKET_STAGING }}"
+          BUCKET="${{ steps.bucket.outputs.value }}"
+          if [[ -z "$BUCKET" ]]; then
+            echo "::error::S3 bucket not resolved (check repository Variables/Secrets)."
+            exit 1
           fi
-          echo "Syncing dist/ to s3://${BUCKET}"
+          echo "Syncing client/dist to s3://${BUCKET}"
           aws s3 sync dist "s3://${BUCKET}" --delete
 
-      - name: Invalidate CloudFront
+      # -------------------------------------------------------------
+      # Resolve CloudFront distribution ID by branch (vars first, then secrets)
+      # -------------------------------------------------------------
+      - name: Resolve CloudFront distribution
+        id: cf
         shell: bash
         run: |
           if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
-            DIST_ID="${{ secrets.CLOUDFRONT_DISTRIBUTION_ID_PROD }}"
+            if [[ -n "${{ vars.CF_DISTRIBUTION_ID_PROD }}" ]]; then
+              echo "id=${{ vars.CF_DISTRIBUTION_ID_PROD }}" >> "$GITHUB_OUTPUT"
+            else
+              echo "id=${{ secrets.CLOUDFRONT_DISTRIBUTION_ID_PROD }}" >> "$GITHUB_OUTPUT"
+            fi
           else
-            DIST_ID="${{ secrets.CLOUDFRONT_DISTRIBUTION_ID_STAGING }}"
+            if [[ -n "${{ vars.CF_DISTRIBUTION_ID_STAGING }}" ]]; then
+              echo "id=${{ vars.CF_DISTRIBUTION_ID_STAGING }}" >> "$GITHUB_OUTPUT"
+            else
+              echo "id=${{ secrets.CLOUDFRONT_DISTRIBUTION_ID_STAGING }}" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+          echo "Selected distribution: $(cat $GITHUB_OUTPUT | cut -d= -f2- | tail -n1)"
+
+      # -------------------------------------------------------------
+      # Invalidate CloudFront cache to roll out the fresh build
+      # -------------------------------------------------------------
+      - name: Invalidate CloudFront
+        shell: bash
+        run: |
+          DIST_ID="${{ steps.cf.outputs.id }}"
+          if [[ -z "$DIST_ID" ]]; then
+            echo "::error::CloudFront Distribution ID not resolved (check repository Variables/Secrets)."
+            exit 1
           fi
           echo "Creating CloudFront invalidation for distribution ${DIST_ID}"
           aws cloudfront create-invalidation --distribution-id "${DIST_ID}" --paths "/*"
+
+      # -------------------------------------------------------------
+      # (Optional) Post-deploy sanity print
+      # -------------------------------------------------------------
+      - name: Deployment summary
+        shell: bash
+        run: |
+          echo "Branch: ${GITHUB_REF_NAME}"
+          echo "Region: ${AWS_REGION}"
+          echo "S3 bucket: ${{ steps.bucket.outputs.value }}"
+          echo "CloudFront: ${{ steps.cf.outputs.id }}"
 # --- REPLACE END ---
 
 
 
-  # .github/workflows/client-deploy.yml
-# --- REPLACE START: add i18n audit step before build ---
-name: Client Deploy
 
-on:
-  push:
-    branches: [ "develop", "main" ]
 
-jobs:
-  build-deploy:
-    runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: client/package-lock.json
 
-      - name: Install deps (client)
-        working-directory: client
-        run: npm ci
 
-      - name: i18n audit
-        working-directory: client
-        run: npm run i18n:audit
-        # jos haluat vain varoituksen eikä failia:
-        # run: npm run i18n:audit || echo "::warning::i18n audit failed but continuing"
 
-      - name: Build (client)
-        working-directory: client
-        run: npm run build
 
-      - name: Configure AWS credentials
-        if: github.ref_name == 'develop' || github.ref_name == 'main'
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ vars.AWS_REGION }}
 
-      - name: Sync to S3
-        if: github.ref_name == 'develop' || github.ref_name == 'main'
-        run: aws s3 sync client/dist s3://${{ vars.S3_BUCKET }} --delete
 
-      - name: Invalidate CloudFront
-        if: github.ref_name == 'develop' || github.ref_name == 'main'
-        run: aws cloudfront create-invalidation --distribution-id ${{ vars.CF_DISTRIBUTION_ID }} --paths "/*"
-# --- REPLACE END ---
-name: Client Deploy
 
-on:
-  push:
-    branches: [ "develop", "main" ]
 
-jobs:
-  build-deploy:
-    runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: client/package-lock.json
 
-      - name: Install deps (client)
-        working-directory: client
-        run: npm ci
 
-      - name: i18n audit
-        working-directory: client
-        run: npm run i18n:audit
-
-      - name: Build (client)
-        working-directory: client
-        run: npm run build
-
-      # ↓ deploy (S3/CloudFront) — jätä ennalleen jos tämä jo on teillä
-      - name: Configure AWS credentials
-        if: github.ref_name == 'develop' || github.ref_name == 'main'
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ vars.AWS_REGION }}
-
-      - name: Sync to S3
-        if: github.ref_name == 'develop' || github.ref_name == 'main'
-        run: aws s3 sync client/dist s3://${{ vars.S3_BUCKET }} --delete
-
-      - name: Invalidate CloudFront
-        if: github.ref_name == 'develop' || github.ref_name == 'main'
-        run: aws cloudfront create-invalidation --distribution-id ${{ vars.CF_DISTRIBUTION_ID }} --paths "/*"

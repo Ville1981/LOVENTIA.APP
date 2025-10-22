@@ -1,0 +1,155 @@
+# File: .github/workflows/client-deploy-prod.yml
+
+# --- REPLACE START: production deploy workflow (main → production env) ---
+name: Client Deploy (prod)
+
+on:
+  push:
+    branches:
+      - main
+  # Manual trigger is handy during setup/debug
+  workflow_dispatch:
+
+# Least-privilege permissions + OIDC readiness
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-deploy:
+    name: Build client, deploy to S3, invalidate CloudFront (prod)
+    runs-on: ubuntu-latest
+    environment: production
+
+    # Keep client as default working directory
+    defaults:
+      run:
+        working-directory: client
+
+    env:
+      # Prefer repository variable if set; otherwise use eu-north-1 as a safe default
+      AWS_REGION: ${{ vars.AWS_REGION != '' && vars.AWS_REGION || 'eu-north-1' }}
+
+    steps:
+      # -------------------------------------------------------------
+      # Checkout
+      # -------------------------------------------------------------
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # -------------------------------------------------------------
+      # Node
+      # -------------------------------------------------------------
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # -------------------------------------------------------------
+      # Build (pass production Environment secrets to Vite + sitemap)
+      # -------------------------------------------------------------
+      - name: Build
+        env:
+          CLIENT_URL: ${{ secrets.CLIENT_URL }}
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+        run: npm run build
+
+      # -------------------------------------------------------------
+      # AWS credentials via OIDC (no static keys)
+      # -------------------------------------------------------------
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+          audience: sts.amazonaws.com
+
+      # -------------------------------------------------------------
+      # Resolve S3 bucket for production
+      # -------------------------------------------------------------
+      - name: Resolve S3 bucket (prod)
+        id: bucket
+        shell: bash
+        run: |
+          if [[ -n "${{ vars.S3_BUCKET_PROD }}" ]]; then
+            echo "value=${{ vars.S3_BUCKET_PROD }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${{ secrets.S3_BUCKET_PROD }}" >> "$GITHUB_OUTPUT"
+          fi
+          echo "Selected bucket: $(cat $GITHUB_OUTPUT | cut -d= -f2- | tail -n1)"
+
+      # -------------------------------------------------------------
+      # Upload to S3
+      # -------------------------------------------------------------
+      - name: Upload to S3
+        shell: bash
+        run: |
+          BUCKET="${{ steps.bucket.outputs.value }}"
+          if [[ -z "$BUCKET" ]]; then
+            echo "::error::S3 bucket not resolved (check repository Variables/Secrets: S3_BUCKET_PROD)."
+            exit 1
+          fi
+          echo "Syncing client/dist to s3://${BUCKET}"
+          aws s3 sync dist "s3://${BUCKET}" --delete
+
+      # -------------------------------------------------------------
+      # Resolve CloudFront distribution
+      # -------------------------------------------------------------
+      - name: Resolve CloudFront distribution (prod)
+        id: cf
+        shell: bash
+        run: |
+          if [[ -n "${{ vars.CF_DISTRIBUTION_ID_PROD }}" ]]; then
+            echo "id=${{ vars.CF_DISTRIBUTION_ID_PROD }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "id=${{ secrets.CLOUDFRONT_DISTRIBUTION_ID_PROD }}" >> "$GITHUB_OUTPUT"
+          fi
+          echo "Selected distribution: $(cat $GITHUB_OUTPUT | cut -d= -f2- | tail -n1)"
+
+      # -------------------------------------------------------------
+      # Invalidate CloudFront
+      # -------------------------------------------------------------
+      - name: Invalidate CloudFront
+        shell: bash
+        run: |
+          DIST_ID="${{ steps.cf.outputs.id }}"
+          if [[ -z "$DIST_ID" ]]; then
+            echo "::error::CloudFront Distribution ID not resolved (vars/Secrets: CF_DISTRIBUTION_ID_PROD)."
+            exit 1
+          fi
+          echo "Creating CloudFront invalidation for distribution ${DIST_ID}"
+          aws cloudfront create-invalidation --distribution-id "${DIST_ID}" --paths "/*"
+
+      # -------------------------------------------------------------
+      # Summary
+      # -------------------------------------------------------------
+      - name: Deployment summary
+        shell: bash
+        run: |
+          echo "Branch: ${GITHUB_REF_NAME}"
+          echo "Region: ${AWS_REGION}"
+          echo "S3 bucket: ${{ steps.bucket.outputs.value }}"
+          echo "CloudFront: ${{ steps.cf.outputs.id }}"
+# --- REPLACE END ---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

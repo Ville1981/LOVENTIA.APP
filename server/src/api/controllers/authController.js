@@ -1,4 +1,4 @@
-// PATH: server/src/api/controllers/authController.js
+// PATH: server/src/controllers/authController.js
 
 // --- REPLACE START: ESM auth controller with username validation & robust cookieOptions + real forgot/reset password (email) ---
 /**
@@ -65,65 +65,7 @@ try {
   // keep fallback
 }
 
-// --- REPLACE START: apply referredBy on register when referralCode is provided ---
-/* somewhere after user doc is created; payload from req.body.referralCode */
-try {
-  const { referralCode } = req.body || {};
-  if (referralCode) {
-    const inviter = await User.findOne({ referralCode }).select('_id').lean().exec();
-    if (inviter) {
-      await User.findByIdAndUpdate(newUser._id, { referredBy: inviter._id.toString() }).exec();
-    }
-  }
-} catch (e) {
-  // non-fatal
-}
-// --- REPLACE END ---
 // File: server/src/controllers/authController.js
-
-// --- REPLACE START: read lv_ref cookie on signup and persist to user ---
-/**
- * Example register handler excerpt — keep your existing validation & creation logic.
- * Add only the lines marked as NEW to attach referral code from the HTTP-only cookie.
- */
-export async function register(req, res) {
-  try {
-    const { email, password, ...rest } = req.body || {};
-
-    // Your existing validations...
-    // e.g., if (!email || !password) return res.status(400).json({ error: 'Missing fields' });
-
-    // NEW: extract referral code from cookie set by referralAttribution middleware
-    const referredByCode =
-      (req.cookies && typeof req.cookies.lv_ref === 'string' && req.cookies.lv_ref.trim()) || undefined;
-
-    // Create the user (adapt to your ORM/ODM)
-    // Example with Mongoose-style model:
-    const userPayload = {
-      email,
-      ...rest,
-      // Store but do not trust blindly; you can later resolve this code -> user mapping.
-      ...(referredByCode ? { referredByCode } : {}),
-    };
-
-    const user = await User.create(userPayload);
-
-    // Your existing post-create flow (hash password, issue tokens, etc.)
-    // e.g., const token = issueJwt(user);
-
-    return res.status(201).json({
-      _id: user._id,
-      email: user.email,
-      referredByCode: user.referredByCode || null,
-      // accessToken: token,
-    });
-  } catch (err) {
-    // Keep your existing error mapping
-    return res.status(500).json({ error: 'Registration failed' });
-  }
-}
-// --- REPLACE END ---
-
 
 // Allow environment overrides (string values)
 const ENV_SAMESITE = (process.env.COOKIE_SAMESITE || '').trim(); // e.g. 'Lax' | 'Strict' | 'None' (case-insensitive ok)
@@ -208,13 +150,24 @@ function tokenIssuer() {
   return process.env.TOKEN_ISSUER || 'loventia-api';
 }
 
-function generateAccessToken(payload, expiresIn = (process.env.JWT_ACCESS_TTL || '15m')) {
+// --- REPLACE START: default access token = 2h, refresh token = 30d (env-overridable) ---
+/**
+ * Token TTLs
+ * - JWT_ACCESS_TTL (fallback '2h')
+ * - JWT_REFRESH_TTL (fallback '30d')
+ *
+ * NOTE:
+ * Keep these helpers as the *only* place where tokens are signed,
+ * so we never accidentally hardcode '15m' elsewhere again.
+ */
+function generateAccessToken(payload, expiresIn = (process.env.JWT_ACCESS_TTL || '2h')) {
   return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn, issuer: tokenIssuer() });
 }
 
-function generateRefreshToken(payload, expiresIn = (process.env.JWT_REFRESH_TTL || '7d')) {
+function generateRefreshToken(payload, expiresIn = (process.env.JWT_REFRESH_TTL || '30d')) {
   return jwt.sign(payload, process.env.JWT_REFRESH_SECRET, { expiresIn, issuer: tokenIssuer() });
 }
+// --- REPLACE END ---
 
 function isProbablyEmail(str) {
   // lightweight sanity check to avoid pulling extra deps
@@ -644,3 +597,4 @@ const controller = {
 
 export default controller;
 // --- REPLACE END ---
+
