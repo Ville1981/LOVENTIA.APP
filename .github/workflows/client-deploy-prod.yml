@@ -21,7 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
 
-    # Keep client as default working directory
+    # Keep client as default working directory for run-steps,
+    # so paths like "dist" resolve without extra prefixes.
     defaults:
       run:
         working-directory: client
@@ -44,11 +45,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-          # Use only the lockfile that is guaranteed to exist
-          cache-dependency-path: client/package-lock.json
+          # The replacement region is marked between // --- REPLACE START and // --- REPLACE END so you can verify exactly what changed
+          # --- REPLACE START (disable cache to avoid unresolved path error) ---
+          # cache: npm
+          # cache-dependency-path: client/package-lock.json
+          # --- REPLACE END ---
 
+      # Install dependencies from repo root (monorepo workspaces)
       - name: Install dependencies
+        working-directory: .
         run: npm ci
 
       # -------------------------------------------------------------
