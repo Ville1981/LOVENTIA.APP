@@ -45,6 +45,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
+          # Use only the lockfile that is guaranteed to exist
           cache-dependency-path: client/package-lock.json
 
       - name: Install dependencies
@@ -136,20 +137,3 @@ jobs:
           echo "S3 bucket: ${{ steps.bucket.outputs.value }}"
           echo "CloudFront: ${{ steps.cf.outputs.id }}"
 # --- REPLACE END ---
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
