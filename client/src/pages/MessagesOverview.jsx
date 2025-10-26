@@ -4,6 +4,9 @@ import { Helmet } from "react-helmet";
 import { useTranslation } from "react-i18next";
 
 import ConversationList from "../components/ConversationList";
+import AdGate from "../components/AdGate";
+import AdBanner from "../components/AdBanner";
+
 
 /**
  * MessagesOverview page
@@ -33,6 +36,18 @@ export default function MessagesOverview() {
       </header>
 
       <ConversationList />
-    </main>
+    
+{/* // --- REPLACE START: standard content ad slot (inline) --- */}
+<AdGate type="inline" debug={false}>
+  <div className="max-w-3xl mx-auto mt-6">
+    <AdBanner
+      imageSrc="/ads/ad-right1.png"
+      headline="Sponsored"
+      body="Upgrade to Premium to remove all ads."
+    />
+  </div>
+</AdGate>
+{/* // --- REPLACE END --- */}
+</main>
   );
 }

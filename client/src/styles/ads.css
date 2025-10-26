@@ -1,18 +1,23 @@
-/* ────────── HEADER-AD (ylhäällä) ────────── */
+/* PATH: client/src/styles/ads.css */
+
+/* ────────── HEADER-AD (top banner) ────────── */
+/* --- REPLACE START: enforce consistent, shorter height for header ad --- */
 .ad-header {
   width: 100%;
   max-width: 960px;
-  height: auto;
-  max-height: 300px;
-  object-fit: contain;
+  /* Previously: height:auto; max-height:300px; object-fit:contain.
+     We now use a fixed ~half height with cover-crop so the creative fills the bar. */
+  height: 150px;              /* ~50% of the earlier 300px cap */
+  object-fit: cover;          /* fill and crop instead of shrinking */
   object-position: center;
   display: block;
   border-radius: 8px;
   margin: 0 auto;
   transition: opacity 0.5s ease-in-out;
 }
+/* --- REPLACE END --- */
 
-/* ────────── PYSTYMAINOKSET (vasen/ oikea) ────────── */
+/* ────────── VERTICAL ADS (left / right) ────────── */
 .ad-side {
   max-width: 200px;
   max-height: 300px;
@@ -25,7 +30,7 @@
   transition: all 0.3s ease;
 }
 
-/* ─── MAINOSKOLO PEALIN (sarake, jossa pystyadsit) ─── */
+/* ─── AD COLUMN (stack for vertical ads) ─── */
 .ad-column {
   display: flex;
   flex-direction: column;
@@ -34,17 +39,11 @@
   margin-top: 40px;
 }
 
-/* Vasemman sarakkeen kasvotasennus */
-.ad-column.left {
-  align-items: flex-start;
-}
+/* Alignments for side columns */
+.ad-column.left { align-items: flex-start; }
+.ad-column.right { align-items: flex-end; }
 
-/* Oikean sarakkeen kasvotasennus */
-.ad-column.right {
-  align-items: flex-end;
-}
-
-/* Piilotetaan mainospalkit pienillä näytöillä (< 1024px) */
+/* Hide side ad columns on narrow screens (< 1024px) */
 @media (max-width: 1024px) {
   .ad-side,
   .ad-column.left,
@@ -53,7 +52,7 @@
   }
 }
 
-/* Tilapäämainos (placeholder) */
+/* Placeholder block used in layouts */
 .ad-placeholder {
   width: 100%;
   height: 250px;
@@ -61,7 +60,7 @@
   border-radius: 8px;
 }
 
-/* ─── KESKITETTY HAKULAATIKKO (lomakkeelle) ─── */
+/* ─── CENTERED FORM CONTAINER ─── */
 .form-container {
   max-width: 800px;
   margin: 0 auto;
@@ -71,7 +70,5 @@
   box-shadow: 0 0 12px rgba(0, 0, 0, 0.2);
 }
 
-/* ─── VARMISTA, ETTÄ LOMAKE VIE KOKO KESKISARAKKEEN ─── */
-main .form-container {
-  width: 100%;
-}
+/* Ensure the form spans the main content column */
+main .form-container { width: 100%; }

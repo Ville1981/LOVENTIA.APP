@@ -10,9 +10,6 @@ import ProfileForm from "../components/profileFields/ProfileForm";
 import { useAuth } from "../contexts/AuthContext";
 // import api from "../services/api/axiosInstance";
 import { getUserProfile, updateOwnProfile } from "../services/userService";
-import AdGate from "../components/AdGate";
-import AdBanner from "../components/AdBanner";
-
 
 /**
  * ProfileHub handles user profile display and editing,
@@ -179,7 +176,6 @@ export default function ProfileHub() {
   };
 
   return (
-  <>
       {/* <HeaderAdSlot className="max-w-6xl mx-auto px-4" /> */}
 
     <div className="max-w-3xl mx-auto p-6 space-y-6">
@@ -213,27 +209,13 @@ export default function ProfileHub() {
         hidePhotoSection
         defaultValues={values}
       />
-    
-{/* // --- REPLACE START: standard content ad slot (inline) --- */}
-<AdGate type="inline" debug={false}>
-  <div className="max-w-3xl mx-auto mt-6">
-    <AdBanner
-      imageSrc="/ads/ad-right1.png"
-      headline="Sponsored"
-      body="Upgrade to Premium to remove all ads."
-    />
-  </div>
-</AdGate>
-{/* // --- REPLACE END --- */}
-</div>
-    </>
-);
+    </div>
+  );
 }
 
 ProfileHub.propTypes = {
   // no props expected
 };
-
 
 
 

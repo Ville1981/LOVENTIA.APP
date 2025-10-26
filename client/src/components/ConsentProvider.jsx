@@ -12,10 +12,11 @@ import React, {
 
 /**
  * IMPORTANT:
- * Keep this storage key in sync with ConsentBanner.jsx.
- * Banner mirrors/reads the same key to ensure one source of truth.
+ * Keep this storage key in sync with useAds(). It expects the canonical key
+ * "loventia:consent" and a JSON object that may include `{ marketing: boolean }`.
+ * (It also tolerates `{ ads: boolean }` for legacy CMPs.)
  */
-const CONSENT_KEY = "loventia-consent-v1";
+const CONSENT_KEY = "loventia:consent";
 
 const defaultConsent = Object.freeze({
   necessary: true,
@@ -24,31 +25,45 @@ const defaultConsent = Object.freeze({
   timestamp: 0,
 });
 
+/** Read consent object from localStorage (defensive, tolerant). */
 function readStoredConsent() {
   try {
     if (typeof window === "undefined" || !("localStorage" in window)) return null;
     const raw = window.localStorage.getItem(CONSENT_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    // Guard: keep only known keys
+    // Normalize to our known shape; accept legacy { ads: boolean } as marketing flag.
+    const marketing =
+      typeof parsed?.marketing === "boolean"
+        ? parsed.marketing
+        : typeof parsed?.ads === "boolean"
+        ? parsed.ads
+        : false;
+
     return {
       necessary: true,
-      analytics: !!parsed.analytics,
-      marketing: !!parsed.marketing,
-      timestamp: Number(parsed.timestamp || Date.now()),
+      analytics: !!parsed?.analytics,
+      marketing,
+      timestamp: Number(parsed?.timestamp || Date.now()),
     };
   } catch {
     return null;
   }
 }
 
+/** Persist consent object to localStorage. */
 function writeStoredConsent(value) {
   try {
     if (typeof window === "undefined" || !("localStorage" in window)) return;
-    window.localStorage.setItem(
-      CONSENT_KEY,
-      JSON.stringify({ ...value, necessary: true, timestamp: Date.now() })
-    );
+    const payload = {
+      // Always persist both keys for compatibility with any legacy readers.
+      necessary: true,
+      analytics: !!value?.analytics,
+      marketing: !!value?.marketing,
+      ads: !!value?.marketing,
+      timestamp: Date.now(),
+    };
+    window.localStorage.setItem(CONSENT_KEY, JSON.stringify(payload));
   } catch {
     // ignore storage errors
   }
@@ -64,6 +79,7 @@ export const ConsentProvider = ({ children }) => {
   const [consent, setConsentState] = useState(defaultConsent);
   const [isDecided, setIsDecided] = useState(false);
 
+  // Bootstrap from storage
   useEffect(() => {
     const stored = readStoredConsent();
     if (stored) {
@@ -72,15 +88,16 @@ export const ConsentProvider = ({ children }) => {
       try {
         const fire = () =>
           window.dispatchEvent(new CustomEvent("consent:ready", { detail: stored }));
-        // queueMicrotask is not available in all test envs
+        // queueMicrotask can be missing in some test environments
         if (typeof queueMicrotask === "function") queueMicrotask(fire);
         else setTimeout(fire, 0);
       } catch {
-        /* ignore event errors in non-DOM envs */
+        /* ignore */
       }
     }
   }, []);
 
+  // Setter exposed to UI (e.g., ConsentBanner)
   const setConsent = useCallback((next) => {
     const normalized = {
       necessary: true,
@@ -105,10 +122,12 @@ export const ConsentProvider = ({ children }) => {
     [consent, setConsent, isDecided]
   );
 
-  // Optional hook for analytics/marketing loaders; intentionally no-op in tests
+  // Optional place for bootstrapping analytics loaders (kept as no-op)
   useEffect(() => {
     if (!isDecided) return;
-    // if (consent.analytics) { initAnalyticsOnce(); } else { disableAnalytics(); }
+    // Example (disabled by default):
+    // if (consent.analytics) initAnalyticsOnce();
+    // else disableAnalytics();
   }, [isDecided, consent.analytics]);
 
   return <ConsentContext.Provider value={value}>{children}</ConsentContext.Provider>;
@@ -116,3 +135,4 @@ export const ConsentProvider = ({ children }) => {
 
 export const useConsent = () => useContext(ConsentContext);
 // --- REPLACE END ---
+

@@ -30,7 +30,7 @@ const bunnyUser = {
     { url: "/assets/bunny3.jpg" },
   ],
   location: "Unknown",
-  summary: "Hi, I'm Bunny!",
+  summary: "Hi, I'm Bunny! ðŸ°",
 };
 
 function absolutizeImage(pathOrUrl) {
@@ -206,14 +206,9 @@ const Discover = () => {
           })
         : [];
 
-      const selfId =
-        authUser?._id?.toString?.() || authUser?.id?.toString?.() || null;
-      const selfUser = selfId
-        ? normalized.find((u) => (u.id || u._id)?.toString() === selfId)
-        : null;
-      const others = selfId
-        ? normalized.filter((u) => (u.id || u._id)?.toString() !== selfId)
-        : normalized;
+      const selfId = authUser?._id?.toString?.() || authUser?.id?.toString?.() || null;
+      const selfUser = selfId ? normalized.find((u) => (u.id || u._id)?.toString() === selfId) : null;
+      const others = selfId ? normalized.filter((u) => (u.id || u._id)?.toString() !== selfId) : normalized;
 
       const ordered = [];
       if (selfUser) ordered.push(selfUser);
@@ -250,8 +245,7 @@ const Discover = () => {
       }, 0);
     });
 
-    const currentUserId =
-      authUser?._id?.toString?.() || authUser?.id?.toString?.() || null;
+    const currentUserId = authUser?._id?.toString?.() || authUser?.id?.toString?.() || null;
     if (userId === bunnyUser.id) {
       console.warn(`[Discover] Skipping API call for bunny ${actionType}`);
       return;
@@ -386,90 +380,63 @@ const Discover = () => {
   };
 
   return (
-    <div
-      className="w-full flex flex-col items-center bg-gray-100 min-h-screen"
-      style={{ overflowAnchor: "none" }}
-    >
+    <div className="w-full flex flex-col items-center bg-gray-100 min-h-screen" style={{ overflowAnchor: "none" }}>
       <div className="w-full max-w-[1400px] flex flex-col lg:flex-row justify-between px-4 mt-6">
         <aside className="hidden lg:block w-[200px] sticky top-[160px] space-y-6" />
 
         <main className="flex-1">
           <HiddenStatusBanner user={authUser} onUnhidden={handleUnhiddenRefresh} />
 
-          {/* Filters card (top banner under navbar has been removed for Discover; keep only lower content ad) */}
           <div className="bg-white border rounded-lg shadow-md p-6 max-w-3xl mx-auto mt-4">
             <div className="mb-4 flex flex-wrap items-center gap-2">
-              <FeatureGate
-                feature="seeLikedYou"
-                fallback={
-                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-600">
-                    <span role="img" aria-label="eyes">👀</span>
-                    <span>See who liked you</span>
-                    <span className="ml-1 text-[10px] text-amber-700">Premium</span>
-                  </span>
-                }
-              >
-                <a
-                  href="/who-liked-me"
-                  className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-emerald-600 text-white"
-                  title="Open 'Who liked me'"
-                >
-                  <span role="img" aria-label="eyes">👀</span>
+              <FeatureGate feature="seeLikedYou" fallback={
+                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-600">
+                  <span role="img" aria-label="eyes">ðŸ‘€</span>
+                  <span>See who liked you</span>
+                  <span className="ml-1 text-[10px] text-amber-700">Premium</span>
+                </span>
+              }>
+                <a href="/who-liked-me" className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-emerald-600 text-white" title="Open 'Who liked me'">
+                  <span role="img" aria-label="eyes">ðŸ‘€</span>
                   <span>Who liked you</span>
                 </a>
               </FeatureGate>
 
-              <FeatureGate
-                feature="noAds"
-                invert={false}
-                fallback={
-                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-600">
-                    <span role="img" aria-label="ad">🪧</span>
-                    <span>Ads</span>
-                    <span className="ml-1 text-[10px] text-amber-700">Premium removes</span>
-                  </span>
-                }
-              >
+              <FeatureGate feature="noAds" invert={false} fallback={
+                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-600">
+                  <span role="img" aria-label="ad">ðŸª§</span>
+                  <span>Ads</span>
+                  <span className="ml-1 text-[10px] text-amber-700">Premium removes</span>
+                </span>
+              }>
                 <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-indigo-600 text-white">
-                  <span role="img" aria-label="no-ads">🚫</span>
+                  <span role="img" aria-label="no-ads">ðŸš«</span>
                   <span>No ads</span>
                 </span>
               </FeatureGate>
 
-              <FeatureGate
-                feature="dealbreakers"
-                fallback={
-                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-600">
-                    <span role="img" aria-label="filter">🧩</span>
-                    <span>Dealbreakers</span>
-                    <span className="ml-1 text-[10px] text-amber-700">Premium</span>
-                  </span>
-                }
-              >
+              <FeatureGate feature="dealbreakers" fallback={
+                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-600">
+                  <span role="img" aria-label="filter">ðŸ§©</span>
+                  <span>Dealbreakers</span>
+                  <span className="ml-1 text-[10px] text-amber-700">Premium</span>
+                </span>
+              }>
                 <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-pink-600 text-white">
-                  <span role="img" aria-label="filter">🧩</span>
+                  <span role="img" aria-label="filter">ðŸ§©</span>
                   <span>Dealbreakers</span>
                 </span>
               </FeatureGate>
             </div>
 
-            <DiscoverFilters
-              values={values}
-              handleFilter={handleFilter}
-              setters={setters}
-              probeFocusProps={probeFocusProps}
-            />
+            <DiscoverFilters values={values} handleFilter={handleFilter} setters={setters} probeFocusProps={probeFocusProps} />
           </div>
 
-          {/* // --- REPLACE START: standard ad slot on Discover --- */}
           <div className="max-w-3xl mx-auto w-full">
-            <AdBanner
-              imageSrc="/ads/ad-right1.png"
-              headline="Sponsored"
-              body="Upgrade to Premium to remove all ads."
-            />
+            <FeatureGate feature="noAds" invert fallback={null}>
+              <AdBanner />
+            </FeatureGate>
           </div>
-          {/* // --- REPLACE END --- */}
 
           <div className="mt-6 flex justify-center w-full">
             <div className="w-full max-w-3xl">
@@ -482,15 +449,13 @@ const Discover = () => {
               ) : error ? (
                 <div className="mt-12 text-center text-red-600">{error}</div>
               ) : (
+      {/* <HeaderAdSlot className="max-w-6xl mx-auto px-4" /> */}
+
                 <>
-                  <ProfileCardList
-                    key={filterKey}
-                    users={users}
-                    onAction={handleAction}
-                  />
+                  <ProfileCardList key={filterKey} users={users} onAction={handleAction} />
                   {users.length === 0 && (
                     <div className="mt-12 text-center text-gray-500">
-                      🔍 {t("discover:noResults")}
+                      ðŸ” {t("discover:noResults")}
                     </div>
                   )}
                 </>
@@ -505,17 +470,9 @@ const Discover = () => {
       {showUpsell && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4">
           <div className="w-full sm:max-w-xl">
-            <PremiumGate
-              mode="block"
-              requireFeature="unlimitedLikes"
-              onUpgraded={() => setShowUpsell(false)}
-            />
+            <PremiumGate mode="block" requireFeature="unlimitedLikes" onUpgraded={() => setShowUpsell(false)} />
             <div className="mt-2 flex justify-center">
-              <button
-                type="button"
-                onClick={() => setShowUpsell(false)}
-                className="px-4 py-2 rounded-md bg-white border text-gray-700 hover:bg-gray-50"
-              >
+              <button type="button" onClick={() => setShowUpsell(false)} className="px-4 py-2 rounded-md bg-white border text-gray-700 hover:bg-gray-50">
                 Close
               </button>
             </div>
@@ -528,4 +485,25 @@ const Discover = () => {
 
 export default Discover;
 // --- REPLACE END ---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

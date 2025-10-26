@@ -5,6 +5,9 @@ import { useNavigate, Link } from "react-router-dom";
 
 import api from "../services/api/axiosInstance";
 import { BACKEND_BASE_URL } from "../utils/config";
+import AdGate from "../components/AdGate";
+import AdBanner from "../components/AdBanner";
+
 
 function photoUrl(user) {
   const raw =
@@ -139,7 +142,19 @@ const MatchPage = () => {
           })}
         </div>
       )}
-    </div>
+    
+{/* // --- REPLACE START: standard content ad slot (inline) --- */}
+<AdGate type="inline" debug={false}>
+  <div className="max-w-3xl mx-auto mt-6">
+    <AdBanner
+      imageSrc="/ads/ad-right1.png"
+      headline="Sponsored"
+      body="Upgrade to Premium to remove all ads."
+    />
+  </div>
+</AdGate>
+{/* // --- REPLACE END --- */}
+</div>
   );
 };
 

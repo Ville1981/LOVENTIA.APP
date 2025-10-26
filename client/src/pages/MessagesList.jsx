@@ -3,6 +3,9 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import axios from "../utils/axiosInstance";
+import AdGate from "../components/AdGate";
+import AdBanner from "../components/AdBanner";
+
 
 // Placeholder conversation when none exist
 const bunnyUser = {
@@ -166,7 +169,19 @@ export default function ConversationsOverview() {
           </div>
         );
       })}
-    </div>
+    
+{/* // --- REPLACE START: standard content ad slot (inline) --- */}
+<AdGate type="inline" debug={false}>
+  <div className="max-w-3xl mx-auto mt-6">
+    <AdBanner
+      imageSrc="/ads/ad-right1.png"
+      headline="Sponsored"
+      body="Upgrade to Premium to remove all ads."
+    />
+  </div>
+</AdGate>
+{/* // --- REPLACE END --- */}
+</div>
   );
 }
 

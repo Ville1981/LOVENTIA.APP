@@ -1,4 +1,4 @@
-// PATH: client/src/contexts/AuthContext.jsx
+// File: client/src/contexts/AuthContext.jsx
 
 // --- REPLACE START: robust AuthContext with guarded refreshMe + billing reconcile + premium exposure ---
 import React, {
@@ -16,11 +16,11 @@ import { syncBilling } from "../api/billing";
 import api, {
   attachAccessToken as _attachAccessToken,
   getAccessToken as _getAccessToken,
-} from "../services/api/axiosInstance";
+} from "../api/axios.js";
 
 /**
  * Token helpers
- * - Prefer named helpers from axiosInstance (exported there),
+ * - Prefer named helpers from axios (exported there),
  *   but keep safe fallbacks to avoid crashing if imports change.
  */
 function attachAccessToken(token) {
@@ -37,9 +37,11 @@ function attachAccessToken(token) {
     if (token) {
       api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
       localStorage?.setItem?.("accessToken", token);
+      localStorage?.setItem?.("token", token);
     } else {
       delete api.defaults.headers.common["Authorization"];
       localStorage?.removeItem?.("accessToken");
+      localStorage?.removeItem?.("token");
     }
   } catch {
     /* ignore */
@@ -53,7 +55,11 @@ function getAccessToken() {
     /* ignore */
   }
   try {
-    return localStorage?.getItem?.("accessToken") || null;
+    return (
+      localStorage?.getItem?.("accessToken") ||
+      localStorage?.getItem?.("token") ||
+      null
+    );
   } catch {
     return null;
   }
@@ -161,6 +167,14 @@ export function AuthProvider({ children }) {
   // Keep axios header in sync when token changes
   useEffect(() => {
     attachAccessToken(accessToken);
+    if (import.meta?.env?.DEV) {
+      try {
+        // eslint-disable-next-line no-console
+        console.info("[AuthContext] token updated:", Boolean(accessToken));
+      } catch {
+        /* noop */
+      }
+    }
   }, [accessToken]);
 
   // Replace user only when it meaningfully changes
@@ -259,7 +273,7 @@ export function AuthProvider({ children }) {
           // ignore refresh errors; user may be anonymous
         }
 
-        // Reconcile billing ONLY if we have a token (guard inside)
+        // Reconcile billing ONLY if we have a token (guarded inside)
         await reconcileBillingNow();
 
         // Fetch user profile
@@ -466,4 +480,5 @@ export function AuthProvider({ children }) {
 
 export default AuthContext;
 // --- REPLACE END ---
+
 

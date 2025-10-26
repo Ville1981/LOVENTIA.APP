@@ -1,11 +1,8 @@
-﻿// PATH: client/src/components/Navbar.jsx
-
-// --- REPLACE START: fix broken injection, proper import, and render HeaderAdSlot under navbar ---
+// --- REPLACE START: read auth from AuthContext.user + bootstrapped + use t('common:nav.*') keys ---
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
-import HeaderAdSlot from "./HeaderAdSlot";
 import LanguageSwitcher from "./LanguageSwitcher";
 // Replaced component-based logout with direct hook usage for immediate client cleanup
 import { useLogout } from "../auth/useLogout";
@@ -49,6 +46,7 @@ const Navbar = () => {
     "common:nav.premium": "Premium",
     "common:nav.settings": "Settings",
     "common:nav.admin": "Admin",
+    // Added logout default to keep labels consistent
     "common:nav.logout": "Logout",
   };
 
@@ -90,93 +88,81 @@ const Navbar = () => {
    *   - logged in → user links
    *   - logged out → guest links
    */
-  const linksToRender = !bootstrapped
-    ? [...commonLinks, ...guestLinks]
-    : isLoggedIn
-    ? [...commonLinks, ...filteredUserLinks]
-    : [...commonLinks, ...guestLinks];
+  const linksToRender =
+    !bootstrapped
+      ? [...commonLinks, ...guestLinks]
+      : isLoggedIn
+      ? [...commonLinks, ...filteredUserLinks]
+      : [...commonLinks, ...guestLinks];
 
   // Hook for immediate client-side logout (clears tokens, cache, and navigates)
   const logout = useLogout();
 
   return (
-    <>
-      <nav
-        className="w-full shadow mb-0"
+    <nav
+      className="w-full shadow mb-0"
+      style={{
+        backgroundImage: 'url("/NavbarImage.png")',
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        padding: "12px 1rem",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        height: "160px",
+        justifyContent: "start",
+      }}
+    >
+      {/* Title row */}
+      <div className="flex items-center justify-center w-full max-w-6xl">
+        <h1 className="text-3xl font-bold text-white drop-shadow">
+          💘 {t("common:site.title", { defaultValue: "Loventia" })}
+        </h1>
+      </div>
+
+      {/* Language selector row */}
+      <div className="flex items-center justify-center w-full max-w-6xl mt-2">
+        <label
+          htmlFor="language-switcher"
+          className="text-white font-medium mr-2 text-sm"
+        >
+          {t("common:select_language_label", { defaultValue: "Language" })}
+        </label>
+        {/* The switcher manages its own state; id for a11y association */}
+        <LanguageSwitcher id="language-switcher" />
+      </div>
+
+      {/* Links row */}
+      <div
+        className="w-full max-w-6xl mt-4"
         style={{
-          backgroundImage: 'url("/NavbarImage.png")',
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          padding: "12px 1rem",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          height: "160px",
-          justifyContent: "start",
+          display: "grid",
+          gridTemplateColumns: `repeat(${
+            linksToRender.length + (isLoggedIn && bootstrapped ? 1 : 0)
+          }, minmax(80px, 1fr))`,
+          gap: "8px",
         }}
       >
-        {/* Title row */}
-        <div className="flex items-center justify-center w-full max-w-6xl">
-          <h1 className="text-3xl font-bold text-white drop-shadow">
-            💗 {t("common:site.title", { defaultValue: "Loventia" })}
-          </h1>
-        </div>
+        {linksToRender.map((link) => (
+          <Link key={link.path} to={link.path} className={linkClass}>
+            {t(link.key, { defaultValue: defaults[link.key] || link.key })}
+          </Link>
+        ))}
 
-        {/* Language selector row */}
-        <div className="flex items-center justify-center w-full max-w-6xl mt-2">
-          <label
-            htmlFor="language-switcher"
-            className="text-white font-medium mr-2 text-sm"
+        {/* Logout visible only if logged in and bootstrapped */}
+        {isLoggedIn && bootstrapped && (
+          <button
+            type="button"
+            onClick={logout}
+            className={linkClass}
+            aria-label={t("common:nav.logout", { defaultValue: defaults["common:nav.logout"] })}
+            title={t("common:nav.logout", { defaultValue: defaults["common:nav.logout"] })}
           >
-            {t("common:select_language_label", { defaultValue: "Language" })}
-          </label>
-          {/* The switcher manages its own state; id for a11y association */}
-          <LanguageSwitcher id="language-switcher" />
-        </div>
-
-        {/* Links row */}
-        <div
-          className="w-full max-w-6xl mt-4"
-          style={{
-            display: "grid",
-            gridTemplateColumns: `repeat(${
-              linksToRender.length + (isLoggedIn && bootstrapped ? 1 : 0)
-            }, minmax(80px, 1fr))`,
-            gap: "8px",
-          }}
-        >
-          {linksToRender.map((link) => (
-            <Link key={link.path} to={link.path} className={linkClass}>
-              {t(link.key, { defaultValue: defaults[link.key] || link.key })}
-            </Link>
-          ))}
-
-          {/* Logout visible only if logged in and bootstrapped */}
-          {isLoggedIn && bootstrapped && (
-            <button
-              type="button"
-              onClick={logout}
-              className={linkClass}
-              aria-label={t("common:nav.logout", {
-                defaultValue: defaults["common:nav.logout"],
-              })}
-              title={t("common:nav.logout", {
-                defaultValue: defaults["common:nav.logout"],
-              })}
-            >
-              {t("common:nav.logout", {
-                defaultValue: defaults["common:nav.logout"],
-              })}
-            </button>
-          )}
-        </div>
-      </nav>
-
-      {/* Global header promo just under the navbar */}
-      {/* --- REPLACE START: allow full-width header banner (remove max-w clamp) --- */}
-      <HeaderAdSlot className="w-full px-0" />
-      {/* --- REPLACE END --- */}
-    </>
+            {t("common:nav.logout", { defaultValue: defaults["common:nav.logout"] })}
+          </button>
+        )}
+      </div>
+    </nav>
   );
 };
 

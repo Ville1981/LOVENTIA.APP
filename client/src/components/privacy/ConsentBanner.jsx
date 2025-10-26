@@ -1,13 +1,15 @@
+// File: client/src/components/privacy/ConsentBanner.jsx
+
 // --- REPLACE START: Full, explicit React-based consent banner (with Provider support) ---
 /**
  * ConsentBanner integrates with ConsentProvider (via useConsent) and mirrors
- * decisions to localStorage under "loventia-consent-v1" for legacy/simple pages.
+ * decisions to localStorage under the canonical key "loventia:consent".
  *
- * Behavior (tested with RTL):
+ * Behavior:
  *  - data-testid="consent-banner" wraps the banner.
- *  - "consent-accept": sets analytics=true, marketing=true, necessary=true and hides.
- *  - "consent-reject": sets analytics=false, marketing=false, necessary=true and hides.
- *  - "consent-manage": opens a <details data-testid="consent-manage-panel">.
+ *  - "consent-accept": sets analytics=true, marketing=true (necessary always true) and hides.
+ *  - "consent-reject": sets analytics=false, marketing=false (necessary true) and hides.
+ *  - "consent-manage": toggles <details data-testid="consent-manage-panel">.
  *  - Checkboxes:
  *      - data-testid="consent-chk-analytics"
  *      - data-testid="consent-chk-marketing"
@@ -15,15 +17,15 @@
  *  - "consent-manage-reset": resets toggles to {analytics:false, marketing:false}.
  *
  * Notes:
- *  - Guards window.scrollTo in jsdom (our setup overwrites it, but keep defensive try/catch).
- *  - Performs a one-time bootstrap from localStorage into Provider if Provider undecided.
+ *  - Guards window.scrollTo for test environments.
+ *  - Performs a one-time bootstrap from localStorage into Provider if undecided.
  */
 
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import PropTypes from "prop-types";
 import { useConsent } from "../ConsentProvider.jsx";
 
-const LS_KEY = "loventia-consent-v1";
+const LS_KEY = "loventia:consent";
 
 /* --------------------------------- Storage --------------------------------- */
 function readLS() {
@@ -36,14 +38,25 @@ function readLS() {
 }
 function writeLS(val) {
   try {
-    const payload = { ...val, necessary: true, ts: Date.now() };
+    const payload = {
+      necessary: true,
+      analytics: !!val?.analytics,
+      marketing: !!val?.marketing,
+      // also write legacy-compatible "ads" mirror for readers expecting it
+      ads: !!val?.marketing,
+      timestamp: Date.now(),
+    };
     localStorage.setItem(LS_KEY, JSON.stringify(payload));
     if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
       try {
         window.dispatchEvent(new CustomEvent("consent:changed", { detail: payload }));
-      } catch {}
+      } catch {
+        /* noop */
+      }
     }
-  } catch {}
+  } catch {
+    /* storage errors ignored */
+  }
 }
 
 /* ------------------------------ Presentational ------------------------------ */
@@ -76,14 +89,14 @@ export default function ConsentBanner() {
     if (fromLS && typeof setConsent === "function") {
       setConsent({
         analytics: !!fromLS.analytics,
-        marketing: !!fromLS.marketing,
+        marketing: typeof fromLS.marketing === "boolean" ? fromLS.marketing : !!fromLS.ads,
         necessary: true,
       });
     }
     bootstrappedRef.current = true;
   }, [isDecided, setConsent]);
 
-  // When Provider decides, mirror to LS and close/hide banner
+  // When Provider decides, mirror to LS (keeps legacy/simple pages in sync)
   useEffect(() => {
     if (!isDecided) return;
     writeLS({
@@ -119,9 +132,11 @@ export default function ConsentBanner() {
     setConsent({ analytics: !!analytics, marketing: !!marketing, necessary: true });
     try {
       if (typeof window !== "undefined" && typeof window.scrollTo === "function") {
-        window.scrollTo(0, 0); // harmless in app; mocked/guarded in tests
+        window.scrollTo(0, 0);
       }
-    } catch {} // jsdom safety
+    } catch {
+      /* jsdom safety */
+    }
   };
 
   const containerStyle = useMemo(

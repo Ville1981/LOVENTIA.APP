@@ -14,6 +14,9 @@ import {
 
 import api from "../utils/axiosInstance";
 import 'leaflet/dist/leaflet.css';
+import AdGate from "../components/AdGate";
+import AdBanner from "../components/AdBanner";
+
 
 // --- REPLACE START: configure default Leaflet icon URLs ---
 delete L.Icon.Default.prototype._getIconUrl;
@@ -180,7 +183,19 @@ const MapPage = ({ onLocationSelect }) => {
           );
         })}
       </MapContainer>
-    </div>
+    
+{/* // --- REPLACE START: standard content ad slot (inline) --- */}
+<AdGate type="inline" debug={false}>
+  <div className="max-w-3xl mx-auto mt-6">
+    <AdBanner
+      imageSrc="/ads/ad-right1.png"
+      headline="Sponsored"
+      body="Upgrade to Premium to remove all ads."
+    />
+  </div>
+</AdGate>
+{/* // --- REPLACE END --- */}
+</div>
   );
 };
 
