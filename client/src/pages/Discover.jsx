@@ -234,14 +234,11 @@ const Discover = () => {
 
   const scrollTimerRef = useRef(null);
 
-  const handleAction = (userId, actionType) => {
-    if (!isPremium && actionType !== "pass") {
-      setShowUpsell(true);
-      return;
-    }
+  /**
+   * Keep scroll position stable while removing the acted card.
+   */
+  const preserveScrollAfter = () => {
     const currentScroll = window.scrollY;
-    setUsers((prev) => prev.filter((u) => (u.id || u._id) !== userId));
-
     requestAnimationFrame(() => {
       if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
       scrollTimerRef.current = setTimeout(() => {
@@ -249,21 +246,104 @@ const Discover = () => {
         scrollTimerRef.current = null;
       }, 0);
     });
+  };
 
+  // --- REPLACE START: Like behavior – call /likes for Free, upsell only on quota, keep old behavior for Premium ---
+  const handleAction = async (userId, actionType) => {
+    // Defensive: skip API for placeholder/self, but DO remove the card so UI reacts.
     const currentUserId =
       authUser?._id?.toString?.() || authUser?.id?.toString?.() || null;
-    if (userId === bunnyUser.id) {
-      console.warn(`[Discover] Skipping API call for bunny ${actionType}`);
+    const isBunny = userId === bunnyUser.id;
+    const isSelf = currentUserId && userId === currentUserId;
+
+    setError("");
+
+    // Always remove the visible card first for a responsive UI.
+    const removeCard = () => {
+      setUsers((prev) => prev.filter((u) => (u.id || u._id) !== userId));
+      preserveScrollAfter();
+    };
+
+    // PASS: unchanged logic (remove, then call API unless bunny/self)
+    if (actionType === "pass") {
+      removeCard();
+      if (!isBunny && !isSelf) {
+        api.post(`/discover/${userId}/pass`).catch((err) => {
+          console.error("Error executing pass:", err);
+        });
+      } else {
+        console.warn(`[Discover] Skipping API call for ${isBunny ? "bunny" : "self"} pass`);
+      }
       return;
     }
-    if (currentUserId && userId === currentUserId) {
-      console.warn(`[Discover] Skipping API call for self ${actionType}`);
+
+    // LIKE: Premium → previous fast path (no local quota checks)
+    if (actionType === "like" && isPremium) {
+      removeCard();
+      if (!isBunny && !isSelf) {
+        api.post(`/discover/${userId}/like`).catch((err) => {
+          console.error("Error executing like (premium):", err);
+        });
+      } else {
+        console.warn(`[Discover] Skipping API call for ${isBunny ? "bunny" : "self"} like`);
+      }
       return;
     }
-    api.post(`/discover/${userId}/${actionType}`).catch((err) => {
-      console.error(`Error executing ${actionType}:`, err);
-    });
+
+    // LIKE: Free → call /likes; upsell only on quota exceeded
+    if (actionType === "like" && !isPremium) {
+      if (isBunny || isSelf) {
+        // No server-side action for placeholder/self; still provide feedback.
+        console.warn(`[Discover] Skipping API call for ${isBunny ? "bunny" : "self"} like`);
+        removeCard();
+        return;
+      }
+      try {
+        const res = await api.post("/likes", { targetUserId: userId });
+        const status = Number(res?.status) || 0;
+        const code = res?.data?.code || "";
+
+        if (status === 200 || status === 201 || status === 409) {
+          // Accept success and idempotent "already liked"
+          removeCard();
+          console.info("[Discover] Like accepted (free)", { status, code });
+          return;
+        }
+        if (res?.data && res?.data?.ok !== false) {
+          removeCard();
+          return;
+        }
+        setError("Failed to like this profile. Please try again.");
+      } catch (err) {
+        const status = err?.response?.status;
+        const code = err?.response?.data?.code;
+        if (status === 429 || code === "LIKE_QUOTA_EXCEEDED") {
+          setShowUpsell(true);
+          return;
+        }
+        console.error("Free like failed:", err);
+        setError("Failed to like this profile. Please try again.");
+      }
+      return;
+    }
+
+    // SUPERLIKE (unchanged routing – still delegated to existing component/rules if used here)
+    if (actionType === "superlike") {
+      removeCard();
+      if (!isBunny && !isSelf) {
+        api.post(`/discover/${userId}/superlike`).catch((err) => {
+          console.error("Error executing superlike:", err);
+        });
+      } else {
+        console.warn(`[Discover] Skipping API call for ${isBunny ? "bunny" : "self"} superlike`);
+      }
+      return;
+    }
+
+    // Fallback: unknown action
+    console.warn(`[Discover] Unknown actionType "${actionType}"`);
   };
+  // --- REPLACE END ---
 
   useEffect(() => {
     return () => {
@@ -528,4 +608,3 @@ const Discover = () => {
 
 export default Discover;
 // --- REPLACE END ---
-

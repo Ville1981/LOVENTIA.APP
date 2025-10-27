@@ -1,26 +1,45 @@
-// File: server/src/routes/likes.js
-
 // --- REPLACE START: Likes routes (ESM, auth protected, with target validation) ---
 'use strict';
 
 import express from 'express';
 import authenticate from '../middleware/authenticate.js';
 
+const router = express.Router();
+
+/**
+ * Mount examples (in app.js):
+ *   import likesRoutes from './routes/likes.js';
+ *   app.use('/api/likes', likesRoutes);
+ */
+
 // ──────────────────────────────────────────────────────────────────────────────
-// Lazy-load likes controller (supports both default and named exports)
+// Lazy-load likes controller (supports both src/ and project-root controllers)
 // ──────────────────────────────────────────────────────────────────────────────
 let LikesCtrl = null;
 async function getLikesCtrl() {
   if (LikesCtrl) return LikesCtrl;
   try {
-    // From server/src/routes → server/controllers
-    const mod = await import('../../controllers/likesController.js');
+    // Prefer src controller (this repo’s canonical location)
+    const mod = await import('../controllers/likesController.js');
     LikesCtrl = mod?.default || mod || {};
-  } catch (e) {
-    console.error('[likes routes] Failed to load likesController.js:', e?.message || e);
-    LikesCtrl = {};
+    return LikesCtrl;
+  } catch (e1) {
+    try {
+      // Fallback to project root (legacy layout)
+      const mod2 = await import('../../controllers/likesController.js');
+      LikesCtrl = mod2?.default || mod2 || {};
+      return LikesCtrl;
+    } catch (e2) {
+      console.error(
+        '[likes routes] Failed to load likesController.js:',
+        (e1?.message || e1),
+        '| fallback:',
+        (e2?.message || e2)
+      );
+      LikesCtrl = {};
+      return LikesCtrl;
+    }
   }
-  return LikesCtrl;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -50,15 +69,13 @@ async function validateTargetUser(req, res, next) {
 
     // Best-effort existence check; do not hard fail if model not available.
     try {
-      // From server/src/routes → server/src/models OR server/models depending on your layout.
-      // Prefer the real app model in ../../models/User.js first (outside src if that’s your structure).
+      // Try project-root models first (legacy), then src/models (current).
       let UserModel = null;
       try {
-        const mod = await import('../../models/User.js'); // typical: server/models/User.js
+        const mod = await import('../../models/User.js'); // server/models/User.js (legacy root)
         UserModel = mod?.default || mod?.User || mod || null;
       } catch {
-        // Fallback: try inside src if models live there
-        const mod = await import('../models/User.js'); // server/src/models/User.js
+        const mod = await import('../models/User.js'); // server/src/models/User.js (current)
         UserModel = mod?.default || mod?.User || mod || null;
       }
 
@@ -70,7 +87,6 @@ async function validateTargetUser(req, res, next) {
       }
       // If model could not be resolved, skip existence check silently.
     } catch (e) {
-      // Log and continue to controller (controller may still validate).
       console.warn('[likes routes] User existence check skipped:', e?.message || e);
     }
 
@@ -80,14 +96,6 @@ async function validateTargetUser(req, res, next) {
     return res.status(500).json({ error: 'Internal validation error' });
   }
 }
-
-const router = express.Router();
-
-/**
- * Mount examples (in app.js):
- *   import likesRoutes from './routes/likes.js';
- *   app.use('/api/likes', likesRoutes);
- */
 
 // Create a like (idempotent in controller), with target validation
 router.post('/:targetId', authenticate, validateTargetUser, async (req, res) => {
@@ -134,3 +142,4 @@ router.get('/matches', authenticate, async (req, res) => {
 // --- REPLACE END ---
 
 export default router;
+

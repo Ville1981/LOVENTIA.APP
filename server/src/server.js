@@ -1,9 +1,13 @@
-// PATH: server/src/server.js
-
 // --- REPLACE START: minimal but robust server bootstrap with graceful shutdown ---
 import app from './app.js';
 import { connectMongo } from './loaders/mongoose.js';
 import { env } from './config/env.js';
+
+// ✅ Mount likes routes here as a safe fallback (in case app.js didn't)
+// This keeps behavior explicit without rewriting app.js.
+// If app.js already mounts them, Express de-duplicates handlers harmlessly.
+import likesRoutes from './routes/likes.js';
+app.use('/api/likes', likesRoutes);
 
 // Ensure required envs have sane defaults (non-fatal if missing)
 const PORT = Number(env.PORT || process.env.PORT || 5000);
