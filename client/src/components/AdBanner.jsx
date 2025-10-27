@@ -15,7 +15,7 @@ import { isPremium as isPremiumUtil } from "../utils/entitlements";
  * Optional props:
  *   - className: string for outer container styles
  *   - onImpression: () => void  (fires once when the banner is actually shown)
- *   - imageSrc: custom image path (default '/ads/sample-banner.jpg')
+ *   - imageSrc: custom image path (default '/ads/top-banner.png')
  *   - headline: string headline
  *   - body: string subtext
  *   - cta: JSX or string (optional)
@@ -23,12 +23,14 @@ import { isPremium as isPremiumUtil } from "../utils/entitlements";
 export default function AdBanner({
   className = "",
   onImpression,
-  imageSrc = "/ads/sample-banner.jpg",
+  imageSrc = "/ads/top-banner.png",
   headline = "Sponsored",
   body = "Upgrade to Premium to remove all ads.",
   cta = null,
 }) {
-  const { user, bootstrapped } = typeof useAuth === "function" ? useAuth() : { user: null, bootstrapped: false };
+  const { user, bootstrapped } =
+    typeof useAuth === "function" ? useAuth() : { user: null, bootstrapped: false };
+
   const [fallbackUser, setFallbackUser] = useState(null);
   const [probing, setProbing] = useState(false);
   const impressedRef = useRef(false);
@@ -37,7 +39,8 @@ export default function AdBanner({
   const premium = useMemo(() => {
     if (user) return isPremiumUtil(user);
     if (fallbackUser) return isPremiumUtil(fallbackUser);
-    return false; // default to non-premium until we know (will be probed below)
+    // Default to non-premium until we know (ensures banner shows while probing)
+    return false;
   }, [user, fallbackUser]);
 
   // Probe /api/users/me only if:
@@ -89,31 +92,35 @@ export default function AdBanner({
 
   // Render ad
   return (
-    <div
-      className={`bg-amber-50 border border-amber-200 p-4 rounded-lg shadow-sm text-center mt-6 ${className}`}
+    <section
+      className={`w-full max-w-3xl mx-auto mt-6 rounded-lg border bg-white shadow-sm ${className}`}
       role="complementary"
       aria-label="Advertisement"
     >
-      <h3 className="text-base font-semibold text-amber-800 mb-2">{headline}</h3>
+      <header className="px-4 pt-3">
+        <h3 className="text-sm font-semibold text-gray-700">{headline}</h3>
+      </header>
 
-      <div className="flex items-center justify-center">
-        {/* Use a neutral, local asset by default; project can swap to any ad provider safely */}
-        <img
-          src={imageSrc}
-          alt="Advertisement"
-          className="mx-auto h-28 md:h-32 object-contain select-none pointer-events-none"
-          loading="lazy"
-        />
+      <div className="px-2 py-3">
+        {/* Fixed-height visual for uniform scale; use object-contain so the full creative remains visible. */}
+        <div className="mx-auto w-full h-24 overflow-hidden rounded">
+          <img
+            src={imageSrc}
+            alt="Advertisement"
+            className="w-full h-full object-contain"
+            loading="lazy"
+          />
+        </div>
       </div>
 
-      {body ? <p className="mt-3 text-sm text-amber-700">{body}</p> : null}
+      {body ? <p className="px-4 pb-4 text-sm text-gray-600">{body}</p> : null}
 
       {cta ? (
-        <div className="mt-3">
+        <div className="px-4 pb-4">
           {typeof cta === "string" ? (
             <a
               href="/subscribe"
-              className="inline-flex items-center px-3 py-1.5 rounded-md border border-amber-300 text-sm font-medium hover:bg-amber-100"
+              className="inline-flex items-center px-3 py-1.5 rounded-md border text-sm font-medium hover:bg-gray-50"
             >
               {cta}
             </a>
@@ -122,7 +129,7 @@ export default function AdBanner({
           )}
         </div>
       ) : null}
-    </div>
+    </section>
   );
 }
 // --- REPLACE END ---

@@ -7,6 +7,9 @@ import ProfileForm from "../components/profileFields/ProfileForm";
 import PhotoCarousel from "../components/discover/PhotoCarousel";
 import api from "../services/api/axiosInstance";
 import { BACKEND_BASE_URL, PLACEHOLDER_IMAGE } from "../config";
+import AdGate from "../components/AdGate";
+import AdBanner from "../components/AdBanner";
+
 
 /** Normalize FS path → web path (handles Windows backslashes) */
 const toWebPath = (p = "") =>
@@ -617,7 +620,19 @@ function PublicInfoCard({ user, t }) {
       <div className="pt-2 text-sm text-gray-500">
         {t("profile:publicDisclaimer") || "Only basic public information is shown."}
       </div>
-    </div>
+    
+{/* // --- REPLACE START: standard content ad slot (inline) --- */}
+<AdGate type="inline" debug={false}>
+  <div className="max-w-3xl mx-auto mt-6">
+    <AdBanner
+      imageSrc="/ads/ad-right1.png"
+      headline="Sponsored"
+      body="Upgrade to Premium to remove all ads."
+    />
+  </div>
+</AdGate>
+{/* // --- REPLACE END --- */}
+</div>
   );
 }
 

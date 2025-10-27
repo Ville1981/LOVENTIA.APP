@@ -1,0 +1,53 @@
+﻿{
+    "id":  "68dab8a761a412065159ff4d",
+    "email":  "villehermaala1981@gmail.com",
+    "username":  "Ville1981",
+    "isPremium":  false,
+    "premium":  false,
+    "entitlements":  {
+                         "tier":  "free",
+                         "since":  null,
+                         "until":  null,
+                         "features":  {
+                                          "seeLikedYou":  false,
+                                          "superLikesPerWeek":  false,
+                                          "unlimitedLikes":  false,
+                                          "unlimitedRewinds":  false,
+                                          "dealbreakers":  false,
+                                          "qaVisibilityAll":  true,
+                                          "introsMessaging":  false,
+                                          "noAds":  false
+                                      },
+                         "quotas":  {
+                                        "superLikes":  {
+                                                           "used":  0,
+                                                           "window":  "weekly"
+                                                       }
+                                    }
+                     },
+    "stripeCustomerId":  "cus_SwF9wr5YgPiXzv",
+    "subscriptionId":  null,
+    "visibility":  {
+                       "isHidden":  false,
+                       "hiddenUntil":  null,
+                       "resumeOnLogin":  true
+                   },
+    "profilePicture":  "/uploads/1759311960077-430359710.gif",
+    "photos":  [
+                   "/uploads/1759311960077-430359710.gif",
+                   "/uploads/1759392252395-4445235.gif",
+                   "/uploads/1759343842730-848316731.gif",
+                   "/uploads/1759343852708-474549052.gif",
+                   "/uploads/1759506874944-965589911.gif",
+                   "/uploads/1759506885653-2887511.gif",
+                   "/uploads/1760602880684-717224320.gif"
+               ],
+    "name":  null,
+    "age":  44,
+    "gender":  "male",
+    "country":  "Finland",
+    "region":  "Kymenlaakso",
+    "city":  "Kouvola",
+    "createdAt":  "2025-09-29T16:49:43.903Z",
+    "updatedAt":  "2025-10-27T07:42:31.215Z"
+}

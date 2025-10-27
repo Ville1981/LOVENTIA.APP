@@ -1,24 +1,27 @@
-// --- ensure AuthContext + axios paths and guard setAuthUser ---
+﻿// --- ensure AuthContext + axios paths and guard setAuthUser ---
 import PropTypes from "prop-types";
 import React, { useEffect, useState, useCallback } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 import ProfileForm from "../components/profileFields/ProfileForm";
-// NOTE: Remove BACKEND_BASE_URL usage for profile calls – we centralize via userService
+// NOTE: Remove BACKEND_BASE_URL usage for profile calls â€“ we centralize via userService
 // import { BACKEND_BASE_URL } from "../config";
 import { useAuth } from "../contexts/AuthContext";
 // import api from "../services/api/axiosInstance";
 import { getUserProfile, updateOwnProfile } from "../services/userService";
+import AdGate from "../components/AdGate";
+import AdBanner from "../components/AdBanner";
+
 
 /**
  * ProfileHub handles user profile display and editing,
  * including profile completion stats, question prompts,
  * and delegates image upload/delete to ProfileForm.
- * Tab navigation is commented out; only “Preferences” renders.
+ * Tab navigation is commented out; only â€œPreferencesâ€ renders.
  */
 export default function ProfileHub() {
-  // i18n-käännökset: käytä oikeaa t-funktiota, EI omaa stubia
+  // i18n-kÃ¤Ã¤nnÃ¶kset: kÃ¤ytÃ¤ oikeaa t-funktiota, EI omaa stubia
   const { t } = useTranslation(["profile", "common", "discover", "lifestyle"]);
 
   // Prefer context-managed user (axios instance sets header); legacy localStorage not needed
@@ -137,7 +140,7 @@ export default function ProfileHub() {
   }, [fetchUser]);
 
   if (!user) {
-    return <div className="text-center mt-12">Loading profile…</div>;
+    return <div className="text-center mt-12">Loading profileâ€¦</div>;
   }
 
   const profileUserId = userIdParam || authUser?._id || user._id || user.id;
@@ -176,6 +179,9 @@ export default function ProfileHub() {
   };
 
   return (
+  <>
+      {/* <HeaderAdSlot className="max-w-6xl mx-auto px-4" /> */}
+
     <div className="max-w-3xl mx-auto p-6 space-y-6">
       {/* Manage Photos button */}
       <div className="flex justify-end">
@@ -207,11 +213,27 @@ export default function ProfileHub() {
         hidePhotoSection
         defaultValues={values}
       />
-    </div>
-  );
+    
+{/* // --- REPLACE START: standard content ad slot (inline) --- */}
+<AdGate type="inline" debug={false}>
+  <div className="max-w-3xl mx-auto mt-6">
+    <AdBanner
+      imageSrc="/ads/ad-right1.png"
+      headline="Sponsored"
+      body="Upgrade to Premium to remove all ads."
+    />
+  </div>
+</AdGate>
+{/* // --- REPLACE END --- */}
+</div>
+    </>
+);
 }
 
 ProfileHub.propTypes = {
   // no props expected
 };
+
+
+
 

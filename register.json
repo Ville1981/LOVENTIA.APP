@@ -1,0 +1,10 @@
+﻿{
+    "accessToken":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OGZmMjNjODZiZTFlNWI5ZDQxZWNhZTIiLCJyb2xlIjoidXNlciIsImlhdCI6MTc2MTU1MTMwNCwiZXhwIjoxNzYxNTU4NTA0LCJpc3MiOiJsb3ZlbnRpYS1hcGkifQ.8418Yr2eTFUkoQwWj3YJ20SleT8Setn0cBRIlEMm5Ek",
+    "user":  {
+                 "id":  "68ff23c86be1e5b9d41ecae2",
+                 "email":  "target+1967593897@example.com",
+                 "name":  "Target User",
+                 "username":  "Target User",
+                 "role":  "user"
+             }
+}

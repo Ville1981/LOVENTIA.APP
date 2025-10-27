@@ -1,7 +1,10 @@
+/* PATH: client/src/index.css */
+
 /* stylelint-disable at-rule-no-unknown */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+
+/* --- REPLACE START: Tailwind v4 entry (replaces @tailwind base/components/utilities) --- */
+@import "tailwindcss";
+/* --- REPLACE END --- */
 
 /* ====================================
    Custom base styles on top of Tailwind
@@ -31,6 +34,7 @@
 
 /* ====================================
    Container component for centering
+   NOTE: Use raw media queries to avoid relying on theme.screens.
    ==================================== */
 @layer components {
   .container {
@@ -39,17 +43,20 @@
     padding-left: 1rem;
     padding-right: 1rem;
   }
-  @screen md {
-    .container { max-width: 36rem; }
-  }
-  @screen lg {
-    .container { max-width: 42rem; }
-  }
 }
+
+/* --- REPLACE START: breakpoints via media queries (md/lg) --- */
+@media (min-width: 768px) {
+  .container { max-width: 36rem; } /* md */
+}
+@media (min-width: 1024px) {
+  .container { max-width: 42rem; } /* lg */
+}
+/* --- REPLACE END --- */
 
 /* ====================================
    Unified form control styling
-   exclude file inputs so hidden utility works
+   (exclude file inputs so hidden utility works)
    ==================================== */
 @layer components {
   form input:not([type="file"]),
@@ -68,7 +75,7 @@
   form button:focus,
   form textarea:focus {
     outline: none;
-    box-shadow: 0 0 0 2px rgba(255,64,129,0.5);
+    box-shadow: 0 0 0 2px rgba(255, 64, 129, 0.5);
   }
 }
 
@@ -100,3 +107,5 @@
     overflow-anchor: none !important;
   }
 }
+
+

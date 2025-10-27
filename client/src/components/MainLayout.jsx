@@ -1,5 +1,6 @@
-// client/src/components/MainLayout.jsx
-// --- REPLACE START: add i18n-backed aria-labels, skip link, and alt texts (no structural changes) ---
+﻿// PATH: client/src/components/MainLayout.jsx
+
+// --- REPLACE START: remove HeaderAdSlot completely; keep interstitial trigger and existing layout ---
 import React from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -9,12 +10,14 @@ import Footer from "../components/Footer";
 import HeroSection from "../components/HeroSection";
 import Navbar from "../components/Navbar";
 import FeatureGate from "./FeatureGate";
+import AdGate from "../components/AdGate";
+import RouteInterstitial from "../components/RouteInterstitial";
 import "../styles/ads.css";
 
 /**
  * MainLayout
  * – Renders the Navbar at the top
- * – Shows a header ad on Home & Discover (hidden if user has noAds entitlement)
+ * – (HeaderAdSlot removed)  <-- global banner under navbar has been removed entirely
  * – Lays out 3 columns: left ad, main content, right ad
  * – Renders routed page via <Outlet />
  * – Renders Footer at the bottom
@@ -65,34 +68,38 @@ const MainLayout = () => {
         {skipToContentText}
       </a>
 
+      {/* Interstitial portal root (kept empty until RouteInterstitial opens it) */}
+      <div id="route-interstitial-root" />
+
       {/* NAVBAR (wrapped in header landmark) */}
       <header aria-label={headerAriaLabel}>
         <Navbar />
+        {/* NOTE: HeaderAdSlot has been removed on purpose */}
       </header>
 
-      {/* HEADER AD (only on Home & Discover, gated by noAds) */}
-      {(isHome || isDiscover) && (
-        <FeatureGate feature="noAds" invert>
-          <div className="w-full flex justify-center bg-white py-3 shadow">
-            <img
-              src={import.meta.env.VITE_HEADER_AD_SRC || "/ads/header1.png"}
-              alt={headerAdAlt}
-              className="ad-header"
-            />
-          </div>
-        </FeatureGate>
-      )}
+      {/* Route-level interstitial trigger (renders nothing unless opened) – non-premium only */}
+      <FeatureGate feature="noAds" invert>
+        <RouteInterstitial
+          debug
+          delayMs={100}
+          ariaLabel={t("layout:ads.interstitial", { defaultValue: "Advertisement" })}
+        />
+      </FeatureGate>
+
+      {/* HEADER AD REMOVED (Home & Discover) — intentionally omitted to comply with global removal */}
 
       {/* MAIN 3-COLUMN LAYOUT */}
       <div className="w-full flex justify-center bg-[#f9f9f9]">
         <div className="w-full max-w-[1400px] grid grid-cols-12 gap-4 px-2 py-6">
-          {/* LEFT AD COLUMN (hidden on small screens, gated by noAds) */}
+          {/* LEFT AD COLUMN (hidden on small screens, gated by noAds and AdGate) */}
           <aside
             className="hidden lg:flex col-span-2 ad-column left"
             aria-label={leftAdsAriaLabel}
           >
             <FeatureGate feature="noAds" invert>
-              <AdColumn side="left" />
+              <AdGate type="inline" debug>
+                <AdColumn side="left" />
+              </AdGate>
             </FeatureGate>
           </aside>
 
@@ -104,13 +111,15 @@ const MainLayout = () => {
             <Outlet />
           </main>
 
-          {/* RIGHT AD COLUMN (hidden on small screens, gated by noAds) */}
+          {/* RIGHT AD COLUMN (hidden on small screens, gated by noAds and AdGate) */}
           <aside
             className="hidden lg:flex col-span-2 ad-column right"
             aria-label={rightAdsAriaLabel}
           >
             <FeatureGate feature="noAds" invert>
-              <AdColumn side="right" />
+              <AdGate type="inline" debug>
+                <AdColumn side="right" />
+              </AdGate>
             </FeatureGate>
           </aside>
         </div>
@@ -126,3 +135,17 @@ const MainLayout = () => {
 
 export default MainLayout;
 // --- REPLACE END ---
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -12,6 +12,9 @@ import ControlBar from "../components/ui/ControlBar";
 import api from "../utils/axiosInstance";
 // Dealbreakers UI panel (Premium-gated via internal FeatureGate)
 import DealbreakersPanel from "../components/DealbreakersPanel";
+import AdGate from "../components/AdGate";
+import AdBanner from "../components/AdBanner";
+
 
 export default function SettingsPage() {
   const { logout, user, setUser, refreshUser, refreshMe } = useAuth() || {};
@@ -278,7 +281,19 @@ export default function SettingsPage() {
         <p className="text-xs text-gray-500">
           The next page uses our secure billing backend (Stripe/PayPal). We never store your card details.
         </p>
-      </section>
+      
+{/* // --- REPLACE START: standard content ad slot (inline) --- */}
+<AdGate type="inline" debug={false}>
+  <div className="max-w-3xl mx-auto mt-6">
+    <AdBanner
+      imageSrc="/ads/ad-right1.png"
+      headline="Sponsored"
+      body="Upgrade to Premium to remove all ads."
+    />
+  </div>
+</AdGate>
+{/* // --- REPLACE END --- */}
+</section>
 
       {/* ===================== DANGER ZONE ===================== */}
       <div className="border-t pt-6">

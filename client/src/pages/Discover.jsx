@@ -1,4 +1,4 @@
-// PATH: client/src/pages/Discover.jsx
+﻿// PATH: client/src/pages/Discover.jsx
 
 // --- REPLACE START: pause API while any <select> is focused + fix import order + add clearTimeout cleanup ---
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -30,7 +30,7 @@ const bunnyUser = {
     { url: "/assets/bunny3.jpg" },
   ],
   location: "Unknown",
-  summary: "Hi, I'm Bunny! 🐰",
+  summary: "Hi, I'm Bunny!",
 };
 
 function absolutizeImage(pathOrUrl) {
@@ -206,9 +206,14 @@ const Discover = () => {
           })
         : [];
 
-      const selfId = authUser?._id?.toString?.() || authUser?.id?.toString?.() || null;
-      const selfUser = selfId ? normalized.find((u) => (u.id || u._id)?.toString() === selfId) : null;
-      const others = selfId ? normalized.filter((u) => (u.id || u._id)?.toString() !== selfId) : normalized;
+      const selfId =
+        authUser?._id?.toString?.() || authUser?.id?.toString?.() || null;
+      const selfUser = selfId
+        ? normalized.find((u) => (u.id || u._id)?.toString() === selfId)
+        : null;
+      const others = selfId
+        ? normalized.filter((u) => (u.id || u._id)?.toString() !== selfId)
+        : normalized;
 
       const ordered = [];
       if (selfUser) ordered.push(selfUser);
@@ -229,14 +234,11 @@ const Discover = () => {
 
   const scrollTimerRef = useRef(null);
 
-  const handleAction = (userId, actionType) => {
-    if (!isPremium && actionType !== "pass") {
-      setShowUpsell(true);
-      return;
-    }
+  /**
+   * Keep scroll position stable while removing the acted card.
+   */
+  const preserveScrollAfter = () => {
     const currentScroll = window.scrollY;
-    setUsers((prev) => prev.filter((u) => (u.id || u._id) !== userId));
-
     requestAnimationFrame(() => {
       if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
       scrollTimerRef.current = setTimeout(() => {
@@ -244,20 +246,104 @@ const Discover = () => {
         scrollTimerRef.current = null;
       }, 0);
     });
-
-    const currentUserId = authUser?._id?.toString?.() || authUser?.id?.toString?.() || null;
-    if (userId === bunnyUser.id) {
-      console.warn(`[Discover] Skipping API call for bunny ${actionType}`);
-      return;
-    }
-    if (currentUserId && userId === currentUserId) {
-      console.warn(`[Discover] Skipping API call for self ${actionType}`);
-      return;
-    }
-    api.post(`/discover/${userId}/${actionType}`).catch((err) => {
-      console.error(`Error executing ${actionType}:`, err);
-    });
   };
+
+  // --- REPLACE START: Like behavior – call /likes for Free, upsell only on quota, keep old behavior for Premium ---
+  const handleAction = async (userId, actionType) => {
+    // Defensive: skip API for placeholder/self, but DO remove the card so UI reacts.
+    const currentUserId =
+      authUser?._id?.toString?.() || authUser?.id?.toString?.() || null;
+    const isBunny = userId === bunnyUser.id;
+    const isSelf = currentUserId && userId === currentUserId;
+
+    setError("");
+
+    // Always remove the visible card first for a responsive UI.
+    const removeCard = () => {
+      setUsers((prev) => prev.filter((u) => (u.id || u._id) !== userId));
+      preserveScrollAfter();
+    };
+
+    // PASS: unchanged logic (remove, then call API unless bunny/self)
+    if (actionType === "pass") {
+      removeCard();
+      if (!isBunny && !isSelf) {
+        api.post(`/discover/${userId}/pass`).catch((err) => {
+          console.error("Error executing pass:", err);
+        });
+      } else {
+        console.warn(`[Discover] Skipping API call for ${isBunny ? "bunny" : "self"} pass`);
+      }
+      return;
+    }
+
+    // LIKE: Premium → previous fast path (no local quota checks)
+    if (actionType === "like" && isPremium) {
+      removeCard();
+      if (!isBunny && !isSelf) {
+        api.post(`/discover/${userId}/like`).catch((err) => {
+          console.error("Error executing like (premium):", err);
+        });
+      } else {
+        console.warn(`[Discover] Skipping API call for ${isBunny ? "bunny" : "self"} like`);
+      }
+      return;
+    }
+
+    // LIKE: Free → call /likes; upsell only on quota exceeded
+    if (actionType === "like" && !isPremium) {
+      if (isBunny || isSelf) {
+        // No server-side action for placeholder/self; still provide feedback.
+        console.warn(`[Discover] Skipping API call for ${isBunny ? "bunny" : "self"} like`);
+        removeCard();
+        return;
+      }
+      try {
+        const res = await api.post("/likes", { targetUserId: userId });
+        const status = Number(res?.status) || 0;
+        const code = res?.data?.code || "";
+
+        if (status === 200 || status === 201 || status === 409) {
+          // Accept success and idempotent "already liked"
+          removeCard();
+          console.info("[Discover] Like accepted (free)", { status, code });
+          return;
+        }
+        if (res?.data && res?.data?.ok !== false) {
+          removeCard();
+          return;
+        }
+        setError("Failed to like this profile. Please try again.");
+      } catch (err) {
+        const status = err?.response?.status;
+        const code = err?.response?.data?.code;
+        if (status === 429 || code === "LIKE_QUOTA_EXCEEDED") {
+          setShowUpsell(true);
+          return;
+        }
+        console.error("Free like failed:", err);
+        setError("Failed to like this profile. Please try again.");
+      }
+      return;
+    }
+
+    // SUPERLIKE (unchanged routing – still delegated to existing component/rules if used here)
+    if (actionType === "superlike") {
+      removeCard();
+      if (!isBunny && !isSelf) {
+        api.post(`/discover/${userId}/superlike`).catch((err) => {
+          console.error("Error executing superlike:", err);
+        });
+      } else {
+        console.warn(`[Discover] Skipping API call for ${isBunny ? "bunny" : "self"} superlike`);
+      }
+      return;
+    }
+
+    // Fallback: unknown action
+    console.warn(`[Discover] Unknown actionType "${actionType}"`);
+  };
+  // --- REPLACE END ---
 
   useEffect(() => {
     return () => {
@@ -380,48 +466,66 @@ const Discover = () => {
   };
 
   return (
-    <div className="w-full flex flex-col items-center bg-gray-100 min-h-screen" style={{ overflowAnchor: "none" }}>
+    <div
+      className="w-full flex flex-col items-center bg-gray-100 min-h-screen"
+      style={{ overflowAnchor: "none" }}
+    >
       <div className="w-full max-w-[1400px] flex flex-col lg:flex-row justify-between px-4 mt-6">
         <aside className="hidden lg:block w-[200px] sticky top-[160px] space-y-6" />
 
         <main className="flex-1">
           <HiddenStatusBanner user={authUser} onUnhidden={handleUnhiddenRefresh} />
 
+          {/* Filters card (top banner under navbar has been removed for Discover; keep only lower content ad) */}
           <div className="bg-white border rounded-lg shadow-md p-6 max-w-3xl mx-auto mt-4">
             <div className="mb-4 flex flex-wrap items-center gap-2">
-              <FeatureGate feature="seeLikedYou" fallback={
-                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-600">
-                  <span role="img" aria-label="eyes">👀</span>
-                  <span>See who liked you</span>
-                  <span className="ml-1 text-[10px] text-amber-700">Premium</span>
-                </span>
-              }>
-                <a href="/who-liked-me" className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-emerald-600 text-white" title="Open 'Who liked me'">
+              <FeatureGate
+                feature="seeLikedYou"
+                fallback={
+                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-600">
+                    <span role="img" aria-label="eyes">👀</span>
+                    <span>See who liked you</span>
+                    <span className="ml-1 text-[10px] text-amber-700">Premium</span>
+                  </span>
+                }
+              >
+                <a
+                  href="/who-liked-me"
+                  className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-emerald-600 text-white"
+                  title="Open 'Who liked me'"
+                >
                   <span role="img" aria-label="eyes">👀</span>
                   <span>Who liked you</span>
                 </a>
               </FeatureGate>
 
-              <FeatureGate feature="noAds" invert={false} fallback={
-                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-600">
-                  <span role="img" aria-label="ad">🪧</span>
-                  <span>Ads</span>
-                  <span className="ml-1 text-[10px] text-amber-700">Premium removes</span>
-                </span>
-              }>
+              <FeatureGate
+                feature="noAds"
+                invert={false}
+                fallback={
+                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-600">
+                    <span role="img" aria-label="ad">🪧</span>
+                    <span>Ads</span>
+                    <span className="ml-1 text-[10px] text-amber-700">Premium removes</span>
+                  </span>
+                }
+              >
                 <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-indigo-600 text-white">
                   <span role="img" aria-label="no-ads">🚫</span>
                   <span>No ads</span>
                 </span>
               </FeatureGate>
 
-              <FeatureGate feature="dealbreakers" fallback={
-                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-600">
-                  <span role="img" aria-label="filter">🧩</span>
-                  <span>Dealbreakers</span>
-                  <span className="ml-1 text-[10px] text-amber-700">Premium</span>
-                </span>
-              }>
+              <FeatureGate
+                feature="dealbreakers"
+                fallback={
+                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-600">
+                    <span role="img" aria-label="filter">🧩</span>
+                    <span>Dealbreakers</span>
+                    <span className="ml-1 text-[10px] text-amber-700">Premium</span>
+                  </span>
+                }
+              >
                 <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-pink-600 text-white">
                   <span role="img" aria-label="filter">🧩</span>
                   <span>Dealbreakers</span>
@@ -429,14 +533,23 @@ const Discover = () => {
               </FeatureGate>
             </div>
 
-            <DiscoverFilters values={values} handleFilter={handleFilter} setters={setters} probeFocusProps={probeFocusProps} />
+            <DiscoverFilters
+              values={values}
+              handleFilter={handleFilter}
+              setters={setters}
+              probeFocusProps={probeFocusProps}
+            />
           </div>
 
+          {/* // --- REPLACE START: standard ad slot on Discover --- */}
           <div className="max-w-3xl mx-auto w-full">
-            <FeatureGate feature="noAds" invert fallback={null}>
-              <AdBanner />
-            </FeatureGate>
+            <AdBanner
+              imageSrc="/ads/ad-right1.png"
+              headline="Sponsored"
+              body="Upgrade to Premium to remove all ads."
+            />
           </div>
+          {/* // --- REPLACE END --- */}
 
           <div className="mt-6 flex justify-center w-full">
             <div className="w-full max-w-3xl">
@@ -450,7 +563,11 @@ const Discover = () => {
                 <div className="mt-12 text-center text-red-600">{error}</div>
               ) : (
                 <>
-                  <ProfileCardList key={filterKey} users={users} onAction={handleAction} />
+                  <ProfileCardList
+                    key={filterKey}
+                    users={users}
+                    onAction={handleAction}
+                  />
                   {users.length === 0 && (
                     <div className="mt-12 text-center text-gray-500">
                       🔍 {t("discover:noResults")}
@@ -468,9 +585,17 @@ const Discover = () => {
       {showUpsell && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4">
           <div className="w-full sm:max-w-xl">
-            <PremiumGate mode="block" requireFeature="unlimitedLikes" onUpgraded={() => setShowUpsell(false)} />
+            <PremiumGate
+              mode="block"
+              requireFeature="unlimitedLikes"
+              onUpgraded={() => setShowUpsell(false)}
+            />
             <div className="mt-2 flex justify-center">
-              <button type="button" onClick={() => setShowUpsell(false)} className="px-4 py-2 rounded-md bg-white border text-gray-700 hover:bg-gray-50">
+              <button
+                type="button"
+                onClick={() => setShowUpsell(false)}
+                className="px-4 py-2 rounded-md bg-white border text-gray-700 hover:bg-gray-50"
+              >
                 Close
               </button>
             </div>
@@ -483,22 +608,3 @@ const Discover = () => {
 
 export default Discover;
 // --- REPLACE END ---
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

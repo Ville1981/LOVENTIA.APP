@@ -1,4 +1,4 @@
-// PATH: client/src/api/axios.js
+// File: client/src/api/axios.js
 
 // --- REPLACE START: resilient Axios instance with refresh lock + credentials (prevents parallel spam) ---
 import axios from "axios";
