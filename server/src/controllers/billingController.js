@@ -1,6 +1,6 @@
 // File: server/src/controllers/billingController.js
 
-// --- REPLACE START: Stripe billing controller (Checkout, Portal, Webhook with signature verification) ---
+// --- REPLACE START: Stripe billing controller (Checkout, Portal, Webhook with signature verification + durable premium sync) ---
 /**
  * Billing controller
  *
@@ -8,6 +8,7 @@
  *  - Create Stripe Checkout Session for subscriptions.
  *  - Create Stripe Billing Portal Session for managing/canceling subscriptions.
  *  - Handle Stripe Webhook events with signature verification and toggle premium status.
+ *  - Provide an explicit /billing/sync endpoint that *persists* premium state on the User.
  *
  * Requirements:
  *  - ENV:
@@ -20,7 +21,10 @@
  */
 
 import crypto from 'node:crypto';
-import User from '../models/User.js';
+import * as UserModule from '../models/User.js';
+const User = UserModule.default || UserModule;
+
+import normalizeUserOut from '../utils/normalizeUserOut.js';
 import stripe, { billingUrls } from '../../config/stripe.js';
 
 /* -------------------------------------------------------------------------- */
@@ -67,27 +71,127 @@ async function getOrCreateStripeCustomer(userDoc) {
 }
 
 /**
- * Given a Stripe customer id, set user's premium flag.
- * Attempts direct lookup by stripeCustomerId; if not found, tries metadata backfill.
+ * Build entitlements.features block based on premium flag.
+ * Keep qaVisibilityAll true for both tiers (as in current data model).
  */
-async function setPremiumByCustomer(customerId, premium) {
+function buildEntitlementFeatures(isPremium) {
+  if (isPremium) {
+    return {
+      seeLikedYou: true,
+      superLikesPerWeek: true,
+      unlimitedLikes: true,
+      unlimitedRewinds: true,
+      dealbreakers: true,
+      qaVisibilityAll: true,
+      introsMessaging: true,
+      noAds: true,
+    };
+  }
+  return {
+    seeLikedYou: false,
+    superLikesPerWeek: false,
+    unlimitedLikes: false,
+    unlimitedRewinds: false,
+    dealbreakers: false,
+    qaVisibilityAll: true,
+    introsMessaging: false,
+    noAds: false,
+  };
+}
+
+/**
+ * Given a Stripe subscription object, derive the premium state payload.
+ * Accepts statuses considered "active" by policy.
+ */
+function derivePremiumStateFromSubscription(subscription) {
+  if (!subscription) return { isPremium: false, subscriptionId: null, tier: 'free', since: null, until: null };
+  const activeStatuses = new Set(['active', 'trialing', 'past_due', 'unpaid']); // adjust if needed
+  const isActive = activeStatuses.has(subscription.status);
+  const since = subscription.current_period_start ? new Date(subscription.current_period_start * 1000) : null;
+  const until = subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : null;
+
+  return {
+    isPremium: !!isActive,
+    subscriptionId: subscription.id || null,
+    tier: isActive ? 'premium' : 'free',
+    since: isActive ? since : null,
+    until: isActive ? until : null,
+  };
+}
+
+/**
+ * Persist premium-related fields on User atomically.
+ * Returns the updated document (not normalized).
+ *
+ * Rules:
+ *  - Merge (do not wipe) entitlements.features
+ *  - Always set user.subscriptionId
+ *  - Always set entitlements.tier
+ *  - Keep quotas.superLikes sane defaults
+ */
+async function writeUserPremiumState(userId, premiumState) {
+  const { isPremium, subscriptionId, tier, since, until } = premiumState;
+  const features = buildEntitlementFeatures(isPremium);
+
+  // Build $set for clarity and to avoid accidentally removing other fields
+  const $set = {
+    isPremium: !!isPremium,
+    premium: !!isPremium, // legacy mirror if used elsewhere
+    subscriptionId: subscriptionId ?? null,
+    'entitlements.tier': tier || (isPremium ? 'premium' : 'free'),
+    'entitlements.since': since ?? null,
+    'entitlements.until': until ?? null,
+
+    // Merge features – each field explicitly set (non-destructive at the object level).
+    'entitlements.features.seeLikedYou': !!features.seeLikedYou,
+    'entitlements.features.superLikesPerWeek': !!features.superLikesPerWeek,
+    'entitlements.features.unlimitedLikes': !!features.unlimitedLikes,
+    'entitlements.features.unlimitedRewinds': !!features.unlimitedRewinds,
+    'entitlements.features.dealbreakers': !!features.dealbreakers,
+    'entitlements.features.qaVisibilityAll': !!features.qaVisibilityAll,
+    'entitlements.features.introsMessaging': !!features.introsMessaging,
+    'entitlements.features.noAds': !!features.noAds,
+
+    // Ensure quotas object is present (defensive)
+    'entitlements.quotas.superLikes.used': 0,
+    'entitlements.quotas.superLikes.window': 'weekly',
+  };
+
+  const updated = await User.findByIdAndUpdate(
+    userId,
+    { $set },
+    { new: true, runValidators: true }
+  );
+
+  return updated;
+}
+
+/**
+ * Given a Stripe customer id, toggle User premium using durable writer above.
+ * If user not found by customerId, attempts metadata backfill.
+ */
+async function upsertPremiumByCustomer(customerId, isPremium, subscription) {
   if (!customerId) return;
-  const found = await User.findOne({ stripeCustomerId: customerId });
-  if (found) {
-    found.premium = !!premium;
-    await found.save();
-    return;
-  }
-  // Metadata backfill (best-effort)
-  try {
-    const c = await stripe.customers.retrieve(customerId);
-    const appUserId = c?.metadata?.appUserId;
-    if (appUserId) {
-      await User.updateOne({ _id: appUserId }, { $set: { premium: !!premium } });
+
+  const fromSub = derivePremiumStateFromSubscription(isPremium ? subscription : null);
+
+  // First: try direct lookup by stripeCustomerId
+  let userDoc = await User.findOne({ stripeCustomerId: customerId }, { _id: 1 });
+  if (!userDoc) {
+    // Metadata backfill (best-effort)
+    try {
+      const c = await stripe.customers.retrieve(customerId);
+      const appUserId = c?.metadata?.appUserId;
+      if (appUserId) {
+        userDoc = await User.findById(appUserId, { _id: 1 });
+      }
+    } catch {
+      // ignore
     }
-  } catch {
-    // no-op; not fatal for webhook processing
   }
+  if (!userDoc?._id) return;
+
+  await writeUserPremiumState(userDoc._id, fromSub);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -154,6 +258,43 @@ export async function createPortal(req, res) {
 }
 
 /**
+ * POST /api/billing/sync
+ * Explicitly reconcile Stripe → User and persist premium state.
+ * Returns the *updated* normalized user so the client can reflect changes immediately.
+ */
+export async function sync(req, res) {
+  const user = await resolveUserFromRequest(req);
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+  const customerId = await getOrCreateStripeCustomer(user);
+
+  // Fetch the latest subscription for this customer
+  const subs = await stripe.subscriptions.list({
+    customer: customerId,
+    status: 'all',
+    expand: ['data.default_payment_method', 'data.latest_invoice.payment_intent'],
+    limit: 5,
+  });
+
+  // Prefer an active/trialing subscription if present, otherwise take the newest
+  const preferred =
+    subs.data.find(s => ['active', 'trialing', 'past_due', 'unpaid'].includes(s.status)) ||
+    subs.data.sort((a, b) => (b.created || 0) - (a.created || 0))[0] ||
+    null;
+
+  const premiumState = derivePremiumStateFromSubscription(preferred);
+  const updated = await writeUserPremiumState(user._id, premiumState);
+
+  // IMPORTANT: return the updated, normalized user so FE can update immediately
+  return res.json({
+    ok: true,
+    isPremium: premiumState.isPremium,
+    subscriptionId: premiumState.subscriptionId,
+    user: normalizeUserOut(updated),
+  });
+}
+
+/**
  * POST /api/billing/webhook
  * NOTE: Route must be declared with express.raw({ type: 'application/json' }) to preserve raw body.
  * Validates signature and reacts to key subscription events.
@@ -180,7 +321,12 @@ export async function handleWebhook(req, res) {
       case 'checkout.session.completed': {
         const session = event.data.object;
         const customerId = session.customer;
-        await setPremiumByCustomer(customerId, true);
+        // Fetch the attached subscription to set proper dates/features
+        let subscription = null;
+        if (session.subscription) {
+          subscription = await stripe.subscriptions.retrieve(session.subscription);
+        }
+        await upsertPremiumByCustomer(customerId, true, subscription);
         break;
       }
 
@@ -189,7 +335,7 @@ export async function handleWebhook(req, res) {
       case 'customer.subscription.canceled': {
         const sub = event.data.object;
         const customerId = sub.customer;
-        await setPremiumByCustomer(customerId, false);
+        await upsertPremiumByCustomer(customerId, false, null);
         break;
       }
 
@@ -199,7 +345,7 @@ export async function handleWebhook(req, res) {
         const customerId = sub.customer;
         const activeStatuses = new Set(['active', 'trialing', 'past_due', 'unpaid']); // adjust to your policy
         const isActive = activeStatuses.has(sub.status);
-        await setPremiumByCustomer(customerId, isActive);
+        await upsertPremiumByCustomer(customerId, isActive, sub);
         break;
       }
 
@@ -223,3 +369,5 @@ export async function handleWebhook(req, res) {
   return res.status(200).send('ok');
 }
 // --- REPLACE END ---
+
+

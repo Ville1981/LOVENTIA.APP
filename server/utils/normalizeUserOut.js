@@ -1,5 +1,3 @@
-// PATH: server/src/utils/normalizeUserOut.js
-
 // --- REPLACE START: unified user normalizer (NO field cutting; arrays guaranteed; POSIX /uploads paths; no duplicates) ---
 /**
  * Unified user normalizer for API output.
@@ -16,9 +14,18 @@
  *  • Preserve all domain fields (no whitelisting). Only adjust the minimal set above.
  *  • Work with both Mongoose documents and plain objects.
  *
+ * Premium safety rules:
+ *  • NEVER overwrite stored premium fields destructively.
+ *  • Only *fill gaps* if fields are missing/undefined:
+ *      – If `isPremium === true` and entitlements.tier is missing/"free" → lift to "premium".
+ *      – Fill only missing premium features to true (at least `noAds`); never flip true→false.
+ *      – If `isPremium` is missing (not boolean), compute effective view and set it.
+ *      – Mirror legacy `premium` from `isPremium` if missing.
+ *  • DO NOT remove `subscriptionId`.
+ *
  * Implementation notes:
  *  • Keep comments & strings in English.
- *  • Expose a couple of helpers (toWebPath, normalizeUsersOut) for reuse in routes/controllers.
+ *  • Expose helpers (toWebPath, normalizeUsersOut) for reuse in routes/controllers.
  */
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -60,7 +67,7 @@ export function toWebPath(p) {
 /**
  * Coerce an unknown input into an array:
  *  - If it's already an array → return as-is
- *  - If it's a plain object → use Object.values(v) (handles `{0:'a',1:'b'}` coming from bad serialization)
+ *  - If it's a plain object → use Object.values(v) (handles `{0:'a',1:'b'}` from bad serialization)
  *  - Otherwise → []
  */
 export function asArray(v) {
@@ -143,7 +150,13 @@ export function ensureCanonicalAvatar(u) {
   if (u.avatar)         u.avatar         = toWebPath(u.avatar);
 
   // Pick a representative avatar if one isn't explicitly set
-  const candidate = u.profilePicture || u.profilePhoto || u.avatar || (Array.isArray(u.photos) && u.photos[0]) || null;
+  const candidate =
+    u.profilePicture ||
+    u.profilePhoto ||
+    u.avatar ||
+    (Array.isArray(u.photos) && u.photos[0]) ||
+    null;
+
   if (candidate) {
     const norm = toWebPath(candidate);
     u.profilePicture = norm;
@@ -166,6 +179,104 @@ export function ensureStringId(u) {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
+ * Premium logic (effective view + non-destructive entitlements merge)
+ * ────────────────────────────────────────────────────────────────────────────*/
+
+/**
+ * Compute effective premium without mutating source:
+ *  1) if user.isPremium === true → premium
+ *  2) else if entitlements.tier === 'premium' AND entitlements.until > now → premium
+ *  3) otherwise free
+ */
+function computeEffectivePremiumView(u) {
+  try {
+    if (u?.isPremium === true) return true;
+    const ent = u?.entitlements || {};
+    const tier = ent?.tier;
+    const untilRaw = ent?.until;
+    if (tier === "premium" && untilRaw) {
+      const until = new Date(untilRaw);
+      if (!Number.isNaN(+until) && until.getTime() > Date.now()) return true;
+    }
+    return false;
+  } catch {
+    return !!u?.isPremium;
+  }
+}
+
+/**
+ * Fill only missing premium flags (top-level isPremium/premium mirrors).
+ * DO NOT touch entitlements content here.
+ */
+export function applyPremiumSafety(u) {
+  const hasIsPremium = typeof u.isPremium === "boolean";
+  if (!hasIsPremium) {
+    u.isPremium = computeEffectivePremiumView(u);
+  }
+  const hasLegacyPremium = typeof u.premium === "boolean";
+  if (!hasLegacyPremium) {
+    u.premium = !!u.isPremium;
+  }
+  return u;
+}
+
+/**
+ * Non-destructive entitlements merge for output:
+ *  - Ensure u.entitlements object exists.
+ *  - If user is premium (effective view) and entitlements.tier is missing/"free", lift to "premium".
+ *  - If premium: set only missing premium features to true (at least `noAds`); never flip true→false.
+ *  - Preserve quotas and any existing features.
+ *  - Never remove/alter `subscriptionId`.
+ */
+export function applyEntitlementsView(u) {
+  const effectivePremium = !!u.isPremium || computeEffectivePremiumView(u);
+  const ent = u.entitlements && typeof u.entitlements === "object" ? u.entitlements : {};
+  const features = ent.features && typeof ent.features === "object" ? ent.features : {};
+  const quotas = ent.quotas && typeof ent.quotas === "object" ? ent.quotas : ent.quotas ?? undefined;
+
+  // Lift tier only if missing or clearly "free"
+  const currentTier = ent.tier;
+  const shouldLiftTier =
+    effectivePremium &&
+    (currentTier === undefined || currentTier === null || String(currentTier).toLowerCase() === "free");
+
+  if (shouldLiftTier) {
+    ent.tier = "premium";
+  } else if (currentTier !== undefined) {
+    ent.tier = currentTier; // keep as-is if already set (including "premium")
+  }
+
+  // If premium, fill only missing features (minimal set: at least noAds)
+  if (effectivePremium) {
+    if (features.noAds === undefined || features.noAds === null) {
+      features.noAds = true;
+    }
+    // Optionally prefill more premium features here (ONLY when missing):
+    // const premiumDefaults = {
+    //   unlimitedLikes: true,
+    //   unlimitedRewinds: true,
+    //   dealbreakers: true,
+    //   seeLikedYou: true,
+    //   qaVisibilityAll: true,
+    //   introsMessaging: true,
+    //   noAds: true,
+    // };
+    // for (const [k, v] of Object.entries(premiumDefaults)) {
+    //   if (features[k] === undefined || features[k] === null) features[k] = v;
+    // }
+  }
+
+  // Re-attach objects (avoid mutating shared references if upstream used frozen objects)
+  u.entitlements = {
+    ...ent,
+    features: { ...features },
+    ...(quotas ? { quotas } : {}), // keep quotas object if present
+  };
+
+  return u;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
  * Main normalizer
  * ────────────────────────────────────────────────────────────────────────────*/
 
@@ -174,7 +285,7 @@ export function ensureStringId(u) {
  * @param {Object|import('mongoose').Document} src
  * @returns {Object} normalized user (plain object)
  */
-export default function normalizeUserOut(src = {}) {
+export function normalizeUserOut(src = {}) {
   // Always start from a plain object; do not mutate the original document.
   const user = src && typeof src.toObject === "function" ? src.toObject() : { ...src };
 
@@ -189,6 +300,12 @@ export default function normalizeUserOut(src = {}) {
 
   // 4) Provide a stable string id
   ensureStringId(user);
+
+  // 5) Premium top-level safety (gap-filling only)
+  applyPremiumSafety(user);
+
+  // 6) Non-destructive entitlements merge for output (lift tier + fill missing premium features)
+  applyEntitlementsView(user);
 
   // Done — return the normalized user (no field whitelisting!)
   return user;
@@ -213,5 +330,7 @@ export function normalizeUsersOut(arr) {
  * Defensive exports (keep API stable if other modules import helpers directly)
  * ────────────────────────────────────────────────────────────────────────────*/
 
-// Named re-exports are already present above; keep default at bottom for clarity.
+// Keep a default export alias for compatibility with `import normalizeUserOut from ...`
+export default normalizeUserOut;
 // --- REPLACE END ---
+

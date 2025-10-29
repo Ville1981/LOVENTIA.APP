@@ -1,5 +1,3 @@
-// File: server/src/routes/index.js
-
 import express from 'express';
 
 // --- REPLACE START: Import modules in a robust way and normalize their exports ---
@@ -22,8 +20,9 @@ import * as authPrivateRoutesNS from './authPrivateRoutes.js';
 import * as authRoutesNS from './authRoutes.js';
 import * as billingNS from './billing.js';
 import * as dealbreakersNS from './dealbreakers.js';
-import * as discoverLikesAliasNS from './discoverLikesAlias.js';
-import * as discoverRoutesNS from './discoverRoutes.js';
+// ⚠️ Discover mounts are centralized in app.js to avoid duplicates/shadowing.
+// import * as discoverLikesAliasNS from './discoverLikesAlias.js';
+// import * as discoverRoutesNS from './discoverRoutes.js';
 import * as healthRoutesNS from './healthRoutes.js';
 import * as imageRoutesNS from './imageRoutes.js';
 import * as introsNS from './intros.js';
@@ -58,8 +57,8 @@ const authPrivateRoutes = pickRouter(authPrivateRoutesNS);
 const authRoutes = pickRouter(authRoutesNS);
 const billing = pickRouter(billingNS);
 const dealbreakers = pickRouter(dealbreakersNS);
-const discoverLikesAlias = pickRouter(discoverLikesAliasNS);
-const discoverRoutes = pickRouter(discoverRoutesNS);
+// const discoverLikesAlias = pickRouter(discoverLikesAliasNS);
+// const discoverRoutes = pickRouter(discoverRoutesNS);
 const healthRoutes = pickRouter(healthRoutesNS);
 const imageRoutes = pickRouter(imageRoutesNS);
 const intros = pickRouter(introsNS);
@@ -145,9 +144,10 @@ use('/moderation', moderation, 'moderation');
 use('/qa', qa, 'qa');
 
 // Discover
-use('/discover', discoverRoutes, 'discoverRoutes');
-// Alias router that often proxies to /likes-like behavior; mount under /discover too
-use('/discover', discoverLikesAlias, 'discoverLikesAlias');
+// ⚠️ IMPORTANT: Discover is mounted ONCE in app.js as `/api/discover`.
+// Commented out here to prevent double-mount and shadowing.
+// use('/discover', discoverRoutes, 'discoverRoutes');
+// use('/discover', discoverLikesAlias, 'discoverLikesAlias');
 
 // Images: this router already declares absolute paths (/users/:id/... and /images/:id/...)
 use('/', imageRoutes, 'imageRoutes');
@@ -167,5 +167,4 @@ use('/social', socialRoutes, 'socialRoutes');
 use('/billing', billing, 'billing');
 
 export default router;
-
 

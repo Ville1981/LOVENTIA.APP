@@ -1,5 +1,3 @@
-// PATH: server/src/app.js
-
 // --- REPLACE START: core imports remain (ESM) ---
 import express from 'express'; // NEW: needed for express.raw()
 import expressLoader from './loaders/express.js';
@@ -9,11 +7,17 @@ import routes from './routes/index.js';
 import { notFound, errorHandler } from './middleware/error.js';
 import { env } from './config/env.js';
 
+// Auth middleware (ensure req.userId exists for includeSelf etc.)
+import authenticate from './middleware/authenticate.js';
+
 // Stripe webhook handler (controller-level, single endpoint)
 import { stripeWebhookHandler } from './controllers/stripeWebhookController.js';
 
 // ⬇️ Billing/payment router (unchanged)
 import paymentRouter from './routes/payment.js';
+
+// ⬇️ Discover router (mount exactly once under /api/discover)
+import discoverRouter from './routes/discover.js';
 // --- REPLACE END ---
 
 // --- REPLACE START: add Swagger UI imports (non-breaking) ---
@@ -96,8 +100,19 @@ if (process.env.NODE_ENV === 'test') {
 }
 // --- REPLACE END ---
 
-// API routes
+// API routes (central aggregator under /api)
 app.use('/api', routes);
+
+// --- PATCH START: mount discover once ---
+/**
+ * Discover routes
+ * ---------------
+ * Mount EXACTLY once under /api/discover and protect with authenticate.
+ * If your routes/index.js also mounts any legacy discover router,
+ * remove that legacy mount to avoid duplication or shadowing.
+ */
+app.use('/api/discover', authenticate, discoverRouter);
+// --- PATCH END ---
 
 // --- REPLACE START: mount billing/payment routes (align with app.legacy.js) ---
 /**

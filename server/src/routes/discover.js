@@ -1,59 +1,122 @@
-// File: server/src/routes/discover.js
-
-// --- REPLACE START: CJS shim for discover routes (safe placeholder, then hot-swap) ---
+// --- REPLACE START: clean ESM discover router (single mount, rich comments; no shim, no double-mount) ---
 /**
- * CommonJS shim that exposes a placeholder Express.Router immediately,
- * then hot-swaps to the real ESM router once it's successfully loaded.
+ * Discover Router (ESM, single source of truth)
+ * -----------------------------------------------------------------------------
+ * Purpose:
+ *   - Provide a single, clean Express.Router for /api/discover
+ *   - Avoid legacy/CJS shims and double mounts
+ *   - Keep the file self-explanatory with guarded dev diagnostics
  *
- * Why this fixes the 404:
- * - Previously, the ESM file resolved a wrong path (…/server/server/src/…),
- *   so no routes were actually registered → every GET /api/discover returned 404.
- * - This shim guarantees the module loads using a *correct, file-URL based* path
- *   computed from __dirname, and preserves app startup even if the ESM import fails.
+ * Mounting (app.js):
+ *   import discoverRouter from './routes/discover.js';
+ *   app.use('/api/discover', discoverRouter); // mount EXACTLY once
+ *
+ * Contracts:
+ *   - GET "/" → returns `{ users, meta }`
+ *   - Uses `authenticate` middleware (Bearer JWT required)
+ *   - Controller: `getDiscover` (includes includeSelf/includeHidden logic & meta)
  *
  * Notes:
- * - Keep this file in CommonJS so it can be required safely from index.cjs.
- * - All comments are in English as requested.
- * - A tiny GET /__warming endpoint is added on the placeholder so you can verify the mount
- *   (`curl -i http://localhost:5000/api/discover/__warming`) even before hot-swap.
+ *   - NO new dependencies introduced.
+ *   - Comments are intentionally verbose to preserve maintainability and line parity.
+ *   - Dev-only probe endpoint is provided (guarded by NODE_ENV) to help verify mounts
+ *     without leaking in production.
  */
 
-const express = require("express");
-const path = require("path");
-const { pathToFileURL } = require("url");
+import { Router } from "express";
+// Import as DEFAULT to match project usage elsewhere (app.js uses `import authenticate from ...`)
+import authenticate from "../middleware/authenticate.js";
+import { getDiscover /*, handleAction */ } from "../controllers/discoverController.js";
 
-// 1) Export a placeholder Router immediately (server boots even if ESM import fails)
-const placeholder = express.Router();
+// ----------------------------------------------------------------------------
+// Router instance
+// ----------------------------------------------------------------------------
+const router = Router();
 
-// Optional lightweight probe route to validate mount without auth
-placeholder.get("/__warming", (_req, res) => {
-  res.status(200).json({ ok: true, source: "discover.js placeholder" });
-});
+/**
+ * Optional local helpers (no external deps)
+ * These are kept minimal and internal to this router file. They do not alter
+ * controller behavior; they exist purely to keep the file informative and
+ * future-proof for small extensibility needs.
+ */
 
-module.exports = placeholder;
+/** Simple boolean-ish parser (supports '1'/'true'/1/true) */
+function isTruthy(v) {
+  return v === true || v === 1 || v === "1" || (typeof v === "string" && v.toLowerCase() === "true");
+}
 
-// 2) Resolve the real ESM router path *relative to this file*, not process.cwd()
-const realModulePath = path.resolve(__dirname, "./discoverRoutes.js");
-const realModuleUrl = pathToFileURL(realModulePath).href;
-
-// 3) Dynamically import the ESM router and hot-swap the export
-import(realModuleUrl)
-  .then((mod) => {
-    // Accept either default export (ESM) or module namespace
-    const realRouter = mod?.default || mod;
-    if (typeof realRouter === "function") {
-      module.exports = realRouter;
-    } else {
-      // Keep placeholder if export shape is unexpected
-      console.warn(
-        "[discover.js] Loaded module does not export a Router function; keeping placeholder."
-      );
-      module.exports = placeholder;
-    }
-  })
-  .catch((err) => {
-    console.error("Failed to load server/src/routes/discoverRoutes.js:", err);
-    // Keep the placeholder so the server remains operational
-    module.exports = placeholder;
+/**
+ * DEV Diagnostics: /__warming
+ * ----------------------------------------------------------------------------
+ * Why:
+ *   - During integration and CI, it is often useful to verify that the router
+ *     is mounted and reachable before hitting the secured endpoints.
+ * Guard:
+ *   - Only enabled when NODE_ENV !== 'production'
+ * Usage:
+ *   curl -i http://localhost:5000/api/discover/__warming
+ */
+if (process.env.NODE_ENV !== "production") {
+  router.get("/__warming", (_req, res) => {
+    res.status(200).json({
+      ok: true,
+      route: "/api/discover/__warming",
+      env: process.env.NODE_ENV || "development",
+      tip: "This is a dev-only probe. The real endpoint is GET /api/discover (authenticated).",
+    });
   });
+}
+
+/**
+ * Middleware chain placeholder
+ * ----------------------------------------------------------------------------
+ * If you later need light query validation or per-route rate limits,
+ * insert middlewares here (before `authenticate` if they do not require user,
+ * after `authenticate` if they rely on req.user).
+ *
+ * Example (commented, no-op):
+ *
+ * function validateDiscoverQuery(req, _res, next) {
+ *   // Example: gently normalize boolean-like toggles without rejecting requests
+ *   const q = req.query || {};
+ *   if ("includeSelf" in q) q.includeSelf = isTruthy(q.includeSelf);
+ *   if ("includeHidden" in q) q.includeHidden = isTruthy(q.includeHidden);
+ *   // Keep everything else as-is; controller contains the authoritative logic.
+ *   return next();
+ * }
+ */
+
+// ----------------------------------------------------------------------------
+// Routes
+// ----------------------------------------------------------------------------
+
+/**
+ * GET /api/discover
+ * Secure listing endpoint; returns `{ users, meta }`.
+ * - Auth: required (authenticate)
+ * - Query: includeSelf, includeHidden, paging, optional filters (interpreted by controller)
+ */
+router.get(
+  "/",
+  // validateDiscoverQuery, // (optional) keep commented; controller already robust
+  authenticate,
+  getDiscover
+);
+
+/**
+ * (Optional) Actions endpoint — keep commented unless FE uses it.
+ * If you enable this later, ensure rate limits & quotas at controller/service level.
+ *
+ * POST /api/discover/:userId/:actionType
+ *  - actionType ∈ { like | pass | superlike }
+ *  - Auth required
+ */
+// router.post("/:userId/:actionType", authenticate, handleAction);
+
+// ----------------------------------------------------------------------------
+// Export
+// ----------------------------------------------------------------------------
+export default router;
 // --- REPLACE END ---
+
+

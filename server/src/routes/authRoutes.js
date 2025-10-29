@@ -1,169 +1,178 @@
 // PATH: server/src/routes/authRoutes.js
 
-// --- REPLACE START: unified public auth routes with centralized CORS + safe fallbacks ---
+// --- REPLACE START: unified public auth routes (no top-level await; static ESM imports + safe fallbacks) ---
+/**
+
+* Public Auth Routes
+* ---
+* Minimal change: remove ALL top-level dynamic imports and replace with static ESM imports.
+* Keep behavior identical where possible and provide light in-file fallbacks (no TLA).
+*
+* Notes:
+* • CORS is centralized via ../config/corsConfig.js (env-driven).
+* • If validators or schemas are missing, we fall back to permissive no-ops.
+* • /me remains here as a convenience (protected with authenticate), but private-only
+* endpoints should live in authPrivateRoutes.js.
+  */
+
 import express from 'express';
-import path from 'path';
-import { fileURLToPath, pathToFileURL } from 'url';
-import corsConfig from '../config/corsConfig.js'; // Centralized, env-driven CORS
+import corsConfig from '../config/corsConfig.js';
 
-// Resolve __dirname for ESM
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Controllers (static imports)
+import authController from '../api/controllers/authController.js';
+import * as userControllerNs from '../controllers/userController.js';
 
-// Dynamic import for authController (Windows ESM compatible)
-// From server/src/routes → ../api/controllers → server/src/api/controllers
-const ControllerModule = await import(
-pathToFileURL(path.resolve(__dirname, '../api/controllers/authController.js')).href
-).catch(() => null);
-const authController = ControllerModule?.default || ControllerModule || {};
+// Middleware (static imports)
+import authenticate from '../middleware/authenticate.js';
 
-// Also try userController as a fallback for forgot/reset and me
-let userController = {};
+// Optional validation (static imports; may be partially undefined in some repos)
+import { validateBody as _validateBody } from '../middleware/validateRequest.js';
+
+// Load CommonJS validator schemas in an ESM-safe way (no top-level await)
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+
+// IMPORTANT: authValidator is CommonJS; ensure we load the .cjs file explicitly.
+let authSchemas = null;
 try {
-// From server/src/routes → ../controllers → server/src/controllers
-const UcModule = await import(
-pathToFileURL(path.resolve(__dirname, '../controllers/userController.js')).href
-);
-userController = UcModule.default || UcModule || {};
+// Path is relative to THIS file (server/src/routes)
+authSchemas = require('../validators/authValidator.cjs');
 } catch {
-// ignore – we still expose safe placeholders where needed below
+// If missing, we keep authSchemas = null and skip schema validation gracefully.
 }
 
-// Optional request validators (if present)
-let validateBody, loginSchema, registerSchema;
-try {
-const validators = await import(
-pathToFileURL(path.resolve(__dirname, '../middleware/validateRequest.js')).href
-);
-validateBody = validators.validateBody;
-
-try {
-const schemas = await import(
-pathToFileURL(path.resolve(__dirname, '../api/validators/authValidator.js')).href
-);
-loginSchema = schemas.loginSchema;
-registerSchema = schemas.registerSchema;
-} catch {
-// No schemas found — skip schema validation
-}
-} catch {
-// No validator found — skip request validation
-}
+// Extract optional schemas (may be undefined)
+const _loginSchema = authSchemas?.loginSchema;
+const _registerSchema = authSchemas?.registerSchema;
 
 const router = express.Router();
 
+// ──────────────────────────────────────────────────────────────────────────────
+// Safe fallbacks for optional pieces (no-op if not present)
+// ──────────────────────────────────────────────────────────────────────────────
+/** If validateBody is unavailable, pass-through middleware. */
+const validateBody =
+typeof _validateBody === 'function' ? _validateBody : (_schema) => (_req, _res, next) => next();
+
+/** Schemas may be undefined; route handlers will simply skip schema validation in that case. */
+const loginSchema = _loginSchema || null;
+const registerSchema = _registerSchema || null;
+
+/** Resolve possible namespace/default export from userController. */
+const userController =
+userControllerNs?.default && typeof userControllerNs.default === 'object'
+? userControllerNs.default
+: userControllerNs || {};
+
+// Defensive controller object (avoid destructuring undefined)
+const authCtrl = authController || {};
+
+// ──────────────────────────────────────────────────────────────────────────────
+// CORS note
+// ─────────────────────────────────────────────────────────────────────────────-
 /**
 
-* NOTE ABOUT CORS:
-* * Do NOT set Access-Control-* manually here.
-* * Use centralized `corsConfig` so origin mirrors env (CORS_ORIGINS/CLIENT_URL).
-* * Add explicit OPTIONS per public endpoint to satisfy preflight.
-    */
-
-/**
-
-* POST /login  (public)
-* * OPTIONS /login (preflight)
-    */
-    if (typeof authController.login === 'function') {
-    router.options('/login', corsConfig, (_req, res) => res.sendStatus(204));
-    if (validateBody && loginSchema) {
-    router.post('/login', corsConfig, validateBody(loginSchema), authController.login);
-    } else {
-    router.post('/login', corsConfig, authController.login);
-    }
-    }
-
-/**
-
-* POST /register  (public)
-* * OPTIONS /register (preflight)
-    */
-    if (typeof authController.register === 'function') {
-    router.options('/register', corsConfig, (_req, res) => res.sendStatus(204));
-    if (validateBody && registerSchema) {
-    router.post('/register', corsConfig, validateBody(registerSchema), authController.register);
-    } else {
-    router.post('/register', corsConfig, authController.register);
-    }
-    }
-
-/**
-
-* POST /refresh  (public)
-* * OPTIONS /refresh (preflight)
-    */
-    if (typeof authController.refreshToken === 'function') {
-    router.options('/refresh', corsConfig, (_req, res) => res.sendStatus(204));
-    router.post('/refresh', corsConfig, authController.refreshToken);
-    }
-
-/**
-
-* POST /logout  (public)
-* * OPTIONS /logout (preflight)
-    */
-    if (typeof authController.logout === 'function') {
-    router.options('/logout', corsConfig, (_req, res) => res.sendStatus(204));
-    router.post('/logout', corsConfig, authController.logout);
-    }
-
-/**
-
-* POST /forgot-password  (public)
-* Prefer controller implementation if available, otherwise a safe placeholder.
+* Do NOT set Access-Control-* manually here.
+* Use centralized `corsConfig` so origin mirrors env (CORS_ORIGINS/CLIENT_URL).
+* Add explicit OPTIONS per public endpoint to satisfy preflight.
   */
-  const forgotHandler =
-  (typeof authController.forgotPassword === 'function' && authController.forgotPassword) ||
-  (typeof userController.forgotPassword === 'function' && userController.forgotPassword) ||
-  (async (req, res) => {
-  try {
-  // Generic, non-enumerating placeholder to avoid 404 and keep UX intact
-  const email = (req.body?.email || '').trim().toLowerCase();
-  if (!email) return res.status(400).json({ error: 'Email is required.' });
-  return res.status(200).json({
-  message: 'If an account exists for that email, a reset link has been sent.',
-  });
-  } catch {
-  return res.status(500).json({ error: 'Failed to process request.' });
-  }
-  });
-  router.options('/forgot-password', corsConfig, (_req, res) => res.sendStatus(204));
-  router.post('/forgot-password', corsConfig, forgotHandler);
 
+// ──────────────────────────────────────────────────────────────────────────────
+// /login (public)
+// ─────────────────────────────────────────────────────────────────────────────-
+if (typeof authCtrl.login === 'function') {
+router.options('/login', corsConfig, (_req, res) => res.sendStatus(204));
+if (loginSchema) {
+router.post('/login', corsConfig, validateBody(loginSchema), authCtrl.login);
+} else {
+router.post('/login', corsConfig, authCtrl.login);
+}
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// /register (public)
+// ─────────────────────────────────────────────────────────────────────────────-
+if (typeof authCtrl.register === 'function') {
+router.options('/register', corsConfig, (_req, res) => res.sendStatus(204));
+if (registerSchema) {
+router.post('/register', corsConfig, validateBody(registerSchema), authCtrl.register);
+} else {
+router.post('/register', corsConfig, authCtrl.register);
+}
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// /refresh (public)
+// ─────────────────────────────────────────────────────────────────────────────-
+if (typeof authCtrl.refreshToken === 'function') {
+router.options('/refresh', corsConfig, (_req, res) => res.sendStatus(204));
+router.post('/refresh', corsConfig, authCtrl.refreshToken);
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+/** /logout (public) */
+// ─────────────────────────────────────────────────────────────────────────────-
+if (typeof authCtrl.logout === 'function') {
+router.options('/logout', corsConfig, (_req, res) => res.sendStatus(204));
+router.post('/logout', corsConfig, authCtrl.logout);
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// /forgot-password (public)
+// Prefer controller if available; otherwise provide a safe placeholder.
+// ─────────────────────────────────────────────────────────────────────────────-
+const forgotHandler =
+(typeof authCtrl.forgotPassword === 'function' && authCtrl.forgotPassword) ||
+(typeof userController.forgotPassword === 'function' && userController.forgotPassword) ||
+(async (req, res) => {
+try {
+const email = (req.body?.email || '').trim().toLowerCase();
+if (!email) return res.status(400).json({ error: 'Email is required.' });
+return res.status(200).json({
+message: 'If an account exists for that email, a reset link has been sent.',
+});
+} catch {
+return res.status(500).json({ error: 'Failed to process request.' });
+}
+});
+
+router.options('/forgot-password', corsConfig, (_req, res) => res.sendStatus(204));
+router.post('/forgot-password', corsConfig, forgotHandler);
+
+// ──────────────────────────────────────────────────────────────────────────────
+// /reset-password (public)
+// Prefer controller if available; otherwise respond with clear 400.
+// ─────────────────────────────────────────────────────────────────────────────-
+const resetHandler =
+(typeof authCtrl.resetPassword === 'function' && authCtrl.resetPassword) ||
+(typeof userController.resetPassword === 'function' && userController.resetPassword) ||
+(async (_req, res) => res.status(400).json({ error: 'Reset-password handler not configured.' }));
+
+router.options('/reset-password', corsConfig, (_req, res) => res.sendStatus(204));
+router.post('/reset-password', corsConfig, resetHandler);
+
+// ──────────────────────────────────────────────────────────────────────────────
 /**
 
-* POST /reset-password  (public)
-* Prefer controller implementation if available, otherwise a safe 400.
+* GET /me (protected)
+* Uses authenticate middleware if available, resolves to authCtrl.me or userController.getMe.
+* If neither exists, we simply do not mount /me here (to avoid misleading 200s).
   */
-  const resetHandler =
-  (typeof authController.resetPassword === 'function' && authController.resetPassword) ||
-  (typeof userController.resetPassword === 'function' && userController.resetPassword) ||
-  (async (_req, res) => res.status(400).json({ error: 'Reset-password handler not configured.' }));
-  router.options('/reset-password', corsConfig, (_req, res) => res.sendStatus(204));
-  router.post('/reset-password', corsConfig, resetHandler);
-
-/**
-
-* GET /me  (protected)
-* authenticate middleware is attached if available.
-* If authController.me missing, try userController.getMe.
-  */
+  // ─────────────────────────────────────────────────────────────────────────────-
   const meHandler =
-  (typeof authController.me === 'function' && authController.me) ||
-  (typeof userController.getMe === 'function' && userController.getMe);
+  (typeof authCtrl.me === 'function' && authCtrl.me) ||
+  (typeof userController.getMe === 'function' && userController.getMe) ||
+  null;
 
 if (meHandler) {
-try {
-const maybeAuth = await import(
-pathToFileURL(path.resolve(__dirname, '../middleware/authenticate.js')).href
-);
-const authenticate = maybeAuth.default || maybeAuth.authenticate || maybeAuth;
-router.get('/me', authenticate, meHandler);
-} catch (err) {
-console.warn('[authRoutes] Could not attach /me route — missing authenticate middleware:', err?.message);
-}
+const ensureAuth = (fn) =>
+typeof fn === 'function'
+? fn
+: (_req, res) => res.status(500).json({ error: 'Authenticate middleware not available' });
+router.get('/me', ensureAuth(authenticate), meHandler);
 }
 
 export default router;
 // --- REPLACE END ---
+
+
