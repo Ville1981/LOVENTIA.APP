@@ -1,6 +1,7 @@
-// File: server/models/User.js
+// PATH: server/models/User.cjs
 
 // --- REPLACE START: CommonJS schema with billing.stripeCustomerId + isPremium + minimal sync/compat ---
+/* eslint-disable no-console */
 'use strict';
 
 const mongoose = require('mongoose');
@@ -20,6 +21,10 @@ const bcrypt = require('bcryptjs');
  *      • orientationList: string[] (mirrored with legacy `orientation` string)
  *      • locationPoint: GeoJSON Point [lng,lat] + 2dsphere index (mirrored from latitude/longitude)
  *      • optional lastActive for Discover sorting
+ *
+ * NOTE:
+ * This file is the **authoritative** User model for the app.
+ * The ESM wrapper at server/src/models/User.js will try to load THIS file first.
  */
 
 // Transform function to hide sensitive fields in JSON output.
@@ -92,11 +97,15 @@ function safeTransform(_doc, ret) {
     }
 
     // ✅ ALWAYS return arrays for media fields
-    if (!Array.isArray(ret.extraImages)) ret.extraImages = ret.extraImages ? [ret.extraImages].filter(Boolean) : [];
-    if (!Array.isArray(ret.photos)) ret.photos = Array.isArray(ret.extraImages) ? ret.extraImages : [];
+    if (!Array.isArray(ret.extraImages)) {
+      ret.extraImages = ret.extraImages ? [ret.extraImages].filter(Boolean) : [];
+    }
+    if (!Array.isArray(ret.photos)) {
+      // If photos was not array, use extraImages as source of truth
+      ret.photos = Array.isArray(ret.extraImages) ? ret.extraImages : [];
+    }
 
-    // Ensure location flatten fields exist in output (virtuals should already expose them,
-    // but in case of lean/plain objects, provide fallbacks)
+    // Ensure location flatten fields exist in output
     const loc = ret.location && typeof ret.location === 'object' ? ret.location : {};
     if (ret.country === undefined) ret.country = loc.country || ret.country || undefined;
     if (ret.region === undefined)  ret.region  = loc.region  || ret.region  || undefined;
@@ -104,17 +113,19 @@ function safeTransform(_doc, ret) {
 
     // Ensure preferences container exists in output for client consistency
     if (!ret.preferences || typeof ret.preferences !== 'object') {
-      ret.preferences = { dealbreakers: {
-        distanceKm: null,
-        ageMin: null,
-        ageMax: null,
-        mustHavePhoto: false,
-        nonSmokerOnly: false,
-        noDrugs: false,
-        petsOk: null,
-        religion: [],
-        education: [],
-      }};
+      ret.preferences = {
+        dealbreakers: {
+          distanceKm: null,
+          ageMin: null,
+          ageMax: null,
+          mustHavePhoto: false,
+          nonSmokerOnly: false,
+          noDrugs: false,
+          petsOk: null,
+          religion: [],
+          education: [],
+        },
+      };
     } else if (!ret.preferences.dealbreakers) {
       ret.preferences.dealbreakers = {
         distanceKm: null,
@@ -131,7 +142,11 @@ function safeTransform(_doc, ret) {
 
     // ✅ Ensure nested lifestyle exists in output and mirrors top-level if needed
     if (!ret.lifestyle || typeof ret.lifestyle !== 'object') {
-      ret.lifestyle = { smoke: ret.smoke || '', drink: ret.drink || '', drugs: ret.drugs || '' };
+      ret.lifestyle = {
+        smoke: ret.smoke || '',
+        drink: ret.drink || '',
+        drugs: ret.drugs || '',
+      };
     }
 
     // ✅ Ensure orientationList array exists in output (mirror from legacy orientation if needed)
@@ -183,7 +198,7 @@ const PreferencesSchema = new mongoose.Schema(
 /* ----------------------- Lifestyle & Geo sub-schemas ----------------------- */
 const LifestyleSchema = new mongoose.Schema(
   {
-    smoke: { type: String, trim: true, default: '' }, // 'none'|'little'|'average'|'much'|'free' etc. (kept flexible)
+    smoke: { type: String, trim: true, default: '' }, // 'none'|'little'|'average'|'much'|'free' etc.
     drink: { type: String, trim: true, default: '' },
     drugs: { type: String, trim: true, default: '' },
   },
@@ -339,6 +354,7 @@ const userSchema = new mongoose.Schema(
     // Password reset fields
     passwordResetToken:   { type: String, trim: true },
     passwordResetExpires: { type: Date },
+    passwordResetUsedAt:  { type: Date },
 
     // Visibility (both nested object and top-level helpers for compatibility)
     visibility: {
@@ -357,6 +373,11 @@ const userSchema = new mongoose.Schema(
 
     // ✅ Optional activity timestamp to help Discover sorting
     lastActive:      { type: Date, default: null },
+
+    // --- REPLACE START: referral fields in User schema ---
+    referralCode: { type: String, index: true, sparse: true, unique: false },
+    referredBy:   { type: String, index: true },
+    // --- REPLACE END ---
   },
   {
     timestamps: true,
@@ -404,8 +425,7 @@ userSchema.virtual('id').get(function () {
   try { return this._id ? this._id.toString() : undefined; } catch { return undefined; }
 });
 
-// Compatibility virtuals with older routes / client fields:
-// - `avatar` / `profilePhoto` ↔ profilePicture
+// Compatibility virtuals with older routes / client fields
 userSchema.virtual('avatar')
   .get(function () { return this.profilePicture; })
   .set(function (v) { this.profilePicture = v; });
@@ -414,21 +434,10 @@ userSchema.virtual('profilePhoto')
   .get(function () { return this.profilePicture; })
   .set(function (v) { this.profilePicture = v; });
 
-// - `photos` (array) ↔ extraImages
 userSchema.virtual('photos')
   .get(function () { return Array.isArray(this.extraImages) ? this.extraImages : []; })
-  .set(function (arr) {
-    this.extraImages = Array.isArray(arr) ? arr.filter(Boolean) : [];
-  });
+  .set(function (arr) { this.extraImages = Array.isArray(arr) ? arr.filter(Boolean) : []; });
 
-  // --- REPLACE START: referral fields in User schema ---
-/* inside your Mongoose UserSchema definition object: */
-referralCode: { type: String, index: true, sparse: true, unique: false }, // unique=false to avoid deploy issues; we check manually
-referredBy:   { type: String, index: true }, // store inviter's userId or referralCode, depending on approach
-// --- REPLACE END ---
-
-
-// - `hidden` (legacy) ↔ `isHidden`
 userSchema.virtual('hidden')
   .get(function () { return !!(this.isHidden || (this.visibility && this.visibility.isHidden)); })
   .set(function (v) {
@@ -439,19 +448,10 @@ userSchema.virtual('hidden')
   });
 
 /* ----------------------- Visibility & Billing & Lifestyle/Geo/Orientation sync hooks ----------------------- */
-/**
- * Keep top-level (isHidden, hiddenUntil, resumeOnLogin) and nested visibility.* in sync.
- * Also mirror billing.stripeCustomerId ↔ top-level stripeCustomerId for backward compatibility.
- * Additionally:
- *  - lifestyle.smoke/drink/drugs ↔ top-level smoke/drink/drugs
- *  - orientationList[] ↔ legacy orientation string
- *  - locationPoint.coordinates from longitude/latitude when present
- */
 function syncVisibility(doc) {
   try {
     if (!doc.visibility || typeof doc.visibility !== 'object') doc.visibility = {};
 
-    // Decide canonical values (prefer explicit top-level if present)
     const topHidden = typeof doc.isHidden === 'boolean' ? doc.isHidden : undefined;
     const visHidden = typeof doc.visibility.isHidden === 'boolean' ? doc.visibility.isHidden : undefined;
     const resolvedHidden = typeof topHidden === 'boolean' ? topHidden : !!visHidden;
@@ -464,7 +464,6 @@ function syncVisibility(doc) {
     const visResume = typeof doc.visibility.resumeOnLogin === 'boolean' ? doc.visibility.resumeOnLogin : undefined;
     const resolvedResume = typeof topResume === 'boolean' ? topResume : (typeof visResume === 'boolean' ? visResume : true);
 
-    // Write back to both places
     doc.isHidden = resolvedHidden;
     doc.visibility.isHidden = resolvedHidden;
 
@@ -485,7 +484,6 @@ function syncBillingCustomerId(doc) {
     const top    = doc.stripeCustomerId || null;
     const effective = nested || top || null;
 
-    // Keep both in sync
     doc.billing.stripeCustomerId = effective;
     doc.stripeCustomerId = effective;
   } catch {
@@ -496,7 +494,6 @@ function syncBillingCustomerId(doc) {
 function syncLifestyle(doc) {
   try {
     if (!doc.lifestyle || typeof doc.lifestyle !== 'object') doc.lifestyle = {};
-    // If top-level fields exist, prefer them as source of truth to keep legacy code working
     if (doc.smoke) doc.lifestyle.smoke = doc.smoke;
     else if (!doc.lifestyle.smoke) doc.lifestyle.smoke = '';
 
@@ -506,7 +503,6 @@ function syncLifestyle(doc) {
     if (doc.drugs) doc.lifestyle.drugs = doc.drugs;
     else if (!doc.lifestyle.drugs) doc.lifestyle.drugs = '';
 
-    // Also mirror back from nested to top-level if top-level is empty
     if (!doc.smoke && doc.lifestyle.smoke) doc.smoke = doc.lifestyle.smoke;
     if (!doc.drink && doc.lifestyle.drink) doc.drink = doc.lifestyle.drink;
     if (!doc.drugs && doc.lifestyle.drugs) doc.drugs = doc.lifestyle.drugs;
@@ -518,11 +514,9 @@ function syncLifestyle(doc) {
 function syncOrientation(doc) {
   try {
     if (!Array.isArray(doc.orientationList)) doc.orientationList = [];
-    // If legacy single orientation is present and not in list, add it
     if (doc.orientation && !doc.orientationList.includes(doc.orientation)) {
       doc.orientationList.push(doc.orientation);
     }
-    // If legacy empty but list has one value, mirror to legacy for old code paths
     if (!doc.orientation && doc.orientationList.length === 1) {
       doc.orientation = doc.orientationList[0];
     }
@@ -541,15 +535,12 @@ function syncGeoPoint(doc) {
         doc.locationPoint.type = 'Point';
         doc.locationPoint.coordinates = [doc.longitude, doc.latitude];
       }
-    } else {
-      // keep as-is; do not delete existing point if numeric coords are absent
     }
   } catch {
     // noop
   }
 }
 
-// Pre-validate/Pre-save to keep fields aligned
 userSchema.pre('validate', function (next) {
   try {
     syncVisibility(this);
@@ -558,7 +549,9 @@ userSchema.pre('validate', function (next) {
     syncOrientation(this);
     syncGeoPoint(this);
     next();
-  } catch { next(); }
+  } catch {
+    next();
+  }
 });
 
 userSchema.pre('save', function (next) {
@@ -569,14 +562,15 @@ userSchema.pre('save', function (next) {
     syncOrientation(this);
     syncGeoPoint(this);
     next();
-  } catch { next(); }
+  } catch {
+    next();
+  }
 });
 
 /* ----------------------- Auth helper ----------------------- */
 /**
  * findByCredentials
  * Accepts either a bcrypt-hashed password or a plain-text password (for legacy/dev).
- * Returns the user document if credentials match, otherwise null.
  */
 userSchema.statics.findByCredentials = async function (email, password) {
   if (!email || !password) return null;
@@ -593,7 +587,7 @@ userSchema.statics.findByCredentials = async function (email, password) {
   return stored === password ? candidate : null;
 };
 
-/* ----------------------- Entitlements helpers (server-side feature toggles) ----------------------- */
+/* ----------------------- Entitlements helpers ----------------------- */
 function buildPremiumFeatures() {
   return {
     seeLikedYou:       true,
@@ -615,11 +609,11 @@ userSchema.methods.startPremium = function startPremium() {
   e.features = { ...buildPremiumFeatures() };
   const sl = ensure(e, 'quotas', { superLikes: {} }).superLikes || {};
   sl.used = 0;
-  sl.window = ''; // let API set current ISO week on first use
+  sl.window = '';
   e.quotas.superLikes = sl;
 
   this.isPremium = true;
-  this.premium = true; // legacy mirror
+  this.premium = true;
 };
 
 userSchema.methods.stopPremium = function stopPremium() {
@@ -642,7 +636,7 @@ userSchema.methods.stopPremium = function stopPremium() {
   e.quotas.superLikes = sl;
 
   this.isPremium = false;
-  this.premium = false; // legacy mirror
+  this.premium = false;
   this.subscriptionId = null;
 };
 
@@ -676,47 +670,29 @@ userSchema.methods.hasFeature = function hasFeature(featureKey) {
 try {
   userSchema.index({ username: 1 }, { name: 'idx_user_username', unique: true });
   userSchema.index({ email: 1 }, { name: 'idx_user_email', unique: true });
-
   userSchema.index(
     { 'location.country': 1, 'location.region': 1, 'location.city': 1 },
     { name: 'idx_user_location' }
   );
-
   userSchema.index({ gender: 1, age: 1 }, { name: 'idx_user_gender_age' });
-
-  // Keep separate numeric indexes for potential range queries
   userSchema.index({ latitude: 1, longitude: 1 }, { name: 'idx_user_lat_lng' });
-
-  // ✅ 2dsphere index for GeoJSON point
   userSchema.index({ locationPoint: '2dsphere' }, { name: 'idx_user_locationPoint_2dsphere' });
-
-  // Helpful query for Discover visibility
   userSchema.index(
     { isHidden: 1, 'visibility.isHidden': 1, hiddenUntil: 1, 'visibility.hiddenUntil': 1 },
     { name: 'idx_user_visibility' }
   );
-
-  // Entitlements quick filters
   userSchema.index(
     { 'entitlements.tier': 1, isPremium: 1 },
     { name: 'idx_user_entitlements_tier' }
   );
-
-  // Billing lookups (nested + legacy top-level for back-compat)
   userSchema.index({ 'billing.stripeCustomerId': 1 }, { name: 'idx_user_billing_stripe_customer' });
   userSchema.index({ stripeCustomerId: 1 }, { name: 'idx_user_stripe_customer_legacy' });
   userSchema.index({ subscriptionId: 1 }, { name: 'idx_user_subscription' });
-
-  // Preferences lookups (future-proofing for dealbreakers queries)
   userSchema.index(
     { 'preferences.dealbreakers.distanceKm': 1, 'preferences.dealbreakers.mustHavePhoto': 1 },
     { name: 'idx_user_pref_dealbreakers_basic' }
   );
-
-  // ✅ Orientation list index to support $in queries efficiently
   userSchema.index({ orientationList: 1 }, { name: 'idx_user_orientation_list' });
-
-  // Optional activity sorting helper
   userSchema.index({ lastActive: -1 }, { name: 'idx_user_lastActive' });
 } catch {
   /* noop */
@@ -731,7 +707,23 @@ try {
 }
 
 module.exports = UserModel;
-module.exports.User = UserModel;        // named export (interop)
-module.exports.default = UserModel;     // default-like export (interop)
+module.exports.User = UserModel;
+module.exports.default = UserModel;
 // --- REPLACE END ---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

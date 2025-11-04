@@ -5,9 +5,10 @@ import compression from 'compression';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// --- REPLACE START: use centralized CORS config (single source of truth) ---
-import corsConfig from '../config/corsConfig.js';
+// --- REPLACE START (single-line import) ---
+import corsConfig from "../config/cors.js";
 // --- REPLACE END ---
+
 
 export default function expressLoader() {
   const app = express();

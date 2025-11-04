@@ -1,5 +1,3 @@
-// File: server/controllers/discoverController.js
-
 // --- REPLACE START: Discover controller with robust filters + dealbreakers age & lifestyle fallback (no unnecessary shortening) ---
 'use strict';
 
@@ -83,7 +81,7 @@ function normalizeImagePath(img) {
   const raw =
     typeof img === 'string'
       ? img
-      : typeof img === 'object' && img.url
+      : (typeof img === 'object' && img?.url)
       ? img.url
       : null;
 

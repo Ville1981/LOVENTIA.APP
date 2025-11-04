@@ -1,209 +1,123 @@
-// PATH: server/src/controllers/authController.js
+// PATH: server/src/api/controllers/authController.js
 
-// --- REPLACE START: ESM auth controller with username validation & robust cookieOptions + real forgot/reset password (email) ---
-/**
- * Auth Controller (ESM)
- * - Pure ESM (no require)
- * - Uses mongoose.models.User loaded by app bootstrap (fallback dynamic import)
- * - Clear 400 on missing username (instead of Mongoose ValidationError)
- * - Helpers: generateAccessToken / generateRefreshToken
- * - Email reset flow with crypto token (hash stored in DB) + nodemailer
- * - Exports: register, login, refreshToken, logout, me, forgotPassword, resetPassword (+ default export)
- * - Compatibility: reset link now includes ?token=...&id=..., and reset endpoint accepts { token, password } OR { id, token, newPassword }.
- * - Cookie policy: dev → SameSite=Lax, Secure=false, Path=/api/auth; prod → SameSite=Strict (overridable), Secure=true
- */
+/* eslint-disable no-console */
 
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
-import mongoose from 'mongoose';
-import path from 'path';
-import { fileURLToPath, pathToFileURL } from 'url';
-import crypto from 'crypto';
-import nodemailer from 'nodemailer';
+// ………………………………………………………………………………………………………………………………
+// Top-level controller for auth-related endpoints
+// (login, register, me, forgot-password, reset-password, refresh, logout, verify-email)
+//
+// This version now does SIX important things:
+//
+// 1) **forgot-password**
+//    - still sends the email
+//    - AND now also **persists** the reset token + expiry to the user document
+//      (passwordResetToken, passwordResetExpires)
+//
+// 2) **reset-password**
+//    - consumes the token created above
+//    - checks user, token and expiry
+//    - updates password
+//    - clears token fields
+//    - AND (new) does an extra $unset so that even strict / fallback models
+//      actually drop the fields
+//
+// 3) **login**
+//    - uses the same user model as forgot/reset (CJS-first, then ESM fallback)
+//    - calls User.findByCredentials(email, password) that exists in CJS model
+//    - normalizes the returned user (no password, no reset fields)
+//    - issues JWT access + refresh tokens from env (JWT_SECRET / JWT_REFRESH_SECRET / REFRESH_TOKEN_SECRET)
+//    - **and now** packs ALL id fields into the token: sub, id, userId, uid
+//
+// 4) **refresh**
+//    - accepts refresh token (body.refreshToken, header.Authorization: Bearer <token>, or cookie)
+//    - **first** tries util.verifyRefreshToken(...) from ../../utils/generateTokens.js
+//    - **then** falls back to local jwt.verify with the SAME priority as util:
+//         JWT_REFRESH_SECRET → REFRESH_TOKEN_SECRET → "dev_refresh_secret"
+//    - loads the user again to make sure the account still exists
+//    - issues a new pair of tokens (access + refresh) with the SAME core claims
+//    - returns normalized user too, so FE can update premium / billing flags
+//
+// 5) **me**
+//    - reads current user from (1) req.user (if authenticate ran), (2) Bearer token,
+//      (3) refresh-like token
+//    - loads user from DB
+//    - returns normalized user (same shape as /api/users/me)
+//    - this is the handler that your routers (authRoutes + authPrivateRoutes)
+//      will now both use → no more "me not implemented"
+//
+// 6) **register/logout/verifyEmail**
+//    - lightweight stubs so that the routes no longer answer 501 by default
+//    - register uses the same model loader + safeUserOut
+// ………………………………………………………………………………………………………………………………
 
-// Resolve __filename/__dirname for ESM
-const __filename = fileURLToPath(import.meta.url);
-const __dirname  = path.dirname(__filename);
-
-/* -------------------------------------------------------------------------- */
-/*                             Cookie configuration                            */
-/* -------------------------------------------------------------------------- */
-/**
- * We keep a base cookieOptions object that can be overridden by:
- * - local utils/cookieOptions.js (if present)
- * - environment variables (COOKIE_PATH, COOKIE_SAMESITE, COOKIE_SECURE, COOKIE_DOMAIN)
- *
- * Defaults:
- *   - Development (NODE_ENV !== 'production'):
- *       httpOnly = true, sameSite = 'Lax', secure = false, path = '/api/auth'
- *   - Production:
- *       httpOnly = true, sameSite = 'Strict' (unless env override), secure = true, path = '/api/auth'
- *
- * NOTE:
- *   - We DO NOT set domain by default. If you need cross-subdomain cookies in prod,
- *     set COOKIE_DOMAIN=.yourdomain.com in the environment.
- *   - We do NOT fix maxAge here; it is set where cookies are issued.
- */
-
-let cookieOptions = {
-  httpOnly: true,
-  sameSite: 'Lax',     // dev default (normalized later)
-  secure: false,       // dev default
-  path: '/api/auth',   // stable path for refresh/login/logout
-  // domain: undefined  // only if explicitly provided via env or util override
-};
-
-// Optional: load project-specific defaults if provided
-try {
-  const modURL = pathToFileURL(path.resolve(__dirname, '../../utils/cookieOptions.js'));
-  const mod    = await import(modURL.href);
-  const fromUtil = mod.cookieOptions || mod.default;
-  if (fromUtil && typeof fromUtil === 'object') {
-    cookieOptions = { ...cookieOptions, ...fromUtil };
-  }
-} catch {
-  // keep fallback
-}
-
-// File: server/src/controllers/authController.js
-
-// Allow environment overrides (string values)
-const ENV_SAMESITE = (process.env.COOKIE_SAMESITE || '').trim(); // e.g. 'Lax' | 'Strict' | 'None' (case-insensitive ok)
-const ENV_SECURE   = (process.env.COOKIE_SECURE   || '').trim(); // 'true' | 'false'
-const ENV_PATH     = (process.env.COOKIE_PATH     || '').trim();
-const ENV_DOMAIN   = (process.env.COOKIE_DOMAIN   || '').trim();
-
-if (ENV_PATH)     cookieOptions.path     = ENV_PATH;
-if (ENV_SAMESITE) cookieOptions.sameSite = ENV_SAMESITE;
-if (ENV_SECURE)   cookieOptions.secure   = ENV_SECURE.toLowerCase() === 'true';
-if (ENV_DOMAIN)   cookieOptions.domain   = ENV_DOMAIN;
-
-// Normalize dev/prod defaults if not overridden
-if (process.env.NODE_ENV === 'production') {
-  // In prod, prefer stricter defaults unless explicitly overridden above/util
-  if (!ENV_SECURE && (cookieOptions.secure === false || cookieOptions.secure == null)) {
-    cookieOptions.secure = true;
-  }
-  if (!ENV_SAMESITE && (!cookieOptions.sameSite || String(cookieOptions.sameSite).toLowerCase() === 'lax')) {
-    cookieOptions.sameSite = 'Strict';
-  }
-} else {
-  // In dev, force dev-friendly defaults unless explicitly overridden
-  if (!ENV_SECURE)   cookieOptions.secure   = false;
-  if (!ENV_SAMESITE) cookieOptions.sameSite = 'Lax';
-  if (!ENV_PATH)     cookieOptions.path     = '/api/auth';
-}
-
-// Ensure proper casing for SameSite accepted by Express/Set-Cookie (case-insensitive allowed, but keep tidy)
-const sameSiteLower = String(cookieOptions.sameSite || '').toLowerCase();
-if (sameSiteLower === 'lax') cookieOptions.sameSite = 'Lax';
-else if (sameSiteLower === 'strict') cookieOptions.sameSite = 'Strict';
-else if (sameSiteLower === 'none') cookieOptions.sameSite = 'None';
-
-/* -------------------------------------------------------------------------- */
-/*                          Resolve / load the User model                      */
-/* -------------------------------------------------------------------------- */
-
-let User = mongoose.models?.User;
-if (!User) {
-  const candidatePaths = [
-    // monorepo /src location → project /models
-    path.resolve(__dirname, '../../../models/User.js'),
-    // plain /src → /src/models as fallback
-    path.resolve(__dirname, '../../models/User.js'),
-  ];
-  for (const p of candidatePaths) {
-    try {
-      const m = await import(pathToFileURL(p).href);
-      const candidate = m.default || m.User || m;
-      if (candidate?.findOne) {
-        User = candidate;
-        break;
-      }
-    } catch {
-      // continue
-    }
-  }
-}
-if (!User || typeof User.findOne !== 'function') {
-  console.error('[authController] User model not usable. Ensure models are imported at startup.');
-}
-
-/* -------------------------------------------------------------------------- */
-/*                                    Utils                                    */
-/* -------------------------------------------------------------------------- */
-
-function ensureJwtSecrets() {
-  const ok = !!(process.env.JWT_SECRET && process.env.JWT_REFRESH_SECRET);
-  if (!ok) console.error('[authController] Missing JWT secrets in environment');
-  return ok;
-}
-
-function normalizeId(doc) {
-  if (!doc) return undefined;
-  if (doc.id) return doc.id;
-  if (doc._id && typeof doc._id.toString === 'function') return doc._id.toString();
-  return undefined;
-}
-
-function tokenIssuer() {
-  return process.env.TOKEN_ISSUER || 'loventia-api';
-}
-
-// --- REPLACE START: default access token = 2h, refresh token = 30d (env-overridable) ---
-/**
- * Token TTLs
- * - JWT_ACCESS_TTL (fallback '2h')
- * - JWT_REFRESH_TTL (fallback '30d')
- *
- * NOTE:
- * Keep these helpers as the *only* place where tokens are signed,
- * so we never accidentally hardcode '15m' elsewhere again.
- */
-function generateAccessToken(payload, expiresIn = (process.env.JWT_ACCESS_TTL || '2h')) {
-  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn, issuer: tokenIssuer() });
-}
-
-function generateRefreshToken(payload, expiresIn = (process.env.JWT_REFRESH_TTL || '30d')) {
-  return jwt.sign(payload, process.env.JWT_REFRESH_SECRET, { expiresIn, issuer: tokenIssuer() });
-}
+import nodemailer from "nodemailer";
+import { randomBytes } from "node:crypto";
+import jwt from "jsonwebtoken";
+import renderResetEmail from "../../api/emails/renderResetEmail.js";
+// --- REPLACE START: fixed sendEmail import path (use shared util that writes logs/mail-*.log) ---
+import sendEmail from "../../utils/sendEmail.js";
+// --- REPLACE END ---
+// --- REPLACE START: token util (access + refresh) ---
+import {
+  issueTokens,               // main helper: returns { accessToken, refreshToken, expiresIn?, refreshExpiresIn? }
+  signAccessToken as utilSignAccessToken,   // optional, in case we want exact same signing as util
+  signRefreshToken as utilSignRefreshToken, // optional
+  // this may or may not exist in your util – we try it in refresh()
+  verifyRefreshToken as utilVerifyRefreshToken,
+} from "../../utils/generateTokens.js";
 // --- REPLACE END ---
 
-function isProbablyEmail(str) {
-  // lightweight sanity check to avoid pulling extra deps
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(str || '').trim());
-}
-
-function safeUsername({ username, name, email }) {
-  if (username && typeof username === 'string' && username.trim()) return username.trim();
-  if (name && typeof name === 'string' && name.trim()) return name.trim();
-  if (email && typeof email === 'string') {
-    const base = email.split('@')[0] || 'user';
-    return `${base}`.slice(0, 30);
-  }
-  return '';
-}
-
+/**
+ * pickClientBaseUrl
+ * Returns best-effort client base URL for links (reset / verify).
+ * Order: explicit envs → sane localhost fallback.
+ */
 function pickClientBaseUrl() {
-  const raw =
+  const url =
     process.env.CLIENT_URL ||
     process.env.FRONTEND_BASE_URL ||
     process.env.APP_CLIENT_BASE_URL ||
-    'http://localhost:5174';
-  return String(raw).replace(/\/+$/, '');
+    process.env.WEB_APP_URL ||
+    process.env.APP_URL ||
+    "";
+  // NOTE: return a plain URL, not markdown
+  return url || "http://localhost:5174";
 }
 
-/* ------------------------ Nodemailer (SMTP) helpers ------------------------ */
+/**
+ * Small helper for "now + ms"
+ */
+function nowPlus(ms) {
+  return new Date(Date.now() + ms);
+}
 
+/**
+ * Build a nodemailer transporter with EMAIL_* ↔ SMTP_* fallbacks.
+ *
+ * NOTE:
+ * We keep this here because other controller methods (verify, invite, alerts)
+ * might still call it. forgotPassword itself will now FIRST try the shared util,
+ * then fall back here.
+ */
 function buildTransporter() {
-  const host   = process.env.SMTP_HOST || 'localhost';
-  const port   = Number(process.env.SMTP_PORT || 1025);
-  const secure = (process.env.SMTP_SECURE || '').toString().toLowerCase() === 'true' || port === 465;
-  const user   = process.env.SMTP_USER;
-  const pass   = process.env.SMTP_PASS;
+  const host = process.env.SMTP_HOST || process.env.EMAIL_HOST;
+  const port = Number(process.env.SMTP_PORT || process.env.EMAIL_PORT || 587);
+  const secure =
+    String(process.env.SMTP_SECURE || process.env.EMAIL_SECURE || "")
+      .toLowerCase() === "true" || port === 465;
 
-  if (!user || !pass) {
-    console.warn('[authController/mail] SMTP_USER/SMTP_PASS missing. If your SMTP requires auth, emails may fail.');
+  const user = process.env.SMTP_USER || process.env.EMAIL_USER || "";
+  const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS || "";
+
+  if (!host || (!user && !pass)) {
+    console.warn(
+      "[authController/mail] Missing SMTP/EMAIL config; using streamTransport (DEV PREVIEW)."
+    );
+    return nodemailer.createTransport({
+      streamTransport: true,
+      newline: "unix",
+      buffer: true,
+    });
   }
 
   return nodemailer.createTransport({
@@ -214,387 +128,914 @@ function buildTransporter() {
   });
 }
 
-function renderResetEmail({ appName, resetUrl }) {
-  const subject = `${appName} password reset`;
-  const text =
-`You requested a password reset.
-
-Click the link to set a new password:
-${resetUrl}
-
-If you didn't request this, you can ignore this email.`;
-
-  const html =
-`<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;line-height:1.4;color:#111">
-  <h2 style="margin:0 0 12px">${appName} password reset</h2>
-  <p>You requested a password reset.</p>
-  <p><a href="${resetUrl}" style="display:inline-block;padding:10px 14px;text-decoration:none;border-radius:6px;border:1px solid #222">Click here to set a new password</a></p>
-  <p>If you didn’t request this, you can ignore this email.</p>
-  <hr style="border:none;border-top:1px solid #eee;margin:16px 0" />
-  <p style="font-size:12px;color:#666">This link will expire shortly for your security.</p>
-</div>`;
-
-  return { subject, text, html };
-}
-
-async function sendMail({ to, subject, text, html }) {
-  const transporter = buildTransporter();
-  const fromName  = process.env.MAIL_FROM_NAME || 'LoventiaApp';
-  const fromEmail = process.env.MAIL_FROM_EMAIL || process.env.SMTP_USER || 'no-reply@localhost';
-  const from = `"${fromName}" <${fromEmail}>`;
-  return transporter.sendMail({ from, to, subject, text, html });
-}
-
-/* -------------------------------------------------------------------------- */
-/*                                 Controllers                                 */
-/* -------------------------------------------------------------------------- */
-
 /**
- * POST /api/auth/register
- * Body: { email, password, name?, username? }
+ * Legacy sender – keep as a safety net if the shared util fails.
  */
-export async function register(req, res) {
-  try {
-    const { email, password } = req.body || {};
-    let { name, username } = req.body || {};
+async function sendMailLegacy({ to, subject, text, html }) {
+  const transporter = buildTransporter();
+  const fromName =
+    process.env.MAIL_FROM_NAME ||
+    process.env.EMAIL_FROM_NAME ||
+    "Loventia";
+  const fromEmail =
+    process.env.MAIL_FROM_EMAIL ||
+    process.env.EMAIL_FROM ||
+    process.env.EMAIL_USER ||
+    process.env.SMTP_USER ||
+    "no-reply@localhost";
+  const from = `"${fromName}" <${fromEmail}>`;
 
-    if (!email || !password) {
-      return res.status(400).json({ message: 'Email and password are required' });
+  const info = await transporter.sendMail({ from, to, subject, text, html });
+
+  if (info && info.message && Buffer.isBuffer(info.message)) {
+    try {
+      const preview = info.message.toString("utf8");
+      console.log("[mail preview]\n" + preview.substring(0, 1200));
+    } catch (e) {
+      console.warn(
+        "[mail preview] failed to print preview:",
+        e?.message || e
+      );
     }
-    if (!isProbablyEmail(email)) {
-      return res.status(400).json({ message: 'Invalid email format' });
-    }
-    if (!User?.findOne) {
-      return res.status(500).json({ error: 'Server user model not available' });
-    }
-
-    // Explicit username handling (avoid Mongoose ValidationError bubbling)
-    username = safeUsername({ username, name, email });
-    if (!username) {
-      return res.status(400).json({ message: 'Username is required' });
-    }
-
-    // Duplicate checks
-    const [emailExists, usernameExists] = await Promise.all([
-      User.findOne({ email }),
-      User.findOne({ username }),
-    ]);
-    if (emailExists)    return res.status(409).json({ message: 'Email already in use' });
-    if (usernameExists) return res.status(409).json({ message: 'Username already in use' });
-
-    // Hash password
-    const saltRounds = Number.parseInt(process.env.BCRYPT_SALT_ROUNDS || '10', 10);
-    const salt   = await bcrypt.genSalt(Number.isFinite(saltRounds) ? saltRounds : 10);
-    const hashed = await bcrypt.hash(password, salt);
-
-    // Create user
-    const doc = new User({
-      email,
-      password: hashed,
-      name: name || username,
-      username,
-      role: 'user',
-    });
-    const user = await doc.save();
-
-    if (!ensureJwtSecrets()) {
-      return res.status(500).json({ error: 'Server misconfiguration' });
-    }
-
-    const uid  = normalizeId(user);
-    const role = user?.role || 'user';
-    const at   = generateAccessToken({ userId: uid, role });
-    const rt   = generateRefreshToken({ userId: uid, role });
-
-    // Set refresh cookie (7 days) with stabilized options (dev/prod aware)
-    res.cookie('refreshToken', rt, { ...cookieOptions, maxAge: 7 * 24 * 60 * 60 * 1000 });
-
-    return res.status(201).json({
-      accessToken: at,
-      user: { id: uid, email: user.email, name: user.name, username, role }
-    });
-  } catch (err) {
-    console.error('Register error:', err?.stack || err?.message || err);
-    return res.status(500).json({ error: 'Server error during registration' });
   }
 }
 
+/**
+ * Helper: get User model (works whether the model is global, CJS, or ESM)
+ */
+async function getUserModel() {
+  if (global.UserModel) return global.UserModel;
+  try {
+    const mod = await import("../../models/User.js");
+    return mod?.default || mod;
+  } catch (e) {
+    try {
+      // eslint-disable-next-line global-require, import/no-commonjs
+      return require("../../models/User.cjs");
+    } catch {
+      /* ignore */
+    }
+  }
+  throw new Error("User model not available");
+}
+
+/**
+ * Optional: project-specific token generator.
+ * If at some point you have global generateResetTokenForUser, we use that.
+ */
+let generateResetTokenForUser = null;
+try {
+  const maybe = global.generateResetTokenForUser;
+  if (typeof maybe === "function") generateResetTokenForUser = maybe;
+} catch {
+  /* ignore */
+}
+
+/**
+ * Helper: normalize user object for API output.
+ * - remove password
+ * - remove reset fields
+ * - keep billing/premium fields
+ * - keep images
+ * - make sure extraImages/photos are arrays
+ *
+ * We do this here too, so login/reset/forgot/refresh can all use the same shape.
+ */
+// --- REPLACE START: safeUserOut helper (used by login + refresh + others) ---
+function safeUserOut(userDocOrLean) {
+  if (!userDocOrLean) return null;
+  const u =
+    typeof userDocOrLean.toObject === "function"
+      ? userDocOrLean.toObject()
+      : { ...userDocOrLean };
+
+  // Remove sensitive
+  delete u.password;
+  delete u.passwordResetToken;
+  delete u.passwordResetExpires;
+
+  // Ensure arrays for media
+  if (!Array.isArray(u.extraImages)) {
+    u.extraImages = u.extraImages ? [u.extraImages].filter(Boolean) : [];
+  }
+  if (!Array.isArray(u.photos)) {
+    // fall back to extraImages if photos not present
+    u.photos = Array.isArray(u.extraImages) ? [...u.extraImages] : [];
+  }
+
+  // Ensure billing container
+  if (!u.billing || typeof u.billing !== "object") {
+    u.billing = {};
+  }
+  const nestedCid = u.billing.stripeCustomerId || null;
+  const topCid = u.stripeCustomerId || null;
+  const effectiveCid = nestedCid || topCid || null;
+  u.billing.stripeCustomerId = effectiveCid;
+  u.stripeCustomerId = effectiveCid;
+
+  // Premium flags should be booleans
+  u.isPremium = !!u.isPremium;
+  u.premium = !!u.premium;
+
+  return u;
+}
+// --- REPLACE END ---
+
+/**
+ * Helper: sign access/refresh tokens.
+ * We keep it small, inline, and tolerant of missing envs.
+ * Even though we now import from ../../utils/generateTokens.js, we KEEP this
+ * fallback here so that if the util is ever moved/renamed, login/refresh do not break.
+ */
+// --- REPLACE START: JWT helpers (fallback) ---
+function signAccessToken(payload = {}) {
+  const secret =
+    process.env.JWT_SECRET ||
+    process.env.ACCESS_TOKEN_SECRET ||
+    "dev_access_secret";
+  const ttl = process.env.JWT_EXPIRES_IN || "2h";
+  return jwt.sign(payload, secret, { expiresIn: ttl });
+}
+function signRefreshToken(payload = {}) {
+  // --- REPLACE START: normalize refresh payload to ALWAYS have userId/sub/id/uid ---
+  const secret =
+    process.env.JWT_REFRESH_SECRET ||
+    process.env.REFRESH_TOKEN_SECRET ||
+    "dev_refresh_secret";
+  const ttl = process.env.JWT_REFRESH_EXPIRES_IN || "30d";
+
+  // normalize id fields – this fixes "Invalid token payload" in stricter refresh routes
+  const guessedId =
+    payload.userId ||
+    payload.id ||
+    payload.sub ||
+    payload.uid ||
+    "";
+  const finalId = guessedId ? String(guessedId) : "";
+
+  let finalPayload = { ...payload, type: payload.type || "refresh" };
+
+  if (finalId) {
+    finalPayload = {
+      ...finalPayload,
+      sub: finalId,
+      id: finalId,
+      userId: finalId,
+      uid: finalId,
+    };
+  }
+
+  return jwt.sign(finalPayload, secret, { expiresIn: ttl });
+  // --- REPLACE END ---
+}
+// --- REPLACE END ---
+
+// --- REPLACE START: LOGIN HANDLER (uses CJS model's findByCredentials + shared token util) ---
 /**
  * POST /api/auth/login
  * Body: { email, password }
- * NOTE: Supports legacy plaintext passwords (non-bcrypt) to keep old DBs working.
+ *
+ * NOTE:
+ * - earlier PS output showed token with empty `sub` and `id`
+ * - here we FORCE all id fields into payload: sub, id, userId, uid
  */
 export async function login(req, res) {
   try {
-    const { email, password } = req.body || {};
+    const emailRaw = req?.body?.email || req?.body?.username || "";
+    const password = req?.body?.password || "";
+    const email = String(emailRaw).trim().toLowerCase();
+
     if (!email || !password) {
-      return res.status(400).json({ message: 'Email and password are required' });
-    }
-    if (!User?.findOne) {
-      return res.status(500).json({ error: 'Server user model not available' });
-    }
-
-    const user = await User.findOne({ email });
-    if (!user?.password) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res
+        .status(400)
+        .json({ error: "Email and password are required." });
     }
 
-    // --- Legacy-friendly password check (bcrypt OR plaintext) ---
-    const stored = String(user.password);
-    const looksHashed = /^\$2[aby]\$[0-9]{2}\$/.test(stored);
-    let ok = false;
+    const User = await getUserModel();
 
-    if (looksHashed) {
-      ok = await bcrypt.compare(password, stored);
+    // We prefer the method from CJS schema
+    let userDoc = null;
+    if (typeof User.findByCredentials === "function") {
+      userDoc = await User.findByCredentials(email, password);
     } else {
-      // plaintext fallback for legacy data
-      ok = stored === password;
-    }
-
-    if (!ok) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
-    // --- END legacy-friendly check ---
-
-    if (!ensureJwtSecrets()) {
-      return res.status(500).json({ error: 'Server misconfiguration' });
-    }
-
-    const uid  = normalizeId(user);
-    const role = user?.role || 'user';
-    const at   = generateAccessToken({ userId: uid, role });
-    const rt   = generateRefreshToken({ userId: uid, role });
-
-    // Set refresh cookie (7 days) with stabilized options (dev/prod aware)
-    res.cookie('refreshToken', rt, { ...cookieOptions, maxAge: 7 * 24 * 60 * 60 * 1000 });
-
-    return res.json({
-      accessToken: at,
-      user: { id: uid, email: user.email, name: user.name, username: user.username, role }
-    });
-  } catch (err) {
-    console.error('Login error:', err?.stack || err?.message || err);
-    return res.status(500).json({ error: 'Server error during login' });
-  }
-}
-
-/**
- * POST /api/auth/refresh
- * Accepted:
- *   - Cookie: refreshToken   (preferred)
- *   - Body:   { refreshToken }  (fallback for clients that cannot handle HttpOnly cookies in dev tools)
- * Returns: { accessToken }
- */
-export async function refreshToken(req, res) {
-  try {
-    // Prefer cookie; fall back to explicit body field if present
-    const token = req.cookies?.refreshToken || req.body?.refreshToken;
-    if (!token) {
-      return res.status(401).json({ error: 'No refresh token provided' });
-    }
-    if (!ensureJwtSecrets()) {
-      return res.status(500).json({ error: 'Server misconfiguration' });
-    }
-
-    jwt.verify(token, process.env.JWT_REFRESH_SECRET, (err, payload) => {
-      if (err) {
-        return res.status(403).json({ error: 'Invalid or expired refresh token' });
+      // fallback: manual lookup
+      userDoc = await User.findOne({ email }).exec();
+      if (!userDoc) {
+        return res.status(401).json({ error: "Invalid email or password." });
       }
-
-      const at = generateAccessToken({ userId: payload.userId, role: payload.role });
-
-      // Refresh rotation (best practice): set a new refresh token
-      try {
-        const rotated = generateRefreshToken({ userId: payload.userId, role: payload.role });
-        res.cookie('refreshToken', rotated, { ...cookieOptions, maxAge: 7 * 24 * 60 * 60 * 1000 });
-      } catch (rotErr) {
-        console.warn('[authController] Refresh rotation failed:', rotErr?.message || rotErr);
-      }
-
-      // ✅ Return shape required by frontend: { accessToken }
-      return res.json({ accessToken: at });
-    });
-  } catch (err) {
-    console.error('Refresh error:', err?.stack || err?.message || err);
-    return res.status(500).json({ error: 'Server error during refresh' });
-  }
-}
-
-/**
- * POST /api/auth/logout
- * Clears refreshToken cookie
- * Fix Express 5 warning: pass same cookie options to clearCookie as used in cookie()
- */
-export function logout(_req, res) {
-  try {
-    // Include the same options (path/samesite/secure/httpOnly/domain) so the client actually clears it
-    res.clearCookie('refreshToken', { ...cookieOptions, maxAge: 0 });
-    return res.status(200).json({ message: 'Logout successful' });
-  } catch (err) {
-    console.error('Logout error:', err?.stack || err?.message || err);
-    return res.status(500).json({ error: 'Logout failed' });
-  }
-}
-
-/**
- * GET /api/auth/me
- * Requires authenticate middleware to set req.user
- */
-export async function me(req, res) {
-  try {
-    const userId = req.user?.userId;
-    if (!userId) {
-      return res.status(401).json({ error: 'Not authenticated' });
-    }
-    if (!User?.findById) {
-      return res.status(500).json({ error: 'Server user model not available' });
     }
 
-    const user = await User.findById(userId).select('-password');
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+    if (!userDoc) {
+      return res.status(401).json({ error: "Invalid email or password." });
     }
 
-    return res.json({ user });
-  } catch (err) {
-    console.error('Me route error:', err?.stack || err?.message || err);
-    return res.status(500).json({ error: 'Server error' });
-  }
-}
+    // Normalize user for response
+    const userOut = safeUserOut(userDoc);
 
-/* ------------------------------- Reset flow ------------------------------- */
-/**
- * POST /api/auth/forgot-password
- * Body: { email }
- * - Always return generic success (avoid account enumeration)
- * - If user exists: generate secure token, store hash+expiry, send email with link
- */
-export async function forgotPassword(req, res) {
-  try {
-    const email = (req.body?.email || '').trim().toLowerCase();
-    if (!email) {
-      return res.status(400).json({ error: 'Email is required' });
-    }
-    if (!isProbablyEmail(email)) {
-      // Still generic response to avoid probing. Only 400 for clearly broken input.
-      return res.status(400).json({ error: 'Email format is invalid' });
-    }
-    if (!User?.findOne) {
-      return res.status(500).json({ error: 'Server user model not available' });
-    }
+    // Build base JWT payload
+    // --- REPLACE START: force all id fields into payload ---
+    const rawId =
+      userOut._id || userOut.id || userDoc._id || userDoc.id || "";
+    const userId = String(rawId);
+    const basePayload = {
+      sub: userId,
+      id: userId,
+      userId,
+      uid: userId,
+      email: userOut.email,
+      isPremium: !!userOut.isPremium,
+      role: userOut.role || "user",
+    };
+    // --- REPLACE END ---
 
-    const user = await User.findOne({ email });
-
-    // Generic success to avoid leaking existence
-    const okResponse = { message: 'If an account exists for that email, a reset link has been sent.' };
-    if (!user) {
-      return res.status(200).json(okResponse);
-    }
-
-    // Generate token (store hash in DB, email raw token)
-    const rawToken  = crypto.randomBytes(32).toString('hex');
-    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
-    const ttlMin = parseInt(process.env.RESET_TOKEN_TTL_MIN || '30', 10);
-    const ttlMs = (Number.isFinite(ttlMin) ? ttlMin : 30) * 60 * 1000;
-    const expiresAt = new Date(Date.now() + ttlMs);
-
-    // Persist on user (requires fields in schema)
-    user.passwordResetToken   = tokenHash;
-    user.passwordResetExpires = expiresAt;
-    await user.save();
-
-    // Build link (include both token and id for frontend compatibility)
-    const clientUrl = pickClientBaseUrl();
-    const uid = encodeURIComponent(normalizeId(user) || '');
-    const resetUrl = `${clientUrl}/reset-password?token=${rawToken}&id=${uid}`;
-
-    // Send email
-    const appName = process.env.APP_NAME || 'Loventia';
-    const { subject, text, html } = renderResetEmail({ appName, resetUrl });
+    // 1st preference: shared util
+    let accessToken = null;
+    let refreshToken = null;
+    let expiresIn = null;
+    let refreshExpiresIn = null;
 
     try {
-      await sendMail({ to: email, subject, text, html });
-    } catch (mailErr) {
-      console.error('[authController] Failed to send reset email:', mailErr?.message || mailErr);
-      // Still return ok response (do not leak details)
+      if (typeof issueTokens === "function") {
+        const issued = await issueTokens(basePayload);
+        accessToken = issued?.accessToken || null;
+        refreshToken = issued?.refreshToken || null;
+        expiresIn = issued?.expiresIn || null;
+        refreshExpiresIn = issued?.refreshExpiresIn || null;
+      }
+    } catch (tokErr) {
+      console.warn(
+        "[auth/login] issueTokens() failed, falling back:",
+        tokErr?.message || tokErr
+      );
     }
 
-    return res.status(200).json(okResponse);
+    // 2nd preference: util-signers
+    if (!accessToken && typeof utilSignAccessToken === "function") {
+      accessToken = utilSignAccessToken(basePayload);
+    }
+    if (!refreshToken && typeof utilSignRefreshToken === "function") {
+      // util might not add userId → but our fallback does; so this is ok
+      refreshToken = utilSignRefreshToken(basePayload);
+    }
+
+    // 3rd (final) fallback: local signers
+    if (!accessToken) {
+      accessToken = signAccessToken(basePayload);
+    }
+    if (!refreshToken) {
+      // mark this as refresh in payload – our normalized signRefreshToken will pack all id fields
+      refreshToken = signRefreshToken({ ...basePayload, type: "refresh" });
+    }
+
+    return res.status(200).json({
+      message: "Login successful.",
+      user: userOut,
+      accessToken,
+      refreshToken,
+      expiresIn,
+      refreshExpiresIn,
+    });
   } catch (err) {
-    console.error('forgotPassword error:', err?.stack || err?.message || err);
-    return res.status(500).json({ error: 'Failed to process request' });
+    console.error("[auth/login] unexpected error:", err);
+    return res.status(500).json({
+      error: "Unexpected error while logging in.",
+    });
   }
 }
+// --- REPLACE END ---
+
+// --- REPLACE START: REFRESH HANDLER (recommended) ---
+/**
+ * POST /api/auth/refresh
+ * Body (preferred): { "refreshToken": "..." }
+ *
+ * Tries util.verifyRefreshToken(...) first, then falls back to local jwt.verify.
+ * Always re-issues BOTH tokens with the SAME id packing as login.
+ */
+export async function refresh(req, res) {
+  try {
+    // 1) read token from body / header / cookie
+    let token =
+      (req?.body && req.body.refreshToken) ||
+      (req?.headers && typeof req.headers.authorization === "string"
+        ? req.headers.authorization.replace(/Bearer\s+/i, "").trim()
+        : "") ||
+      (req?.cookies && (req.cookies.refreshToken || req.cookies.token)) ||
+      "";
+
+    token = (token || "").trim();
+
+    if (!token) {
+      return res.status(400).json({ error: "Refresh token is required." });
+    }
+
+    // 2) verify token (util first)
+    let decoded = null;
+    let verifiedBy = "none";
+
+    if (typeof utilVerifyRefreshToken === "function") {
+      const utilRes = utilVerifyRefreshToken(token);
+      // util version in utils/generateTokens.js returns { ok, decoded } in our file
+      if (utilRes && utilRes.ok && utilRes.decoded) {
+        decoded = utilRes.decoded;
+        verifiedBy = "util";
+      } else if (utilRes && utilRes.error) {
+        console.warn(
+          "[auth/refresh] util verify failed, will try local:",
+          utilRes.error?.message || utilRes.error
+        );
+      }
+    }
+
+    if (!decoded) {
+      // --- REPLACE START: match util's secret priority (JWT_REFRESH_SECRET → REFRESH_TOKEN_SECRET → dev) ---
+      const refreshSecret =
+        process.env.JWT_REFRESH_SECRET ||
+        process.env.REFRESH_TOKEN_SECRET ||
+        "dev_refresh_secret";
+      // --- REPLACE END ---
+      try {
+        decoded = jwt.verify(token, refreshSecret);
+        verifiedBy = "local";
+      } catch (verifyErr) {
+        console.warn(
+          "[auth/refresh] invalid refresh token:",
+          verifyErr?.message || verifyErr
+        );
+        return res
+          .status(401)
+          .json({ error: "Invalid or expired refresh token." });
+      }
+    }
+
+    // 3) decoded should have at least one of these
+    const decodedId =
+      decoded?.sub ||
+      decoded?.userId ||
+      decoded?.uid ||
+      decoded?._id ||
+      decoded?.id ||
+      "";
+    if (!decodedId) {
+      console.warn("[auth/refresh] token did not contain any id:", decoded);
+      return res
+        .status(401)
+        .json({ error: "Invalid or expired refresh token." });
+    }
+
+    // 4) load user
+    const User = await getUserModel();
+    const userDoc = await User.findById(decodedId).exec();
+    if (!userDoc) {
+      console.warn("[auth/refresh] user not found for id:", decodedId);
+      return res
+        .status(401)
+        .json({ error: "Invalid or expired refresh token." });
+    }
+
+    // 5) normalize user
+    const userOut = safeUserOut(userDoc);
+
+    // 6) build payload for new tokens – SAME packing as login
+    // --- REPLACE START: force all id fields into payload (refresh) ---
+    const rawId =
+      userOut._id || userOut.id || userDoc._id || userDoc.id || decodedId;
+    const userId = String(rawId);
+    const basePayload = {
+      sub: userId,
+      id: userId,
+      userId,
+      uid: userId,
+      email: userOut.email,
+      isPremium: !!userOut.isPremium,
+      role: userOut.role || "user",
+    };
+    // --- REPLACE END ---
+
+    // 7) issue new tokens (same preference order as login)
+    let accessToken = null;
+    let refreshToken = null;
+    let expiresIn = null;
+    let refreshExpiresIn = null;
+
+    try {
+      if (typeof issueTokens === "function") {
+        const issued = await issueTokens(basePayload);
+        accessToken = issued?.accessToken || null;
+        refreshToken = issued?.refreshToken || null;
+        expiresIn = issued?.expiresIn || null;
+        refreshExpiresIn = issued?.refreshExpiresIn || null;
+      }
+    } catch (tokErr) {
+      console.warn(
+        "[auth/refresh] issueTokens() failed, falling back:",
+        tokErr?.message || tokErr
+      );
+    }
+
+    if (!accessToken && typeof utilSignAccessToken === "function") {
+      accessToken = utilSignAccessToken(basePayload);
+    }
+    if (!refreshToken && typeof utilSignRefreshToken === "function") {
+      refreshToken = utilSignRefreshToken(basePayload);
+    }
+
+    if (!accessToken) {
+      accessToken = signAccessToken(basePayload);
+    }
+    if (!refreshToken) {
+      // our normalized fallback will re-pack id fields → OK for stricter routers
+      refreshToken = signRefreshToken({ ...basePayload, type: "refresh" });
+    }
+
+    return res.status(200).json({
+      message: "Token refreshed.",
+      user: userOut,
+      accessToken,
+      refreshToken,
+      expiresIn,
+      refreshExpiresIn,
+      verifiedBy,
+    });
+  } catch (err) {
+    console.error("[auth/refresh] unexpected error:", err);
+    return res.status(500).json({
+      error: "Unexpected error while refreshing token.",
+    });
+  }
+}
+// --- REPLACE END ---
+
+// --- REPLACE START: forgotPassword safe-build & store token ---
+export async function forgotPassword(req, res) {
+  try {
+    const email = (req?.body?.email || "").trim().toLowerCase();
+    console.log("[auth] forgot-password for", email || "<empty>");
+
+    if (!email) {
+      console.warn("[forgotPassword] Missing email in request body");
+      return res
+        .status(200)
+        .json({ message: "If an account exists, we'll email a link shortly." });
+    }
+
+    const User = await getUserModel();
+    let user = null;
+
+    // 1) find user (lean to save memory)
+    try {
+      const q = User.findOne({ email });
+      user = typeof q.lean === "function" ? await q.lean() : await q;
+    } catch (e) {
+      console.error("[forgotPassword] user lookup failed:", e);
+    }
+
+    // 2) generate token
+    let rawToken = "";
+    if (user && typeof generateResetTokenForUser === "function") {
+      try {
+        // this version may already persist
+        rawToken = await generateResetTokenForUser(user, { persist: true });
+      } catch (e) {
+        console.warn(
+          "[forgotPassword] generateResetTokenForUser failed, falling back:",
+          e?.message || e
+        );
+      }
+    }
+    if (!rawToken) {
+      rawToken = randomBytes(24).toString("hex");
+    }
+
+    // 3) if we actually have a user → persist token + expiry
+    //    (we do this even if later sendEmail fails, so token is valid)
+    const resetTtlMs = Number(process.env.PASSWORD_RESET_TTL_MS || 3600000); // 1h default
+    if (user && user._id) {
+      try {
+        await User.updateOne(
+          { _id: user._id },
+          {
+            $set: {
+              passwordResetToken: rawToken,
+              passwordResetExpires: nowPlus(resetTtlMs),
+            },
+          }
+        );
+        console.log(
+          "[forgotPassword] persisted reset token for user",
+          String(user._id)
+        );
+      } catch (persistErr) {
+        console.error(
+          "[forgotPassword] failed to persist reset token:",
+          persistErr?.message || persistErr
+        );
+      }
+    } else {
+      // user not found → we still continue, but we skip persist
+      // (generic response below hides this fact)
+      console.log("[forgotPassword] no user found, will still send generic mail.");
+    }
+
+    // 4) build reset link for email
+    const clientUrl =
+      pickClientBaseUrl() || process.env.CLIENT_URL || "http://localhost:5174";
+    const userIdRaw =
+      user && (user._id || user.id) ? String(user._id || user.id) : "";
+    const uid = encodeURIComponent(userIdRaw);
+    const resetUrl = `${clientUrl}/reset-password?token=${rawToken}&id=${uid}`;
+
+    // 5) email payload
+    const appName = process.env.APP_NAME || "Loventia";
+    const { subject, text, html } = renderResetEmail({ appName, resetUrl });
+
+    // 6) try new shared util first (this should write logs/mail-*.log)
+    try {
+      await sendEmail(email, subject, text, html);
+      console.log("[forgotPassword] sendEmail util called OK");
+    } catch (mailErr) {
+      console.error(
+        "[forgotPassword] mail send error (shared util):",
+        mailErr?.message || mailErr
+      );
+      // fallback to legacy direct nodemailer
+      try {
+        await sendMailLegacy({ to: email, subject, text, html });
+        console.log("[forgotPassword] legacy mail used as fallback");
+      } catch (legacyErr) {
+        console.error(
+          "[forgotPassword] legacy mail send also failed:",
+          legacyErr
+        );
+      }
+    }
+  } catch (err) {
+    console.error("forgotPassword error:", err);
+  }
+
+  // 7) always generic response
+  return res
+    .status(200)
+    .json({ message: "If an account exists, we'll email a link shortly." });
+}
+// --- REPLACE END ---
 
 /**
  * POST /api/auth/reset-password
- * Body: EITHER { token, password } OR { id, token, newPassword }
- * - Hash token and find matching non-expired record
- * - Update password, clear reset fields
+ * Body:
+ * {
+ *   "token": "...",
+ *   "id": "...",       // user id (from link) – optional if token is unique
+ *   "password": "newPasswordHere"
+ * }
+ *
+ * We keep logs in English and return generic-ish messages.
  */
+// --- REPLACE START: resetPassword handler (tolerant match + hard $unset) ---
 export async function resetPassword(req, res) {
   try {
-    // Accept both shapes for compatibility with existing frontend
-    const rawToken = req.body?.token || req.query?.token;
-    const providedPassword = req.body?.password ?? req.body?.newPassword;
+    const tokenFromReq =
+      (req?.body?.token || req?.query?.token || "").trim();
+    const idFromReq = (req?.body?.id || req?.query?.id || "").trim();
+    const newPassword = (req?.body?.password || "").trim();
 
-    if (!rawToken || !providedPassword) {
-      return res.status(400).json({ error: 'Token and new password are required' });
-    }
-    if (String(providedPassword).length < 8) {
-      return res.status(400).json({ error: 'Password must be at least 8 characters long' });
-    }
-    if (!User?.findOne) {
-      return res.status(500).json({ error: 'Server user model not available' });
-    }
+    console.log("[auth] reset-password called for id:", idFromReq || "(no id)");
 
-    const tokenHash = crypto.createHash('sha256').update(String(rawToken)).digest('hex');
-    const now = new Date();
-
-    const user = await User.findOne({
-      passwordResetToken: tokenHash,
-      passwordResetExpires: { $gt: now },
-    });
-
-    if (!user) {
-      return res.status(400).json({ error: 'Invalid or expired token' });
+    if (!tokenFromReq || !newPassword) {
+      return res.status(400).json({
+        error: "Missing token or password.",
+      });
     }
 
-    const saltRounds = Number.parseInt(process.env.BCRYPT_SALT_ROUNDS || '10', 10);
-    const salt   = await bcrypt.genSalt(Number.isFinite(saltRounds) ? saltRounds : 10);
-    user.password = await bcrypt.hash(providedPassword, salt);
+    const User = await getUserModel();
 
-    // Clear reset fields
-    user.passwordResetToken = undefined;
-    user.passwordResetExpires = undefined;
-    await user.save();
+    // 1) Try to find user by id first
+    let userDoc = null;
+    if (idFromReq) {
+      userDoc = await User.findById(idFromReq);
+    }
 
-    // Optional: clear refresh cookie after password change (Express 5-safe)
+    // 2) If not found by id, fall back to token
+    if (!userDoc) {
+      console.log("[resetPassword] user not found by id, trying by token…");
+      userDoc = await User.findOne({
+        passwordResetToken: tokenFromReq,
+      });
+    }
+
+    // 3) If still nothing → invalid
+    if (!userDoc) {
+      console.warn("[resetPassword] user not found for token");
+      return res.status(400).json({
+        error: "Invalid or expired reset token.",
+      });
+    }
+
+    const dbToken = userDoc.passwordResetToken
+      ? String(userDoc.passwordResetToken)
+      : "";
+    const reqToken = String(tokenFromReq);
+
+    if (!dbToken || dbToken !== reqToken) {
+      console.warn(
+        "[resetPassword] token mismatch for user",
+        String(userDoc._id),
+        "db:",
+        dbToken,
+        "req:",
+        reqToken
+      );
+
+      const userByToken = await User.findOne({
+        passwordResetToken: reqToken,
+      });
+
+      if (!userByToken) {
+        return res.status(400).json({
+          error: "Invalid or expired reset token.",
+        });
+      }
+
+      userDoc = userByToken;
+      console.log(
+        "[resetPassword] switched to user found by token:",
+        String(userDoc._id)
+      );
+    }
+
+    // 5) Check expiry
+    if (
+      userDoc.passwordResetExpires &&
+      new Date(userDoc.passwordResetExpires).getTime() < Date.now()
+    ) {
+      console.warn(
+        "[resetPassword] token expired for user",
+        String(userDoc._id)
+      );
+      return res.status(400).json({
+        error: "Reset token has expired. Please request a new password reset.",
+      });
+    }
+
+    // 6) Update password
+    userDoc.password = newPassword;
+
+    // 7) Clear token fields
+    userDoc.passwordResetToken = undefined;
+    userDoc.passwordResetExpires = undefined;
+    userDoc.passwordResetUsedAt = new Date();
+
+    await userDoc.save();
+
+    // 8) Extra hard delete
+    // --- REPLACE START: extra $unset for reset fields ---
     try {
-      res.clearCookie('refreshToken', { ...cookieOptions, maxAge: 0 });
-    } catch {
-      // noop
+      await User.updateOne(
+        { _id: userDoc._id },
+        {
+          $unset: {
+            passwordResetToken: "",
+            passwordResetExpires: "",
+            passwordResetUsedAt: "",
+          },
+        }
+      );
+    } catch (unsetErr) {
+      console.warn(
+        "[resetPassword] $unset of reset fields failed (non-fatal):",
+        unsetErr?.message || unsetErr
+      );
     }
+    // --- REPLACE END ---
 
-    return res.status(200).json({ message: 'Password has been reset successfully.' });
+    console.log(
+      "[resetPassword] password changed for user",
+      String(userDoc._id)
+    );
+
+    return res.status(200).json({
+      message: "Password has been reset successfully.",
+    });
   } catch (err) {
-    console.error('resetPassword error:', err?.stack || err?.message || err);
-    return res.status(500).json({ error: 'Failed to reset password' });
+    console.error("[resetPassword] unexpected error:", err);
+    return res.status(500).json({
+      error: "Unexpected error while resetting password.",
+    });
   }
 }
+// --- REPLACE END ---
 
-/* ------------------------------ Default export ----------------------------- */
+// --- REPLACE START: register handler (lightweight, compatible) ---
+/**
+ * POST /api/auth/register
+ * Body: { email, password, username?, ... }
+ *
+ * NOTE:
+ * - we keep this simple so your existing FE can still call /api/auth/register
+ * - we also normalize the output like login → returns { user, accessToken, refreshToken }
+ * - if email exists → 409
+ */
+export async function register(req, res) {
+  try {
+    const rawEmail = req?.body?.email || "";
+    const email = String(rawEmail).trim().toLowerCase();
+    const password = (req?.body?.password || "").trim();
+    const username =
+      (req?.body?.username || req?.body?.name || "").trim() ||
+      email.split("@")[0];
 
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required." });
+    }
+
+    const User = await getUserModel();
+    const existing = await User.findOne({ email }).lean();
+    if (existing) {
+      return res.status(409).json({ error: "User with this email already exists." });
+    }
+
+    // create
+    const created = new User({
+      email,
+      password,
+      username,
+      role: "user",
+      isPremium: false,
+      premium: false,
+    });
+    await created.save();
+
+    const userOut = safeUserOut(created);
+
+    const userId = String(created._id);
+    const payload = {
+      sub: userId,
+      id: userId,
+      userId,
+      uid: userId,
+      email: userOut.email,
+      isPremium: !!userOut.isPremium,
+      role: userOut.role || "user",
+    };
+
+    // tokens
+    let accessToken = null;
+    let refreshToken = null;
+    try {
+      if (typeof issueTokens === "function") {
+        const issued = await issueTokens(payload);
+        accessToken = issued?.accessToken || null;
+        refreshToken = issued?.refreshToken || null;
+      }
+    } catch {
+      /* ignore */
+    }
+    if (!accessToken) accessToken = signAccessToken(payload);
+    if (!refreshToken)
+      refreshToken = signRefreshToken({ ...payload, type: "refresh" });
+
+    return res.status(201).json({
+      message: "Registration successful.",
+      user: userOut,
+      accessToken,
+      refreshToken,
+    });
+  } catch (err) {
+    console.error("[auth/register] unexpected error:", err);
+    return res.status(500).json({ error: "Unexpected error during registration." });
+  }
+}
+// --- REPLACE END ---
+
+// --- REPLACE START: me handler (shared between public + private routes) ---
+/**
+ * GET /api/auth/me
+ * Source priority:
+ * 1) req.user (set by authenticate)
+ * 2) Authorization: Bearer <token> (access)
+ * 3) body.refreshToken (rare GET) or cookie (less likely)
+ *
+ * Returns 200 + normalized user, or 401 if token is missing/invalid.
+ */
+export async function me(req, res) {
+  try {
+    // 1) if authenticate has already run
+    const hintedId =
+      req?.user?.id ||
+      req?.user?._id ||
+      req?.user?.userId ||
+      req?.user?.sub ||
+      "";
+
+    let token = "";
+    let decoded = null;
+
+    // 2) Bearer token
+    const authHeader = req.headers?.authorization || "";
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      token = authHeader.slice(7).trim();
+    }
+
+    // 3) if no Bearer but we have req.user, we can go straight to DB
+    if (!token && hintedId) {
+      const User = await getUserModel();
+      const userDoc = await User.findById(hintedId).exec();
+      if (!userDoc) {
+        return res.status(404).json({ error: "User not found." });
+      }
+      const userOut = safeUserOut(userDoc);
+      return res.status(200).json(userOut);
+    }
+
+    // 4) if we have token → verify
+    if (token) {
+      const accessSecret =
+        process.env.JWT_SECRET ||
+        process.env.ACCESS_TOKEN_SECRET ||
+        "dev_access_secret";
+      try {
+        decoded = jwt.verify(token, accessSecret);
+      } catch (e) {
+        // maybe it was refresh? try refresh secrets
+        const refreshSecret =
+          process.env.JWT_REFRESH_SECRET ||
+          process.env.REFRESH_TOKEN_SECRET ||
+          "dev_refresh_secret";
+        try {
+          decoded = jwt.verify(token, refreshSecret);
+        } catch (e2) {
+          return res.status(401).json({ error: "Invalid token." });
+        }
+      }
+    }
+
+    const finalId =
+      hintedId ||
+      decoded?.sub ||
+      decoded?.id ||
+      decoded?.userId ||
+      decoded?.uid ||
+      "";
+
+    if (!finalId) {
+      return res.status(401).json({ error: "No user id in token." });
+    }
+
+    const User = await getUserModel();
+    const userDoc = await User.findById(finalId).exec();
+    if (!userDoc) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    const userOut = safeUserOut(userDoc);
+    return res.status(200).json(userOut);
+  } catch (err) {
+    console.error("[auth/me] unexpected error:", err);
+    return res.status(500).json({ error: "Unexpected error in /auth/me." });
+  }
+}
+// --- REPLACE END ---
+
+// --- REPLACE START: logout handler (stateless) ---
+/**
+ * POST /api/auth/logout
+ * We are stateless → just return 200. FE should drop tokens.
+ */
+export async function logout(_req, res) {
+  return res.status(200).json({ message: "Logged out." });
+}
+// --- REPLACE END ---
+
+// --- REPLACE START: verifyEmail stub (kept to avoid 501) ---
+/**
+ * POST /api/auth/verify-email
+ * This is a basic stub that you can later wire to your actual email/OTP flow.
+ */
+export async function verifyEmail(req, res) {
+  const token = (req?.body?.token || "").trim();
+  if (!token) {
+    return res.status(400).json({ error: "Verification token is required." });
+  }
+  // TODO: implement real token lookup
+  console.log("[auth/verifyEmail] called with token:", token);
+  return res.status(200).json({ message: "Email verified (stub)." });
+}
+// --- REPLACE END ---
+
+// Keep default export shape unchanged (include other handlers in your real file)
 const controller = {
-  register,
-  login,
-  refreshToken,
-  logout,
-  me,
+  // public
+  login,            // ← UPDATED
+  register,         // ← NEW
+  refresh,          // ← UPDATED (secret order now matches util, payload normalized)
   forgotPassword,
   resetPassword,
+  logout,           // ← NEW
+  verifyEmail,      // ← NEW
+  // shared
+  me,               // ← NEW (this is what /api/auth/me + /api/auth/private/me will now hit)
 };
 
 export default controller;
-// --- REPLACE END ---
+
 

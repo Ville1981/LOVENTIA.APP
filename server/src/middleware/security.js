@@ -6,7 +6,7 @@
 import express from "express";
 import helmet from "helmet";
 // Important: CORS must be centralized to avoid duplicate/competing headers.
-import corsConfig from "../config/corsConfig.js";
+import corsConfig from "../config/cors.js";
 
 const router = express.Router();
 

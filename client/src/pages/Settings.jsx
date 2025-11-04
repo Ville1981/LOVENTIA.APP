@@ -55,6 +55,17 @@ export default function Settings() {
       {/* --- REPLACE END --- */}
 
       {/* Here you could render profile settings, password change forms, etc. */}
+      {/* --- REPLACE START: Password & Security (link to forgot) --- */}
+      <section className="mt-4">
+        <h2 className="text-lg font-semibold">Password &amp; Security</h2>
+        <p className="text-sm text-gray-700 mb-2">
+          If you have trouble signing in, you can request a password reset link.
+        </p>
+        <a href="/forgot-password" className="text-blue-600 hover:underline text-sm">
+          Forgot your password?
+        </a>
+      </section>
+      {/* --- REPLACE END --- */}
 
       <section className="mt-8 border-t pt-6">
         {/* --- REPLACE START: i18n danger zone --- */}

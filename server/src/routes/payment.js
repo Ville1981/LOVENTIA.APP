@@ -10,6 +10,9 @@ import authenticate from '../middleware/authenticate.js';
 // Import centralized Stripe config (urls are static-imported to avoid dynamic pitfalls)
 // NOTE: Correct path from routes/ → ../config/stripe.js
 import { billingUrls } from '../config/stripe.js';
+
+// ✅ NEW: wire durable billing controller (sync + webhook)
+import { sync as billingSync, handleWebhook as stripeWebhook } from '../controllers/billingController.js';
 // --- REPLACE END ---
 
 /* ──────────────────────────────────────────────────────────────────────────────
@@ -586,100 +589,38 @@ router.post('/cancel-now', authenticate, async (req, res) => {
  * Reconciles user's premium flags with Stripe subscriptions.
  * Body (optional): { customerId?: string }
  *
- * Resolution order for customerId:
- *  - body.customerId
- *  - req.user.stripeCustomerId / stripe_customer_id
- *  - User(stripeCustomerId) by uid
- *  - Subscription(provider='stripe') by uid
- *  - STRIPE_TEST_CUSTOMER (env fallback for testing only)
- *
- * We normalize ALL related fields atomically to avoid conflicts:
- *   - user.isPremium
- *   - user.premium (legacy mirror)
- *   - user.subscriptionId
+ * NOTE: We DELEGATE to the durable controller to keep a single source of truth.
+ * The controller:
+ *  - Reads Stripe authoritative state
+ *  - Atomically writes user.isPremium / subscriptionId / entitlements.*
+ *  - Returns { ok, isPremium, subscriptionId, user: normalizeUserOut(updated) }
  */
-router.post('/sync', authenticate, async (req, res) => {
+// --- REPLACE START: delegate /sync to controllers/billingController.sync ---
+router.post('/sync', authenticate, (req, res, next) => {
   try {
-    assertStripeKey();
-
-    const uid = req.userId || req.user?.id || req.user?._id || null;
-
-    // Resolve customerId with several fallbacks
-    let customerId =
-      req.body?.customerId ||
-      req.user?.stripeCustomerId ||
-      req.user?.stripe_customer_id ||
-      null;
-
-    if (!customerId && uid) {
-      try {
-        const _User = await getUserModel();
-        let u = null;
-        if (_User?.findById) {
-          u = await _User.findById(uid)
-            .select('stripeCustomerId stripe_customer_id')
-            .lean();
-        }
-        if (u?.stripeCustomerId || u?.stripe_customer_id) {
-          customerId = u.stripeCustomerId || u.stripe_customer_id;
-        }
-      } catch (_e) {}
-    }
-
-    if (!customerId && uid) {
-      try {
-        const _Sub = await getSubscriptionModel();
-        let sub = null;
-        if (_Sub?.findOne) {
-          sub = await _Sub.findOne({
-            user: uid,
-            provider: 'stripe',
-          })
-            .sort({ createdAt: -1 })
-            .lean();
-        }
-        if (sub?.customerId || sub?.customer_id) {
-          customerId = sub.customerId || sub.customer_id;
-        }
-      } catch (_e) {}
-    }
-
-    if (!customerId && process.env.STRIPE_TEST_CUSTOMER) {
-      customerId = process.env.STRIPE_TEST_CUSTOMER;
-    }
-
-    if (!customerId) {
-      return res.status(400).json({ error: 'No Stripe customer found to sync.' });
-    }
-
-    // Snapshot pre-state for diagnostics
-    let before = null;
-    if (uid) {
-      const _User = await getUserModel();
-      if (_User?.findById) {
-        before = await _User.findById(uid)
-          .select('isPremium premium subscriptionId stripeCustomerId')
-          .lean();
-      }
-    }
-
-    const result = await reconcilePremiumForCustomer(customerId, uid || null);
-
-    return res.json({
-      ok: true,
-      customerId,
-      isPremium: result.isPremium,
-      subscriptionId: result.subscriptionId,
-      before,
-    });
+    const p = billingSync(req, res);
+    if (p && typeof p.then === 'function') p.catch(next);
   } catch (err) {
-    console.error('sync error:', err);
-    if (err?.code === 'NO_STRIPE_KEY') {
-      return res.status(501).json({ error: 'Billing not configured: missing STRIPE_SECRET_KEY.' });
-    }
-    return res.status(500).json({ error: 'Unable to sync subscription state' });
+    next(err);
   }
 });
+// --- REPLACE END ---
+
+/**
+ * POST /api/billing/webhook
+ * Stripe requires raw body for signature verification.
+ * We forward directly to the controller’s verified handler.
+ */
+// --- REPLACE START: add webhook with raw body for Stripe signature verification ---
+router.post('/webhook', express.raw({ type: 'application/json' }), (req, res, next) => {
+  try {
+    const p = stripeWebhook(req, res);
+    if (p && typeof p.then === 'function') p.catch(next);
+  } catch (e) {
+    next(e);
+  }
+});
+// --- REPLACE END ---
 
 /* **********************************************************************
  * EXISTING LEGACY PAYMENT ROUTES (preserved, unchanged logic)
@@ -855,3 +796,5 @@ router.post('/paypal-webhook', express.raw({ type: 'application/json' }), async 
 export default router;
 export { rememberEventRow, getRecentBillingEvents, reconcilePremiumForCustomer };
 // --- REPLACE END ---
+
+

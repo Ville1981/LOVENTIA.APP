@@ -1,10 +1,11 @@
-// File: server/services/profileService.js
+// PATH: server/src/services/profile.service.js
 
-// --- REPLACE START: profile service (ensure politicalIdeology + location fields persist, normalize outbound user) ---
+// --- REPLACE START: profile service (non-destructive entitlements; normalize outbound user) ---
 import * as UserModule from '../models/User.js';
 const User = UserModule.default || UserModule;
 
-// Use the shared normalizer so responses are consistent across controllers/routes
+// Use the shared normalizer so responses are consistent across controllers/routes.
+// The normalizer now performs a non-destructive premium merge (fills only missing bits).
 import normalizeUserOut from '../utils/normalizeUserOut.js';
 
 /**
@@ -125,6 +126,13 @@ const LEGACY_ACCEPTED_FIELDS = ['ideology'];
 /* ──────────────────────────────────────────────────────────────────────────────
    READ (GET)
 ────────────────────────────────────────────────────────────────────────────── */
+/**
+ * NOTE ABOUT PREMIUM:
+ *  This service MUST NOT construct a brand new `entitlements` object with default false values.
+ *  We always return `normalizeUserOut(user)` which performs a non-destructive merge:
+ *  - Preserves stored `entitlements.tier/features/quotas` and `subscriptionId`
+ *  - Fills only missing premium flags if the user is effectively premium
+ */
 export async function getMeService(req, res) {
   try {
     const uid = getUserId(req);
@@ -137,7 +145,7 @@ export async function getMeService(req, res) {
     return res.json(normalizeUserOut(user));
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.error('[profileService] getMe error:', err);
+    console.error('[profile.service] getMe error:', err);
     return res.status(500).json({ error: 'Server error fetching profile' });
   }
 }
@@ -153,7 +161,7 @@ export async function getUserByIdService(req, res) {
     return res.json(normalizeUserOut(user));
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.error('[profileService] getUserById error:', err);
+    console.error('[profile.service] getUserById error:', err);
     return res.status(500).json({ error: 'Server error fetching user' });
   }
 }
@@ -347,13 +355,13 @@ export async function updateProfileService(req, res) {
     return res.json(normalizeUserOut(user));
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.error('[profileService] updateProfile error:', err);
+    console.error('[profile.service] updateProfile error:', err);
     return res.status(500).json({ error: 'Server error during profile update' });
   }
 }
 
 /* ──────────────────────────────────────────────────────────────────────────────
-   PREMIUM (kept minimal; mirrors earlier behavior)
+   PREMIUM (kept minimal; DB write only for top-level flags; normalization handles features)
 ────────────────────────────────────────────────────────────────────────────── */
 export async function upgradeToPremiumService(req, res) {
   try {
@@ -363,15 +371,15 @@ export async function upgradeToPremiumService(req, res) {
     const user = await User.findById(uid);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
+    // Flip top-level flags; entitlements/features are merged non-destructively in normalizeUserOut.
     user.isPremium = true;
     user.premium = true; // legacy mirror for older clients
-    if (typeof user.startPremium === 'function') user.startPremium(); // if model method exists, prefer it
     await user.save();
 
     return res.json(normalizeUserOut(user));
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.error('[profileService] premium upgrade error:', err);
+    console.error('[profile.service] premium upgrade error:', err);
     return res.status(500).json({ error: 'Server error during premium upgrade' });
   }
 }
@@ -443,7 +451,7 @@ export async function getMatchesWithScoreService(req, res) {
     return res.json(matches);
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.error('[profileService] match score error:', err);
+    console.error('[profile.service] match score error:', err);
     return res.status(500).json({ error: 'Server error during match search' });
   }
 }

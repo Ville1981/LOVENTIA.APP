@@ -2,17 +2,18 @@
 
 # NOTE:
 # - This workflow keeps the original structure (no unnecessary shortening) and
-#   adds what was missing: GitHub Environment (staging), least-privilege permissions,
-#   Mongo service for tests, wiring for ENV secrets, coverage & artifacts.
+#   adds what was missing: least-privilege permissions, Mongo service for tests,
+#   environment-scoped secrets wiring, coverage & artifacts.
 # - The replacement region is clearly marked.
 
-# --- REPLACE START: maintain full pipeline (lint → test+coverage → OpenAPI → build → artifacts); keep env secrets ---
+# --- REPLACE START: maintain full pipeline (lint → audit → test+coverage → OpenAPI → build → artifacts → diagnostics); keep env secrets ---
 name: server-ci
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, dev, 'varaoksa*' ]
   pull_request:
+    branches: [ main, dev, 'varaoksa*' ]
 
 # Least-privilege: allow reading repo and (optionally) OIDC later
 permissions:
@@ -21,8 +22,9 @@ permissions:
 
 jobs:
   server-ci:
-    name: Server CI (lint • test • openapi • build)
+    name: Server CI (lint • audit • test • openapi • build)
     runs-on: ubuntu-latest
+
     # Use the GitHub Environment "staging" so this job gets environment-scoped secrets.
     environment: staging
 
@@ -39,7 +41,7 @@ jobs:
           - 27017:27017
         # Basic healthcheck ensures DB is ready before tests begin.
         options: >-
-          --health-cmd="mongosh --eval 'db.runCommand({ ping: 1 })'"
+          --health-cmd="mongosh --quiet --eval 'db.runCommand({ ping: 1 })'"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
@@ -68,7 +70,7 @@ jobs:
       # JUnit output file (harmless if jest-junit is not installed)
       JEST_JUNIT_OUTPUT: ./test-results/junit.xml
 
-      # Optional test creds (from repo/environ secrets); do not echo
+      # Optional test creds (from environment secrets); do not echo
       TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
       PERF_PASSWORD: ${{ secrets.PERF_PASSWORD }}
       CYPRESS_TEST_PASSWORD: ${{ secrets.CYPRESS_TEST_PASSWORD }}
@@ -88,7 +90,12 @@ jobs:
 
       # 3) Install dependencies
       - name: Install deps (server)
-        run: npm ci
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
 
       # 4) Resolve env from environment-scoped secrets (staging)
       #    Only overwrite defaults if a secret is set (keeps local CI DB for tests).
@@ -114,8 +121,27 @@ jobs:
       - name: Lint
         run: npm run lint --if-present
 
-      # 6) Unit/Integration tests with coverage. Reporters line is safe even if jest-junit isn’t present.
-      - name: Test (Jest) with coverage
+      # 6) Security audit (npm audit & depcheck) — non-failing, with artifacts
+      - name: Security audit (npm audit & depcheck)
+        run: |
+          mkdir -p security-reports
+          # npm audit: capture JSON + text summary; do not fail the build
+          npm audit --audit-level=high --json > security-reports/npm-audit.json || true
+          npm audit --audit-level=high > security-reports/npm-audit.txt || true
+          # depcheck: capture JSON + text; do not fail the build
+          npx depcheck --json > security-reports/depcheck.json || true
+          npx depcheck > security-reports/depcheck.txt || true
+
+      - name: Upload security reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-security-reports
+          path: server/security-reports/*
+          if-no-files-found: warn
+
+      # 7) Unit/Integration tests with coverage. Reporters line is safe even if jest-junit isn’t present.
+      - name: Test (Jest/Vitest) with coverage
         run: |
           mkdir -p test-results
           npm test --if-present -- \
@@ -124,7 +150,7 @@ jobs:
             --reporters=default \
             --reporters=jest-junit
 
-      # 7) Upload coverage folder regardless of success, for debugging flakes
+      # 8) Upload coverage folder regardless of success, for debugging flakes
       - name: Upload coverage artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -133,7 +159,7 @@ jobs:
           path: server/coverage
           if-no-files-found: warn
 
-      # 8) Upload JUnit XML (if produced)
+      # 9) Upload JUnit XML (if produced)
       - name: Upload test-results (JUnit)
         if: always()
         uses: actions/upload-artifact@v4
@@ -142,11 +168,11 @@ jobs:
           path: server/test-results
           if-no-files-found: ignore
 
-      # 9) OpenAPI validate & bundle (no-op if script not defined)
+      # 10) OpenAPI validate & bundle (no-op if script not defined)
       - name: OpenAPI validate & bundle
         run: npm run openapi:build --if-present
 
-      # 10) Upload OpenAPI distributables
+      # 11) Upload OpenAPI distributables
       - name: Upload OpenAPI artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -155,11 +181,11 @@ jobs:
           path: server/openapi/dist/*
           if-no-files-found: ignore
 
-      # 11) Build (TS transpile / bundling). Safe if script not present.
+      # 12) Build (TS transpile / bundling). Safe if script not present.
       - name: Build server
         run: npm run build --if-present
 
-      # 12) Upload build output and (optionally) OpenAPI root dir if it exists
+      # 13) Upload build output and (optionally) OpenAPI root dir if it exists
       - name: Upload build artifact
         if: success()
         uses: actions/upload-artifact@v4
@@ -170,7 +196,16 @@ jobs:
             server/openapi
           if-no-files-found: ignore
 
-      # 13) On failure, publish npm logs for easier debugging
+      # 14) Upload diagnostics (docs) — optional helper scripts for developers
+      - name: Upload diagnostics (docs)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-diagnostics
+          path: server/docs/diagnostics/*
+          if-no-files-found: warn
+
+      # 15) On failure, publish npm logs for easier debugging
       - name: Upload npm logs (on failure)
         if: failure()
         uses: actions/upload-artifact@v4

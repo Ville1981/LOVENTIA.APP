@@ -1,4 +1,4 @@
-﻿// PATH: server/routes/auth.js
+﻿// PATH: server/src/routes/auth.js
 // @ts-nocheck
 
 "use strict";
@@ -18,13 +18,51 @@ import cookieParser from "cookie-parser";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath, pathToFileURL } from "url";
 import dotenv from "dotenv";
+// --- REPLACE END ---
+
+// --- REPLACE START: bring in the same normalizer as /api/users/me and /api/me ---
+import normalizeUserOut from "../utils/normalizeUserOut.js";
+// --- REPLACE END ---
 
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+/**
+ * ensure logs directory exists (for mail-*.log)
+ */
+function ensureLogsDir() {
+  const logsDir = path.resolve(__dirname, "../logs");
+  if (!fs.existsSync(logsDir)) {
+    try {
+      fs.mkdirSync(logsDir, { recursive: true });
+    } catch (e) {
+      console.warn("[auth/routes] failed to create logs dir:", e?.message || e);
+    }
+  }
+  return logsDir;
+}
+
+/**
+ * write mail log helper — small, safe, no-throw
+ */
+function writeMailLog(line) {
+  try {
+    const logsDir = ensureLogsDir();
+    const file = path.join(
+      logsDir,
+      `mail-${new Date().toISOString().slice(0, 10)}.log`
+    );
+    const ts = new Date().toISOString();
+    fs.appendFileSync(file, `[${ts}] ${line}\n`, { encoding: "utf8" });
+  } catch (e) {
+    console.warn("[auth/routes] failed to write mail log:", e?.message || e);
+  }
+}
 
 /**
  * Try dynamic import() (ESM). If it fails, return null.
@@ -45,9 +83,9 @@ async function tryLoad(relOrAbs) {
 /** Lazily resolve project modules only when needed to avoid import-time crashes */
 async function getUserModel() {
   const candidates = [
-    "../src/models/User.js", // server/src/models/User.js (when this file lives in server/routes)
-    "../models/User.js",     // server/models/User.js (alt tree)
-    "../../models/User.js",  // defensive fallback
+    "../src/models/User.js", // server/src/models/User.js
+    "../models/User.js", // server/models/User.js
+    "../../models/User.js", // defensive fallback
   ];
   for (const c of candidates) {
     const mod = await tryLoad(c);
@@ -64,10 +102,25 @@ async function getSendEmail() {
   ];
   for (const c of candidates) {
     const mod = await tryLoad(c);
-    if (typeof mod === "function") return mod;
-    if (mod && typeof mod.sendEmail === "function") return mod.sendEmail;
-    if (mod?.default && typeof mod.default === "function") return mod.default;
+    if (!mod) continue;
+
+    // plain function export
+    if (typeof mod === "function") {
+      console.log("[auth/routes] sendEmail resolved from", c);
+      return mod;
+    }
+    // named export
+    if (mod && typeof mod.sendEmail === "function") {
+      console.log("[auth/routes] sendEmail.sendEmail resolved from", c);
+      return mod.sendEmail;
+    }
+    // default export
+    if (mod?.default && typeof mod.default === "function") {
+      console.log("[auth/routes] sendEmail.default resolved from", c);
+      return mod.default;
+    }
   }
+  console.warn("[auth/routes] sendEmail util NOT found in any known path");
   return null;
 }
 
@@ -83,7 +136,7 @@ async function getCookieOptions() {
     if (mod.cookieOptions) return mod.cookieOptions;
     return mod; // plain object export
   }
-  // Sane default if helper is missing
+  // sane default
   return {
     httpOnly: true,
     sameSite: "lax",
@@ -102,17 +155,17 @@ async function getAuthenticate() {
     const fn = (mod && (mod.default || mod.authenticate)) || mod;
     if (typeof fn === "function") return fn;
   }
-  // Fallback passthrough (ONLY if missing – better than crashing)
+  // fallback passthrough
   return (_req, _res, next) => next();
 }
 
 /**
  * Optionally resolve centralized CORS config.
- * If not present, we safely no-op (routes still work without per-route CORS).
+ * If not present, we safely no-op.
  */
 async function getCors() {
   const candidates = [
-    "../src/config/corsConfig.js", // primary (repo uses server/src/config/corsConfig.js)
+    "../src/config/corsConfig.js",
     "../config/corsConfig.js",
     "../../src/config/corsConfig.js",
     "../../config/corsConfig.js",
@@ -123,7 +176,6 @@ async function getCors() {
     const maybe = mod.default || mod;
     if (typeof maybe === "function") return maybe;
   }
-  // No CORS middleware found — return a passthrough
   return (_req, _res, next) => next();
 }
 
@@ -145,7 +197,6 @@ async function getValidators() {
       validateLogin = (_req, _res, next) => next();
     return { validateRegister, validateLogin };
   }
-  // Fallback no-ops
   return {
     validateRegister: (_req, _res, next) => next(),
     validateLogin: (_req, _res, next) => next(),
@@ -181,7 +232,7 @@ async function getUploadMiddleware() {
     const up = (mod && (mod.default || mod)) || mod;
     if (up) return up;
   }
-  // Minimal stub for .fields usage
+  // stub
   return {
     fields: () => (_req, _res, next) => next(),
   };
@@ -190,7 +241,6 @@ async function getUploadMiddleware() {
 /** Try to resolve an auth controller with typical names/paths */
 async function getAuthController() {
   const candidates = [
-    // Preferred in this repo layout
     "../src/api/controllers/authController.js",
     "../../src/api/controllers/authController.js",
     "../api/controllers/authController.js",
@@ -199,7 +249,7 @@ async function getAuthController() {
     "../controllers/authController.js",
     "../../controllers/authController.js",
 
-    // Fallbacks (some repos wire auth handlers from userController)
+    // fallbacks — some repos use userController for auth
     "../src/controllers/userController.js",
     "../controllers/userController.js",
     "../../controllers/userController.js",
@@ -213,10 +263,12 @@ async function getAuthController() {
     const mod = await tryLoad(c);
     if (!mod) continue;
     const ns = (mod && (mod.default || mod)) || mod;
-    const hasAny = ["register", "login", "refresh", "logout", "me", "profile"]
-      .some((k) => typeof ns[k] === "function");
+    const hasAny = ["register", "login", "refresh", "logout", "me", "profile"].some(
+      (k) => typeof ns[k] === "function"
+    );
     if (hasAny) return ns;
-    // Sometimes exported under different names (e.g., registerUser/loginUser)
+
+    // legacy export names
     if (typeof ns.registerUser === "function" || typeof ns.loginUser === "function") {
       return {
         register: ns.registerUser,
@@ -233,18 +285,22 @@ async function getAuthController() {
 
 const router = express.Router();
 
-// Middleware to parse JSON, URL-encoded bodies, and cookies
+// middleware to parse JSON, URL-encoded bodies, and cookies
 router.use(express.json());
 router.use(express.urlencoded({ extended: true }));
 router.use(cookieParser());
 
 /** Utility: respond 501 if handler missing instead of returning 404 */
 function notImplemented(name) {
-  return (_req, res) => res.status(501).json({ error: `Handler '${name}' is not implemented` });
+  return (_req, res) =>
+    res.status(501).json({ error: `Handler '${name}' is not implemented` });
 }
 
 /** Utility: wrap async route handlers */
-const asyncHandler = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+const asyncHandler =
+  (fn) =>
+  (req, res, next) =>
+    Promise.resolve(fn(req, res, next)).catch(next);
 
 /** Resolve cookie options once (safe default if resolver fails) */
 let cookieOptionsPromise = null;
@@ -259,47 +315,144 @@ function getCookieOptionsOnce() {
   return cookieOptionsPromise;
 }
 
+/* =============================================================================
+   SHARED TOKEN RESOLVERS (used by /refresh and /me) — define ONCE
+============================================================================= */
+function pickFirstDefined(...vals) {
+  for (const v of vals) {
+    if (v !== undefined && v !== null && v !== "") return v;
+  }
+  return undefined;
+}
+function tokenFromAuthHeader(req) {
+  const h = req?.headers?.authorization;
+  if (!h || typeof h !== "string") return null;
+  const m = h.match(/^Bearer\s+(.+)$/i);
+  return m ? m[1] : null;
+}
+function tokenFromCookies(req) {
+  const c = req?.cookies || {};
+  return (
+    c.accessToken ||
+    c.jwt ||
+    c.token ||
+    c.refreshToken ||
+    null
+  );
+}
+function tokenFromQuery(req) {
+  const q = req?.query || {};
+  const v = q.token || q.access_token || q.accessToken;
+  return typeof v === "string" && v.length ? v : null;
+}
+function resolveToken(req) {
+  return (
+    tokenFromAuthHeader(req) ||
+    tokenFromCookies(req) ||
+    tokenFromQuery(req) ||
+    null
+  );
+}
+
 /* 1) Refresh Access Token */
-router.options("/refresh", async (req, res, next) => {
-  const cors = await getCors(); return cors(req, res, () => res.sendStatus(204));
+router.options("/refresh", async (req, res) => {
+  const cors = await getCors();
+  return cors(req, res, () => res.sendStatus(204));
 });
+
 router.post(
   "/refresh",
   async (req, res, next) => {
-    const cors = await getCors(); return cors(req, res, next);
+    const cors = await getCors();
+    return cors(req, res, next);
   },
   asyncHandler(async (req, res) => {
-    const token = req.cookies && req.cookies.refreshToken;
+    // --- REPLACE START: robust refresh payload normalizer (aligns with authController.js) ---
+    const bodyToken =
+      (req.body && (req.body.refreshToken || req.body.token)) || null;
+    const headerToken = tokenFromAuthHeader(req);
+    const cookieToken =
+      (req.cookies && (req.cookies.refreshToken || req.cookies.token)) || null;
+    const token = (bodyToken || headerToken || cookieToken || "").trim();
+
     if (!token) {
       return res.status(401).json({ error: "No refresh token provided" });
     }
+
+    const secret =
+      process.env.JWT_REFRESH_SECRET ||
+      process.env.REFRESH_TOKEN_SECRET ||
+      "test_refresh_secret";
+
+    let payload;
     try {
-      const secret = process.env.JWT_REFRESH_SECRET || "test_refresh_secret";
-      const payload = jwt.verify(token, secret);
-      if (!payload || !payload.userId) {
-        return res.status(401).json({ error: "Invalid token payload" });
-      }
-      const accessToken = jwt.sign(
-        { userId: payload.userId, role: payload.role },
-        process.env.JWT_SECRET || "test_secret",
-        { expiresIn: "15m" }
-      );
-      return res.json({ accessToken });
+      payload = jwt.verify(token, secret);
     } catch (err) {
       console.error("Refresh token error:", err?.message || err);
-      return res.status(403).json({ error: "Invalid or expired refresh token" });
+      return res
+        .status(403)
+        .json({ error: "Invalid or expired refresh token" });
     }
+
+    const normalizedUserId =
+      payload.userId ||
+      payload.id ||
+      payload.sub ||
+      payload.uid ||
+      payload._id ||
+      "";
+
+    if (!normalizedUserId) {
+      return res.status(401).json({ error: "Invalid token payload" });
+    }
+
+    const accessSecret =
+      process.env.JWT_SECRET ||
+      process.env.ACCESS_TOKEN_SECRET ||
+      "test_secret";
+
+    const accessPayload = {
+      sub: String(normalizedUserId),
+      id: String(normalizedUserId),
+      userId: String(normalizedUserId),
+      uid: String(normalizedUserId),
+      email: payload.email || "",
+      role: payload.role || "user",
+      isPremium: !!(payload.isPremium || payload.premium),
+    };
+
+    const accessToken = jwt.sign(accessPayload, accessSecret, {
+      expiresIn:
+        process.env.JWT_EXPIRES_IN ||
+        process.env.ACCESS_TOKEN_EXPIRES_IN ||
+        "15m",
+    });
+
+    return res.json({
+      accessToken,
+      user: {
+        id: String(normalizedUserId),
+        userId: String(normalizedUserId),
+        email: payload.email || "",
+        role: payload.role || "user",
+        isPremium: !!(payload.isPremium || payload.premium),
+      },
+    });
+    // --- REPLACE END ---
   })
 );
 
 /* 2) Logout User */
-router.options("/logout", async (req, res, next) => {
-  const cors = await getCors(); return cors(req, res, () => res.sendStatus(204));
+router.options("/logout", async (req, res) => {
+  const cors = await getCors();
+  return cors(req, res, () => res.sendStatus(204));
 });
+
 router.post(
   "/logout",
   async (req, res, next) => {
-    const cors = await getCors(); return cors(req, res, next);
+    const cors = await getCors();
+    return cors(req, res, next);
   },
   asyncHandler(async (_req, res) => {
     try {
@@ -314,14 +467,17 @@ router.post(
   })
 );
 
-/* 3) Register New User — prefer controller.register if available */
-router.options("/register", async (req, res, next) => {
-  const cors = await getCors(); return cors(req, res, () => res.sendStatus(204));
+/* 3) Register New User */
+router.options("/register", async (req, res) => {
+  const cors = await getCors();
+  return cors(req, res, () => res.sendStatus(204));
 });
+
 router.post(
   "/register",
   async (req, res, next) => {
-    const cors = await getCors(); return cors(req, res, next);
+    const cors = await getCors();
+    return cors(req, res, next);
   },
   asyncHandler(async (req, res, next) => {
     const { validateRegister } = await getValidators();
@@ -336,14 +492,17 @@ router.post(
   })
 );
 
-/* 4) Login User — prefer controller.login if available */
-router.options("/login", async (req, res, next) => {
-  const cors = await getCors(); return cors(req, res, () => res.sendStatus(204));
+/* 4) Login User */
+router.options("/login", async (req, res) => {
+  const cors = await getCors();
+  return cors(req, res, () => res.sendStatus(204));
 });
+
 router.post(
   "/login",
   async (req, res, next) => {
-    const cors = await getCors(); return cors(req, res, next);
+    const cors = await getCors();
+    return cors(req, res, next);
   },
   asyncHandler(async (req, res, next) => {
     const { validateLogin } = await getValidators();
@@ -359,146 +518,310 @@ router.post(
 );
 
 /* 5) Forgot Password */
-router.options("/forgot-password", async (req, res, next) => {
-  const cors = await getCors(); return cors(req, res, () => res.sendStatus(204));
+// --- REPLACE START: add logging + sendEmail check + mail-logs ---
+router.options("/forgot-password", async (req, res) => {
+  const cors = await getCors();
+  return cors(req, res, () => res.sendStatus(204));
 });
+
 router.post(
   "/forgot-password",
   async (req, res, next) => {
-    const cors = await getCors(); return cors(req, res, next);
+    const cors = await getCors();
+    return cors(req, res, next);
   },
   asyncHandler(async (req, res) => {
     const { email } = req.body || {};
-    if (!email) {
+    const normalizedEmail = (email || "").trim().toLowerCase();
+    console.log(
+      "[auth/routes] /forgot-password hit for:",
+      normalizedEmail || "<missing>"
+    );
+    writeMailLog(
+      `[trace] /forgot-password called for ${normalizedEmail || "<missing>"}`
+    );
+
+    if (!normalizedEmail) {
+      writeMailLog("[warn] /forgot-password missing email in body");
       return res.status(400).json({ error: "Email is required" });
     }
+
     try {
       const User = await getUserModel();
-      if (!User) return res.status(503).json({ error: "User model unavailable" });
+      if (!User) {
+        writeMailLog("[error] User model unavailable in /forgot-password");
+        return res.status(503).json({ error: "User model unavailable" });
+      }
 
-      const user = await User.findOne({ email });
-      // Always respond with generic message for privacy
-      const generic = { message: "If that email is registered, a reset link has been sent" };
-      if (!user) return res.json(generic);
+      const user = await User.findOne({ email: normalizedEmail });
 
-      const resetToken = crypto.randomBytes(32).toString("hex");
-      user.passwordResetToken = crypto.createHash("sha256").update(resetToken).digest("hex");
-      user.passwordResetExpires = Date.now() + 60 * 60 * 1000; // 1h
+      const generic = {
+        message: "If an account exists, we'll email a link shortly.",
+      };
+
+      if (!user) {
+        writeMailLog(
+          `[info] /forgot-password: no user found for ${normalizedEmail}, returning generic`
+        );
+        return res.json(generic);
+      }
+
+      const resetToken = crypto.randomBytes(24).toString("hex");
+
+      user.passwordResetToken = resetToken;
+      user.passwordResetExpires = Date.now() + 60 * 60 * 1000;
       await user.save();
+      writeMailLog(
+        `[info] /forgot-password: raw token generated and stored for ${normalizedEmail}`
+      );
 
       const sendEmail = await getSendEmail();
-      if (sendEmail) {
-        const base = process.env.CLIENT_URL || "http://localhost:5173";
-        const resetURL = `${base}/reset-password?token=${resetToken}&id=${user._id}`;
-        const message =
-          "You requested a password reset. Click the link below to set a new password:\n\n" +
-          resetURL +
-          "\n\nIf you did not request this, ignore this email.";
-        await sendEmail(user.email, "Password Reset Request", message);
+      if (!sendEmail) {
+        console.warn(
+          "[auth/routes] sendEmail() not available, skipping real send"
+        );
+        writeMailLog(
+          "[warn] sendEmail() not available, email NOT sent (check paths)"
+        );
+        return res.json(generic);
       }
+
+      const base = process.env.CLIENT_URL || "http://localhost:5174";
+      const resetURL = `${base}/reset-password?token=${resetToken}&id=${user._id}`;
+      const message =
+        "You requested a password reset. Click the link below to set a new password:\n\n" +
+        resetURL +
+        "\n\nIf you did not request this, ignore this email.";
+
+      try {
+        await sendEmail(user.email, "Password Reset Request", message);
+        writeMailLog(
+          `[ok] password reset email SENT to ${normalizedEmail} with url ${resetURL}`
+        );
+      } catch (mailErr) {
+        console.error(
+          "[auth/routes] sendEmail failed:",
+          mailErr?.message || mailErr
+        );
+        writeMailLog(
+          `[error] sendEmail failed for ${normalizedEmail}: ${
+            mailErr?.message || mailErr
+          }`
+        );
+      }
+
       return res.json(generic);
     } catch (err) {
       console.error("Forgot password error:", err?.message || err);
+      writeMailLog(`[error] /forgot-password exception: ${err?.message || err}`);
       return res.status(500).json({ error: "Failed to process forgot password" });
     }
   })
 );
+// --- REPLACE END ---
 
 /* 6) Reset Password */
-router.options("/reset-password", async (req, res, next) => {
-  const cors = await getCors(); return cors(req, res, () => res.sendStatus(204));
+// --- REPLACE START: tolerant reset that accepts RAW token OR SHA256(token) and newPassword OR password ---
+router.options("/reset-password", async (req, res) => {
+  const cors = await getCors();
+  return cors(req, res, () => res.sendStatus(204));
 });
+
 router.post(
   "/reset-password",
   async (req, res, next) => {
-    const cors = await getCors(); return cors(req, res, next);
+    const cors = await getCors();
+    return cors(req, res, next);
   },
   asyncHandler(async (req, res) => {
-    const { id, token, newPassword } = req.body || {};
-    if (!id || !token || !newPassword) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
-    try {
-      const User = await getUserModel();
-      if (!User) return res.status(503).json({ error: "User model unavailable" });
+    const body = req.body || {};
+    const id = (body.id || body.userId || "").trim();
+    const tokenFromReq = (body.token || "").trim();
+    const plainPassword = (body.newPassword || body.password || "").trim();
 
-      const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
-      const user = await User.findOne({
-        _id: id,
-        passwordResetToken: hashedToken,
-        passwordResetExpires: { $gt: Date.now() },
-      });
-      if (!user) {
-        return res.status(400).json({ error: "Invalid or expired reset token" });
-      }
-      user.password = await bcrypt.hash(newPassword, 10);
-      user.passwordResetToken = undefined;
-      user.passwordResetExpires = undefined;
-      await user.save();
-      return res.json({ message: "Password has been reset successfully" });
-    } catch (err) {
-      console.error("Reset password error:", err?.message || err);
-      return res.status(500).json({ error: "Failed to reset password" });
+    console.log("[auth/routes] /reset-password body:", {
+      id: id || "<none>",
+      tokenLen: tokenFromReq.length,
+    });
+
+    if (!tokenFromReq || !plainPassword) {
+      return res.status(400).json({ error: "Missing token or password." });
     }
+
+    const User = await getUserModel();
+    if (!User) {
+      return res.status(503).json({ error: "User model unavailable" });
+    }
+
+    let user = null;
+
+    if (id) {
+      user = await User.findById(id);
+      if (!user) {
+        console.warn("[reset-password] user not found by id, will try by token…");
+      } else if (user.passwordResetToken) {
+        const asRaw = user.passwordResetToken === tokenFromReq;
+        const asHashed =
+          user.passwordResetToken ===
+          crypto.createHash("sha256").update(tokenFromReq).digest("hex");
+        if (!asRaw && !asHashed) {
+          console.warn(
+            "[reset-password] user found by id but token mismatch, will try token-based lookup…"
+          );
+          user = null;
+        }
+      }
+    }
+
+    if (!user) {
+      user = await User.findOne({ passwordResetToken: tokenFromReq });
+      if (user) {
+        console.log("[reset-password] user found by RAW token:", String(user._id));
+      }
+    }
+
+    if (!user) {
+      const hashed = crypto.createHash("sha256").update(tokenFromReq).digest("hex");
+      user = await User.findOne({ passwordResetToken: hashed });
+      if (user) {
+        console.log("[reset-password] user found by HASHED token:", String(user._id));
+      }
+    }
+
+    if (!user) {
+      console.warn("[reset-password] no user matched by id/token");
+      return res.status(400).json({ error: "Invalid or expired reset token" });
+    }
+
+    if (
+      user.passwordResetExpires &&
+      new Date(user.passwordResetExpires).getTime() < Date.now()
+    ) {
+      console.warn("[reset-password] token expired for user", String(user._id));
+      return res
+        .status(400)
+        .json({ error: "Reset token has expired. Please request a new one." });
+    }
+
+    const hashedPass = await bcrypt.hash(plainPassword, 10);
+
+    user.password = hashedPass;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    user.passwordResetUsedAt = new Date();
+    await user.save();
+
+    try {
+      await User.updateOne(
+        { _id: user._id },
+        {
+          $unset: {
+            passwordResetToken: "",
+            passwordResetExpires: "",
+            passwordResetUsedAt: "",
+          },
+        }
+      );
+    } catch (unsetErr) {
+      console.warn(
+        "[reset-password] extra $unset failed (non-fatal):",
+        unsetErr?.message || unsetErr
+      );
+    }
+
+    console.log("[reset-password] password changed for user", String(user._id));
+
+    return res.json({ message: "Password has been reset successfully." });
   })
 );
+// --- REPLACE END ---
 
-/* 7) Get Current User Profile
- * Test-only safe fallback for /me to avoid 503 when User model is unavailable.
- */
+/* 7) Get Current User Profile (ROBUST) — unified with /api/me and /api/users/me */
+// --- REPLACE START: unified /api/auth/me response shape ---
 router.get(
   "/me",
-  asyncHandler(async (req, res, next) => {
-    const authenticate = await getAuthenticate();
-    return authenticate(req, res, async (authErr) => {
-      if (authErr) return next(authErr);
-      try {
-        const IS_TEST = process.env.NODE_ENV === "test";
-        const User = await getUserModel();
+  asyncHandler(async (req, res) => {
+    const token = resolveToken(req);
+    if (!token) {
+      return res.status(401).json({ error: "No token provided" });
+    }
 
-        // In TEST mode, if the User model cannot be loaded (e.g., DB not connected),
-        // return a minimal user derived from the JWT instead of 503.
-        if (!User && IS_TEST) {
-          // Try to decode Bearer token to populate id/role/email if available
-          let payload = null;
-          try {
-            const hdr = req.headers?.authorization || "";
-            const token = hdr.startsWith("Bearer ") ? hdr.slice(7) : null;
-            if (token) {
-              payload = jwt.verify(token, process.env.JWT_SECRET || "test_secret");
-            }
-          } catch {
-            // ignore decode errors; we'll use defaults
-          }
+    const secret = pickFirstDefined(
+      process.env.JWT_SECRET,
+      process.env.ACCESS_TOKEN_SECRET,
+      "test_secret"
+    );
 
-          const fakeUser = {
-            _id: payload?.userId || payload?.id || "000000000000000000000001",
-            id: payload?.userId || payload?.id || "000000000000000000000001",
-            role: payload?.role || "user",
-            email: payload?.email || "test@example.com",
-            username: payload?.username || "testuser",
-            name: payload?.name || "Test User",
-          };
+    let decoded;
+    try {
+      decoded = jwt.verify(token, secret);
+    } catch (err) {
+      console.error("[auth/me] jwt verify failed:", err?.message || err);
+      return res.status(401).json({ error: "Invalid or expired token" });
+    }
 
-          return res.json({ user: fakeUser });
-        }
+    const userId =
+      decoded.userId ||
+      decoded.id ||
+      decoded.sub ||
+      decoded._id ||
+      decoded.uid ||
+      "";
 
-        // Normal behavior (non-test or model available): fetch from DB
-        if (!User) return res.status(503).json({ error: "User model unavailable" });
+    if (!userId) {
+      return res.status(401).json({ error: "Invalid token payload" });
+    }
 
-        const id = req.user?.userId || req.user?.id || req.user?._id;
-        if (!id) return res.status(401).json({ error: "Unauthorized" });
+    const User = await getUserModel();
+    if (!User) {
+      const fallback = {
+        id: userId,
+        email: decoded.email || "",
+        role: decoded.role || "user",
+        isPremium: !!(decoded.isPremium || decoded.premium),
+        premium: !!(decoded.isPremium || decoded.premium),
+        entitlements: {
+          tier: decoded.isPremium || decoded.premium ? "premium" : "free",
+          since: null,
+          until: null,
+        },
+      };
+      return res.json(fallback);
+    }
 
-        const user = await User.findById(id).select("-password");
-        if (!user) return res.status(404).json({ error: "User not found" });
-        return res.json({ user });
-      } catch (err) {
-        console.error("Fetch /me error:", err?.message || err);
-        return res.status(500).json({ error: "Failed to fetch user" });
-      }
-    });
+    const user = await User.findById(userId).select(
+      "-password -passwordResetToken -passwordResetExpires"
+    );
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const norm = normalizeUserOut(user);
+
+    const isPremium = !!norm.isPremium;
+    norm.isPremium = isPremium;
+    norm.premium = isPremium;
+
+    const ent =
+      norm.entitlements && typeof norm.entitlements === "object"
+        ? norm.entitlements
+        : {};
+    norm.entitlements = {
+      tier: isPremium ? "premium" : "free",
+      since: ent.since || null,
+      until: ent.until || null,
+      features: ent.features || undefined,
+      quotas: ent.quotas || undefined,
+    };
+
+    if (!norm.stripeCustomerId && ent.stripeCustomerId) {
+      norm.stripeCustomerId = ent.stripeCustomerId;
+    }
+
+    return res.json(norm);
   })
 );
+// --- REPLACE END ---
 
 /* 8) Update User Profile */
 router.put(
@@ -513,15 +836,19 @@ router.put(
       sanitizeAndValidateProfile(req, res, async (valErr) => {
         if (valErr) return next(valErr);
 
-        // Support both with/without upload middleware present
-        const handler = async (_req, _res) => {
+        const handler = async () => {
           try {
             const User = await getUserModel();
-            if (!User) return res.status(503).json({ error: "User model unavailable" });
+            if (!User) {
+              return res
+                .status(503)
+                .json({ error: "User model unavailable" });
+            }
             const id = req.user?.userId || req.user?.id || req.user?._id;
             if (!id) return res.status(401).json({ error: "Unauthorized" });
 
             const updateData = {};
+
             if (req.body?.latitude !== undefined) {
               const lat = parseFloat(req.body.latitude);
               if (!isNaN(lat)) updateData.latitude = lat;
@@ -561,16 +888,29 @@ router.put(
               }
             });
 
-            if (req.files && req.files.image && Array.isArray(req.files.image) && req.files.image[0]) {
+            if (
+              req.files &&
+              req.files.image &&
+              Array.isArray(req.files.image) &&
+              req.files.image[0]
+            ) {
               const f = req.files.image[0];
               updateData.profilePicture = `uploads/${f.filename}`;
             }
 
-            if (req.files && req.files.extraImages && Array.isArray(req.files.extraImages)) {
-              updateData.extraImages = req.files.extraImages.map((f) => `uploads/${f.filename}`);
+            if (
+              req.files &&
+              req.files.extraImages &&
+              Array.isArray(req.files.extraImages)
+            ) {
+              updateData.extraImages = req.files.extraImages.map(
+                (f) => `uploads/${f.filename}`
+              );
             }
 
-            const updated = await User.findByIdAndUpdate(id, updateData, { new: true }).select("-password");
+            const updated = await User.findByIdAndUpdate(id, updateData, {
+              new: true,
+            }).select("-password");
             return res.json(updated);
           } catch (err) {
             console.error("Profile update error:", err?.message || err);
@@ -578,14 +918,14 @@ router.put(
           }
         };
 
-        // If upload.fields exists, wrap; else just run handler
         if (typeof upload?.fields === "function") {
           return upload.fields([
             { name: "image", maxCount: 1 },
             { name: "extraImages", maxCount: 6 },
-          ])(req, res, () => handler(req, res));
+          ])(req, res, () => handler());
         }
-        return handler(req, res);
+
+        return handler();
       });
     });
   })
@@ -600,7 +940,9 @@ router.delete(
       if (authErr) return next(authErr);
       try {
         const User = await getUserModel();
-        if (!User) return res.status(503).json({ error: "User model unavailable" });
+        if (!User) {
+          return res.status(503).json({ error: "User model unavailable" });
+        }
         const id = req.user?.userId || req.user?.id || req.user?._id;
         if (!id) return res.status(401).json({ error: "Unauthorized" });
         await User.findByIdAndDelete(id);
@@ -615,6 +957,5 @@ router.delete(
 
 // Final ESM export only (no CommonJS)
 export default router;
-// --- REPLACE END ---
 
 

@@ -1,169 +1,222 @@
 // PATH: server/src/routes/authRoutes.js
+// @ts-nocheck
 
-// --- REPLACE START: unified public auth routes with centralized CORS + safe fallbacks ---
-import express from 'express';
-import path from 'path';
-import { fileURLToPath, pathToFileURL } from 'url';
-import corsConfig from '../config/corsConfig.js'; // Centralized, env-driven CORS
+/**
+ * Auth routes (src side)
+ * ======================
+ *
+ * IMPORTANT:
+ * - This file used to define its own /register, /login, /forgot-password,
+ *   /reset-password, /refresh, /logout, /verify-email and sometimes even /me.
+ * - At the same time we now have the NEW, FULL ESM AUTH ROUTER at:
+ *       server/routes/auth.js
+ *   …which already contains: refresh, logout, register, login, forgot/reset,
+ *   robust /me, profile update, delete, normalization, premium-flags, etc.
+ *
+ * - If BOTH of these files define the same paths, the final /__routes_api
+ *   list will show multiple entries and sometimes the “older/simpler” one
+ *   will answer first → that’s what we’ve been seeing.
+ *
+ * - To fix that, we still keep THIS file (so imports don’t break) but we make
+ *   it clearly DELEGATE to the real router.
+ *
+ * - We keep the structure and comments, so in future you can re-enable any
+ *   of the legacy endpoints here if you really need them.
+ */
 
-// Resolve __dirname for ESM
+import express from "express";
+import corsConfig from "../config/cors.js";
+
+// --- REPLACE START: add dynamic helpers + real router import ---
+/**
+ * We still import the original controller here so old code that expected
+ * `authController` to exist does not crash, but the actual routes below will
+ * prefer the **real** router from ../../routes/auth.js.
+ */
+import authController from "../api/controllers/authController.js";
+
+// crypto/bcrypt + dynamic User resolver were in your version — keep them
+// so it stays familiar and we can re-use them if we ever enable local
+// /reset-password again in THIS file.
+import crypto from "crypto";
+import bcrypt from "bcryptjs";
+import path from "path";
+import { fileURLToPath, pathToFileURL } from "url";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Dynamic import for authController (Windows ESM compatible)
-// From server/src/routes → ../api/controllers → server/src/api/controllers
-const ControllerModule = await import(
-pathToFileURL(path.resolve(__dirname, '../api/controllers/authController.js')).href
-).catch(() => null);
-const authController = ControllerModule?.default || ControllerModule || {};
-
-// Also try userController as a fallback for forgot/reset and me
-let userController = {};
-try {
-// From server/src/routes → ../controllers → server/src/controllers
-const UcModule = await import(
-pathToFileURL(path.resolve(__dirname, '../controllers/userController.js')).href
-);
-userController = UcModule.default || UcModule || {};
-} catch {
-// ignore – we still expose safe placeholders where needed below
+/**
+ * Try to load User model from common locations.
+ * We keep this for backwards compatibility and for future “small patch”
+ * endpoints that might get added to this src-level router.
+ */
+async function loadUserModel() {
+  const candidates = [
+    "../models/User.js",     // typical: server/src/models/User.js
+    "../src/models/User.js", // alt layout
+    "../../models/User.js",  // if this file happens to be deeper
+  ];
+  for (const rel of candidates) {
+    try {
+      const abs = path.resolve(__dirname, rel);
+      const mod = await import(pathToFileURL(abs).href);
+      const User = mod.default || mod.User || mod;
+      if (User) {
+        return User;
+      }
+    } catch (e) {
+      // continue
+    }
+  }
+  return null;
 }
 
-// Optional request validators (if present)
-let validateBody, loginSchema, registerSchema;
-try {
-const validators = await import(
-pathToFileURL(path.resolve(__dirname, '../middleware/validateRequest.js')).href
-);
-validateBody = validators.validateBody;
-
-try {
-const schemas = await import(
-pathToFileURL(path.resolve(__dirname, '../api/validators/authValidator.js')).href
-);
-loginSchema = schemas.loginSchema;
-registerSchema = schemas.registerSchema;
-} catch {
-// No schemas found — skip schema validation
-}
-} catch {
-// No validator found — skip request validation
-}
+/**
+ * 👉 THIS is the **real**, fully featured auth router we want to expose.
+ * It lives at repo root routes/ so src/ and non-src/ both can reach it.
+ * We will mount this *first* and let it handle all actual work.
+ */
+import realAuthRouter from "../../routes/auth.js";
+// --- REPLACE END ---
 
 const router = express.Router();
 
 /**
-
-* NOTE ABOUT CORS:
-* * Do NOT set Access-Control-* manually here.
-* * Use centralized `corsConfig` so origin mirrors env (CORS_ORIGINS/CLIENT_URL).
-* * Add explicit OPTIONS per public endpoint to satisfy preflight.
-    */
-
-/**
-
-* POST /login  (public)
-* * OPTIONS /login (preflight)
-    */
-    if (typeof authController.login === 'function') {
-    router.options('/login', corsConfig, (_req, res) => res.sendStatus(204));
-    if (validateBody && loginSchema) {
-    router.post('/login', corsConfig, validateBody(loginSchema), authController.login);
-    } else {
-    router.post('/login', corsConfig, authController.login);
-    }
-    }
-
-/**
-
-* POST /register  (public)
-* * OPTIONS /register (preflight)
-    */
-    if (typeof authController.register === 'function') {
-    router.options('/register', corsConfig, (_req, res) => res.sendStatus(204));
-    if (validateBody && registerSchema) {
-    router.post('/register', corsConfig, validateBody(registerSchema), authController.register);
-    } else {
-    router.post('/register', corsConfig, authController.register);
-    }
-    }
-
-/**
-
-* POST /refresh  (public)
-* * OPTIONS /refresh (preflight)
-    */
-    if (typeof authController.refreshToken === 'function') {
-    router.options('/refresh', corsConfig, (_req, res) => res.sendStatus(204));
-    router.post('/refresh', corsConfig, authController.refreshToken);
-    }
-
-/**
-
-* POST /logout  (public)
-* * OPTIONS /logout (preflight)
-    */
-    if (typeof authController.logout === 'function') {
-    router.options('/logout', corsConfig, (_req, res) => res.sendStatus(204));
-    router.post('/logout', corsConfig, authController.logout);
-    }
-
-/**
-
-* POST /forgot-password  (public)
-* Prefer controller implementation if available, otherwise a safe placeholder.
-  */
-  const forgotHandler =
-  (typeof authController.forgotPassword === 'function' && authController.forgotPassword) ||
-  (typeof userController.forgotPassword === 'function' && userController.forgotPassword) ||
-  (async (req, res) => {
-  try {
-  // Generic, non-enumerating placeholder to avoid 404 and keep UX intact
-  const email = (req.body?.email || '').trim().toLowerCase();
-  if (!email) return res.status(400).json({ error: 'Email is required.' });
-  return res.status(200).json({
-  message: 'If an account exists for that email, a reset link has been sent.',
-  });
-  } catch {
-  return res.status(500).json({ error: 'Failed to process request.' });
+ * Helper to mount a sub-router with a name + log.
+ * We keep this pattern so the file looks like your other router files.
+ */
+const use = (path, r, name) => {
+  if (!r || (typeof r !== "function" && typeof r.use !== "function")) {
+    console.warn(`[authRoutes(src)] skipped ${name || path} (no valid router)`);
+    return;
   }
+  router.use(path, r);
+  console.log(`[authRoutes(src)] mounted ${name || path} at ${path}`);
+};
+
+/**
+ * ---------------------------------------------------------------------------
+ * 1) MOUNT THE REAL ROUTER FIRST
+ * ---------------------------------------------------------------------------
+ * This is the key to removing the duplicate /api/auth/* entries we saw.
+ *
+ * app.js → app.use("/api", routes)
+ * routes/index.js → use("/auth", auth, "auth");
+ *                  use("/auth", authRoutes, "authRoutes");
+ *
+ * Before: both THIS file and the new real router had the same endpoints.
+ * Now:    we mount the real router here, so everything goes through it.
+ */
+use("/", realAuthRouter, "real-auth-router");
+
+/**
+ * ---------------------------------------------------------------------------
+ * 2) OPTIONAL / LEGACY / FALLBACK ENDPOINTS
+ * ---------------------------------------------------------------------------
+ * We KEEP the old structure but we do **not** re-introduce the old /me
+ * or a second reset-password that would shadow the new one.
+ *
+ * Instead, we only define endpoints here that:
+ *  - are CORS-aware, AND
+ *  - do NOT conflict with the real router, OR
+ *  - explicitly return 501 to tell FE “not implemented here, see main router”.
+ *
+ * This way we keep the file long & readable, but safe.
+ */
+
+// Forgot password (legacy style) — leave as thin passthrough:
+router.options("/forgot-password", corsConfig);
+router.post("/forgot-password", corsConfig, async (req, res, next) => {
+  // If controller exists and has a method → let it handle
+  if (authController && typeof authController.forgotPassword === "function") {
+    return authController.forgotPassword(req, res, next);
+  }
+
+  // If controller does not have it, return 501 (but do NOT 404)
+  console.warn("[authRoutes(src)] forgotPassword not implemented in controller");
+  return res.status(501).json({
+    error: "forgotPassword not implemented here — handled by main /routes/auth.js",
   });
-  router.options('/forgot-password', corsConfig, (_req, res) => res.sendStatus(204));
-  router.post('/forgot-password', corsConfig, forgotHandler);
+});
+
+// Reset password (legacy style) — normalize password field:
+router.options("/reset-password", corsConfig);
+router.post("/reset-password", corsConfig, async (req, res, next) => {
+  // --- REPLACE START: normalize password field for legacy callers ---
+  if (req.body && req.body.newPassword && !req.body.password) {
+    req.body.password = req.body.newPassword;
+  }
+  if (req.query && req.query.newPassword && !req.query.password) {
+    req.query.password = req.query.newPassword;
+  }
+  // --- REPLACE END ---
+
+  if (authController && typeof authController.resetPassword === "function") {
+    return authController.resetPassword(req, res, next);
+  }
+
+  console.warn("[authRoutes(src)] resetPassword not implemented in controller");
+  return res.status(501).json({
+    error: "resetPassword not implemented here — handled by main /routes/auth.js",
+  });
+});
+
+// Register
+router.options("/register", corsConfig);
+router.post("/register", corsConfig, (req, res, next) => {
+  if (authController && typeof authController.register === "function") {
+    return authController.register(req, res, next);
+  }
+  return res.status(501).json({ error: "register not implemented (src)" });
+});
+
+// Login
+router.options("/login", corsConfig);
+router.post("/login", corsConfig, (req, res, next) => {
+  if (authController && typeof authController.login === "function") {
+    return authController.login(req, res, next);
+  }
+  return res.status(501).json({ error: "login not implemented (src)" });
+});
+
+// Refresh
+router.options("/refresh", corsConfig);
+router.post("/refresh", corsConfig, (req, res, next) => {
+  if (authController && typeof authController.refresh === "function") {
+    return authController.refresh(req, res, next);
+  }
+  return res.status(501).json({ error: "refresh not implemented (src)" });
+});
+
+// Logout
+router.options("/logout", corsConfig);
+router.post("/logout", corsConfig, (req, res, next) => {
+  if (authController && typeof authController.logout === "function") {
+    return authController.logout(req, res, next);
+  }
+  return res.status(501).json({ error: "logout not implemented (src)" });
+});
+
+// Verify email
+router.options("/verify-email", corsConfig);
+router.post("/verify-email", corsConfig, (req, res, next) => {
+  if (authController && typeof authController.verifyEmail === "function") {
+    return authController.verifyEmail(req, res, next);
+  }
+  return res.status(501).json({ error: "verifyEmail not implemented (src)" });
+});
 
 /**
-
-* POST /reset-password  (public)
-* Prefer controller implementation if available, otherwise a safe 400.
-  */
-  const resetHandler =
-  (typeof authController.resetPassword === 'function' && authController.resetPassword) ||
-  (typeof userController.resetPassword === 'function' && userController.resetPassword) ||
-  (async (_req, res) => res.status(400).json({ error: 'Reset-password handler not configured.' }));
-  router.options('/reset-password', corsConfig, (_req, res) => res.sendStatus(204));
-  router.post('/reset-password', corsConfig, resetHandler);
-
-/**
-
-* GET /me  (protected)
-* authenticate middleware is attached if available.
-* If authController.me missing, try userController.getMe.
-  */
-  const meHandler =
-  (typeof authController.me === 'function' && authController.me) ||
-  (typeof userController.getMe === 'function' && userController.getMe);
-
-if (meHandler) {
-try {
-const maybeAuth = await import(
-pathToFileURL(path.resolve(__dirname, '../middleware/authenticate.js')).href
-);
-const authenticate = maybeAuth.default || maybeAuth.authenticate || maybeAuth;
-router.get('/me', authenticate, meHandler);
-} catch (err) {
-console.warn('[authRoutes] Could not attach /me route — missing authenticate middleware:', err?.message);
-}
-}
+ * --- DO NOT re-add /me here ---
+ * The real /me is now in server/routes/auth.js and it is the one that:
+ *  - decodes JWT from header/cookie/query
+ *  - loads user
+ *  - normalizes with normalizeUserOut
+ *  - adds premium flags + entitlements
+ * If we added another /me here, it could sometimes answer first.
+ */
 
 export default router;
-// --- REPLACE END ---
+
+

@@ -1,6 +1,6 @@
-// File: client/src/contexts/AuthContext.jsx
+// PATH: client/src/contexts/AuthContext.jsx
 
-// --- REPLACE START: robust AuthContext with guarded refreshMe + billing reconcile + premium exposure ---
+// --- REPLACE START: robust AuthContext with /api/auth/login (and /api/users/login fallback) ---
 import React, {
   createContext,
   useContext,
@@ -113,19 +113,27 @@ function normalizeUserPayload(raw) {
   const copy = { ...u };
 
   // Mirror single image
-  if (copy.profilePhoto && !copy.profilePicture) copy.profilePicture = copy.profilePhoto;
-  if (copy.profilePicture && !copy.profilePhoto) copy.profilePhoto = copy.profilePicture;
+  if (copy.profilePhoto && !copy.profilePicture)
+    copy.profilePicture = copy.profilePhoto;
+  if (copy.profilePicture && !copy.profilePhoto)
+    copy.profilePhoto = copy.profilePicture;
 
   // Ensure arrays
-  if (!Array.isArray(copy.photos)) copy.photos = copy.photos ? [copy.photos].filter(Boolean) : [];
+  if (!Array.isArray(copy.photos))
+    copy.photos = copy.photos ? [copy.photos].filter(Boolean) : [];
   if (!Array.isArray(copy.extraImages)) {
-    copy.extraImages = copy.extraImages ? [copy.extraImages].filter(Boolean) : copy.photos;
+    copy.extraImages = copy.extraImages
+      ? [copy.extraImages].filter(Boolean)
+      : copy.photos;
   }
-  if (copy.photos.length && !copy.extraImages.length) copy.extraImages = [...copy.photos];
-  if (copy.extraImages.length && !copy.photos.length) copy.photos = [...copy.extraImages];
+  if (copy.photos.length && !copy.extraImages.length)
+    copy.extraImages = [...copy.photos];
+  if (copy.extraImages.length && !copy.photos.length)
+    copy.photos = [...copy.extraImages];
 
   // Visibility defaults
-  copy.visibility = copy.visibility || { isHidden: false, hiddenUntil: null, resumeOnLogin: true };
+  copy.visibility =
+    copy.visibility || { isHidden: false, hiddenUntil: null, resumeOnLogin: true };
 
   // Normalize premium flag
   copy.isPremium = Boolean(copy.isPremium ?? copy.premium);
@@ -194,24 +202,46 @@ export function AuthProvider({ children }) {
 
   /**
    * Load current user from preferred endpoints.
+   * Order chosen to match what we observed in PS:
+   * 1) /api/me
+   * 2) /api/users/profile (some projects expose this)
+   * 3) /api/auth/me (our auth router)
+   * 4) /api/users/me (your PS proved this also exists)
    */
   const fetchMe = useCallback(async () => {
+    // 1) /api/me
     try {
       const r0 = await api.get("/api/me");
       return normalizeUserPayload(r0?.data ?? null);
     } catch {
-      try {
-        const r1 = await api.get("/api/users/profile");
-        return normalizeUserPayload(r1?.data ?? null);
-      } catch {
-        try {
-          const r2 = await api.get("/api/auth/me");
-          return normalizeUserPayload(r2?.data ?? null);
-        } catch {
-          return null;
-        }
-      }
+      /* continue */
     }
+
+    // 2) /api/users/profile
+    try {
+      const r1 = await api.get("/api/users/profile");
+      return normalizeUserPayload(r1?.data ?? null);
+    } catch {
+      /* continue */
+    }
+
+    // 3) /api/auth/me
+    try {
+      const r2 = await api.get("/api/auth/me");
+      return normalizeUserPayload(r2?.data ?? null);
+    } catch {
+      /* continue */
+    }
+
+    // 4) /api/users/me (we saw this in your logs)
+    try {
+      const r3 = await api.get("/api/users/me");
+      return normalizeUserPayload(r3?.data ?? null);
+    } catch {
+      /* final fail */
+    }
+
+    return null;
   }, []);
 
   /**
@@ -220,10 +250,14 @@ export function AuthProvider({ children }) {
    * Guard: do nothing if there is no access token to avoid spam.
    */
   const reconcileBillingNow = useCallback(async () => {
-    // Guard: skip if not authenticated
     const hasToken = !!getAccessToken();
     if (!hasToken) {
-      console.warn("[AuthContext] Billing sync skipped: no access token.");
+      try {
+        // eslint-disable-next-line no-console
+        console.warn("[AuthContext] Billing sync skipped: no access token.");
+      } catch {
+        /* ignore */
+      }
       return null;
     }
 
@@ -238,7 +272,12 @@ export function AuthProvider({ children }) {
         }
         return payload;
       } catch (e) {
-        console.warn("[AuthContext] Billing sync failed:", e?.message || e);
+        try {
+          // eslint-disable-next-line no-console
+          console.warn("[AuthContext] Billing sync failed:", e?.message || e);
+        } catch {
+          /* ignore */
+        }
         return null;
       } finally {
         billingSyncInFlightRef.current = null;
@@ -250,9 +289,10 @@ export function AuthProvider({ children }) {
   }, []);
 
   /**
-   * Refresh access token (cookie-based) and then load /me.
-   * Also runs a billing reconcile to capture subscription changes.
-   * Guarded and de-duplicated to avoid request storms.
+   * Refresh access token and then load /me.
+   * We support BOTH:
+   *  - cookie-based: POST /api/auth/refresh {} withCredentials: true
+   *  - body-based:   POST /api/auth/refresh { refreshToken } (seen in PS)
    */
   const refreshMe = useCallback(async () => {
     if (refreshInFlightRef.current) {
@@ -261,19 +301,45 @@ export function AuthProvider({ children }) {
 
     const task = (async () => {
       try {
-        // Try refresh; tolerate absence (do not spam on failure)
+        let nextToken = null;
+
+        // 1) Try cookie-based refresh (original)
         try {
-          const r = await api.post("/api/auth/refresh", {}, { withCredentials: true });
-          const next = r?.data?.accessToken || r?.data?.token || null;
-          if (next && next !== getAccessToken()) {
-            attachAccessToken(next);
-            setAccessTokenState(next);
+          const r = await api.post(
+            "/api/auth/refresh",
+            {},
+            { withCredentials: true }
+          );
+          nextToken = r?.data?.accessToken || r?.data?.token || null;
+        } catch (err1) {
+          // 2) If cookie refresh fails, try body-based refresh using stored refreshToken (if any)
+          try {
+            const storedRefresh =
+              localStorage?.getItem?.("refreshToken") ||
+              sessionStorage?.getItem?.("refreshToken") ||
+              null;
+            if (storedRefresh) {
+              const r2 = await api.post(
+                "/api/auth/refresh",
+                { refreshToken: storedRefresh },
+                { withCredentials: true }
+              );
+              nextToken = r2?.data?.accessToken || r2?.data?.token || null;
+            } else {
+              // rethrow original
+              throw err1;
+            }
+          } catch {
+            // ignore, user might be anonymous
           }
-        } catch {
-          // ignore refresh errors; user may be anonymous
         }
 
-        // Reconcile billing ONLY if we have a token (guarded inside)
+        if (nextToken && nextToken !== getAccessToken()) {
+          attachAccessToken(nextToken);
+          setAccessTokenState(nextToken);
+        }
+
+        // Reconcile after refresh
         await reconcileBillingNow();
 
         // Fetch user profile
@@ -311,9 +377,6 @@ export function AuthProvider({ children }) {
   /**
    * Detect if we returned from a Stripe Checkout or Billing Portal
    * and trigger an immediate reconcile.
-   * Common return indicators:
-   *  - success, canceled, session_id (Checkout)
-   *  - portal_session_id, return_from=portal (Portal)
    */
   const detectBillingReturnAndReconcile = useCallback(async () => {
     try {
@@ -324,21 +387,22 @@ export function AuthProvider({ children }) {
         qs.has("return_from") || qs.has("portal_session_id");
 
       if (hasCheckoutFlag || hasPortalFlag) {
-        // Reconcile with backend (guarded inside)
         const payload = await reconcileBillingNow();
 
-        // Tidy query string to avoid repeated syncs on soft nav
         try {
           const url = new URL(window.location.href);
-          ["success", "canceled", "session_id", "portal_session_id", "return_from"].forEach((k) =>
-            url.searchParams.delete(k)
-          );
+          [
+            "success",
+            "canceled",
+            "session_id",
+            "portal_session_id",
+            "return_from",
+          ].forEach((k) => url.searchParams.delete(k));
           window.history.replaceState({}, document.title, url.toString());
         } catch {
-          /* ignore history errors */
+          /* ignore */
         }
 
-        // Opportunistically refresh user profile after reconcile
         if (payload) {
           const current = await fetchMe();
           setAuthUser(current);
@@ -350,16 +414,12 @@ export function AuthProvider({ children }) {
   }, [fetchMe, setAuthUser, reconcileBillingNow]);
 
   /**
-   * Initial bootstrap. Ensures:
-   * - token refresh (if cookies set)
-   * - billing reconcile (guarded)
-   * - load /me
+   * Initial bootstrap.
    */
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
-        // If navigated back from Stripe, reconcile first
         await detectBillingReturnAndReconcile();
         await refreshMe();
       } finally {
@@ -372,12 +432,10 @@ export function AuthProvider({ children }) {
   }, [refreshMe, detectBillingReturnAndReconcile]);
 
   /**
-   * Also reconcile on tab focus (helps when users complete purchase in another tab).
-   * Guarded internally to avoid spam when logged out.
+   * Also reconcile on tab focus.
    */
   useEffect(() => {
     function onFocus() {
-      // Best-effort: quick reconcile without spamming the server
       reconcileBillingNow();
     }
     window.addEventListener("focus", onFocus);
@@ -389,14 +447,49 @@ export function AuthProvider({ children }) {
    */
   const login = useCallback(
     async (email, password) => {
-      const res = await api.post("/api/auth/login", { email, password }, { withCredentials: true });
+      let res;
+      try {
+        // ✅ primary, this we know works from PowerShell:
+        res = await api.post(
+          "/api/auth/login",
+          { email, password },
+          { withCredentials: true }
+        );
+      } catch (err) {
+        // fallback ONLY if it looks like wrong path, not bad password
+        const status = err?.response?.status;
+        if (status === 404 || status === 405) {
+          res = await api.post(
+            "/api/users/login",
+            { email, password },
+            { withCredentials: true }
+          );
+        } else {
+          throw err;
+        }
+      }
+
       const token = res?.data?.accessToken || res?.data?.token || null;
+      const refreshToken =
+        res?.data?.refreshToken || res?.data?.refresh_token || null;
+
       if (token && token !== getAccessToken()) {
         setAccessTokenState(token);
         attachAccessToken(token);
       }
+      // store refresh token if present (for body-based refresh)
+      if (refreshToken) {
+        try {
+          localStorage?.setItem?.("refreshToken", refreshToken);
+        } catch {
+          /* ignore */
+        }
+      }
+
       // Reconcile after login to pull latest premium status (guarded)
       await reconcileBillingNow();
+
+      // Fetch current profile from unified endpoints
       const current = await fetchMe();
       setAuthUser(current);
       return current;
@@ -406,13 +499,25 @@ export function AuthProvider({ children }) {
 
   const register = useCallback(
     async (payload) => {
-      const res = await api.post("/api/auth/register", payload, { withCredentials: true });
+      const res = await api.post("/api/auth/register", payload, {
+        withCredentials: true,
+      });
       const token = res?.data?.accessToken || res?.data?.token || null;
+      const refreshToken =
+        res?.data?.refreshToken || res?.data?.refresh_token || null;
+
       if (token && token !== getAccessToken()) {
         setAccessTokenState(token);
         attachAccessToken(token);
       }
-      // Reconcile for safety after register (in case of trial/grant)
+      if (refreshToken) {
+        try {
+          localStorage?.setItem?.("refreshToken", refreshToken);
+        } catch {
+          /* ignore */
+        }
+      }
+
       await reconcileBillingNow();
       const current = await fetchMe();
       setAuthUser(current);
@@ -430,6 +535,11 @@ export function AuthProvider({ children }) {
       setAuthUser(null);
       setAccessTokenState(null);
       attachAccessToken(null);
+      try {
+        localStorage?.removeItem?.("refreshToken");
+      } catch {
+        /* ignore */
+      }
     }
   }, [setAuthUser]);
 

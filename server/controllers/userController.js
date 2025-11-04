@@ -1,5 +1,3 @@
-// PATH: server/controllers/userController.js
-
 // --- REPLACE START: controller consolidated to use ONE normalizer, avoid field cutting, and keep structure close to original ---
 /**
  * User Controller
@@ -439,6 +437,44 @@ function isPlaceholderString(v) {
   );
 }
 
+// --- REPLACE START: premium decision helper used by getMe (no DB writes) ---
+/**
+ * computeEffectivePremium(userLike)
+ * Rule:
+ *  1) if user.isPremium === true OR user.premium === true → premium
+ *  2) else if entitlements.tier === 'premium' AND (until missing OR until in future) → premium
+ *  3) else if subscriptionId exists → premium (sync may set only this)
+ *  4) else if premium features clearly enabled (e.g. noAds/unlimitedLikes/introsMessaging) → premium
+ *  5) otherwise free
+ * Does NOT mutate input and does NOT touch DB.
+ */
+function computeEffectivePremium(u) {
+  try {
+    if (u?.isPremium === true || u?.premium === true) return true;
+
+    const ent = u?.entitlements || {};
+    const tier = ent?.tier;
+    const untilRaw = ent?.until;
+    const until = untilRaw ? new Date(untilRaw) : null;
+    const timeOk = !until || (!Number.isNaN(+until) && until.getTime() > Date.now());
+    if (tier === "premium" && timeOk) return true;
+
+    // Fallbacks when sync set only some fields
+    if (u?.subscriptionId) return true;
+
+    const feats = ent?.features || {};
+    if (feats.noAds === true || feats.unlimitedLikes === true || feats.introsMessaging === true) {
+      return true;
+    }
+
+    return false;
+  } catch {
+    return !!(u && (u.isPremium || u.premium));
+  }
+}
+// --- REPLACE END ---
+
+// --- REPLACE START: make getMe compute effective premium in the response (already present) ---
 export async function getMe(req, res) {
   const sv = await loadServices();
   if (typeof sv.getMeService === "function") return sv.getMeService(req, res);
@@ -449,18 +485,34 @@ export async function getMe(req, res) {
     // Exclude only password to avoid field trimming
     const user = await User.findById(String(id)).select("-password");
     if (!user) return res.status(404).json({ error: "User not found" });
-    return res.json(normalizeUserOut(user));
+
+    // Normalize first to keep all fields and shapes (subscriptionId, entitlements.*)
+    const out = normalizeUserOut(user);
+
+    // Compute effective premium according to the required rule (no cache, no DB writes)
+    const effectivePremium = computeEffectivePremium(out);
+
+    // Do NOT rebuild or zero-out any entitlement fields; preserve as-is.
+    out.isPremium = effectivePremium === true;
+    // Keep legacy `premium` if already true; otherwise mirror effective view for compatibility
+    if (out.premium !== true) {
+      out.premium = out.isPremium;
+    }
+
+    return res.json(out);
   } catch (err) {
     console.error("getMe fallback error:", err);
     return res.status(500).json({ error: "Failed to fetch user" });
   }
 }
+// --- REPLACE END ---
 
 /**
  * GET /api/users/profile
  * Returns the full profile of the current user (minus password).
  * Mirrors getMe but ensures FE receives all editable profile fields.
  */
+// --- REPLACE START: make getProfile compute effective premium in the response (NEW) ---
 export async function getProfile(req, res) {
   try {
     const id = req.user?.id || req.user?._id || req.user?.userId;
@@ -469,12 +521,24 @@ export async function getProfile(req, res) {
     }
     const user = await User.findById(String(id)).select("-password");
     if (!user) return res.status(404).json({ error: "User not found" });
-    return res.json(normalizeUserOut(user));
+
+    // Keep normalization consistent with getMe
+    const out = normalizeUserOut(user);
+
+    // Apply the same effective premium decision (response-only)
+    const effectivePremium = computeEffectivePremium(out);
+    out.isPremium = effectivePremium === true;
+    if (out.premium !== true) {
+      out.premium = out.isPremium;
+    }
+
+    return res.json(out);
   } catch (err) {
     console.error("getProfile error:", err);
     return res.status(500).json({ error: "Failed to fetch profile" });
   }
 }
+// --- REPLACE END: make getProfile compute effective premium in the response (NEW) ---
 
 export async function updateProfile(req, res) {
   const sv = await loadServices();
@@ -1187,4 +1251,5 @@ export default {
   unhideMe,
 };
 // --- REPLACE END ---
+
 
