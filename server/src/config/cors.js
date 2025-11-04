@@ -1,6 +1,6 @@
-// PATH: server/src/config/corsConfig.js
+// PATH: server/src/config/cors.js
 
-// --- REPLACE START: centralized CORS config (ESM-compatible, env allowlist, fixes X-Requested-With preflight) ---
+// --- REPLACE START: centralized CORS config (ESM-compatible, env allowlist incl. STAGE/PROD, fixes X-Requested-With preflight) ---
 import cors from "cors";
 
 /**
@@ -21,8 +21,9 @@ function normalizeUrl(value) {
 /**
  * Build allowlist from:
  *  - Static dev defaults (Vite 5173 & 5174 on localhost/127.0.0.1)
- *  - CLIENT_ORIGIN / CLIENT_URL (legacy support)
- *  - CORS_ORIGINS (comma separated)
+ *  - CLIENT_URL / CLIENT_ORIGIN (legacy support)
+ *  - STAGE_CLIENT_URL / PROD_CLIENT_URL
+ *  - CORS_ORIGINS / CORS_EXTRA_ORIGINS (comma separated)
  * In non-production we also allow any localhost/127.x origin by regex fallback.
  */
 const STATIC_LOCAL_ORIGINS = [
@@ -32,24 +33,23 @@ const STATIC_LOCAL_ORIGINS = [
   "http://127.0.0.1:5174",
 ];
 
-const ENV_SINGLE = normalizeUrl(
-  process.env.CLIENT_ORIGIN ||
-    process.env.CLIENT_URL ||
-    ""
-);
+const ENV_SINGLES = [
+  process.env.CLIENT_URL,
+  process.env.CLIENT_ORIGIN, // legacy alias
+  process.env.STAGE_CLIENT_URL,
+  process.env.PROD_CLIENT_URL,
+]
+  .map((s) => normalizeUrl(s))
+  .filter(Boolean);
 
-const ENV_LIST = (process.env.CORS_ORIGINS || "")
-  .split(",")
+const ENV_LIST = []
+  .concat((process.env.CORS_ORIGINS || "").split(","))
+  .concat((process.env.CORS_EXTRA_ORIGINS || "").split(","))
   .map((s) => normalizeUrl(s))
   .filter(Boolean);
 
 const ALLOWLIST = Array.from(
-  new Set(
-    []
-      .concat(STATIC_LOCAL_ORIGINS)
-      .concat(ENV_SINGLE ? [ENV_SINGLE] : [])
-      .concat(ENV_LIST)
-  )
+  new Set([...STATIC_LOCAL_ORIGINS, ...ENV_SINGLES, ...ENV_LIST])
 ).filter(Boolean);
 
 // Allow a wider localhost range during development to reduce friction.
@@ -110,4 +110,5 @@ export const corsOptions = {
 const corsConfig = cors(corsOptions);
 export default corsConfig;
 // --- REPLACE END ---
+
 

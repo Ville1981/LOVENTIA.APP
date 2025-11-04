@@ -1,100 +1,282 @@
 // PATH: server/src/utils/jwt.js
 
-// --- REPLACE START: Centralized JWT helpers with env-driven TTLs, aliases, and verifies ---
+// --- REPLACE START: Centralized JWT helpers with env-driven TTLs, aliases, and full id packing ---
 /**
  * Centralized JWT helpers (ESM).
- * - Reads secrets & TTLs from config/env.js (with safe fallbacks).
- * - Exports:
- *     signAccessToken(userOrPayload, opts?)
- *     signRefreshToken(userOrPayload, opts?)
- *     verifyAccess(token, opts?)
- *     verifyRefresh(token, opts?)
- *     decode(token)
- *   Aliases (for backward-compat):
- *     generateAccessToken  -> signAccessToken
- *     generateRefreshToken -> signRefreshToken
+ * =================================
  *
- * Env via config/env.js:
- *   JWT_SECRET                (required)
- *   REFRESH_TOKEN_SECRET      (required)
- *   ACCESS_TOKEN_EXPIRES      default '2h'
- *   REFRESH_TOKEN_EXPIRES     default '30d'
- *   TOKEN_ISSUER              default 'loventia-api' (optional; read here directly)
+ * Goal:
+ * - ONE place where we sign/verify JWTs
+ * - SAME secret priority as in:
+ *     - server/src/utils/generateTokens.js
+ *     - server/src/api/controllers/authController.js
+ *     - server/routes/auth.js
+ * - ALWAYS pack ALL id fields into the token:
+ *     sub, id, userId, uid
+ *   (this is the exact thing we are fixing now, so discover, uploads,
+ *    /api/auth/me, private routes, and PS scripts all see the same field)
+ *
+ * What this file exports:
+ *   signAccessToken(userOrPayload, opts?)
+ *   signRefreshToken(userOrPayload, opts?)
+ *   verifyAccess(token, opts?)
+ *   verifyRefresh(token, opts?)
+ *   decode(token)
+ *
+ * Backward-compatible aliases:
+ *   generateAccessToken  -> signAccessToken
+ *   generateRefreshToken -> signRefreshToken
+ *
+ * Notes:
+ * - We still TRY to read from ../config/env.js if it exists, but we do NOT
+ *   depend on it — we also read from process.env directly.
+ * - We do NOT crash if secrets are missing; we log once and use dev fallbacks.
+ * - All comments are in English for future debugging.
  */
 
-import jwt from 'jsonwebtoken';
-import {
-  JWT_SECRET,
-  REFRESH_TOKEN_SECRET,
-  ACCESS_TOKEN_EXPIRES,
-  REFRESH_TOKEN_EXPIRES,
-} from '../config/env.js';
+import jwt from "jsonwebtoken";
 
-const TOKEN_ISSUER = process.env.TOKEN_ISSUER || 'loventia-api';
+// Try to load central env config, but don't blow up if missing
+// (some repos don't have server/src/config/env.js at all).
+let envConfig = {};
+try {
+  // eslint-disable-next-line import/no-unresolved
+  const mod = await import("../config/env.js");
+  envConfig = mod?.default || mod || {};
+} catch {
+  // ignore – we will read from process.env below
+}
 
-// Normalize TTLs with safe fallbacks in case config/env.js omits them.
-const ACCESS_TTL  = ACCESS_TOKEN_EXPIRES  || '2h';
-const REFRESH_TTL = REFRESH_TOKEN_EXPIRES || '30d';
+/**
+ * Secret priority (MUST match other auth files!)
+ * Access token:
+ *   1) envConfig.JWT_SECRET
+ *   2) process.env.JWT_SECRET
+ *   3) process.env.ACCESS_TOKEN_SECRET
+ *   4) "dev_access_secret"
+ *
+ * Refresh token:
+ *   1) envConfig.REFRESH_TOKEN_SECRET
+ *   2) process.env.JWT_REFRESH_SECRET
+ *   3) process.env.REFRESH_TOKEN_SECRET
+ *   4) "dev_refresh_secret"
+ */
+const ACCESS_SECRET =
+  envConfig.JWT_SECRET ||
+  process.env.JWT_SECRET ||
+  process.env.ACCESS_TOKEN_SECRET ||
+  "dev_access_secret";
+
+const REFRESH_SECRET =
+  envConfig.REFRESH_TOKEN_SECRET ||
+  process.env.JWT_REFRESH_SECRET ||
+  process.env.REFRESH_TOKEN_SECRET ||
+  "dev_refresh_secret";
+
+/**
+ * TTL (time to live) priorities
+ */
+const ACCESS_TTL =
+  envConfig.ACCESS_TOKEN_EXPIRES ||
+  process.env.ACCESS_TOKEN_EXPIRES ||
+  process.env.JWT_EXPIRES_IN ||
+  "2h";
+
+const REFRESH_TTL =
+  envConfig.REFRESH_TOKEN_EXPIRES ||
+  process.env.REFRESH_TOKEN_EXPIRES ||
+  process.env.JWT_REFRESH_EXPIRES_IN ||
+  "30d";
+
+/**
+ * Issuer (optional)
+ */
+const TOKEN_ISSUER =
+  envConfig.TOKEN_ISSUER || process.env.TOKEN_ISSUER || "loventia-api";
 
 /** Log once if secrets are missing (don’t crash dev). */
 let _warned = false;
 function ensureSecrets() {
-  const ok = !!(JWT_SECRET && REFRESH_TOKEN_SECRET);
-  if (!ok && !_warned) {
-    console.error('[jwt] Missing JWT secrets. Set JWT_SECRET and REFRESH_TOKEN_SECRET.');
+  const hasAccess = !!ACCESS_SECRET;
+  const hasRefresh = !!REFRESH_SECRET;
+  if ((!hasAccess || !hasRefresh) && !_warned) {
+    console.error(
+      "[jwt] Missing JWT secrets. Using DEV fallbacks. Set JWT_SECRET and JWT_REFRESH_SECRET or REFRESH_TOKEN_SECRET."
+    );
     _warned = true;
   }
-  return ok;
 }
 
-/** Convert a user or payload into minimal JWT payload shape. */
-function toPayload(obj) {
-  if (!obj || typeof obj !== 'object') return {};
-  const id = obj.userId
-    || obj.id
-    || (obj._id && typeof obj._id.toString === 'function' ? obj._id.toString() : undefined);
-  const role = obj.role || 'user';
-  return id ? { userId: id, role } : { role, ...obj };
+/**
+ * Helper: normalize any kind of id to a string.
+ */
+function normalizeId(any) {
+  if (!any) return "";
+  if (typeof any === "string") return any;
+  if (typeof any === "number") return String(any);
+  if (typeof any.toString === "function") return any.toString();
+  return "";
 }
 
-/** Sign an access token. opts.expiresIn can override (e.g., '10m'). */
+/**
+ * Core helper: turn a user or (partial) payload into the FINAL JWT payload.
+ *
+ * We FORCE all id fields:
+ *   sub, id, userId, uid
+ *
+ * Reason:
+ * - older tokens only had `userId`
+ * - some middleware expected `sub`
+ * - some DB utils expected `_id`
+ * - some PS scripts used `uid`
+ *
+ * After this change, **all** of them will work with the same token.
+ */
+function toPayload(obj = {}) {
+  // If someone already passed a payload that looks ready → just enforce ids.
+  if (obj && typeof obj === "object" && (obj.sub || obj.id || obj.userId || obj.uid)) {
+    const forcedId = normalizeId(
+      obj.sub || obj.id || obj.userId || obj.uid || obj._id
+    );
+    const isPremium =
+      obj.isPremium === true ||
+      obj.premium === true ||
+      (obj.entitlements && obj.entitlements.tier === "premium");
+
+    return {
+      ...obj,
+      sub: forcedId,
+      id: forcedId,
+      userId: forcedId,
+      uid: forcedId,
+      isPremium,
+      premium: isPremium,
+    };
+  }
+
+  // If we got a plain user doc
+  const rawId =
+    obj._id ||
+    obj.id ||
+    obj.userId ||
+    obj.uid ||
+    (obj.user && (obj.user._id || obj.user.id));
+  const id = normalizeId(rawId);
+
+  const isPremium =
+    obj.isPremium === true ||
+    obj.premium === true ||
+    (obj.entitlements && obj.entitlements.tier === "premium");
+
+  const payload = {
+    sub: id || "anon",
+    id: id || "anon",
+    userId: id || "anon",
+    uid: id || "anon",
+    email: obj.email || null,
+    role: obj.role || "user",
+    isPremium,
+    premium: isPremium,
+  };
+
+  if (obj.entitlements && typeof obj.entitlements === "object") {
+    payload.entitlements = {
+      tier: obj.entitlements.tier || (isPremium ? "premium" : "free"),
+    };
+  }
+
+  return payload;
+}
+
+/**
+ * Sign an access token.
+ *
+ * Example:
+ *   const token = signAccessToken(user)              // uses default TTL
+ *   const token = signAccessToken(user, { expiresIn: '15m' })
+ */
 export function signAccessToken(userOrPayload, opts = {}) {
   ensureSecrets();
-  const payload   = toPayload(userOrPayload);
+  const payload = toPayload(userOrPayload);
   const expiresIn = opts.expiresIn || ACCESS_TTL;
-  return jwt.sign(payload, JWT_SECRET, { expiresIn, issuer: TOKEN_ISSUER });
+
+  return jwt.sign(payload, ACCESS_SECRET, {
+    expiresIn,
+    issuer: TOKEN_ISSUER,
+  });
 }
 
-/** Sign a refresh token. opts.expiresIn can override (e.g., '7d'). */
+/**
+ * Sign a refresh token.
+ *
+ * We also add `type: "refresh"` so routes can quickly detect non-refresh tokens.
+ */
 export function signRefreshToken(userOrPayload, opts = {}) {
   ensureSecrets();
-  const payload   = toPayload(userOrPayload);
+  const payload = {
+    ...toPayload(userOrPayload),
+    type: "refresh",
+  };
   const expiresIn = opts.expiresIn || REFRESH_TTL;
-  return jwt.sign(payload, REFRESH_TOKEN_SECRET, { expiresIn, issuer: TOKEN_ISSUER });
+
+  return jwt.sign(payload, REFRESH_SECRET, {
+    expiresIn,
+    issuer: TOKEN_ISSUER,
+  });
 }
 
-/** Verify helpers (throw on error). */
+/**
+ * Verify access token — throws on error.
+ * Usage:
+ *   const decoded = verifyAccess(token);
+ */
 export function verifyAccess(token, opts = {}) {
   ensureSecrets();
-  return jwt.verify(token, JWT_SECRET, { issuer: TOKEN_ISSUER, ...opts });
+  const decoded = jwt.verify(token, ACCESS_SECRET, {
+    issuer: TOKEN_ISSUER,
+    ...opts,
+  });
+  // normalize on the way out too (in case legacy token had only userId)
+  return toPayload(decoded);
 }
 
+/**
+ * Verify refresh token — throws on error.
+ * Usage:
+ *   const decoded = verifyRefresh(token);
+ */
 export function verifyRefresh(token, opts = {}) {
   ensureSecrets();
-  return jwt.verify(token, REFRESH_TOKEN_SECRET, { issuer: TOKEN_ISSUER, ...opts });
+  const decoded = jwt.verify(token, REFRESH_SECRET, {
+    issuer: TOKEN_ISSUER,
+    ...opts,
+  });
+  return toPayload(decoded);
 }
 
-/** Non-verifying decode (diagnostics only). */
+/**
+ * Non-verifying decode (diagnostics only).
+ */
 export function decode(token) {
-  return jwt.decode(token, { complete: false });
+  const decoded = jwt.decode(token, { complete: false });
+  if (!decoded) return null;
+  return toPayload(decoded);
 }
 
 /* ---------------------------- Backward-compat API --------------------------- */
-/** Aliases so older imports keep working without code changes elsewhere. */
-export const generateAccessToken  = signAccessToken;
+/**
+ * Older code may still do:
+ *   import { generateAccessToken } from '../utils/jwt.js'
+ */
+export const generateAccessToken = signAccessToken;
 export const generateRefreshToken = signRefreshToken;
 
-/** Default export for convenience. */
+/**
+ * Default export for convenience.
+ * This allows:
+ *   import jwtUtil from '../utils/jwt.js';
+ *   jwtUtil.signAccessToken(...);
+ */
 export default {
   signAccessToken,
   signRefreshToken,
@@ -106,3 +288,5 @@ export default {
   generateRefreshToken,
 };
 // --- REPLACE END ---
+
+

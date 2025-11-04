@@ -6,8 +6,11 @@ import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 // --- REPLACE END ---
 
-// NOTE: Do not import axios here; AuthContext.login handles API call,
-// token attach, and fetching /auth/me to populate the user.
+// NOTE:
+// - We do NOT call axios directly here.
+// - AuthContext.login(...) already knows the correct backend endpoint
+//   (we just changed it to `/api/users/login` in AuthContext).
+// - That keeps this component clean and future-proof.
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -19,19 +22,22 @@ const Login = () => {
   const location = useLocation();
   const { login } = useAuth();
 
-  // Prefer redirect target passed by ProtectedRoute, default to /profile
+  // Prefer redirect target passed by ProtectedRoute, fallback to /profile (or /)
   const from = location.state?.from?.pathname || "/profile";
 
   const handleSubmit = async (e) => {
-    e.preventDefault(); // prevent full page reload
+    e.preventDefault();
     setMessage("");
     setLoading(true);
+
     try {
-      // --- REPLACE START: call context login only (prevents duplicate network calls) ---
-      await login(email, password); // sets token + user via AuthContext
+      // --- REPLACE START: call context login only (it already hits /api/users/login) ---
+      await login(email, password);
       // --- REPLACE END ---
+
       setMessage("Login successful!");
-      navigate(from, { replace: true }); // leave /login immediately
+      // Replace history so back button doesn't return to /login
+      navigate(from, { replace: true });
     } catch (err) {
       const apiMsg =
         err?.response?.data?.error ||

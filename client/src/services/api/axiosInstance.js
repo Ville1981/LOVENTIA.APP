@@ -1,6 +1,6 @@
 // File: client/src/api/axios.js
 
-// --- REPLACE START: resilient Axios instance with refresh lock + credentials (prevents parallel spam) ---
+// --- REPLACE START: keep token for /auth/reset-password and similar auth calls ---
 import axios from "axios";
 
 /**
@@ -26,7 +26,8 @@ function resolveBaseURL() {
     fromEnv =
       (typeof import.meta !== "undefined" &&
         import.meta.env &&
-        (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_BACKEND_URL)) ||
+        (import.meta.env.VITE_API_BASE_URL ||
+          import.meta.env.VITE_BACKEND_URL)) ||
       undefined;
   } catch {
     // ignore if not running under Vite
@@ -49,7 +50,8 @@ function resolveBaseURL() {
  * Build allowlist of API origins for CORS hygiene.
  */
 function buildAllowedApiOrigins() {
-  const current = (typeof window !== "undefined" && window.location?.origin) || "";
+  const current =
+    (typeof window !== "undefined" && window.location?.origin) || "";
   const envAllow =
     (typeof import.meta !== "undefined" &&
       import.meta.env &&
@@ -75,7 +77,8 @@ const ALLOWED_API_ORIGINS = buildAllowedApiOrigins();
  */
 let accessToken =
   (typeof localStorage !== "undefined" &&
-    (localStorage.getItem("accessToken") || localStorage.getItem("token"))) ||
+    (localStorage.getItem("accessToken") ||
+      localStorage.getItem("token"))) ||
   null;
 
 /**
@@ -86,7 +89,8 @@ export function attachAccessToken(token) {
   const curr =
     accessToken ||
     (typeof localStorage !== "undefined" &&
-      (localStorage.getItem("accessToken") || localStorage.getItem("token"))) ||
+      (localStorage.getItem("accessToken") ||
+        localStorage.getItem("token"))) ||
     null;
 
   // Guard: no change
@@ -119,7 +123,8 @@ export function getAccessToken() {
   return (
     accessToken ||
     (typeof localStorage !== "undefined" &&
-      (localStorage.getItem("accessToken") || localStorage.getItem("token"))) ||
+      (localStorage.getItem("accessToken") ||
+        localStorage.getItem("token"))) ||
     null
   );
 }
@@ -151,18 +156,31 @@ function describeRequest(config) {
 
 /**
  * Detect if URL is an auth endpoint.
+ * NOTE: we keep this in sync with backend's auth routes.
  */
 function isAuthPath(urlLike) {
   if (!urlLike) return false;
   const u = String(urlLike).replace(/^\//, "");
   return (
     /^auth\/(login|register|refresh|forgot|reset)(\/|$)/i.test(u) ||
+    /^auth\/(forgot-password|reset-password)(\/|$)/i.test(u) ||
     /^(login|register|refresh)(\/|$)/i.test(u)
   );
 }
 
 /**
+ * Detect specifically password-reset endpoints where we MUST NOT drop `token`.
+ */
+function isPasswordResetPath(urlLike) {
+  if (!urlLike) return false;
+  const u = String(urlLike).replace(/^\//, "");
+  return /^auth\/reset-password(\/|$)/i.test(u);
+}
+
+/**
  * Strip sensitive keys before debug.
+ * NOTE: token is deliberately in this list to avoid logging it,
+ * BUT we will SKIP calling this for /auth/reset-password below.
  */
 function stripSensitive(obj) {
   if (!obj || typeof obj !== "object") return obj;
@@ -181,7 +199,7 @@ function stripSensitive(obj) {
     "metadata",
     "client_secret",
     "clientSecret",
-    "token",
+    "token", // <— this was nuking reset-password token from normal requests
   ];
   const out = Array.isArray(obj) ? [] : {};
   for (const k of Object.keys(obj)) {
@@ -199,7 +217,8 @@ function shouldSendCredentialsTo(urlLike) {
   const targetOrigin = getOrigin(String(urlLike || BASE_URL));
   if (!targetOrigin) return false;
   return (
-    targetOrigin === ((typeof window !== "undefined" && window.location?.origin) || "") ||
+    targetOrigin ===
+      ((typeof window !== "undefined" && window.location?.origin) || "") ||
     targetOrigin === BASE_ORIGIN ||
     ALLOWED_API_ORIGINS.has(targetOrigin)
   );
@@ -226,8 +245,11 @@ api.interceptors.request.use(
 
     const urlForCheck = String(config.url || "");
     const allowCreds = shouldSendCredentialsTo(absoluteURL);
+    const isAuth = isAuthPath(urlForCheck);
+    const isReset = isPasswordResetPath(urlForCheck);
 
-    if (!isAuthPath(urlForCheck) && allowCreds) {
+    // Attach auth header only for non-auth endpoints
+    if (!isAuth && allowCreds) {
       const token = getAccessToken();
       if (token) {
         config.headers = {
@@ -237,21 +259,27 @@ api.interceptors.request.use(
       }
       config.withCredentials = true;
     } else {
+      // For auth endpoints we normally don't send bearer
       if (config.headers && "Authorization" in config.headers) {
         delete config.headers.Authorization;
       }
       config.withCredentials = false;
     }
 
+    // IMPORTANT:
+    // Before: we always did stripSensitive(config.data) → this removed `token`
+    // Now: if this is /auth/reset-password, we KEEP the body as-is.
     if (config.data && !(config.data instanceof FormData)) {
       config.headers = {
         ...config.headers,
         "Content-Type": "application/json",
       };
-      config.data = stripSensitive(config.data);
+      config.data = isReset ? config.data : stripSensitive(config.data);
     }
+
     if (config.params && typeof config.params === "object") {
-      config.params = stripSensitive(config.params);
+      // params rarely contain token, but keep logic consistent
+      config.params = isReset ? config.params : stripSensitive(config.params);
     }
 
     try {
@@ -281,8 +309,13 @@ async function performRefresh() {
           throw new Error("Refresh origin not allowed");
         }
 
-        const res = await api.post("/auth/refresh", {}, { withCredentials: true });
-        const incoming = res?.data?.accessToken || res?.data?.token || null;
+        const res = await api.post(
+          "/auth/refresh",
+          {},
+          { withCredentials: true }
+        );
+        const incoming =
+          res?.data?.accessToken || res?.data?.token || null;
 
         if (!incoming) throw new Error("No accessToken in refresh response");
 
@@ -311,7 +344,9 @@ api.interceptors.response.use(
   (response) => {
     try {
       const method = (response.config?.method || "get").toUpperCase();
-      const base = String(response.config?.baseURL || api.defaults.baseURL || "");
+      const base = String(
+        response.config?.baseURL || api.defaults.baseURL || ""
+      );
       const urlRaw = String(response.config?.url || "");
       const url =
         urlRaw.startsWith("/api/") && base.endsWith("/api")
@@ -331,10 +366,12 @@ api.interceptors.response.use(
     const status = error?.response?.status;
 
     // --- REPLACE START: flag intro feature lock (403) for UI handling ---
-    // If backend denies first-message (intro) for non-premium, surface a clear signal.
     if (status === 403) {
       const data = error?.response?.data;
-      if (data && (data.feature === "intros" || data.code === "FEATURE_LOCKED")) {
+      if (
+        data &&
+        (data.feature === "intros" || data.code === "FEATURE_LOCKED")
+      ) {
         error.isIntroLocked = true;
       }
     }

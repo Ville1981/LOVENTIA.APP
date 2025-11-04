@@ -11,12 +11,18 @@ import api, { setAccessToken } from "./api/axiosInstance";
 const authService = {
   /**
    * Log in with credentials and persist the returned access token.
+   * NOTE:
+   *   Backend working endpoint (tested from PowerShell) is:
+   *     POST /api/users/login
+   *   → our axios instance already prefixes `/api`, so here we must call `/users/login`.
+   *   This was previously `/auth/login` which returned 404.
    * @param {{ email: string, password: string }} credentials
    * @returns {Promise<{ user: any, accessToken: string }>}
    */
   login: async function (credentials) {
-    // --- REPLACE START: login endpoint must use our `api` instance ---
-    const response = await api.post("/auth/login", credentials);
+    // --- REPLACE START: login endpoint must use our working server route ---
+    // was: await api.post("/auth/login", credentials);
+    const response = await api.post("/users/login", credentials);
     // --- REPLACE END ---
     const { accessToken, user } = response.data || {};
     if (accessToken) setAccessToken(accessToken);
@@ -32,6 +38,8 @@ const authService = {
    */
   register: async function (payload) {
     // --- REPLACE START: call unified auth register endpoint ---
+    // NOTE: If later we confirm that server exposes only /api/users/register,
+    // we can switch this to "/users/register", but for now we keep it as is.
     const response = await api.post("/auth/register", payload);
     return response.data;
     // --- REPLACE END ---

@@ -1,6 +1,6 @@
 // PATH: client/src/App.jsx
 
-// --- REPLACE START: dedupe router imports and keep a single default export (fix Vitest transform errors) ---
+// --- REPLACE START: use the corrected ResetPassword component from components/ and keep routes intact ---
 import React, { Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -10,11 +10,10 @@ import "slick-carousel/slick/slick-theme.css";
 
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ForgotPassword } from "./components/ForgotPassword";
-import { ResetPassword } from "./components/ResetPassword";
+// ✅ this is the version we just fixed: client/src/components/ResetPassword.jsx
+import ResetPassword from "./components/ResetPassword.jsx";
 import MainLayout from "./components/MainLayout";
-// --- REPLACE START: fix alias import → relative path for ConsentBanner ---
 import ConsentBanner from "./components/privacy/ConsentBanner";
-// --- REPLACE END ---
 import { useAuth } from "./contexts/AuthContext";
 
 import Etusivu from "./pages/Etusivu";
@@ -43,11 +42,9 @@ import AdminPanel from "./pages/AdminPanel";
 
 import SettingsPage from "./pages/SettingsPage";
 import SubscriptionSettings from "./pages/settings/SubscriptionSettings";
-
 import NotFound from "./pages/NotFound";
-// --- REPLACE END ---
 
-// React Query client with calm defaults (prevents noisy refetches during tests)
+// React Query client with calm defaults
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -73,7 +70,7 @@ function AdminRoute({ children }) {
   return user.role === "admin" ? children : <Navigate to="/" replace />;
 }
 
-// Start MSW only in dev when explicitly enabled, never during Vitest
+// MSW in dev only
 if (
   typeof window !== "undefined" &&
   import.meta?.env?.MODE !== "test" &&
@@ -87,12 +84,11 @@ if (
         await mod.worker.start({ onUnhandledRequest: "bypass" });
       }
     } catch {
-      // Silently skip MSW if mocks are not present
+      // ignore if mocks missing
     }
   })();
 }
 
-// --- REPLACE START: single canonical default export of App() ---
 export default function App() {
   useEffect(() => {
     if ("scrollRestoration" in window.history) {
@@ -111,7 +107,7 @@ export default function App() {
               v7_relativeSplatPath: true,
             }}
           >
-            {/* Consent is shown globally on all pages */}
+            {/* Global consent banner */}
             <ConsentBanner />
 
             <Routes>
@@ -119,8 +115,6 @@ export default function App() {
                 {/* Public routes */}
                 <Route index element={<Etusivu />} />
                 <Route path="discover" element={<Discover />} />
-
-                {/* Public footer routes */}
                 <Route path="about" element={<About />} />
                 <Route path="support" element={<Support />} />
                 <Route path="security" element={<Security />} />
@@ -132,7 +126,7 @@ export default function App() {
                 <Route path="login" element={<Login />} />
                 <Route path="register" element={<Register />} />
 
-                {/* Auth-protected */}
+                {/* Profile / protected */}
                 <Route
                   path="profile"
                   element={
@@ -157,6 +151,8 @@ export default function App() {
                     </PrivateRoute>
                   }
                 />
+
+                {/* Matches / messages */}
                 <Route
                   path="matches"
                   element={
@@ -181,6 +177,8 @@ export default function App() {
                     </PrivateRoute>
                   }
                 />
+
+                {/* Billing / upgrade */}
                 <Route
                   path="cancel"
                   element={
@@ -205,6 +203,8 @@ export default function App() {
                     </PrivateRoute>
                   }
                 />
+
+                {/* Map */}
                 <Route
                   path="map"
                   element={
@@ -214,7 +214,7 @@ export default function App() {
                   }
                 />
 
-                {/* Settings (protected) */}
+                {/* Settings */}
                 <Route
                   path="settings"
                   element={
@@ -234,6 +234,7 @@ export default function App() {
 
                 {/* Password helpers */}
                 <Route path="forgot-password" element={<ForgotPassword />} />
+                {/* ✅ NOW this route uses the fixed component that sends {token, password, id?} */}
                 <Route path="reset-password" element={<ResetPassword />} />
 
                 {/* Admin-only */}
@@ -257,3 +258,5 @@ export default function App() {
   );
 }
 // --- REPLACE END ---
+
+

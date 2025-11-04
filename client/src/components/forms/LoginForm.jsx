@@ -1,12 +1,26 @@
 import PropTypes from "prop-types";
 import React from "react";
 
+// --- REPLACE START: import shared axios instance so this form can work standalone too ---
+// NOTE: adjust this path if your project uses e.g. "../services/api" or "./api/axiosInstance"
+import api from "../../api/axios.js";
+// --- REPLACE END ---
+
 import { useFormValidation } from "../../hooks/useFormValidation";
 import { loginSchema } from "../../utils/validationSchemas";
 
 /**
  * LoginForm
- * @param {function} onSubmit - Called with form data when form is valid
+ *
+ * Primary behavior:
+ * - If parent passes onSubmit(values), we just call that and let parent do login
+ *   (for example AuthContext.login or authService.login).
+ *
+ * Fallback behavior:
+ * - If onSubmit is NOT provided, this component will POST directly to
+ *   /api/users/login (this is the endpoint that worked in your PowerShell test).
+ *
+ * This way the form cannot accidentally call the old /auth/login endpoint.
  */
 export default function LoginForm({ onSubmit }) {
   const {
@@ -19,8 +33,24 @@ export default function LoginForm({ onSubmit }) {
     mode: "onBlur",
   });
 
+  // --- REPLACE START: prefer parent handler, else do local /api/users/login ---
+  const handleValidSubmit = async (values) => {
+    // 1) Parent provided handler → use that
+    if (typeof onSubmit === "function") {
+      return onSubmit(values);
+    }
+
+    // 2) Fallback → call backend directly with the working endpoint
+    //    Backend responded to: POST http://localhost:5000/api/users/login ✅
+    const res = await api.post("/api/users/login", values, {
+      withCredentials: true,
+    });
+    return res.data;
+  };
+  // --- REPLACE END ---
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate>
+    <form onSubmit={handleSubmit(handleValidSubmit)} noValidate>
       <div className="form-group">
         <label htmlFor="email">Email</label>
         <input
@@ -61,5 +91,7 @@ export default function LoginForm({ onSubmit }) {
 }
 
 LoginForm.propTypes = {
-  onSubmit: PropTypes.func.isRequired,
+  // not strictly required anymore, because we have the fallback above,
+  // but keep it to avoid breaking existing callers
+  onSubmit: PropTypes.func,
 };
