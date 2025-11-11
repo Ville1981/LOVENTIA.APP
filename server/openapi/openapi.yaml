@@ -1,9 +1,15 @@
 # PATH: server/openapi/openapi.yaml
-# --- REPLACE START
 openapi: 3.1.0
 info:
   title: Loventia API
   version: 1.0.0
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  contact:
+    name: Loventia API Team
+    url: https://loventia.example.com
+    email: api@loventia.example.com
   description: |
     OpenAPI specification for the Loventia dating application.
 
@@ -37,6 +43,28 @@ servers:
   - url: http://localhost:5000/api
     description: Local backend API base (/api/*)
 
+tags:
+  - name: Discover
+    description: Endpoints for profile discovery and search
+  - name: Likes
+    description: Like, superlike and matches endpoints
+  - name: Messages
+    description: Messaging threads and send APIs
+  - name: Billing
+    description: Stripe checkout, portal, sync and webhooks
+  - name: Authentication
+    description: Login, refresh, logout and account auth helpers
+  - name: Users
+    description: Current user profile and management
+  - name: Images
+    description: Image upload, list, reorder and avatar
+  - name: Health
+    description: Liveness and readiness probes
+  - name: Diagnostics
+    description: Developer diagnostics and route listings
+  - name: Admin
+    description: Admin-only exports and maintenance
+
 components:
   securitySchemes:
     bearerAuth:
@@ -58,6 +86,7 @@ components:
         password:
           type: string
           example: Paavali1981
+
     AuthLoginResponse:
       type: object
       properties:
@@ -73,9 +102,9 @@ components:
         expiresIn:
           type: integer
           example: 7200
+        # OpenAPI 3.1: use union type instead of nullable
         refreshExpiresIn:
-          type: integer
-          nullable: true
+          type: [integer, 'null']
 
     AuthRefreshRequest:
       type: object
@@ -153,12 +182,11 @@ components:
             tier:
               type: string
               example: premium
+            # OpenAPI 3.1 union types (replace nullable)
             since:
-              type: string
-              nullable: true
+              type: [string, 'null']
             until:
-              type: string
-              nullable: true
+              type: [string, 'null']
             features:
               type: object
               additionalProperties: true
@@ -166,17 +194,17 @@ components:
               type: object
               additionalProperties: true
         visibility:
-            type: object
-            properties:
-              isHidden:
-                type: boolean
-                example: false
-              hiddenUntil:
-                type: string
-                nullable: true
-              resumeOnLogin:
-                type: boolean
-                example: true
+          type: object
+          properties:
+            isHidden:
+              type: boolean
+              example: false
+            # OpenAPI 3.1 union type (replace nullable)
+            hiddenUntil:
+              type: [string, 'null']
+            resumeOnLogin:
+              type: boolean
+              example: true
         profilePicture:
           type: string
           example: /uploads/1759343842730-848316731.gif
@@ -228,24 +256,385 @@ components:
             type: string
             example: /uploads/1759343842730-848316731.gif
 
-    Feedback:
+    # // --- REPLACE START
+    # Removed unused Feedback schema (caused Spectral oas3-unused-component warning)
+    # // --- REPLACE END
+
+    # --- Added schemas to satisfy unresolved $refs ---
+    ProfileCard:
       type: object
+      description: Public information displayed in Discover listings.
       properties:
         id:
           type: string
-        name:
+          example: 68dab8a761a412065159ff4d
+        username:
           type: string
-        email:
+          example: Ville1981
+        age:
+          type: integer
+          example: 43
+        gender:
           type: string
-          format: email
-        message:
+          example: male
+        bio:
           type: string
-        rating:
+          example: Coffee, synthwave and long runs by the sea.
+        distanceKm:
+          type: number
+          example: 12.5
+        profilePicture:
+          type: string
+          example: /uploads/1759343842730-848316731.gif
+        photos:
+          type: array
+          items:
+            type: string
+          example:
+            - /uploads/p1.jpg
+            - /uploads/p2.jpg
+        location:
+          type: object
+          properties:
+            lat:
+              type: number
+              example: 60.1699
+            lng:
+              type: number
+              example: 24.9384
+
+    Pagination:
+      type: object
+      properties:
+        page:
           type: integer
           minimum: 1
-          maximum: 5
+          example: 1
+        limit:
+          type: integer
+          minimum: 1
+          example: 20
+        total:
+          type: integer
+          minimum: 0
+          example: 237
+        hasNext:
+          type: boolean
+          example: true
+        hasPrev:
+          type: boolean
+          example: false
+
+    DiscoverQuery:
+      type: object
+      description: Body shape accepted by deprecated POST /api/discover/search.
+      properties:
+        q:
+          type: string
+        minAge:
+          type: integer
+          minimum: 18
+        maxAge:
+          type: integer
+          minimum: 18
+        gender:
+          type: string
+        distanceKm:
+          type: number
+        lat:
+          type: number
+        lng:
+          type: number
+        page:
+          type: integer
+          minimum: 1
+          default: 1
+        limit:
+          type: integer
+          minimum: 1
+          default: 20
+
+    SendMessageBody:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          minLength: 1
+          example: "Hey! Fancy a coffee this weekend?"
+        clientId:
+          type: string
+          description: Optional client-generated idempotency key
 
 paths:
+
+  /api/discover:
+    get:
+      tags: [Discover]
+      summary: Discover profiles
+      description: Returns a paginated list of public profile cards.
+      operationId: discover_list
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+        - in: query
+          name: minAge
+          schema: { type: integer, minimum: 18 }
+        - in: query
+          name: maxAge
+          schema: { type: integer, minimum: 18 }
+        - in: query
+          name: gender
+          schema: { type: string }
+        - in: query
+          name: distanceKm
+          schema: { type: number }
+        - in: query
+          name: lat
+          schema: { type: number }
+        - in: query
+          name: lng
+          schema: { type: number }
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, default: 20 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ProfileCard'
+                  meta:
+                    $ref: '#/components/schemas/Pagination'
+        '400': { description: Invalid query parameters }
+        '401': { description: Unauthorized }
+
+  /api/discover/search:
+    post:
+      deprecated: true
+      tags: [Discover]
+      summary: Legacy discover search
+      description: Deprecated legacy route kept for backward compatibility. Accepts the same shape as GET /api/discover (query) but in JSON body.
+      operationId: discover_search_legacy
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DiscoverQuery'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ProfileCard'
+                  meta:
+                    $ref: '#/components/schemas/Pagination'
+        '400': { description: Invalid body }
+        '401': { description: Unauthorized }
+
+  /api/likes/incoming:
+    get:
+      tags: [Likes]
+      security: [{ bearerAuth: [] }]
+      summary: List users who liked me
+      description: Returns a list of users who have liked the current user.
+      operationId: likes_incoming_list
+      responses:
+        '200': { description: OK }
+        '401': { description: Unauthorized }
+
+  /api/likes/outgoing:
+    get:
+      tags: [Likes]
+      security: [{ bearerAuth: [] }]
+      summary: List users I liked
+      description: Returns a list of users the current user has liked.
+      operationId: likes_outgoing_list
+      responses:
+        '200': { description: OK }
+        '401': { description: Unauthorized }
+
+  /api/likes/matches:
+    get:
+      tags: [Likes]
+      security: [{ bearerAuth: [] }]
+      summary: List matches
+      description: Returns a list of mutual matches.
+      operationId: likes_matches_list
+      responses:
+        '200': { description: OK }
+        '401': { description: Unauthorized }
+
+  /api/likes/{id}:
+    post:
+      tags: [Likes]
+      security: [{ bearerAuth: [] }]
+      summary: Like a user
+      description: Likes the specified user id.
+      operationId: like_user
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+        '400': { description: Invalid user id }
+        '401': { description: Unauthorized }
+    delete:
+      tags: [Likes]
+      security: [{ bearerAuth: [] }]
+      summary: Unlike a user
+      description: Removes like from the specified user id.
+      operationId: unlike_user
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+        '400': { description: Invalid user id }
+        '401': { description: Unauthorized }
+
+  /api/superlikes/{id}:
+    post:
+      tags: [Likes]
+      security: [{ bearerAuth: [] }]
+      summary: Superlike a user
+      description: Consumes one superlike to the specified user id.
+      operationId: superlike_user
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+        '400': { description: Invalid user id }
+        '401': { description: Unauthorized }
+
+  /api/messages/overview:
+    get:
+      tags: [Messages]
+      security: [{ bearerAuth: [] }]
+      summary: List conversation summaries
+      description: Returns overview cards for recent conversations.
+      operationId: messages_overview_list
+      responses:
+        '200': { description: OK }
+        '401': { description: Unauthorized }
+
+  /api/messages/can-send-intro/{userId}:
+    get:
+      tags: [Messages]
+      security: [{ bearerAuth: [] }]
+      summary: Whether current user can send intro to userId
+      description: Returns gating decision for sending the first message.
+      operationId: messages_can_send_intro
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+        '400': { description: Invalid user id }
+        '401': { description: Unauthorized }
+
+  /api/messages/{userId}:
+    get:
+      tags: [Messages]
+      security: [{ bearerAuth: [] }]
+      summary: Get a thread with userId
+      description: Returns message thread between the current user and userId.
+      operationId: messages_get_thread
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+        '400': { description: Invalid user id }
+        '401': { description: Unauthorized }
+    post:
+      tags: [Messages]
+      security: [{ bearerAuth: [] }]
+      summary: Send a message to userId
+      description: Sends a message to the given userId.
+      operationId: messages_send
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendMessageBody'
+      responses:
+        '201': { description: Created }
+        '400': { description: Invalid payload or user id }
+        '401': { description: Unauthorized }
+
+  /api/billing/create-checkout-session:
+    post:
+      tags: [Billing]
+      security: [{ bearerAuth: [] }]
+      summary: Create Stripe Checkout session
+      description: Creates a Stripe Checkout session to start subscription.
+      operationId: billing_create_checkout_session
+      responses:
+        '200': { description: OK }
+        '400': { description: Invalid request or price id }
+        '401': { description: Unauthorized }
+
+  /api/billing/create-portal-session:
+    post:
+      tags: [Billing]
+      security: [{ bearerAuth: [] }]
+      summary: Create Stripe billing portal session
+      description: Creates a session to manage subscription in Stripe portal.
+      operationId: billing_create_portal_session
+      responses:
+        '200': { description: OK }
+        '400': { description: Invalid request or missing customer }
+        '401': { description: Unauthorized }
+
+  /api/billing/sync:
+    post:
+      tags: [Billing]
+      security: [{ bearerAuth: [] }]
+      summary: Force sync premium status from Stripe
+      description: Refreshes local premium entitlements from Stripe.
+      operationId: billing_sync
+      responses:
+        '200': { description: OK }
+        '401': { description: Unauthorized }
+
   # ======================================================
   # AUTHENTICATION — the two login endpoints on purpose
   # ======================================================
@@ -256,6 +645,7 @@ paths:
       description: >
         Primary login endpoint for Loventia. FE calls this FIRST.
         If it returns 404/405, FE may try /api/users/login (legacy).
+      operationId: auth_login
       requestBody:
         required: true
         content:
@@ -279,6 +669,7 @@ paths:
       description: >
         Legacy/fallback login. Keep documented so new devs see we support
         BOTH `/api/auth/login` and `/api/users/login` for now.
+      operationId: users_login_legacy
       requestBody:
         required: true
         content:
@@ -302,6 +693,7 @@ paths:
       description: >
         Matches the PS call: POST /api/auth/refresh { "refreshToken": "<token>" }
         Returns a fresh access token and user payload.
+      operationId: auth_refresh
       requestBody:
         required: true
         content:
@@ -322,6 +714,8 @@ paths:
     get:
       tags: [Authentication]
       summary: Get current user (auth router)
+      description: Return the authenticated user from the auth router.
+      operationId: auth_me
       security:
         - bearerAuth: []
       responses:
@@ -341,6 +735,7 @@ paths:
       description: >
         Centralized self-route. We confirmed with PS that this returns
         the same normalized shape as /api/auth/me.
+      operationId: me_central
       security:
         - bearerAuth: []
       responses:
@@ -360,6 +755,7 @@ paths:
       description: >
         You also exposed /api/users/me. This returns almost identical data,
         so we document it here so consumers know BOTH exist right now.
+      operationId: users_me
       security:
         - bearerAuth: []
       responses:
@@ -380,6 +776,7 @@ paths:
         Stateless logout. PowerShell test showed:
         { "message": "Logout successful" }
         and existing access token still worked (expected with stateless).
+      operationId: auth_logout
       security:
         - bearerAuth: []
       responses:
@@ -393,11 +790,15 @@ paths:
                   message:
                     type: string
                     example: Logout successful
+        '401':
+          description: Unauthorized
 
   /api/auth/forgot-password:
     post:
       tags: [Authentication]
       summary: Request password reset email
+      description: Send a reset email to the provided address.
+      operationId: auth_forgot_password
       requestBody:
         required: true
         content:
@@ -417,6 +818,7 @@ paths:
       description: >
         Matches FE flow: POST /api/auth/reset-password { token, password, id? }
         BE responds "Password has been reset successfully."
+      operationId: auth_reset_password
       requestBody:
         required: true
         content:
@@ -436,6 +838,7 @@ paths:
       description: >
         Returns a diagnostic object (we saw this in PS).
         Confirms that private auth router is mounted.
+      operationId: auth_private_ping
       security:
         - bearerAuth: []
       responses:
@@ -452,6 +855,8 @@ paths:
                   router:
                     type: string
                     example: authPrivateRoutes
+        '401':
+          description: Unauthorized
 
   /api/auth/private/no-me:
     get:
@@ -460,11 +865,14 @@ paths:
       description: >
         Explicitly tells client to use /api/auth/me and that this router
         does NOT define /me on purpose.
+      operationId: auth_private_no_me
       security:
         - bearerAuth: []
       responses:
         '200':
           description: Explanation returned
+        '401':
+          description: Unauthorized
 
   # ===================================
   # USER PHOTO OPS — THIS SESSION
@@ -477,6 +885,7 @@ paths:
         This is the call we tested:
         DELETE /api/users/{id}/photos?path=/uploads/xxx.gif
         Server normalizes the path and removes it from both photos and extraImages.
+      operationId: users_photos_delete_by_path
       security:
         - bearerAuth: []
       parameters:
@@ -503,12 +912,15 @@ paths:
           description: Path missing or invalid
         '404':
           description: Path not found in user photos
+        '401':
+          description: Unauthorized
     post:
       tags: [Users, Images]
       summary: Upload one or more photos for user
       description: >
         Multer-backed upload. In PowerShell you will need to use -Form / -InFile
         pattern. This is the REST shape; actual controller is in users router.
+      operationId: users_photos_upload
       security:
         - bearerAuth: []
       parameters:
@@ -540,6 +952,8 @@ paths:
                 $ref: '#/components/schemas/UserSelf'
         '400':
           description: Upload failed
+        '401':
+          description: Unauthorized
 
   /api/users/{userId}/photos/{slot}:
     delete:
@@ -549,6 +963,7 @@ paths:
         This is the simpler delete:
         DELETE /api/users/{id}/photos/0
         We tested this and it removed the first image and shifted the rest.
+      operationId: users_photos_delete_by_slot
       security:
         - bearerAuth: []
       parameters:
@@ -572,6 +987,8 @@ paths:
                 $ref: '#/components/schemas/UserSelf'
         '404':
           description: Slot not found
+        '401':
+          description: Unauthorized
 
   /api/users/{userId}/photos/reorder:
     put:
@@ -582,6 +999,7 @@ paths:
         PUT /api/users/{id}/photos/reorder
         { "order": ["/uploads/last.gif", "/uploads/first.gif", ...] }
         Server also updates profilePicture = first item.
+      operationId: users_photos_reorder
       security:
         - bearerAuth: []
       parameters:
@@ -605,6 +1023,8 @@ paths:
                 $ref: '#/components/schemas/UserSelf'
         '400':
           description: Invalid order array
+        '401':
+          description: Unauthorized
 
   /api/users/{userId}/set-avatar:
     post:
@@ -614,6 +1034,7 @@ paths:
         Matches PS call:
         POST /api/users/{id}/set-avatar { "path": "/uploads/...gif" }
         Server normalizes and sets profilePicture/avatar/profilePhoto.
+      operationId: users_set_avatar
       security:
         - bearerAuth: []
       parameters:
@@ -643,6 +1064,8 @@ paths:
                 $ref: '#/components/schemas/UserSelf'
         '400':
           description: Path not in user's photos
+        '401':
+          description: Unauthorized
 
   # ===================================
   # IMAGES (generic) — keep as before
@@ -651,6 +1074,8 @@ paths:
     post:
       tags: [Images]
       summary: Upload a new user image
+      description: Upload a single image file for the authenticated user.
+      operationId: images_upload
       security:
         - bearerAuth: []
       requestBody:
@@ -685,6 +1110,8 @@ paths:
     get:
       tags: [Images]
       summary: List user's images
+      description: Return all images owned by the authenticated user.
+      operationId: images_list
       security:
         - bearerAuth: []
       responses:
@@ -703,6 +1130,8 @@ paths:
     delete:
       tags: [Images]
       summary: Delete a user image
+      description: Permanently delete the specified image.
+      operationId: images_delete
       security:
         - bearerAuth: []
       parameters:
@@ -723,6 +1152,8 @@ paths:
     post:
       tags: [Images]
       summary: Upload a profile avatar for a user
+      description: Upload a single avatar image for the specified user.
+      operationId: images_upload_avatar_for_user
       security:
         - bearerAuth: []
       parameters:
@@ -769,6 +1200,7 @@ paths:
         Real webhook endpoint as mounted in server/src/app.js:
         app.post('/webhooks/stripe', express.raw({ type: 'application/json' }), ...)
         Requires Stripe-Signature header. Raw body is required.
+      operationId: billing_webhook_stripe
       requestBody:
         required: true
         content:
@@ -788,6 +1220,7 @@ paths:
       description: >
         Legacy or alternate path for Stripe webhooks. Keep for backward
         compatibility with older clients or Stripe CLI setups.
+      operationId: billing_webhook_stripe_legacy
       requestBody:
         required: true
         content:
@@ -800,15 +1233,8 @@ paths:
         '400':
           description: Invalid signature or payload
 
-  /api/billing/sync:
-    post:
-      tags: [Billing]
-      summary: Force billing sync for current user
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Billing synced
+  # NOTE: /api/billing/sync is defined above in Billing section.
+  # (We intentionally avoid defining it twice to keep YAML keys unique.)
 
   /api/payment/mock/checkout-complete:
     post:
@@ -816,11 +1242,14 @@ paths:
       summary: (TEST) Set premium ON
       description: >
         Test-only endpoint, enabled when STRIPE_MOCK_MODE=1. Requires auth.
+      operationId: billing_mock_checkout_complete
       security:
         - bearerAuth: []
       responses:
         '200':
           description: Premium flipped ON
+        '401':
+          description: Unauthorized
 
   /api/payment/mock/subscription-canceled:
     post:
@@ -828,11 +1257,14 @@ paths:
       summary: (TEST) Set premium OFF
       description: >
         Test-only endpoint, enabled when STRIPE_MOCK_MODE=1. Requires auth.
+      operationId: billing_mock_subscription_canceled
       security:
         - bearerAuth: []
       responses:
         '200':
           description: Premium flipped OFF
+        '401':
+          description: Unauthorized
 
   # ===================================
   # ADMIN CSV EXPORTS
@@ -841,6 +1273,8 @@ paths:
     get:
       tags: [Admin]
       summary: Export users as CSV
+      description: Export all users as a CSV file.
+      operationId: admin_export_users_csv
       security:
         - bearerAuth: []
       responses:
@@ -860,6 +1294,8 @@ paths:
     get:
       tags: [Admin]
       summary: Export matches as CSV
+      description: Export mutual matches as a CSV file.
+      operationId: admin_export_matches_csv
       security:
         - bearerAuth: []
       responses:
@@ -870,6 +1306,10 @@ paths:
               schema:
                 type: string
                 format: binary
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (admin only)
 
   /api/admin/export/messages.csv:
     get:
@@ -877,6 +1317,7 @@ paths:
       summary: Export messages as CSV
       description: >
         Optional filters: from (ISO), to (ISO), limit (1..200000)
+      operationId: admin_export_messages_csv
       security:
         - bearerAuth: []
       parameters:
@@ -904,6 +1345,10 @@ paths:
               schema:
                 type: string
                 format: binary
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (admin only)
 
   /api/admin/export/conversations.csv:
     get:
@@ -911,6 +1356,7 @@ paths:
       summary: Export conversations as CSV
       description: >
         Groups messages by user pair (threadKey). Supports from/to/limit.
+      operationId: admin_export_conversations_csv
       security:
         - bearerAuth: []
       parameters:
@@ -938,6 +1384,10 @@ paths:
               schema:
                 type: string
                 format: binary
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (admin only)
 
   /api/admin/export/billing-events.csv:
     get:
@@ -945,6 +1395,7 @@ paths:
       summary: Export billing events as CSV
       description: >
         Export Stripe webhook events that were logged. Requires STRIPE_LOG_EVENTS=1.
+      operationId: admin_export_billing_events_csv
       security:
         - bearerAuth: []
       responses:
@@ -955,11 +1406,17 @@ paths:
               schema:
                 type: string
                 format: binary
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (admin only)
 
   /api/admin/export/billing-subscriptions.csv:
     get:
       tags: [Admin]
       summary: Export billing subscriptions as CSV
+      description: Export all subscriptions as a CSV file.
+      operationId: admin_export_billing_subscriptions_csv
       security:
         - bearerAuth: []
       responses:
@@ -970,6 +1427,10 @@ paths:
               schema:
                 type: string
                 format: binary
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (admin only)
 
   # ===================================
   # HEALTH / DIAGNOSTICS
@@ -978,17 +1439,25 @@ paths:
     get:
       tags: [Health]
       summary: Liveness probe
+      description: Lightweight health probe.
+      operationId: health_liveness
       responses:
         '200':
           description: OK
+        '503':
+          description: Service unavailable
 
   /healthz:
     get:
       tags: [Health]
       summary: Liveness probe (alt)
+      description: Alternate lightweight health probe.
+      operationId: healthz_liveness
       responses:
         '200':
           description: OK
+        '503':
+          description: Service unavailable
 
   /readiness:
     get:
@@ -996,6 +1465,7 @@ paths:
       summary: Readiness probe
       description: >
         Returns 200 when dependencies are OK; 503 otherwise.
+      operationId: health_readiness
       responses:
         '200':
           description: Ready
@@ -1006,28 +1476,38 @@ paths:
     get:
       tags: [Diagnostics]
       summary: List app-level routes (dev-only)
+      description: Returns app-level mounted routes (dev-only).
+      operationId: diagnostics_routes
       responses:
         '200':
           description: List of routes
+        '401':
+          description: Unauthorized
 
   /__routes_api:
     get:
       tags: [Diagnostics]
       summary: List /api router routes (dev-only)
+      description: Returns API router routes (dev-only).
+      operationId: diagnostics_routes_api
       responses:
         '200':
           description: List of /api routes
+        '401':
+          description: Unauthorized
 
   /__routes_api_full:
     get:
       tags: [Diagnostics]
       summary: List /api router routes (detailed)
+      description: Returns detailed list of API routes (dev-only).
+      operationId: diagnostics_routes_api_full
       responses:
         '200':
           description: Detailed list of /api routes
+        '401':
+          description: Unauthorized
 
 security:
   - bearerAuth: []
-# --- REPLACE END
-
 

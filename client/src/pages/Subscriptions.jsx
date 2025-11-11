@@ -1,6 +1,6 @@
 // File: client/src/pages/settings/SubscriptionSettings.jsx
 
-// --- REPLACE START: functional subscriptions page with testids + mock return refresh ---
+// --- REPLACE START: functional subscriptions page with FE return-sync (status+session_id), testids, and safe refresh ---
 import React, { useCallback, useMemo, useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -8,15 +8,22 @@ import { useAuth } from "../contexts/AuthContext";
 import api from "../utils/axiosInstance";
 
 /**
- * Subscriptions Page
- * - Start Premium: POST -> /billing/create-checkout-session -> redirect to Stripe Checkout.
- * - Manage Existing: POST -> /billing/create-portal-session  -> redirect to Stripe Billing Portal.
- * - Cancel Now: POST -> /billing/cancel-now                  -> cancels immediately (server talks to Stripe).
+ * Subscription Settings
+ * - Start Premium:    POST /billing/create-checkout-session -> redirect to Stripe Checkout.
+ * - Manage Existing:  POST /billing/create-portal-session   -> redirect to Stripe Billing Portal.
+ * - Cancel Now:       POST /billing/cancel-now              -> cancel immediately on Stripe.
  *
  * Uses the shared Axios instance so Authorization + refresh cookies are handled automatically.
- * This variant adds:
- *   - data-testid attributes (upgrade-button, open-portal-button, premium-badge)
- *   - "mock return" hook: refreshes /api/users/me if URL contains ?mockCheckout=1 or ?mockPortal=1
+ *
+ * THIS VARIANT ADDS:
+ *   1) Return flow handler (FE-sync): reads `?status=success|cancel` (+ optional `session_id`)
+ *      - On success: immediately POST /billing/sync (with X-Request-Id) → then refresh user
+ *      - On cancel: show a friendly banner, no sync
+ *   2) Tolerant mock flags for E2E: ?mockCheckout=1 / ?mockPortal=1
+ *   3) data-testid attributes (upgrade-button, open-portal-button, premium-badge, status-alert)
+ *
+ * The replacement region is marked between // --- REPLACE START and // --- REPLACE END
+ * so you can verify exactly what changed.
  */
 
 const Row = ({ title, children }) => (
@@ -25,6 +32,12 @@ const Row = ({ title, children }) => (
     <div className="px-3 py-3 border-t border-gray-200">{children}</div>
   </div>
 );
+
+// Small helper to create request IDs for logging/correlation
+const makeRequestId = () =>
+  (window.crypto && typeof window.crypto.randomUUID === "function"
+    ? window.crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(16).slice(2)}`);
 
 const Subscriptions = () => {
   const navigate = useNavigate();
@@ -35,10 +48,12 @@ const Subscriptions = () => {
   const [msg, setMsg] = useState("");
   const [success, setSuccess] = useState("");
 
-  // Try to infer premium from user object, supporting both `isPremium` and `premium`
+  // Try to infer premium from user object; support both `isPremium` / `premium` and entitlements
   const isLoggedIn = !!user;
   const isPremium =
-    (user && (user.isPremium === true || user.premium === true)) || false;
+    (user && (user.isPremium === true || user.premium === true)) ||
+    (user && user.entitlements && user.entitlements.isPremium === true) ||
+    false;
   const userEmail = user?.email ?? "";
 
   // Optional: after actions, try to refresh user/profile if context exposes a refetch
@@ -52,34 +67,8 @@ const Subscriptions = () => {
     }
   }, [refreshUser]);
 
-  // Refetch user state when returning from checkout/portal/cancel (URL has flags)
+  // Clear banners when premium flips after refetch
   useEffect(() => {
-    const returnedFromStripe =
-      searchParams.get("success") === "1" ||
-      searchParams.get("canceled") === "1" ||
-      searchParams.get("portal_return") === "1" ||
-      // Some routers stringify booleans:
-      searchParams.get("success") === "true" ||
-      searchParams.get("canceled") === "true";
-
-    // NEW: handle mock redirects from E2E (server mock switch)
-    const returnedFromMock =
-      searchParams.get("mockCheckout") === "1" ||
-      searchParams.get("mockPortal") === "1" ||
-      searchParams.get("mockCheckout") === "true" ||
-      searchParams.get("mockPortal") === "true";
-
-    if (returnedFromStripe || returnedFromMock) {
-      // Clear possible stale banners and refresh user from API/context
-      setMsg("");
-      setSuccess("");
-      void safeRefreshUser();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams.toString()]);
-
-  useEffect(() => {
-    // Clear banners when user premium flips (after refetch)
     setMsg("");
     setSuccess("");
   }, [isPremium]);
@@ -118,6 +107,77 @@ const Subscriptions = () => {
         "Billing backend is not configured yet (or you are not authenticated). Please try again after logging in."
     );
   }, []);
+
+  /**
+   * Return flow handler:
+   * - Reads ?status=success|cancel (+ optional session_id)
+   * - On success: POST /billing/sync (with X-Request-Id), then refresh user without reloading the page.
+   * - On cancel: show banner only; do not call sync.
+   * - Also supports mock flags from E2E: ?mockCheckout=1 / ?mockPortal=1 (falls back to just refreshing user).
+   */
+  useEffect(() => {
+    // Normalize common flags
+    const statusParam = (searchParams.get("status") || "").toLowerCase(); // "success" | "cancel" | ""
+    const sessionId =
+      searchParams.get("session_id") ||
+      searchParams.get("sessionId") ||
+      undefined;
+
+    const returnedFromStripe =
+      searchParams.get("success") === "1" ||
+      searchParams.get("canceled") === "1" ||
+      searchParams.get("portal_return") === "1" ||
+      // Some routers stringify booleans:
+      searchParams.get("success") === "true" ||
+      searchParams.get("canceled") === "true";
+
+    const returnedFromMock =
+      searchParams.get("mockCheckout") === "1" ||
+      searchParams.get("mockPortal") === "1" ||
+      searchParams.get("mockCheckout") === "true" ||
+      searchParams.get("mockPortal") === "true";
+
+    // If explicit `status` present, take it as source of truth
+    if (statusParam === "success") {
+      // FE-sync: call /billing/sync once, with optional session_id (for server-side debug)
+      const rid = makeRequestId();
+      setSuccess("Thanks — syncing your subscription…");
+      setMsg("");
+      (async () => {
+        try {
+          await api.post(
+            "/billing/sync",
+            { source: "fe-sync", session_id: sessionId },
+            { headers: { "X-Request-Id": rid } }
+          );
+          setSuccess("Premium is now active.");
+          setMsg("");
+          await safeRefreshUser();
+        } catch (e) {
+          const status = e?.response?.status;
+          if (status === 401) {
+            friendlyError("Unauthorized. Please log in and try again.");
+          } else if (status === 404 || status === 501) {
+            friendlyError();
+          } else {
+            setMsg(e?.response?.data?.error || e?.message || "Sync failed. Please try again.");
+          }
+        }
+      })();
+    } else if (statusParam === "cancel") {
+      setMsg("Checkout canceled. You can start Premium anytime from here.");
+      setSuccess("");
+      // Do NOT call sync on cancel
+    } else if (returnedFromStripe || returnedFromMock) {
+      // Legacy/alt return flags: clear banners and refresh user (tolerant path)
+      setMsg("");
+      setSuccess("");
+      void safeRefreshUser();
+    }
+    
+    
+    
+  }, [searchParams.toString()]);
 
   const handleStartPremium = useCallback(async () => {
     if (!isLoggedIn) {
@@ -227,12 +287,18 @@ const Subscriptions = () => {
       </p>
 
       {success && (
-        <div className="mb-4 rounded border border-emerald-300 bg-emerald-50 px-3 py-2 text-emerald-900">
+        <div
+          data-testid="status-alert"
+          className="mb-4 rounded border border-emerald-300 bg-emerald-50 px-3 py-2 text-emerald-900"
+        >
           {success}
         </div>
       )}
       {msg && (
-        <div className="mb-4 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-amber-900">
+        <div
+          data-testid="status-alert"
+          className="mb-4 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-amber-900"
+        >
           {msg}
         </div>
       )}
@@ -318,4 +384,6 @@ const Subscriptions = () => {
 
 export default Subscriptions;
 // --- REPLACE END ---
+
+
 

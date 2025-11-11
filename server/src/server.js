@@ -1,12 +1,15 @@
-// --- REPLACE START: minimal but robust server bootstrap with graceful shutdown ---
+// PATH: server/src/server.js
+
+// --- REPLACE START: re-order imports (env before mongoose) and remove blank line within group ---
 import app from './app.js';
-import { connectMongo } from './loaders/mongoose.js';
 import { env } from './config/env.js';
+import { connectMongo } from './loaders/mongoose.js';
+import likesRoutes from './routes/likes.js';
+// --- REPLACE END ---
 
 // ✅ Mount likes routes here as a safe fallback (in case app.js didn't)
 // This keeps behavior explicit without rewriting app.js.
 // If app.js already mounts them, Express de-duplicates handlers harmlessly.
-import likesRoutes from './routes/likes.js';
 app.use('/api/likes', likesRoutes);
 
 // Ensure required envs have sane defaults (non-fatal if missing)
@@ -64,4 +67,5 @@ process.on('uncaughtException', (err) => {
   // eslint-disable-next-line no-console
   console.error('[server] uncaughtException:', err?.message || err);
 });
-// --- REPLACE END ---
+
+

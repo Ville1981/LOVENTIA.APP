@@ -1,6 +1,6 @@
 ﻿// PATH: client/src/components/Navbar.jsx
 
-// --- REPLACE START: fix broken injection, proper import, and render HeaderAdSlot under navbar ---
+// --- REPLACE START: add reactive Premium badge + keep header ad under navbar ---
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -19,14 +19,16 @@ import { useAuth } from "../contexts/AuthContext";
  *   Keep only {path,key} and call t(key) at render time so language changes re-render correctly.
  * - Provides defaultValue fallbacks so raw keys never leak to UI.
  * - Shows guest links until bootstrapping finishes, then user/admin links.
+ * - NEW: Shows a reactive “Premium” badge the moment the status flips (isPremium/premium).
  */
 const Navbar = () => {
   const { t } = useTranslation();
   const { user, bootstrapped } = useAuth();
 
-  // Role flags
+  // Role & subscription flags
   const isLoggedIn = !!user;
   const isAdmin = user?.role === "admin";
+  const isPremium = Boolean(user?.isPremium ?? user?.premium);
 
   // Shared classes for consistency
   const linkClass =
@@ -50,6 +52,8 @@ const Navbar = () => {
     "common:nav.settings": "Settings",
     "common:nav.admin": "Admin",
     "common:nav.logout": "Logout",
+    // Badge fallback
+    "common:badge.premium": "Premium",
   };
 
   // NOTE: keep only keys here, no t(...) calls inside arrays so language switches live-update
@@ -117,8 +121,28 @@ const Navbar = () => {
       >
         {/* Title row */}
         <div className="flex items-center justify-center w-full max-w-6xl">
-          <h1 className="text-3xl font-bold text-white drop-shadow">
+          <h1 className="text-3xl font-bold text-white drop-shadow flex items-center">
+            {/* Site title */}
             💗 {t("common:site.title", { defaultValue: "Loventia" })}
+
+            {/* --- REPLACE START: reactive Premium badge next to title --- */}
+            {isLoggedIn && isPremium && (
+              <span
+                className="ml-3 inline-flex items-center gap-1 rounded-full bg-yellow-400/95 text-black text-xs font-extrabold px-3 py-1 shadow ring-1 ring-black/10"
+                aria-label={t("common:badge.premium", {
+                  defaultValue: defaults["common:badge.premium"],
+                })}
+                title={t("common:badge.premium", {
+                  defaultValue: defaults["common:badge.premium"],
+                })}
+              >
+                <span aria-hidden="true">👑</span>
+                {t("common:badge.premium", {
+                  defaultValue: defaults["common:badge.premium"],
+                })}
+              </span>
+            )}
+            {/* --- REPLACE END: reactive Premium badge next to title --- */}
           </h1>
         </div>
 
@@ -173,12 +197,12 @@ const Navbar = () => {
       </nav>
 
       {/* Global header promo just under the navbar */}
-      {/* --- REPLACE START: allow full-width header banner (remove max-w clamp) --- */}
+      {/* Keep full-width header banner (no max-w clamp) */}
       <HeaderAdSlot className="w-full px-0" />
-      {/* --- REPLACE END --- */}
     </>
   );
 };
 
 export default Navbar;
 // --- REPLACE END ---
+

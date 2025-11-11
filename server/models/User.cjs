@@ -1,11 +1,11 @@
 // PATH: server/models/User.cjs
 
-// --- REPLACE START: CommonJS schema with billing.stripeCustomerId + isPremium + minimal sync/compat ---
+// --- REPLACE START: CommonJS schema with billing.stripeCustomerId + isPremium + superLikes.weekKey sync ---
 /* eslint-disable no-console */
 'use strict';
 
-const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const mongoose = require('mongoose');
 
 /**
  * User schema
@@ -16,6 +16,7 @@ const bcrypt = require('bcryptjs');
  * - Visibility fields (visibility.*, isHidden/hidden virtuals, hiddenUntil, resumeOnLogin) + sync hooks
  * - ✅ Billing fields: `premium`, `isPremium`, top-level `stripeCustomerId` (legacy), `subscriptionId`, and **`billing.stripeCustomerId` (canonical)**
  * - ✅ Entitlements block (tier/features/quotas) to support FE expectations while mirroring legacy flags
+ * - ✅ Adds `entitlements.quotas.superLikes.weekKey` (persisted) and keeps it in sync with legacy `window`
  * - ✅ This update adds (without breaking legacy):
  *      • lifestyle { smoke/drink/drugs } nested (mirrored with top-level smoke/drink/drugs)
  *      • orientationList: string[] (mirrored with legacy `orientation` string)
@@ -79,6 +80,7 @@ function safeTransform(_doc, ret) {
       const e = ret.entitlements;
       const legacy = !!(ret.isPremium || ret.premium);
       if (e.tier === 'free' && legacy) e.tier = 'premium'; // avoid mixed states in responses
+
       if (!e.features || typeof e.features !== 'object') {
         e.features = {
           seeLikedYou: false,
@@ -91,8 +93,17 @@ function safeTransform(_doc, ret) {
           noAds: false,
         };
       }
+
       if (!e.quotas || typeof e.quotas !== 'object') {
-        e.quotas = { superLikes: { used: 0, window: '' } };
+        e.quotas = { superLikes: { used: 0, weekKey: '', window: '' } };
+      } else {
+        const sl = (e.quotas.superLikes = e.quotas.superLikes || {});
+        // Normalize keys (both exist for compatibility)
+        if (sl.weekKey == null && typeof sl.window === 'string') sl.weekKey = sl.window;
+        if (sl.window == null && typeof sl.weekKey === 'string') sl.window = sl.weekKey;
+        if (typeof sl.used !== 'number') sl.used = 0;
+        if (typeof sl.weekKey !== 'string') sl.weekKey = '';
+        if (typeof sl.window !== 'string') sl.window = sl.weekKey || '';
       }
     }
 
@@ -213,6 +224,31 @@ const GeoPointSchema = new mongoose.Schema(
   { _id: false }
 );
 
+/* ----------------------- Rewind sub-schema (NEW) ----------------------- */
+// --- REPLACE START: add rewind schema (visible & tolerant to legacy shapes) ---
+const RewindActionSchema = new mongoose.Schema(
+  {
+    // Accept both "type" and legacy "action" (we store "type"; legacy can still be present)
+    type:      { type: String, trim: true, default: 'like' },
+    action:    { type: String, trim: true, default: undefined }, // legacy alias; kept if provided
+
+    // Accept several id field names; we store targetId, but allow others to persist
+    targetId:      { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: undefined },
+    target:        { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: undefined },       // legacy
+    targetUserId:  { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: undefined },       // alt
+    target_id:     { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: undefined },       // alt
+
+    // Timestamp (support "createdAt" and legacy "at")
+    createdAt: { type: Date, default: () => new Date() },
+    at:        { type: Date, default: undefined },
+  },
+  {
+    _id: false,
+    strict: false, // tolerate extra properties written by older controllers
+  }
+);
+// --- REPLACE END ---
+
 /* ----------------------- Main User schema ----------------------- */
 const userSchema = new mongoose.Schema(
   {
@@ -251,8 +287,10 @@ const userSchema = new mongoose.Schema(
       },
       quotas: {
         superLikes: {
-          used:   { type: Number, default: 0 },
-          window: { type: String, default: '' }, // e.g. 2025-W35
+          used:    { type: Number,  default: 0 },
+          // New persisted key; kept in sync with legacy "window"
+          weekKey: { type: String,  default: '' }, // e.g. 2025-W45
+          window:  { type: String,  default: '' }, // legacy alias of weekKey
         },
       },
     },
@@ -342,7 +380,7 @@ const userSchema = new mongoose.Schema(
     passes:       [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     superLikes:   [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 
-    // ✅ Superlike rate limiting
+    // ✅ Superlike rate limiting (legacy helper; NOT the same as entitlements quota)
     superLikeTimestamps: [{ type: Date, default: undefined }],
     superLike: {
       weeklyUsed: { type: Number, default: 0 },
@@ -377,6 +415,13 @@ const userSchema = new mongoose.Schema(
     // --- REPLACE START: referral fields in User schema ---
     referralCode: { type: String, index: true, sparse: true, unique: false },
     referredBy:   { type: String, index: true },
+    // --- REPLACE END ---
+
+    // --- REPLACE START: add rewind schema (visible & tolerant to legacy shapes) ---
+    rewind: {
+      stack: { type: [RewindActionSchema], default: [] },
+      max:   { type: Number, default: 50 }, // soft cap; maintained by pre-save below
+    },
     // --- REPLACE END ---
   },
   {
@@ -541,6 +586,36 @@ function syncGeoPoint(doc) {
   }
 }
 
+// ✅ Keep weekKey/window in sync before validate/save (helps controllers that still write "window")
+function syncSuperLikesQuotaKeys(doc) {
+  try {
+    const e = doc.entitlements;
+    if (!e || typeof e !== 'object') return;
+    if (!e.quotas || typeof e.quotas !== 'object') e.quotas = { superLikes: {} };
+    const sl = (e.quotas.superLikes = e.quotas.superLikes || {});
+    if (sl.weekKey == null && typeof sl.window === 'string') sl.weekKey = sl.window;
+    if (sl.window == null && typeof sl.weekKey === 'string') sl.window = sl.weekKey;
+    if (typeof sl.used !== 'number') sl.used = 0;
+    if (typeof sl.weekKey !== 'string') sl.weekKey = '';
+    if (typeof sl.window !== 'string') sl.window = sl.weekKey || '';
+  } catch {
+    // noop
+  }
+}
+
+// ✅ Soft-cap rewind.stack length (keeps only newest N items based on rewind.max)
+function capRewindStack(doc) {
+  try {
+    const cfgMax = (doc.rewind && typeof doc.rewind.max === 'number') ? doc.rewind.max : 50;
+    if (doc.rewind && Array.isArray(doc.rewind.stack) && doc.rewind.stack.length > cfgMax) {
+      // Keep newest first semantics → slice(0, cfgMax)
+      doc.rewind.stack = doc.rewind.stack.slice(0, cfgMax);
+    }
+  } catch {
+    // noop
+  }
+}
+
 userSchema.pre('validate', function (next) {
   try {
     syncVisibility(this);
@@ -548,6 +623,8 @@ userSchema.pre('validate', function (next) {
     syncLifestyle(this);
     syncOrientation(this);
     syncGeoPoint(this);
+    syncSuperLikesQuotaKeys(this);
+    capRewindStack(this);
     next();
   } catch {
     next();
@@ -561,6 +638,8 @@ userSchema.pre('save', function (next) {
     syncLifestyle(this);
     syncOrientation(this);
     syncGeoPoint(this);
+    syncSuperLikesQuotaKeys(this);
+    capRewindStack(this);
     next();
   } catch {
     next();
@@ -609,6 +688,7 @@ userSchema.methods.startPremium = function startPremium() {
   e.features = { ...buildPremiumFeatures() };
   const sl = ensure(e, 'quotas', { superLikes: {} }).superLikes || {};
   sl.used = 0;
+  sl.weekKey = '';
   sl.window = '';
   e.quotas.superLikes = sl;
 
@@ -632,6 +712,7 @@ userSchema.methods.stopPremium = function stopPremium() {
   };
   const sl = ensure(e, 'quotas', { superLikes: {} }).superLikes || {};
   sl.used = 0;
+  sl.weekKey = '';
   sl.window = '';
   e.quotas.superLikes = sl;
 
@@ -710,20 +791,4 @@ module.exports = UserModel;
 module.exports.User = UserModel;
 module.exports.default = UserModel;
 // --- REPLACE END ---
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

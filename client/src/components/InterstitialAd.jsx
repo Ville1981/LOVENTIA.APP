@@ -1,7 +1,8 @@
 // PATH: client/src/components/InterstitialAd.jsx
 
-// --- REPLACE START: interstitial modal that ALLOWS background scroll (no body lock), ESC/backdrop/close, focus trap ---
+// --- REPLACE START: gate interstitial with AdGate (Premium/no-ads kill-switch) while preserving modal behavior ---
 import React, { useEffect, useRef } from "react";
+import AdGate from "./AdGate"; // centralized gate: hides interstitial for Premium / noAds
 
 /**
  * InterstitialAd
@@ -91,62 +92,65 @@ export default function InterstitialAd({
   const stop = (e) => e.stopPropagation();
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={ariaLabel}
-      data-testid="interstitial-modal"
-      className="fixed inset-0 z-[9999] flex items-center justify-center"
-      style={{ pointerEvents: "auto" }}
-      onClick={onBackdropClick}
-      onKeyDown={handleKeyDown}
-      // DO NOT lock body scroll here; we intentionally allow background to scroll
-    >
-      {/* Backdrop — opaque for visuals, but background can still scroll since body is not locked */}
-      <div className="absolute inset-0 bg-black/60" aria-hidden="true" />
-
-      {/* Dialog panel */}
+    // AdGate type="interstitial" ensures Premium/no-ads users never see this modal
+    <AdGate type="interstitial" debug={false}>
       <div
-        ref={containerRef}
-        tabIndex={-1}
-        className={
-          "relative z-[10000] w-[min(96vw,820px)] max-h-[90vh] overflow-auto rounded-2xl bg-white shadow-2xl outline-none " +
-          className
-        }
-        onClick={stop}
+        role="dialog"
+        aria-modal="true"
+        aria-label={ariaLabel}
+        data-testid="interstitial-modal"
+        className="fixed inset-0 z-[9999] flex items-center justify-center"
+        style={{ pointerEvents: "auto" }}
+        onClick={onBackdropClick}
+        onKeyDown={handleKeyDown}
+        // DO NOT lock body scroll here; we intentionally allow background to scroll
       >
-        {/* Header with Close (X) */}
-        <div className="flex items-center justify-between gap-4 border-b px-4 py-3">
-          <div className="text-base font-semibold">Sponsored interstitial</div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-gray-100 focus:outline-none focus:ring focus:ring-blue-300"
-          >
-            <span aria-hidden="true" className="text-lg leading-none">
-              ×
-            </span>
-          </button>
-        </div>
+        {/* Backdrop — opaque for visuals, but background can still scroll since body is not locked */}
+        <div className="absolute inset-0 bg-black/60" aria-hidden="true" />
 
-        {/* Ad content from parent (e.g., image + primary Continue) */}
-        <div className="p-4">
-          {children}
-
-          {/* Secondary action row (explicit close path always available) */}
-          <div className="mt-4 flex justify-end">
+        {/* Dialog panel */}
+        <div
+          ref={containerRef}
+          tabIndex={-1}
+          className={
+            "relative z-[10000] w-[min(96vw,820px)] max-h-[90vh] overflow-auto rounded-2xl bg-white shadow-2xl outline-none " +
+            className
+          }
+          onClick={stop}
+        >
+          {/* Header with Close (X) */}
+          <div className="flex items-center justify-between gap-4 border-b px-4 py-3">
+            <div className="text-base font-semibold">Sponsored interstitial</div>
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex items-center rounded-md border px-3 py-1.5 text-sm hover:bg-gray-50 focus:outline-none focus:ring focus:ring-blue-300"
+              aria-label="Close"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-gray-100 focus:outline-none focus:ring focus:ring-blue-300"
             >
-              Skip ad
+              <span aria-hidden="true" className="text-lg leading-none">
+                ×
+              </span>
             </button>
+          </div>
+
+          {/* Ad content from parent (e.g., image + primary Continue) */}
+          <div className="p-4">
+            {children}
+
+            {/* Secondary action row (explicit close path always available) */}
+            <div className="mt-4 flex justify-end">
+              <button
+                type="button"
+                onClick={onClose}
+                className="inline-flex items-center rounded-md border px-3 py-1.5 text-sm hover:bg-gray-50 focus:outline-none focus:ring focus:ring-blue-300"
+              >
+                Skip ad
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </AdGate>
   );
 }
 // --- REPLACE END ---

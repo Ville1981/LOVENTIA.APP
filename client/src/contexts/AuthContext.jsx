@@ -1,6 +1,6 @@
 // PATH: client/src/contexts/AuthContext.jsx
 
-// --- REPLACE START: robust AuthContext with /api/auth/login (and /api/users/login fallback) ---
+// --- REPLACE START: expose premium features (noAds/unlimited*) via AuthContext + keep robust login/refresh/sync flow ---
 import React, {
   createContext,
   useContext,
@@ -106,6 +106,7 @@ function mergeDefined(dst, src) {
 
 /**
  * Normalize server user payload to a consistent shape for the app.
+ * Ensures entitlements object exists and includes features with safe defaults.
  */
 function normalizeUserPayload(raw) {
   const u = raw?.user ?? raw ?? null;
@@ -138,6 +139,26 @@ function normalizeUserPayload(raw) {
   // Normalize premium flag
   copy.isPremium = Boolean(copy.isPremium ?? copy.premium);
 
+  // Ensure entitlements + feature flags exist with sensible defaults
+  const defaultFeatures = {
+    noAds: false,
+    unlimitedLikes: false,
+    unlimitedRewinds: false,
+    seeLikedYou: false,
+    dealbreakers: false,
+    qaVisibilityAll: false,
+    introsMessaging: false,
+    superLikesPerWeek: 0,
+  };
+  const incomingEnt = copy.entitlements || {};
+  const incomingFeat = (incomingEnt.features && typeof incomingEnt.features === "object")
+    ? incomingEnt.features
+    : {};
+  copy.entitlements = {
+    tier: incomingEnt.tier ?? (copy.isPremium ? "premium" : "free"),
+    features: { ...defaultFeatures, ...incomingFeat },
+  };
+
   return copy;
 }
 
@@ -147,6 +168,12 @@ function normalizeUserPayload(raw) {
 const AuthContext = createContext({
   user: null,
   isPremium: false,
+  // convenience feature flags
+  noAds: false,
+  unlimitedLikes: false,
+  unlimitedRewinds: false,
+  entitlements: { tier: "free", features: {} },
+
   setUser: () => {},
   setAuthUser: () => {},
   mergeUser: () => {},
@@ -204,9 +231,9 @@ export function AuthProvider({ children }) {
    * Load current user from preferred endpoints.
    * Order chosen to match what we observed in PS:
    * 1) /api/me
-   * 2) /api/users/profile (some projects expose this)
-   * 3) /api/auth/me (our auth router)
-   * 4) /api/users/me (your PS proved this also exists)
+   * 2) /api/users/profile
+   * 3) /api/auth/me
+   * 4) /api/users/me
    */
   const fetchMe = useCallback(async () => {
     // 1) /api/me
@@ -233,7 +260,7 @@ export function AuthProvider({ children }) {
       /* continue */
     }
 
-    // 4) /api/users/me (we saw this in your logs)
+    // 4) /api/users/me
     try {
       const r3 = await api.get("/api/users/me");
       return normalizeUserPayload(r3?.data ?? null);
@@ -246,7 +273,7 @@ export function AuthProvider({ children }) {
 
   /**
    * Reconcile billing with the server (Stripe as source of truth),
-   * then update user premium flag locally without clobbering other fields.
+   * then update user premium flag + entitlements locally.
    * Guard: do nothing if there is no access token to avoid spam.
    */
   const reconcileBillingNow = useCallback(async () => {
@@ -267,8 +294,34 @@ export function AuthProvider({ children }) {
     const task = (async () => {
       try {
         const payload = await syncBilling();
-        if (payload && typeof payload.isPremium === "boolean") {
-          setUserState((prev) => mergeDefined(prev, { isPremium: payload.isPremium }));
+        // payload may contain: { isPremium, entitlements: { tier, features {...} } }
+        if (payload && (typeof payload === "object")) {
+          const update = {};
+          if (typeof payload.isPremium === "boolean") {
+            update.isPremium = payload.isPremium;
+          }
+          if (payload.entitlements && typeof payload.entitlements === "object") {
+            // merge features with defaults to avoid missing keys
+            const def = {
+              noAds: false,
+              unlimitedLikes: false,
+              unlimitedRewinds: false,
+              seeLikedYou: false,
+              dealbreakers: false,
+              qaVisibilityAll: false,
+              introsMessaging: false,
+              superLikesPerWeek: 0,
+            };
+            const ent = payload.entitlements || {};
+            const feat = ent.features || {};
+            update.entitlements = {
+              tier: ent.tier ?? (update.isPremium ? "premium" : "free"),
+              features: { ...def, ...feat },
+            };
+          }
+          if (Object.keys(update).length) {
+            setUserState((prev) => mergeDefined(prev, update));
+          }
         }
         return payload;
       } catch (e) {
@@ -290,9 +343,9 @@ export function AuthProvider({ children }) {
 
   /**
    * Refresh access token and then load /me.
-   * We support BOTH:
-   *  - cookie-based: POST /api/auth/refresh {} withCredentials: true
-   *  - body-based:   POST /api/auth/refresh { refreshToken } (seen in PS)
+   * Supports BOTH:
+   *  - cookie-based: POST /api/auth/refresh {}
+   *  - body-based:   POST /api/auth/refresh { refreshToken }
    */
   const refreshMe = useCallback(async () => {
     if (refreshInFlightRef.current) {
@@ -449,14 +502,14 @@ export function AuthProvider({ children }) {
     async (email, password) => {
       let res;
       try {
-        // ✅ primary, this we know works from PowerShell:
+        // ✅ primary (confirmed in PS)
         res = await api.post(
           "/api/auth/login",
           { email, password },
           { withCredentials: true }
         );
       } catch (err) {
-        // fallback ONLY if it looks like wrong path, not bad password
+        // fallback ONLY for path issues (404/405), not for bad credentials
         const status = err?.response?.status;
         if (status === 404 || status === 405) {
           res = await api.post(
@@ -544,17 +597,53 @@ export function AuthProvider({ children }) {
   }, [setAuthUser]);
 
   /**
-   * Derived flags
+   * Derived flags + normalized entitlements for consumers
    */
   const isPremium = useMemo(
     () => Boolean(user?.isPremium ?? user?.premium),
     [user]
   );
 
+  const entitlements = useMemo(() => {
+    const def = {
+      tier: isPremium ? "premium" : "free",
+      features: {
+        noAds: false,
+        unlimitedLikes: false,
+        unlimitedRewinds: false,
+        seeLikedYou: false,
+        dealbreakers: false,
+        qaVisibilityAll: false,
+        introsMessaging: false,
+        superLikesPerWeek: 0,
+      },
+    };
+    const incoming = user?.entitlements && typeof user.entitlements === "object"
+      ? user.entitlements
+      : {};
+    const feat = incoming.features && typeof incoming.features === "object"
+      ? incoming.features
+      : {};
+    return {
+      tier: incoming.tier ?? def.tier,
+      features: { ...def.features, ...feat },
+    };
+  }, [user, isPremium]);
+
+  // Convenience booleans for consumers
+  const noAds = !!entitlements.features.noAds || isPremium;
+  const unlimitedLikes = !!entitlements.features.unlimitedLikes;
+  const unlimitedRewinds = !!entitlements.features.unlimitedRewinds;
+
   const value = useMemo(
     () => ({
       user,
       isPremium,
+      entitlements,
+      noAds,
+      unlimitedLikes,
+      unlimitedRewinds,
+
       setUser: setAuthUser,
       setAuthUser,
       mergeUser,
@@ -571,6 +660,10 @@ export function AuthProvider({ children }) {
     [
       user,
       isPremium,
+      entitlements,
+      noAds,
+      unlimitedLikes,
+      unlimitedRewinds,
       setAuthUser,
       mergeUser,
       applyUserFromApi,

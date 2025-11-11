@@ -1,4 +1,4 @@
-// PATH: server/src/api/controllers/authController.js
+// PATH: server/src/controllers/authController.js
 
 /* eslint-disable no-console */
 
@@ -30,7 +30,7 @@
 //
 // 4) **refresh**
 //    - accepts refresh token (body.refreshToken, header.Authorization: Bearer <token>, or cookie)
-//    - **first** tries util.verifyRefreshToken(...) from ../../utils/generateTokens.js
+//    - **first** tries util.verifyRefreshToken(...) from ../utils/generateTokens.js
 //    - **then** falls back to local jwt.verify with the SAME priority as util:
 //         JWT_REFRESH_SECRET → REFRESH_TOKEN_SECRET → "dev_refresh_secret"
 //    - loads the user again to make sure the account still exists
@@ -41,7 +41,8 @@
 //    - reads current user from (1) req.user (if authenticate ran), (2) Bearer token,
 //      (3) refresh-like token
 //    - loads user from DB
-//    - returns normalized user (same shape as /api/users/me)
+//    - returns **normalized user** using normalizeUserOut (same shape as /api/users/me)
+//      and explicitly selects `rewind`
 //    - this is the handler that your routers (authRoutes + authPrivateRoutes)
 //      will now both use → no more "me not implemented"
 //
@@ -50,21 +51,28 @@
 //    - register uses the same model loader + safeUserOut
 // ………………………………………………………………………………………………………………………………
 
-import nodemailer from "nodemailer";
 import { randomBytes } from "node:crypto";
+
 import jwt from "jsonwebtoken";
-import renderResetEmail from "../../api/emails/renderResetEmail.js";
-// --- REPLACE START: fixed sendEmail import path (use shared util that writes logs/mail-*.log) ---
-import sendEmail from "../../utils/sendEmail.js";
-// --- REPLACE END ---
-// --- REPLACE START: token util (access + refresh) ---
+import nodemailer from "nodemailer";
+
 import {
-  issueTokens,               // main helper: returns { accessToken, refreshToken, expiresIn?, refreshExpiresIn? }
-  signAccessToken as utilSignAccessToken,   // optional, in case we want exact same signing as util
-  signRefreshToken as utilSignRefreshToken, // optional
-  // this may or may not exist in your util – we try it in refresh()
+  issueTokens,                               // returns { accessToken, refreshToken, ... }
+  signAccessToken as utilSignAccessToken,
+  signRefreshToken as utilSignRefreshToken,
   verifyRefreshToken as utilVerifyRefreshToken,
 } from "../../utils/generateTokens.js";
+import normalizeUserOut from "../../utils/normalizeUserOut.js";
+import sendEmail from "../../utils/sendEmail.js";
+import renderResetEmail from "../emails/renderResetEmail.js";
+// --- REPLACE START: fixed sendEmail import path (use shared util that writes logs/mail-*.log) ---
+// --- REPLACE END ---
+// --- REPLACE START: token util (access + refresh) ---
+// --- REPLACE START: fix generateTokens import path (only path changes) ---
+// --- REPLACE END ---
+
+// --- REPLACE END ---
+// --- REPLACE START: import normalizeUserOut for consistent API shape (+rewind) ---
 // --- REPLACE END ---
 
 /**
@@ -160,47 +168,50 @@ async function sendMailLegacy({ to, subject, text, html }) {
   }
 }
 
+// PATH: server/src/api/controllers/authController.js
+// @ts-nocheck
+
+// --- REPLACE START: imports needed for robust model resolution ---
+import path from "path";
+import { fileURLToPath, pathToFileURL } from "url";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+// --- REPLACE END ---
+
+// --- REPLACE START: robust User model resolver (supports CJS/ESM, repo layout aware) ---
 /**
- * Helper: get User model (works whether the model is global, CJS, or ESM)
+ * Tries to load the User model from common repo layouts.
+ * Supports both ESM (.js) and CommonJS (.cjs) exports.
+ * Returns the model or null (never throws).
  */
 async function getUserModel() {
-  if (global.UserModel) return global.UserModel;
-  try {
-    const mod = await import("../../models/User.js");
-    return mod?.default || mod;
-  } catch (e) {
+  const candidates = [
+    // ← current repo uses this (per boot log: [UserModel] Loaded from: server/models/User.cjs)
+    "../../models/User.cjs",
+
+    // alternative typical locations
+    "../../models/User.js",
+    "../models/User.js",
+    "../../../models/User.cjs",
+    "../../../models/User.js",
+    "../../src/models/User.js",
+  ];
+
+  for (const rel of candidates) {
     try {
-      // eslint-disable-next-line global-require, import/no-commonjs
-      return require("../../models/User.cjs");
+      const abs = path.resolve(__dirname, rel);
+      const ns = await import(pathToFileURL(abs).href);
+      // handle default export, named export, or CJS module.exports
+      const mod = ns?.default ?? ns;
+      if (mod) return mod;
     } catch {
-      /* ignore */
+      // keep trying next candidate
     }
   }
-  throw new Error("User model not available");
+  return null;
 }
+// --- REPLACE END ---
 
-/**
- * Optional: project-specific token generator.
- * If at some point you have global generateResetTokenForUser, we use that.
- */
-let generateResetTokenForUser = null;
-try {
-  const maybe = global.generateResetTokenForUser;
-  if (typeof maybe === "function") generateResetTokenForUser = maybe;
-} catch {
-  /* ignore */
-}
-
-/**
- * Helper: normalize user object for API output.
- * - remove password
- * - remove reset fields
- * - keep billing/premium fields
- * - keep images
- * - make sure extraImages/photos are arrays
- *
- * We do this here too, so login/reset/forgot/refresh can all use the same shape.
- */
 // --- REPLACE START: safeUserOut helper (used by login + refresh + others) ---
 function safeUserOut(userDocOrLean) {
   if (!userDocOrLean) return null;
@@ -244,7 +255,7 @@ function safeUserOut(userDocOrLean) {
 /**
  * Helper: sign access/refresh tokens.
  * We keep it small, inline, and tolerant of missing envs.
- * Even though we now import from ../../utils/generateTokens.js, we KEEP this
+ * Even though we now import from ../utils/generateTokens.js, we KEEP this
  * fallback here so that if the util is ever moved/renamed, login/refresh do not break.
  */
 // --- REPLACE START: JWT helpers (fallback) ---
@@ -907,7 +918,7 @@ export async function register(req, res) {
 }
 // --- REPLACE END ---
 
-// --- REPLACE START: me handler (shared between public + private routes) ---
+// --- REPLACE START: me handler (normalized output with rewind) ---
 /**
  * GET /api/auth/me
  * Source priority:
@@ -915,11 +926,11 @@ export async function register(req, res) {
  * 2) Authorization: Bearer <token> (access)
  * 3) body.refreshToken (rare GET) or cookie (less likely)
  *
- * Returns 200 + normalized user, or 401 if token is missing/invalid.
+ * Returns 200 + **normalized** user (normalizeUserOut), with `rewind` explicitly selected.
  */
 export async function me(req, res) {
   try {
-    // 1) if authenticate has already run
+    // Prefer id from authenticate middleware if present
     const hintedId =
       req?.user?.id ||
       req?.user?._id ||
@@ -930,24 +941,21 @@ export async function me(req, res) {
     let token = "";
     let decoded = null;
 
-    // 2) Bearer token
+    // Try Authorization: Bearer
     const authHeader = req.headers?.authorization || "";
     if (authHeader && authHeader.startsWith("Bearer ")) {
       token = authHeader.slice(7).trim();
     }
 
-    // 3) if no Bearer but we have req.user, we can go straight to DB
+    // If we already know the id from middleware, load + select('+rewind') and return normalized
     if (!token && hintedId) {
       const User = await getUserModel();
-      const userDoc = await User.findById(hintedId).exec();
-      if (!userDoc) {
-        return res.status(404).json({ error: "User not found." });
-      }
-      const userOut = safeUserOut(userDoc);
-      return res.status(200).json(userOut);
+      const userDoc = await User.findById(hintedId).select("+rewind");
+      if (!userDoc) return res.status(404).json({ error: "User not found." });
+      return res.status(200).json(normalizeUserOut(userDoc));
     }
 
-    // 4) if we have token → verify
+    // If token present → verify (access first, then refresh fallback)
     if (token) {
       const accessSecret =
         process.env.JWT_SECRET ||
@@ -955,15 +963,14 @@ export async function me(req, res) {
         "dev_access_secret";
       try {
         decoded = jwt.verify(token, accessSecret);
-      } catch (e) {
-        // maybe it was refresh? try refresh secrets
+      } catch {
         const refreshSecret =
           process.env.JWT_REFRESH_SECRET ||
           process.env.REFRESH_TOKEN_SECRET ||
           "dev_refresh_secret";
         try {
           decoded = jwt.verify(token, refreshSecret);
-        } catch (e2) {
+        } catch {
           return res.status(401).json({ error: "Invalid token." });
         }
       }
@@ -982,13 +989,10 @@ export async function me(req, res) {
     }
 
     const User = await getUserModel();
-    const userDoc = await User.findById(finalId).exec();
-    if (!userDoc) {
-      return res.status(404).json({ error: "User not found." });
-    }
+    const userDoc = await User.findById(finalId).select("+rewind");
+    if (!userDoc) return res.status(404).json({ error: "User not found." });
 
-    const userOut = safeUserOut(userDoc);
-    return res.status(200).json(userOut);
+    return res.status(200).json(normalizeUserOut(userDoc));
   } catch (err) {
     console.error("[auth/me] unexpected error:", err);
     return res.status(500).json({ error: "Unexpected error in /auth/me." });
@@ -1033,9 +1037,8 @@ const controller = {
   logout,           // ← NEW
   verifyEmail,      // ← NEW
   // shared
-  me,               // ← NEW (this is what /api/auth/me + /api/auth/private/me will now hit)
+  me,               // ← UPDATED: normalizeUserOut + .select("+rewind")
 };
 
 export default controller;
-
 

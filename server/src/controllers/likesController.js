@@ -1,47 +1,22 @@
+// PATH: server/src/controllers/likesController.js
 // --- REPLACE START: robust likes controller with idempotency + daily quota (Helsinki) ---
-// -------------------------------------------------------------------------------------------------
+// =================================================================================================
 // Likes Controller (ESM)
 // -------------------------------------------------------------------------------------------------
-// Purpose:
-//  - Provide a stable likes controller with **idempotent** like/unlike and a **daily quota** for free users.
-//  - Preserve backward compatibility with legacy names (getOutgoing/getIncoming/getMatches).
-//  - Keep logic self-contained and router-safe; low coupling to Mongoose models.
-//  - Centralize day/time helpers via ../utils/dayKey.js but keep local wrappers for stability.
-//
-// What this implements (fully working):
-//  - POST /likes/:id (or :targetId)    → likeUser
-//       Response shapes:
-//         * 201 { ok:true, newLike:true,  remaining:<number|null>, resetAt:<ISO>, limit:<number|null>, timeZone:"Europe/Helsinki" }
-//         * 200 { ok:true, newLike:false, remaining:<number|null>, resetAt:<ISO>, limit:<number|null>, timeZone:"Europe/Helsinki" }
-//         * 429 { ok:false, code:"LIKE_QUOTA_EXCEEDED", remaining:0, resetAt:<ISO> }
-//         * 404 { ok:false, error:"Target user not found" }
-//         * 400 { ok:false, error:"Invalid user id format" | "You cannot like yourself" }
-//         * 401 { ok:false, error:"Unauthorized" }
-//  - DELETE /likes/:id (or :targetId)  → unlikeUser
-//       Response shape:
-//         * 200 { ok:true, unliked:true|false }
-//
-// Optional list endpoints (proxied if root controller exists):
-//  - listOutgoingLikes / listIncomingLikes / listMatches
-//    → Still proxied to a root controller if present, otherwise 501 (explicit).
-//
+// Version: 1.1 (always-push to rewind + dual-shape entries)
+// Goal:
+//   • Idempotent like/unlike.
+//   • Daily like quota for FREE users (Premium bypasses).
+//   • ALWAYS push the latest swipe intent to rewind stack (even if like already existed).
+//   • Keep loose coupling to models (use raw collections) and preserve legacy aliases.
 // Notes:
-//  - Data shape is minimal to avoid schema coupling:
-//      * Likes are stored in a plain "likes" collection (upsert ensures idempotency).
-//      * User quota counters kept in "users" collection:
-//            stats.likesDay   (string "YYYY-MM-DD" in Europe/Helsinki)
-//            stats.likesCount (number)
-//  - Daily quota: 30/day for non-premium users; premium users are not limited.
-//  - Timezone: Europe/Helsinki (day boundary + resetAt).
-//
-// Code style:
-//  - All comments in English.
-//  - Keep local helper wrappers to avoid breaking imports and keep file length stable.
-//  - Avoid unnecessary shortening; only make required improvements.
-//
-// -------------------------------------------------------------------------------------------------
+//   • Timezone boundaries use Europe/Helsinki.
+//   • Responses keep stable shapes for the frontend.
+//   • File is intentionally verbose (comments & helper wrappers) to keep diff length stable.
+// =================================================================================================
 
 import mongoose from "mongoose";
+
 import {
   dayKey as _dayKey,
   nextMidnightISO as _nextMidnightISO,
@@ -49,37 +24,52 @@ import {
 } from "../utils/dayKey.js";
 
 // -------------------------------------------------------------------------------------------------
-// Constants
+// Constants & tiny debug helper
 // -------------------------------------------------------------------------------------------------
 const DAILY_LIMIT_FREE = 30;
 const TZ = "Europe/Helsinki";
 
-// -------------------------------------------------------------------------------------------------
 /**
- * Local helper wrappers (for stability).
- * We keep these so the file shape and internal call sites remain unchanged.
- * Internally they delegate to ../utils/dayKey.js.
+ * Debug logger for this module only (no-op unless env flag set).
+ * Keeps log statements in code without noisy output by default.
  */
+function logLikesDebug(...args) {
+  if (process.env.DEBUG_LIKES === "1") {
+    // eslint-disable-next-line no-console
+    console.debug("[likes]", ...args);
+  }
+}
+
+// -------------------------------------------------------------------------------------------------
+// Local helpers (thin wrappers to keep call sites stable and explicit)
 // -------------------------------------------------------------------------------------------------
 
-/** Validate 24-hex ObjectId string (format-only). */
+/** Validate ObjectId string. Prefer Mongoose's validator, fallback to 24-hex. */
 function isValidObjectId(id) {
-  // Prefer mongoose validation if available, fallback to 24-hex
   if (mongoose?.Types?.ObjectId?.isValid) return mongoose.Types.ObjectId.isValid(id);
   return _is24Hex(id);
 }
 
-/** Return YYYY-MM-DD for the given instant in Europe/Helsinki. */
+/** Safe ObjectId creator (returns null when invalid). */
+function toObjectId(id) {
+  try {
+    return isValidObjectId(id) ? new mongoose.Types.ObjectId(id) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Return 'YYYY-MM-DD' for Europe/Helsinki. */
 function helsinkiDayKey(d = new Date()) {
   return _dayKey(d, TZ);
 }
 
-/** Return ISO instant for next midnight in Europe/Helsinki. */
+/** Return ISO for next midnight (Europe/Helsinki). */
 function nextMidnightHelsinkiISO(now = new Date()) {
   return _nextMidnightISO(now, TZ);
 }
 
-/** Resolve authenticated user id from various middlewares. */
+/** Extract authenticated user id from various middlewares. */
 function getAuthUserId(req) {
   return (
     req?.user?.id ||
@@ -93,7 +83,7 @@ function getAuthUserId(req) {
 }
 
 // -------------------------------------------------------------------------------------------------
-// Low-level collection access (loose coupling to model files)
+// Raw collection access (avoid coupling to specific schema files)
 // -------------------------------------------------------------------------------------------------
 function usersCollection() {
   return mongoose.connection.collection("users");
@@ -102,55 +92,127 @@ function likesCollection() {
   return mongoose.connection.collection("likes");
 }
 
-/** Ensure unique index on (userId, targetId) for idempotent likes. */
+/** Ensure unique index for idempotent likes (userId+targetId). */
 async function ensureLikesIndex() {
   try {
     const coll = likesCollection();
-    await coll.createIndex(
-      { userId: 1, targetId: 1 },
-      { unique: true, name: "uniq_user_target" }
+    await coll.createIndex({ userId: 1, targetId: 1 }, { unique: true, name: "uniq_user_target" });
+  } catch (e) {
+    // Index may already exist or another process created it; non-fatal.
+    logLikesDebug("ensureLikesIndex:", e?.message || e);
+  }
+}
+
+/**
+ * Push a rewind action to the user's stack.
+ * We keep newest first ($position:0) so popping is O(1) at index 0.
+ *
+ * IMPORTANT: We write both shapes to be schema-agnostic:
+ *  - New:   { type:'like', targetId:ObjectId, createdAt:Date }
+ *  - Legacy:{ action:'like', target:ObjectId, at:Date }
+ */
+async function pushRewindAction(userObjId, action) {
+  try {
+    const Users = usersCollection();
+
+    const createdAt = action?.createdAt || action?.at || new Date();
+    const type = action?.type || action?.action || "like";
+    const targetId = action?.targetId || action?.target || null;
+
+    const dual = {
+      // modern
+      type,
+      targetId,
+      createdAt,
+      // legacy mirror
+      action: type,
+      target: targetId,
+      at: createdAt,
+    };
+
+    const r = await Users.updateOne(
+      { _id: userObjId },
+      {
+        $push: {
+          "rewind.stack": {
+            $each: [dual],
+            $position: 0,  // newest first
+            $slice: -50,   // cap to 50
+          },
+        },
+        $setOnInsert: { "rewind.max": 50 }, // harmless if document exists (no upsert)
+      }
     );
-  } catch {
-    // benign if it already exists or if a race happened
+
+    if (process.env.DEBUG_LIKES === "1") {
+      logLikesDebug("pushRewindAction result:", {
+        matched: r?.matchedCount,
+        modified: r?.modifiedCount,
+        acknowledged: r?.acknowledged,
+      });
+    }
+  } catch (e) {
+    logLikesDebug("pushRewindAction:", e?.message || e);
+  }
+}
+
+/** Mirror like to legacy users.likes array (best-effort). */
+async function mirrorLikeAdd(userObjId, targetObjId) {
+  try {
+    await usersCollection()
+      .updateOne({ _id: userObjId }, { $addToSet: { likes: targetObjId } });
+  } catch (e) {
+    logLikesDebug("mirrorLikeAdd:", e?.message || e);
+  }
+}
+
+/** Mirror unlike removal from legacy users.likes array (best-effort). */
+async function mirrorLikeRemove(userObjId, targetObjId) {
+  try {
+    await usersCollection()
+      .updateOne({ _id: userObjId }, { $pull: { likes: targetObjId } });
+  } catch (e) {
+    logLikesDebug("mirrorLikeRemove:", e?.message || e);
   }
 }
 
 // -------------------------------------------------------------------------------------------------
-// Controller: likeUser
-//  - Idempotent creation of a like relation
-//  - Enforces daily quota for FREE users
-//  - Premium users bypass quota entirely
+// likeUser — idempotent like + free-tier daily quota + rewind push
 // -------------------------------------------------------------------------------------------------
 export async function likeUser(req, res) {
   try {
-    // Accept :targetId or :id from route
-    const targetId = req?.params?.targetId || req?.params?.id;
-    if (!isValidObjectId(targetId)) {
+    // Accept :targetId or :id from route params (router supports both)
+    const rawTarget = req?.params?.targetId || req?.params?.id || req?.body?.targetId || req?.body?.id;
+    if (!isValidObjectId(rawTarget)) {
       return res.status(400).json({ ok: false, error: "Invalid user id format" });
     }
 
-    const authUserId = getAuthUserId(req);
-    if (!isValidObjectId(authUserId)) {
+    const rawAuth = getAuthUserId(req);
+    if (!isValidObjectId(rawAuth)) {
       return res.status(401).json({ ok: false, error: "Unauthorized" });
     }
-    if (String(authUserId) === String(targetId)) {
+    if (String(rawAuth) === String(rawTarget)) {
       return res.status(400).json({ ok: false, error: "You cannot like yourself" });
+    }
+
+    const userObjId = toObjectId(rawAuth);
+    const targetObjId = toObjectId(rawTarget);
+    if (!userObjId || !targetObjId) {
+      return res.status(400).json({ ok: false, error: "Invalid user id format" });
     }
 
     const Users = usersCollection();
     const Likes = likesCollection();
+
     await ensureLikesIndex();
 
-    const userObjId = new mongoose.Types.ObjectId(authUserId);
-    const targetObjId = new mongoose.Types.ObjectId(targetId);
-
-    // 1) Validate target existence (fast projection)
+    // 1) Validate that the target user exists (fast projection)
     const target = await Users.findOne({ _id: targetObjId }, { projection: { _id: 1 } });
     if (!target) {
       return res.status(404).json({ ok: false, error: "Target user not found" });
     }
 
-    // 2) Load current user flags relevant for premium/quota
+    // 2) Load premium/quota flags from the acting user
     const me = await Users.findOne(
       { _id: userObjId },
       { projection: { isPremium: 1, premium: 1, entitlements: 1, stats: 1 } }
@@ -163,34 +225,24 @@ export async function likeUser(req, res) {
       !!me?.entitlements?.features?.noAds ||
       false;
 
-    // Daily keys (computed even for premium so UI can consistently show resetAt)
+    // Compute day/resetAt even for premium to keep response shape stable
     const today = helsinkiDayKey();
     const resetAt = nextMidnightHelsinkiISO();
 
-    // 3) Idempotent upsert of like relation
-    //    - New like  → upsertedCount = 1  → newLike=true
-    //    - Existing  → upsertedCount = 0  → newLike=false
+    // 3) Upsert like (idempotent)
     const up = await Likes.updateOne(
       { userId: userObjId, targetId: targetObjId },
-      {
-        $setOnInsert: {
-          userId: userObjId,
-          targetId: targetObjId,
-          createdAt: new Date(),
-        },
-      },
+      { $setOnInsert: { userId: userObjId, targetId: targetObjId, createdAt: new Date() } },
       { upsert: true }
     );
-
     const newLike = !!up.upsertedCount;
+    logLikesDebug("likeUser upsert:", { newLike, userId: String(userObjId), targetId: String(targetObjId) });
 
-    // 4) Load or init counters (FREE users only)
+    // 4) Prepare quota counters (FREE only)
     let likesDay = me?.stats?.likesDay || null;
-    let likesCount =
-      typeof me?.stats?.likesCount === "number" ? me.stats.likesCount : 0;
+    let likesCount = typeof me?.stats?.likesCount === "number" ? me.stats.likesCount : 0;
 
     if (!isPremium) {
-      // Reset window on day rollover
       if (likesDay !== today) {
         likesDay = today;
         likesCount = 0;
@@ -202,18 +254,25 @@ export async function likeUser(req, res) {
       }
     }
 
-    // 5) Enforce quota (FREE only) but only for *new* likes
-    if (!isPremium && newLike) {
-      if (likesCount >= DAILY_LIMIT_FREE) {
-        // Roll back the inserted like to keep DB consistent
-        await Likes.deleteOne({ userId: userObjId, targetId: targetObjId }).catch(() => {});
-        return res
-          .status(429)
-          .json({ ok: false, code: "LIKE_QUOTA_EXCEEDED", remaining: 0, resetAt });
-      }
+    // 5) Enforce daily limit only when a NEW like happens on FREE tier
+    if (!isPremium && newLike && likesCount >= DAILY_LIMIT_FREE) {
+      // Roll back inserted like to keep DB consistent
+      await Likes.deleteOne({ userId: userObjId, targetId: targetObjId }).catch(() => {});
+      return res
+        .status(429)
+        .json({ ok: false, code: "LIKE_QUOTA_EXCEEDED", remaining: 0, resetAt });
     }
 
-    // 6) If we actually created a new like and user is FREE → increment counters
+    // --- REPLACE START: side-effects & quotas (always push to rewind stack) ---
+    // 6) Side effects: mirror only when it's a brand-new like, but ALWAYS push rewind intent
+    if (newLike) {
+      await mirrorLikeAdd(userObjId, targetObjId); // legacy array for older UIs
+    }
+
+    // ✅ Always record the user's latest swipe intent to the rewind stack
+    await pushRewindAction(userObjId, { type: "like", targetId: targetObjId });
+
+    // 7) If FREE and new like → bump counters
     if (!isPremium && newLike) {
       likesCount += 1;
       await Users.updateOne(
@@ -221,8 +280,9 @@ export async function likeUser(req, res) {
         { $set: { "stats.likesDay": today, "stats.likesCount": likesCount } }
       );
     }
+    // --- REPLACE END ---
 
-    // 7) Compute remaining for response (FREE only). For premium, use null.
+    // 8) Respond with stable shape
     const remaining = isPremium ? null : Math.max(DAILY_LIMIT_FREE - likesCount, 0);
     const status = newLike ? 201 : 200;
 
@@ -235,46 +295,46 @@ export async function likeUser(req, res) {
       timeZone: TZ,
     });
   } catch (err) {
-    return res
-      .status(500)
-      .json({ ok: false, error: err?.message || "Internal error" });
+    logLikesDebug("likeUser error:", err?.message || err);
+    return res.status(500).json({ ok: false, error: err?.message || "Internal error" });
   }
 }
 
 // -------------------------------------------------------------------------------------------------
-// Controller: unlikeUser
-//  - Removes like relation if it exists (idempotent; does not restore quota)
+// unlikeUser — idempotent removal (+ mirror pull from users.likes)
 // -------------------------------------------------------------------------------------------------
 export async function unlikeUser(req, res) {
   try {
-    const targetId = req?.params?.targetId || req?.params?.id;
-    if (!isValidObjectId(targetId)) {
+    const rawTarget = req?.params?.targetId || req?.params?.id;
+    if (!isValidObjectId(rawTarget)) {
       return res.status(400).json({ ok: false, error: "Invalid user id format" });
     }
 
-    const authUserId = getAuthUserId(req);
-    if (!isValidObjectId(authUserId)) {
+    const rawAuth = getAuthUserId(req);
+    if (!isValidObjectId(rawAuth)) {
       return res.status(401).json({ ok: false, error: "Unauthorized" });
     }
 
+    const userObjId = toObjectId(rawAuth);
+    const targetObjId = toObjectId(rawTarget);
+    if (!userObjId || !targetObjId) {
+      return res.status(400).json({ ok: false, error: "Invalid user id format" });
+    }
+
     const Likes = likesCollection();
-    const result = await Likes.deleteOne({
-      userId: new mongoose.Types.ObjectId(authUserId),
-      targetId: new mongoose.Types.ObjectId(targetId),
-    });
+
+    const result = await Likes.deleteOne({ userId: userObjId, targetId: targetObjId });
+    await mirrorLikeRemove(userObjId, targetObjId);
 
     return res.status(200).json({ ok: true, unliked: result?.deletedCount > 0 });
   } catch (err) {
-    return res
-      .status(500)
-      .json({ ok: false, error: err?.message || "Internal error" });
+    logLikesDebug("unlikeUser error:", err?.message || err);
+    return res.status(500).json({ ok: false, error: err?.message || "Internal error" });
   }
 }
 
 // -------------------------------------------------------------------------------------------------
-// Optional list endpoints
-//  - We try to proxy into a root controller (../../controllers/likesController.js) if it exists.
-//  - If not, we return 501 to make missing coverage explicit.
+// Optional list endpoints (proxy to root controller if available)
 // -------------------------------------------------------------------------------------------------
 let _rootCtrl = null;
 
@@ -286,6 +346,7 @@ async function getRootCtrl() {
   } catch (e) {
     try {
       // eslint-disable-next-line n/no-missing-require, import/no-commonjs, global-require
+      // @ts-ignore
       const cjs = require("../../controllers/likesController.js");
       _rootCtrl = cjs?.default ? cjs.default : cjs;
     } catch {
@@ -298,38 +359,37 @@ async function getRootCtrl() {
 export async function listOutgoingLikes(req, res) {
   try {
     const ctrl = await getRootCtrl();
-    const impl =
-      ctrl?.listOutgoingLikes ||
-      ctrl?.getOutgoing ||
-      ctrl?.outgoing ||
-      ctrl?.listOutgoing;
+    const impl = ctrl?.listOutgoingLikes || ctrl?.getOutgoing || ctrl?.outgoing || ctrl?.listOutgoing;
     if (typeof impl === "function") return impl(req, res);
-    return res
-      .status(501)
-      .json({ ok: false, error: "likesController.listOutgoingLikes not available" });
+
+    // Light fallback using mirrored ids; avoids heavy hydration
+    const authUserId = getAuthUserId(req);
+    if (!isValidObjectId(authUserId)) {
+      return res.status(401).json({ ok: false, error: "Unauthorized" });
+    }
+    const me = await usersCollection().findOne(
+      { _id: toObjectId(authUserId) },
+      { projection: { likes: 1 } }
+    );
+    const ids = Array.isArray(me?.likes) ? me.likes : [];
+    return res.status(200).json({ ok: true, count: ids.length, users: [] });
   } catch (err) {
-    return res
-      .status(500)
-      .json({ ok: false, error: err?.message || "Internal error" });
+    logLikesDebug("listOutgoingLikes error:", err?.message || err);
+    return res.status(500).json({ ok: false, error: err?.message || "Internal error" });
   }
 }
 
 export async function listIncomingLikes(req, res) {
   try {
     const ctrl = await getRootCtrl();
-    const impl =
-      ctrl?.listIncomingLikes ||
-      ctrl?.getIncoming ||
-      ctrl?.incoming ||
-      ctrl?.listIncoming;
+    const impl = ctrl?.listIncomingLikes || ctrl?.getIncoming || ctrl?.incoming || ctrl?.listIncoming;
     if (typeof impl === "function") return impl(req, res);
     return res
       .status(501)
       .json({ ok: false, error: "likesController.listIncomingLikes not available" });
   } catch (err) {
-    return res
-      .status(500)
-      .json({ ok: false, error: err?.message || "Internal error" });
+    logLikesDebug("listIncomingLikes error:", err?.message || err);
+    return res.status(500).json({ ok: false, error: err?.message || "Internal error" });
   }
 }
 
@@ -342,32 +402,25 @@ export async function listMatches(req, res) {
       .status(501)
       .json({ ok: false, error: "likesController.listMatches not available" });
   } catch (err) {
-    return res
-      .status(500)
-      .json({ ok: false, error: err?.message || "Internal error" });
+    logLikesDebug("listMatches error:", err?.message || err);
+    return res.status(500).json({ ok: false, error: err?.message || "Internal error" });
   }
 }
 
 // -------------------------------------------------------------------------------------------------
-// Backward-compat named exports (aliases)
+// Backward-compat aliases & default export
 // -------------------------------------------------------------------------------------------------
 export const getOutgoing = listOutgoingLikes;
 export const getIncoming = listIncomingLikes;
 export const getMatches = listMatches;
 
-// -------------------------------------------------------------------------------------------------
-// Default export (for routers that do `import ctrl from ...`)
-// -------------------------------------------------------------------------------------------------
 const defaultExport = {
   likeUser,
   unlikeUser,
-
-  // New names
   listOutgoingLikes,
   listIncomingLikes,
   listMatches,
-
-  // Legacy aliases
+  // aliases
   getOutgoing,
   getIncoming,
   getMatches,
@@ -375,9 +428,7 @@ const defaultExport = {
 
 export default defaultExport;
 
-// -------------------------------------------------------------------------------------------------
 // Optional CJS interop (safe no-op in pure ESM)
-// -------------------------------------------------------------------------------------------------
 try {
   // eslint-disable-next-line no-undef
   if (typeof module !== "undefined" && module.exports) {
@@ -388,3 +439,6 @@ try {
   // no-op
 }
 // --- REPLACE END ---
+
+
+

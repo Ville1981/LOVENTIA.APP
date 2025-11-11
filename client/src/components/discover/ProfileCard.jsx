@@ -1,6 +1,6 @@
 // PATH: client/src/components/discover/ProfileCard.jsx
 
-// --- REPLACE START: ProfileCard – normalize location (string → object), robust image URLs, remove bad ESLint directive ---
+// --- REPLACE START: ProfileCard – normalize location (string → object), robust image URLs, and add RewindButton (premium-gated) ---
 import PropTypes from "prop-types";
 import React, { memo, useEffect, useMemo, useState } from "react";
 
@@ -11,6 +11,7 @@ import PhotoCarousel from "./PhotoCarousel";
 import StatsPanel from "./StatsPanel";
 import SummaryAccordion from "./SummaryAccordion";
 import { BACKEND_BASE_URL } from "../../utils/config";
+import RewindButton from "../RewindButton"; // Added: premium-gated rewind button
 
 // Demo-only fallback photos (used when user.photos is empty).
 // Bunny images are only used for demo/prototype purposes.
@@ -26,7 +27,7 @@ const ProfileCard = ({ user, onPass, onLike, onSuperlike }) => {
   const [error, setError] = useState(null);
 
   /**
-   * Helper: normalize any raw image reference into a fully resolvable URL.
+   * Normalize any raw image reference into a fully resolvable URL.
    * Rules:
    *  - Absolute http(s) → return as-is
    *  - /uploads/... or bare filename → prefix with BACKEND_BASE_URL
@@ -92,7 +93,7 @@ const ProfileCard = ({ user, onPass, onLike, onSuperlike }) => {
   const displayName = user?.name || user?.username || "Unknown";
   const id = (user?.id || user?._id || "").toString();
 
-  // --- Normalize location (Option A): if string, coerce to object for safe consumers ---
+  // Normalize location: accept both string and object, coerce to a uniform object
   const normalizedLocation = useMemo(() => {
     const raw = user?.location;
     if (!raw) {
@@ -170,6 +171,11 @@ const ProfileCard = ({ user, onPass, onLike, onSuperlike }) => {
           onLike={() => onLike(id)}
           onSuperlike={() => onSuperlike(id)}
         />
+
+        {/* Rewind control (premium-gated via internal FeatureGate in the component) */}
+        <div className="flex justify-end">
+          <RewindButton compact className="mt-2" />
+        </div>
 
         {/* Summary */}
         <SummaryAccordion summary={user?.summary} />

@@ -7,28 +7,12 @@ import express from "express";
 // Some route files export using `export default router` (ESM),
 // others may export as `{ router }` or `module.exports = router` (CJS interop compiled to ESM namespace).
 // To avoid "does not provide an export named 'default'" errors, we import as namespace and pick the router.
-
-function pickRouter(ns) {
-  // Prefer ESM default, then a named `router`, else the namespace itself if it's a function
-  return (ns && (ns.default || ns.router)) || (typeof ns === "function" ? ns : null);
-}
-
-// Verified / known routes in this project. Keep list explicit to avoid accidental duplicates.
 import * as adminNS from "./admin.js";
 import * as adminMetricsNS from "./adminMetrics.js";
 import * as adminRoutesNS from "./adminRoutes.js";
-
-// ⬇️ This is the new ESM auth router (server/src/routes/auth.js).
-// We will mount THIS first at /api/auth/* so /api/auth/me works and does not get shadowed.
 import * as authNS from "./auth.js";
-
-// ⬇️ Private auth routes: only /private/*, explicitly does NOT define /me
-// (we tested it with PowerShell: it said “does NOT define /me, use /api/auth/me”).
 import * as authPrivateRoutesNS from "./authPrivateRoutes.js";
-
-// Legacy / segmented auth (older structure) — we make this opt-in via env.
 import * as authRoutesNS from "./authRoutes.js";
-
 import * as billingNS from "./billing.js";
 import * as dealbreakersNS from "./dealbreakers.js";
 // ⚠️ Discover mounts are centralized in app.js to avoid duplicates/shadowing.
@@ -39,7 +23,6 @@ import * as imageRoutesNS from "./imageRoutes.js";
 import * as introsNS from "./intros.js";
 import * as likesNS from "./likes.js";
 import * as meNS from "./me.js";
-// messages.js default-exports a router:
 import * as messagesNS from "./messages.js";
 import * as metricsRoutesNS from "./metricsRoutes.js";
 import * as moderationNS from "./moderation.js";
@@ -55,8 +38,13 @@ import * as superlikeNS from "./superlike.js";
 import * as superlikesNS from "./superlikes.js";
 import * as userRoutesNS from "./userRoutes.js";
 import * as usersNS from "./users.js";
+import authenticate from "../middleware/authenticate.js";
 
-// Normalize to actual routers (functions/middleware)
+function pickRouter(ns) {
+  // Prefer ESM default, then a named `router`, else the namespace itself if it's a function
+  return (ns && (ns.default || ns.router)) || (typeof ns === "function" ? ns : null);
+}
+
 const admin = pickRouter(adminNS);
 const adminMetrics = pickRouter(adminMetricsNS);
 const adminRoutes = pickRouter(adminRoutesNS);
@@ -101,6 +89,17 @@ const use = (path, r, name) => {
   console.log(`[routes] mounted ${name || path} at ${path}`);
 };
 
+// Helper: like `use` but ensures requests pass through `authenticate` first.
+// This keeps auth local to sensitive bases without changing global behavior.
+const useAuth = (path, r, name) => {
+  if (!r || (typeof r !== "function" && typeof r.use !== "function")) {
+    console.warn(`[routes] skipped (auth) ${name || path} (no valid router)`);
+    return;
+  }
+  router.use(path, authenticate, r);
+  console.log(`[routes] mounted (auth) ${name || path} at ${path}`);
+};
+
 /**
  * NOTE on mount bases:
  * app.js uses `app.use('/api', routes)` → mounting at '/' here means they show under /api/*.
@@ -126,21 +125,16 @@ if (adminMetrics) {
 
 // --- REPLACE START: auth mount order — NEW ESM AUTH FIRST, THEN ALWAYS PRIVATE, THEN OPTIONAL LEGACY ---
 // 1) New main auth router (the big one with /me, reset, forgot, register, refresh, logout)
-//    This must be FIRST so that /api/auth/me, /api/auth/forgot-password, /api/auth/reset-password
-//    hit the new logic instead of the old placeholder.
 if (auth) {
   use("/auth", auth, "auth"); // → /api/auth/*
 }
 
 // 2) ALWAYS mount the lightweight private auth router.
-//    WHY: keep `/api/auth/private/ping` etc. available to prove token packing works.
-//    This router no longer defines /me, so it will NOT shadow /api/auth/me.
 if (authPrivateRoutes) {
   use("/auth", authPrivateRoutes, "authPrivateRoutes"); // → /api/auth/private/*
 }
 
-// 3) Legacy/public segmented auth routes (old structure).
-//    We keep them ONLY IF env or explicit flag says so.
+// 3) Legacy/public segmented auth routes (old structure) — opt-in only.
 const ENABLE_AUTH_LEGACY =
   process.env.ENABLE_AUTH_LEGACY === "true" ||
   process.env.ENABLE_AUTH_LEGACY === "1";
@@ -185,8 +179,15 @@ if (ENABLE_USERS_LEGACY && users) {
 // (we mount them under their own bases so they won't pollute /api/* with /:id style routes)
 use("/messages", messages, "messages");
 use("/likes", likes, "likes");
-use("/superlikes", superlikes, "superlikes");
-use("/superlike", superlike, "superlike"); // single-id variant
+
+// --- REPLACE START: ENFORCE AUTH for both superlike variants ---
+// Path-parameter variant: POST /api/superlike/:id
+// Body-alias variant:     POST /api/superlikes  { targetUserId }
+// These two must be protected with JWT. We require auth on both bases.
+useAuth("/superlike", superlike, "superlike");
+useAuth("/superlikes", superlikes, "superlikes");
+// --- REPLACE END ---
+
 use("/rewind", rewind, "rewind");
 
 // Features

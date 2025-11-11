@@ -6,6 +6,9 @@
  */
 
 import React from "react";
+// --- REPLACE START: add centralized no-ads gate (Premium kill-switch) ---
+import AdGate from "./AdGate"; // wraps ad content; hides on Premium / noAds feature
+// --- REPLACE END ---
 
 export default function HeaderAdSlot({ className = "" }) {
   // --- REPLACE START: adjust fill behavior and height (cover + 180px) ---
@@ -37,16 +40,20 @@ export default function HeaderAdSlot({ className = "" }) {
       aria-label="Header advertisement"
       style={WRAP_STYLES} // --- REPLACE START/END applied here ---
     >
-      <img
-        src="/ads/header.png"
-        alt="Sponsored"
-        className="promo-header-img w-full block" // no max-width/mx-auto clamps
-        // --- REPLACE START: enforce full-width + fixed-height + cover ---
-        style={IMG_STYLES}
-        // --- REPLACE END ---
-        loading="lazy"
-        decoding="async"
-      />
+      {/* --- REPLACE START: gate the ad content (renders only when ads are allowed) --- */}
+      <AdGate type="inline" debug={false}>
+        <img
+          src="/ads/header.png"
+          alt="Sponsored"
+          className="promo-header-img w-full block" // no max-width/mx-auto clamps
+          // Enforce full-width + fixed-height + cover
+          style={IMG_STYLES}
+          loading="lazy"
+          decoding="async"
+        />
+      </AdGate>
+      {/* --- REPLACE END --- */}
     </div>
   );
 }
+

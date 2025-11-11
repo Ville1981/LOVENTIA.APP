@@ -1,14 +1,15 @@
 ﻿// File: client/src/components/AdGate.jsx
 
-// --- REPLACE START: stabilize impressions (once per mount) + DEV override-friendly debug visibility ---
+// --- REPLACE START: unify Premium/No-Ads kill-switch via AuthContext, preserve existing impression logic & dev debug ---
 import React, { useEffect, useRef } from "react";
 import useAds from "../hooks/useAds";
 import { createLogger } from "../utils/debugLog";
+import { useAuth } from "../contexts/AuthContext"; // single source for isPremium & entitlements
 const log = createLogger("AdGate");
 
 /**
  * AdGate
- * Wrap any ad component. Renders children only when useAds() allows the given type.
+ * Wrap any ad component. Renders children only when ads are allowed.
  *
  * Props:
  *  - type: "inline" | "overlay" | "interstitial"  (default: "inline")
@@ -24,17 +25,30 @@ const log = createLogger("AdGate");
  *          - we log that overlay/interstitial are being forced allowed (for visibility parity in logs),
  *          - but we DO NOT increment real impressions unless localStorage['ads:forceCount']==='1'.
  *      * This affects ONLY logging + impression counting, NOT actual gating/visibility.
+ *
+ * Premium/No-Ads (global kill-switch):
+ *  - If AuthContext reports user.isPremium === true OR entitlements.features.noAds === true,
+ *    we do NOT render ads (return null) and we DO NOT count impressions.
  */
 export default function AdGate({ type = "inline", onImpression, debug = false, children }) {
   const ads = useAds();
 
-  // Base allowed from useAds (we do not alter gating here to avoid changing product behavior)
-  const allowed =
+  // Read Premium / No-Ads from the single source of truth (AuthContext)
+  const { user } = useAuth() ?? {};
+  const userIsPremium = !!(user?.isPremium || user?.premium);
+  const userNoAdsFeature = !!user?.entitlements?.features?.noAds;
+  const noAdsGlobal = userIsPremium || userNoAdsFeature; // ← global kill-switch
+
+  // Base allow from current ads rules (consent, caps, etc.)
+  const allowedByAdsRules =
     type === "interstitial"
       ? ads.canShow.interstitial
       : type === "overlay"
       ? ads.canShow.overlay
       : ads.canShow.inline;
+
+  // Final allow = ads rules AND NOT (global no-ads)
+  const allowed = allowedByAdsRules && !noAdsGlobal;
 
   // DEV-only override flags (used for logging and impression suppression)
   const devOverride =
@@ -60,34 +74,45 @@ export default function AdGate({ type = "inline", onImpression, debug = false, c
     const payload = {
       type,
       allowed,
+      allowedByAdsRules,
+      // useAds snapshot
       flags: ads.flags,
       hasConsent: ads.hasConsent,
-      isPremium: ads.isPremium,
+      adsIsPremium: ads.isPremium,
       capPerDay: ads.capPerDay,
+      // AuthContext snapshot (source of truth for No-Ads)
+      userIsPremium,
+      userNoAdsFeature,
+      noAdsGlobal,
       notedOnce: notedOnceRef.current,
       dev: { devOverride, devForceCount },
     };
 
-    // Log primary state
     // eslint-disable-next-line no-console
     console.info("[AdGate]", payload);
 
-    // If dev override is active, make it explicit in logs for overlay/interstitial
-    if (devOverride && (type === "overlay" || type === "interstitial")) {
+    if (noAdsGlobal) {
       // eslint-disable-next-line no-console
-      console.info("[AdGate] DEV override active -> treating as allowed in logs (rendering still respects useAds).", {
-        type,
-        noteCounting: devForceCount ? "ENABLED (devForceCount=1)" : "DISABLED (no cap impact)",
-      });
+      console.info("[AdGate] Global no-ads is active (Premium or feature). Ad content will not render.");
+    } else if (devOverride && (type === "overlay" || type === "interstitial")) {
+      // eslint-disable-next-line no-console
+      console.info(
+        "[AdGate] DEV override active -> treating as allowed in logs (rendering still respects useAds).",
+        { type, noteCounting: devForceCount ? "ENABLED (devForceCount=1)" : "DISABLED (no cap impact)" }
+      );
     }
   }, [
     debug,
     type,
     allowed,
+    allowedByAdsRules,
     ads.flags,
     ads.hasConsent,
     ads.isPremium,
     ads.capPerDay,
+    userIsPremium,
+    userNoAdsFeature,
+    noAdsGlobal,
     devOverride,
     devForceCount,
   ]);
@@ -172,6 +197,7 @@ export default function AdGate({ type = "inline", onImpression, debug = false, c
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allowed, type, onImpression, debug, devOverride, devForceCount]);
 
+  // Short-circuit: global no-ads or disallowed by ads rules
   if (!allowed) return null;
 
   // Interstitial returns children directly (no wrapper)

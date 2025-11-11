@@ -12,14 +12,23 @@
  *      - models/User.cjs
  *      - models/User.js
  * 2. If all of those fail → define a BROAD fallback schema here (strict: false) so the app keeps running.
- * 3. Augment the loaded schema with missing common fields (images, billing, entitlements, password reset).
+ * 3. Augment the loaded schema with missing common fields (images, billing, entitlements, password reset, rewind).
+ *
+ * Guarantees (even with strict schemas):
+ *   - entitlements.features.superLikesPerWeek: Number (default 3)
+ *   - entitlements.quotas.superLikes: { used: Number (default 0), weekKey: String (''), window: String ('') }
+ *   - rewind.stack / rewind.max added **only if missing** (non-breaking augment)
  *
  * This file must stay ESM because the rest of src/ imports it as:
  *    import User from '../models/User.js'
  */
 
-import path from 'node:path';
+'use strict';
+
 import { createRequire } from 'node:module';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import mongoose from 'mongoose';
 
 const require = createRequire(import.meta.url);
@@ -40,30 +49,24 @@ function tryLoadCJS(absPath) {
       return mdl;
     }
     return null;
-  } catch (err) {
-    // Keep this quiet-ish, but show the path so we know what was tried
-    // console.log(`[UserModel] Not found at ${absPath}: ${err?.message || err}`);
+  } catch {
     return null;
   }
 }
 
-// We normalize base dirs so we cover Windows + project-root runs
+// Normalize dirs to support Windows & POSIX
 const PROJECT_ROOT = process.cwd();
-const THIS_DIR = path.dirname(new URL(import.meta.url).pathname);
+const THIS_DIR = path.dirname(fileURLToPath(import.meta.url));
 
-// --- REPLACE START: expanded candidate list (look for both .cjs and .js) ---
+// Candidate paths (CJS/JS) for external model
 const CANDIDATES = [
-  // Most common in your project: server/models/User.cjs
   path.resolve(PROJECT_ROOT, 'server/models/User.cjs'),
   path.resolve(PROJECT_ROOT, 'server/models/User.js'),
-  // Also allow just models/ at project root
   path.resolve(PROJECT_ROOT, 'models/User.cjs'),
   path.resolve(PROJECT_ROOT, 'models/User.js'),
-  // Relative to this ESM file (server/src/models/User.js → ../../models/User.cjs|.js)
   path.resolve(THIS_DIR, '../../models/User.cjs'),
   path.resolve(THIS_DIR, '../../models/User.js'),
 ];
-// --- REPLACE END ---
 
 let LoadedUser = null;
 
@@ -78,9 +81,10 @@ if (!LoadedUser) {
 
   const { Schema, models, model } = mongoose;
 
+  // --- Fallback schema defines entitlements/features + quotas with correct types ---
   const featuresShape = {
     seeLikedYou:       { type: Boolean, default: false },
-    superLikesPerWeek: { type: Number,  default: 0 },
+    superLikesPerWeek: { type: Number,  default: 3 },        // default 3 to match app expectations
     unlimitedLikes:    { type: Boolean, default: false },
     unlimitedRewinds:  { type: Boolean, default: false },
     dealbreakers:      { type: Boolean, default: false },
@@ -91,8 +95,9 @@ if (!LoadedUser) {
 
   const quotasShape = {
     superLikes: {
-      used:   { type: Number, default: 0 },
-      window: { type: String, default: 'weekly' },
+      used:    { type: Number, default: 0 },                 // required field for quota persistence
+      weekKey: { type: String, default: '' },                // ISO week key, e.g. "2025-W45"
+      window:  { type: String, default: '' },                // legacy alias of weekKey
     },
   };
 
@@ -119,10 +124,13 @@ if (!LoadedUser) {
       premium:   { type: Boolean, default: false },
 
       // Billing
-      stripeCustomerId: { type: String, index: true, sparse: true, default: undefined },
+      stripeCustomerId: { type: String, index: true, sparse: true, default: null },
       subscriptionId:   { type: String, default: null },
+      billing: {
+        stripeCustomerId: { type: String, default: null },
+      },
 
-      // Entitlements
+      // Entitlements (fallback provides full structure)
       entitlements: { type: EntitlementsSchema, default: {} },
 
       // Media
@@ -138,14 +146,26 @@ if (!LoadedUser) {
       passwordResetUsedAt:  { type: Date, default: null },
 
       // Visibility
-      hidden:       { type: Boolean, default: false },
-      isHidden:     { type: Boolean, default: false },
-      hiddenUntil:  { type: Date, default: undefined },
-      resumeOnLogin:{ type: Boolean, default: false },
+      hidden:        { type: Boolean, default: false },
+      isHidden:      { type: Boolean, default: false },
+      hiddenUntil:   { type: Date, default: undefined },
+      resumeOnLogin: { type: Boolean, default: false },
       visibility: {
         isHidden:      { type: Boolean, default: false },
         hiddenUntil:   { type: Date, default: undefined },
         resumeOnLogin: { type: Boolean, default: false },
+      },
+
+      // ✅ Rewind (fallback definition so Like → Rewind flow always works)
+      rewind: {
+        stack: [
+          {
+            action: { type: String, default: 'like' }, // 'like' | 'pass' | 'superlike' (optional)
+            target: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+            at:     { type: Date, default: () => new Date() },
+          },
+        ],
+        max: { type: Number, default: 50 },
       },
     },
     {
@@ -156,13 +176,14 @@ if (!LoadedUser) {
 
   LoadedUser = models.User || model('User', FallbackUserSchema);
 } else {
-  // --- REPLACE START: augment loaded schema with password reset & media if missing ---
+  // Augment loaded schema with any missing fields (non-breaking)
   try {
     const s = LoadedUser?.schema;
     const { Schema } = mongoose;
     if (s) {
       const additions = {};
 
+      // Media & password reset helpers
       if (!s.path('profilePicture')) additions.profilePicture = { type: String, default: undefined };
       if (!s.path('profilePhoto'))   additions.profilePhoto   = { type: String, default: undefined };
       if (!s.path('avatar'))         additions.avatar         = { type: String, default: undefined };
@@ -179,6 +200,92 @@ if (!LoadedUser) {
         additions.passwordResetUsedAt = { type: Date, default: null };
       }
 
+      // Billing: canonical nested + legacy top-level for compatibility
+      if (!s.path('billing.stripeCustomerId')) {
+        s.add({ 'billing.stripeCustomerId': { type: String, default: null } });
+        console.warn('[UserModel] Schema augmented with: billing.stripeCustomerId');
+      }
+      if (!s.path('stripeCustomerId')) {
+        s.add({ stripeCustomerId: { type: String, default: null } });
+      }
+      if (!s.path('subscriptionId')) {
+        s.add({ subscriptionId: { type: String, default: null } });
+      }
+
+      // Ensure ENTITLEMENTS exists; if not, add a minimal, non-breaking sub-schema
+      const needEntitlements = !s.path('entitlements');
+      if (needEntitlements) {
+        const FeaturesSub = new Schema(
+          {
+            seeLikedYou:       { type: Boolean, default: false },
+            superLikesPerWeek: { type: Number,  default: 3 },       // default 3 to match app expectations
+            unlimitedLikes:    { type: Boolean, default: false },
+            unlimitedRewinds:  { type: Boolean, default: false },
+            dealbreakers:      { type: Boolean, default: false },
+            qaVisibilityAll:   { type: Boolean, default: false },
+            introsMessaging:   { type: Boolean, default: false },
+            noAds:             { type: Boolean, default: false },
+          },
+          { _id: false, strict: false }
+        );
+
+        const QuotasSub = new Schema(
+          {
+            superLikes: {
+              used:    { type: Number, default: 0 },                // required for quota persistence
+              weekKey: { type: String, default: '' },
+              window:  { type: String, default: '' },               // legacy alias of weekKey
+            },
+          },
+          { _id: false, strict: false }
+        );
+
+        const EntitlementsSub = new Schema(
+          {
+            tier:  { type: String, enum: ['free', 'premium'], default: 'free' },
+            since: { type: Date, default: null },
+            until: { type: Date, default: null },
+            features: { type: FeaturesSub, default: {} },
+            quotas:   { type: QuotasSub,   default: {} },
+          },
+          { _id: false, strict: false }
+        );
+
+        additions.entitlements = { type: EntitlementsSub, default: {} };
+      } else {
+        // Even if entitlements exists, guarantee required subpaths in strict schemas
+        if (!s.path('entitlements.features.superLikesPerWeek')) {
+          s.add({ 'entitlements.features.superLikesPerWeek': { type: Number, default: 3 } });
+        }
+        if (!s.path('entitlements.quotas.superLikes.used')) {
+          s.add({ 'entitlements.quotas.superLikes.used': { type: Number, default: 0 } });
+        }
+        if (!s.path('entitlements.quotas.superLikes.weekKey')) {
+          s.add({ 'entitlements.quotas.superLikes.weekKey': { type: String, default: '' } });
+        }
+        if (!s.path('entitlements.quotas.superLikes.window')) {
+          s.add({ 'entitlements.quotas.superLikes.window': { type: String, default: '' } });
+        }
+      }
+
+      // ✅ NEW: Rewind augment — only add if the paths are missing (non-breaking)
+      if (!s.path('rewind.stack')) {
+        s.add({
+          'rewind.stack': [
+            {
+              action: { type: String, default: 'like' },
+              target: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+              at:     { type: Date, default: () => new Date() },
+            },
+          ],
+        });
+        console.warn('[UserModel] Schema augmented with: rewind.stack');
+      }
+      if (!s.path('rewind.max')) {
+        s.add({ 'rewind.max': { type: Number, default: 50 } });
+        console.warn('[UserModel] Schema augmented with: rewind.max');
+      }
+
       if (Object.keys(additions).length) {
         s.add(additions);
         console.warn('[UserModel] Schema augmented with:', Object.keys(additions).sort().join(', '));
@@ -187,10 +294,11 @@ if (!LoadedUser) {
   } catch (e) {
     console.warn('[UserModel] Schema augmentation skipped:', e?.message || e);
   }
-  // --- REPLACE END ---
 }
 
 const User = LoadedUser;
 export default User;
 export { User };
 // --- REPLACE END ---
+
+

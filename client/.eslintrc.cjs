@@ -1,100 +1,99 @@
+// File: client/.eslintrc.cjs
+
 /* 
-  ESLint config for the SERVER workspace (Node/Express, ESM).
-  - Keeps structure clear and avoids unnecessary shortening.
-  - Focuses on Node + ESM (no React rules on the server).
-  - Import resolver supports .js/.mjs/.cjs and "src" as an import root.
-  - Jest test files get their own environment via overrides.
-  - The replacement region is clearly marked so you can diff precisely.
+  ESLint config for CLIENT (React/Vite).
+  Goal: Fix "Parsing error: Unexpected token <" in .jsx by ensuring JSX parsing,
+  and keep rules modest to avoid churn. This config is self-contained and marked
+  so you can diff changes precisely.
 */
 
+// --- REPLACE START ---
+// eslint-disable-next-line no-undef
 module.exports = {
   root: true,
 
-  // Define environments so Node and modern JS globals are known
+  // Browser + modern JS
   env: {
-    node: true,
+    browser: true,
     es2022: true
   },
 
+  // Base parser options (JSX feature flag here is harmless; real parser comes via overrides)
   parserOptions: {
     ecmaVersion: 2022,
-    sourceType: "module"
+    sourceType: "module",
+    ecmaFeatures: { jsx: true }
   },
 
   settings: {
-    // Resolve bare imports from "src" and common Node extensions
-    "import/resolver": {
-      node: {
-        extensions: [".js", ".mjs", ".cjs", ".json"]
-      }
-      // If you use path aliases (e.g. "@/*"), add an "alias" resolver here.
-      // e.g.:
-      // "alias": {
-      //   "map": [["@", "./src"]],
-      //   "extensions": [".js", ".mjs", ".cjs", ".json"]
-      // }
-    }
+    react: { version: "detect" }
   },
 
-  // --- REPLACE START: ignore patterns tailored to server and keep them minimal but useful ---
-  ignorePatterns: [
-    "node_modules/**",
-    "dist/**",
-    "coverage/**",
-    "uploads/**",
-    "openapi/dist/**",
-    // Keep historical ignore (from previous config) to avoid breaking existing setups:
-    "node_modules/axobject-query/**"
-  ],
-  // --- REPLACE END ---
-
+  // Keep base minimal; React specifics come via overrides
   extends: [
     "eslint:recommended",
-    "plugin:import/errors",
-    "plugin:import/warnings",
     "prettier"
   ],
 
-  // --- REPLACE START: server does not need React/React-Hooks; keep import plugin only ---
-  plugins: ["import"],
-  // --- REPLACE END ---
+  plugins: [],
 
   rules: {
-    // Keep code clean but not over-restrictive for a server codebase
+    // Helpful but not noisy
     "no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
-    "no-undef": "error",
-
-    // Enforce import ordering and make it auto-fixable
-    "import/order": [
-      "error",
-      {
-        groups: ["builtin", "external", "internal", ["parent", "sibling"], "index", "object", "type"],
-        "newlines-between": "always",
-        alphabetize: { order: "asc", caseInsensitive: true }
-      }
-    ],
-
-    // Optional: help catch unresolved imports early (works with resolver above)
-    "import/no-unresolved": "error",
-
-    // Prefer explicit file extensions only for non-js/json when necessary
-    "import/extensions": ["off"]
+    "no-undef": "error"
   },
 
+  /**
+   * CRITICAL: Enable JSX parsing for .jsx/.js using @typescript-eslint/parser
+   * (Option A). We DO NOT require a tsconfig for plain JS/JSX files.
+   */
   overrides: [
     {
-      files: ["**/*.test.js", "**/*.test.mjs", "**/*.spec.js", "**/*.spec.mjs"],
-      env: { jest: true },
+      files: ["**/*.jsx", "**/*.js"],
+      parser: "@typescript-eslint/parser",
+      parserOptions: {
+        ecmaVersion: "latest",
+        sourceType: "module",
+        ecmaFeatures: { jsx: true },
+        project: null // do NOT force tsconfig.json for plain JS/JSX
+      },
+      env: { browser: true, es2021: true },
+      plugins: ["react"],
+      extends: ["plugin:react/recommended", "prettier"],
+      settings: { react: { version: "detect" } },
       rules: {
-        // Test files can be a bit more flexible
-        "no-undef": "off"
+        "react/prop-types": "off"
       }
     },
+
+    // If you also have TS/TSX files in client, keep this mild and non-breaking.
     {
-      files: ["scripts/**/*.js", "scripts/**/*.mjs"],
-      // Script folders may run in different contexts; keep them Node-friendly
-      env: { node: true }
+      files: ["**/*.ts", "**/*.tsx"],
+      parser: "@typescript-eslint/parser",
+      parserOptions: {
+        ecmaVersion: "latest",
+        sourceType: "module",
+        ecmaFeatures: { jsx: true },
+        project: null
+      },
+      plugins: ["react", "@typescript-eslint"],
+      extends: [
+        "plugin:react/recommended",
+        "plugin:@typescript-eslint/recommended",
+        "prettier"
+      ],
+      settings: { react: { version: "detect" } },
+      rules: {
+        "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }]
+      }
     }
+  ],
+
+  // Ignore build artefacts
+  ignorePatterns: [
+    "node_modules/**",
+    "dist/**",
+    "coverage/**"
   ]
 };
-
+// --- REPLACE END ---
