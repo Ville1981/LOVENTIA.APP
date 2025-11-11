@@ -1,5 +1,6 @@
-// File: client/src/components/RewindButton.jsx
-// --- REPLACE START: new RewindButton with premium "unlimitedRewinds" feature gate ---
+// PATH: client/src/components/RewindButton.jsx
+
+// --- REPLACE START: fix relative imports + graceful 400 + alias fallback (/likes/rewind) ---
 import React, { useCallback, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -9,8 +10,8 @@ import api from "../services/api/axiosInstance";
 
 /**
  * RewindButton
- * - Allows the user to undo the last "pass"/"like".
- * - This is a Premium-only feature ("unlimitedRewinds").
+ * - Undo last "pass"/"like".
+ * - Premium with "unlimitedRewinds" can always try; Free sees upgrade CTA.
  *
  * Props:
  *  - className?: string
@@ -30,35 +31,93 @@ export default function RewindButton({
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
 
+  const tryRewindOnce = async (path) => {
+    // Axios instance uses '/api' baseURL, so these hit /api/<path>
+    return api.post(path, {});
+  };
+
   const handleRewind = useCallback(async () => {
     if (busy || disabled) return;
     setBusy(true);
     setMsg("");
     try {
-      // Axios instance already has /api prefix
-      const res = await api.post("/rewind");
-      if (res?.data?.ok !== false) {
+      let res;
+      try {
+        // Primary endpoint
+        res = await tryRewindOnce("/rewind");
+      } catch (e1) {
+        // If route missing, try alias
+        const status = e1?.response?.status;
+        if (status === 404) {
+          res = await tryRewindOnce("/likes/rewind");
+        } else {
+          throw e1;
+        }
+      }
+
+      const payload = res?.data;
+      const ok = payload?.ok !== false;
+
+      if (ok) {
         setMsg(compact ? "Rewound." : "Last action undone.");
-        if (typeof onSuccess === "function") onSuccess(res?.data);
+
+        // Notify parent callback if provided
+        if (typeof onSuccess === "function") onSuccess(payload);
+
+        // IMPORTANT: broadcast a window-level event with { targetUserId } detail
+        // Keep this exact shape so deck listeners can restore the card.
+        try {
+          const targetUserId =
+            payload?.targetUserId || payload?.targetId || payload?.data?.targetUserId || null;
+
+          // Always include targetUserId; also include full payload under "data" for optional consumers
+          window.dispatchEvent(
+            new CustomEvent("rewind:done", {
+              detail: {
+                targetUserId: targetUserId,
+                targetId: payload?.targetId || targetUserId || null,
+                data: payload,
+              },
+            })
+          );
+        } catch {
+          // no-op if CustomEvent unsupported
+        }
+
+        // Refresh user (entitlements / counters) without forcing a full page refresh
         if (typeof refreshUser === "function") await refreshUser();
+        return;
+      }
+
+      // Non-false ok flag but unexpected payload -> soft error
+      const errMsg = payload?.message || payload?.error || "Failed to rewind.";
+      setMsg(errMsg);
+      if (typeof onError === "function") onError(payload);
+    } catch (err) {
+      const status = err?.response?.status;
+      if (status === 400) {
+        // Typical: nothing to rewind right now
+        setMsg(
+          compact
+            ? "Nothing to rewind."
+            : "Nothing to rewind right now. Try liking or passing a profile first."
+        );
+      } else if (status === 404) {
+        setMsg("Rewind endpoint not available.");
       } else {
         const errMsg =
-          res?.data?.message || res?.data?.error || "Failed to rewind.";
+          err?.response?.data?.message ||
+          err?.message ||
+          "Network error while rewinding.";
         setMsg(errMsg);
-        if (typeof onError === "function") onError(res?.data);
       }
-    } catch (err) {
-      const errMsg =
-        err?.response?.data?.message ||
-        err?.message ||
-        "Network error while rewinding.";
-      setMsg(errMsg);
       if (typeof onError === "function") onError(err);
     } finally {
       setBusy(false);
     }
   }, [busy, compact, disabled, onError, onSuccess, refreshUser]);
 
+  // --- UI styles (kept readable and consistent) ---
   const baseBtn =
     "inline-flex items-center gap-2 rounded font-semibold transition focus:outline-none focus:ring-2 focus:ring-offset-2";
   const sizes = compact ? "text-sm px-3 py-1.5" : "text-base px-4 py-2";
@@ -104,3 +163,4 @@ export default function RewindButton({
   );
 }
 // --- REPLACE END ---
+

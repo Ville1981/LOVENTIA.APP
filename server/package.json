@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "loventia-app-server",
   "version": "1.0.0",
   "private": true,
@@ -7,21 +7,22 @@
     "dev": "cross-env NODE_ENV=development PORT=5000 node ./src/server.js",
     "start": "cross-env NODE_ENV=production  PORT=5000 node ./src/server.js",
     "server": "node ./src/server.js",
-
-    
     "lint": "eslint .",
     "test": "cross-env NODE_ENV=test jest --config ./jest.config.cjs --runInBand",
     "test:watch": "cross-env NODE_ENV=test jest --config ./jest.config.cjs --watch",
-    "build": "node ./src/app.js --check || node -e \"console.log('no-op build (app.js --check failed; this is expected if no build step yet)')\""
-    
-
-    ,
+    "build": "node ./src/app.js --check || node -e \"console.log('no-op build (app.js --check failed; this is expected if no build step yet)')\"",
     "postinstall": "node -e \"const fs=require('fs'); const p='.env', e='.env.example'; if(!fs.existsSync(p)&&fs.existsSync(e)){ fs.copyFileSync(e,p); console.log('[env] Created .env from .env.example'); } else { console.log('[env] .env present or no example, no action'); }\"",
     "ensure-env": "node -e \"const fs=require('fs'); const p='.env', e='.env.example'; if(!fs.existsSync(p)&&fs.existsSync(e)){ fs.copyFileSync(e,p); console.log('[env] Created .env from .env.example'); } else { console.log('[env] .env present or no example, no action'); }\"",
     "openapi:build": "node ./scripts/openapi-build.mjs",
-    "openapi:validate": "npx swagger-cli validate ./openapi/openapi.yaml"
+    "openapi:lint": "spectral lint openapi/openapi.yaml --ruleset openapi/.spectral.yaml",
+    "openapi:validate": "redocly lint openapi/openapi.yaml",
+    "openapi:bundle": "redocly bundle openapi/openapi.yaml -o openapi/openapi.bundle.yaml",
+    "ci:audit": "npm audit --audit-level=moderate --json || exit 0",
+    "ci:depcheck": "npx depcheck --skip-missing || exit 0"
   },
   "devDependencies": {
+    "@redocly/cli": "^2.10.0",
+    "@stoplight/spectral-cli": "^6.15.0",
     "cross-env": "^10.1.0",
     "jest": "^30.2.0",
     "supertest": "^7.1.4",
@@ -70,5 +71,4 @@
     "yamljs": "^0.3.0"
   }
 }
-
 

@@ -205,6 +205,7 @@ export default function authenticate(req, res, next) {
     // NOTE: Keeping spread of decoded so downstream can access custom claims.
     req.user = { userId, id: userId, role, ...decoded };
     req.userId = userId;
+    req.auth = req.user; // convenience alias used by some routes
 
     // All good — proceed to the next middleware/handler
     return next();
@@ -232,7 +233,7 @@ export {
  * - Cookie names: accessToken, jwt, token, refreshToken
  * - Query names: token, access_token, accessToken
  * - HTTP headers: Authorization: Bearer <token>, WWW-Authenticate (for 401s)
- * - Behavior: attaches req.user{ id, userId, role, ...decoded } and req.userId
+ * - Behavior: attaches req.user{ id, userId, role, ...decoded } and req.userId; also req.auth
  * - Test bypass: NODE_ENV=test with AUTH_STUB=1 or AUTH_NOOP=1 → next()
  * - Public paths bypassed: /auth/login, /auth/register, /auth/refresh,
  *   /auth/forgot-password, /auth/reset-password
@@ -241,5 +242,13 @@ export {
  * - This middleware never returns 404 at any branch.
  * ────────────────────────────────────────────────────────────────────────────*/
 // --- REPLACE END ---
+
+
+
+
+
+
+
+
 
 

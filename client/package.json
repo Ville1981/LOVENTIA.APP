@@ -1,3 +1,4 @@
+
 {
   "name": "loventia-app-client",
   "version": "1.0.0",
@@ -14,8 +15,8 @@
     "perf:socket": "artillery run performance/socket-reconnect.test.js -o report.json",
     "scan:zap": "zap.sh -cmd -configfile security/zap-config.json -quickurl http://localhost:5174 -quickout zap-report/zap-report.html",
     "scan:dep": "npm audit --audit-level=moderate",
-    "lint": "eslint src --ext .js,.jsx",
-    "lint:fix": "eslint src --ext .js,.jsx --fix",
+    "lint": "eslint src --ext .js,.jsx,.ts,.tsx",
+    "lint:fix": "eslint src --ext .js,.jsx,.ts,.tsx --fix",
     "i18n:audit": "node scripts/i18nAudit.mjs",
     "i18n:sync": "node scripts/i18nSync.mjs",
     "gensitemap": "node ./scripts/generate-sitemap.mjs",
@@ -53,6 +54,8 @@
     "@testing-library/user-event": "^14.6.1",
     "@vitejs/plugin-react": "^4.0.0",
     "@vitest/coverage-v8": "^3.2.4",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
     "artillery": "^2.0.0-27",
     "autoprefixer": "^10.4.21",
     "cypress": "^14.5.1",
@@ -74,13 +77,6 @@
   "msw": {
     "workerDirectory": [
       "public"
-    ]
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest",
-      "plugin:react-hooks/recommended"
     ]
   },
   "vitest": {

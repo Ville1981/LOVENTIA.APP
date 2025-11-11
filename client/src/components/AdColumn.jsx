@@ -1,10 +1,11 @@
 // File: client/src/components/AdColumn.jsx
 
-// --- REPLACE START: robust side ads with fallbacks and stable layout (minimal changes, full file) ---
+// --- REPLACE START: gate side ads via AdGate (Premium/no-ads kill-switch) + keep robust fallbacks & stable layout ---
 import React from "react";
 
 import { leftAds, rightAds } from "../utils/adsData";
 import "../styles/ads.css";
+import AdGate from "./AdGate"; // centralized gate: hides ads for Premium / noAds feature
 
 /**
  * AdColumn
@@ -37,16 +38,18 @@ const AdColumn = ({ side }) => {
 
     // Ordered fallbacks
     const chain = [
-      envSideSrc,       // 1) side-specific env
-      headerFallback,   // 2) header env or default header
-      sideDefault,      // 3) side default
-      "/ads/header1.png", // 4) final hard fallback
+      envSideSrc,          // 1) side-specific env
+      headerFallback,      // 2) header env or default header
+      sideDefault,         // 3) side default
+      "/ads/header1.png",  // 4) final hard fallback
     ].filter(Boolean);
 
     if (tried < chain.length) {
       img.dataset.fallbackStep = String(tried + 1);
       const next = chain[tried];
-      if (next && img.src !== new URL(next, window.location.origin).href) {
+      // avoid cycling the exact same absolute URL
+      const abs = new URL(next, window.location.origin).href;
+      if (img.src !== abs) {
         img.src = next;
         return;
       }
@@ -57,29 +60,36 @@ const AdColumn = ({ side }) => {
   };
 
   return (
-    <div className={`ad-column ${side}`}>
-      {ads.slice(0, 2).map((ad, index) => (
-        <a
-          key={index}
-          href={ad.link}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block"
-        >
-          <img
-            src={initialSrc(ad)}
-            alt={ad.alt || `Ad ${index + 1}`}
-            className="ad-side"
-            loading="lazy"
-            width={300}
-            height={600}
-            onError={onImgError}
-          />
-        </a>
-      ))}
-    </div>
+    // AdGate wraps the entire column so Premium/no-ads users never render side ads
+    <AdGate type="inline" debug={false}>
+      <div className={`ad-column ${side}`}>
+        {ads.slice(0, 2).map((ad, index) => (
+          <a
+            key={index}
+            href={ad.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block"
+            aria-label={ad.alt || `Side advertisement ${index + 1}`}
+          >
+            <img
+              src={initialSrc(ad)}
+              alt={ad.alt || `Ad ${index + 1}`}
+              className="ad-side"
+              loading="lazy"
+              width={300}
+              height={600}
+              onError={onImgError}
+              decoding="async"
+            />
+          </a>
+        ))}
+      </div>
+    </AdGate>
   );
 };
 
 export default AdColumn;
 // --- REPLACE END ---
+
+

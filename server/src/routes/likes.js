@@ -1,4 +1,5 @@
-// --- REPLACE START: Likes routes (ESM, auth protected, with target validation) ---
+// PATH: server/src/routes/likes.js
+// --- REPLACE START: Likes routes (ESM, auth protected, with target validation & body POST '/') ---
 'use strict';
 
 import express from 'express';
@@ -8,8 +9,15 @@ const router = express.Router();
 
 /**
  * Mount examples (in app.js):
- *   import likesRoutes from './routes/likes.js';
- *   app.use('/api/likes', likesRoutes);
+ *   import likesRouter from './routes/likes.js';
+ *   app.use('/api/likes', authenticate, likesRouter);
+ *
+ * This router supports both:
+ *   1) POST /           with JSON body { targetUserId: "<24-hex>" }
+ *   2) POST /:targetId  legacy path param
+ *
+ * On a successful like, we *attempt* to push the action onto the rewind stack.
+ * We try multiple controller entrypoints to stay compatible across repo layouts.
  */
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -19,13 +27,13 @@ let LikesCtrl = null;
 async function getLikesCtrl() {
   if (LikesCtrl) return LikesCtrl;
   try {
-    // Prefer src controller (this repo’s canonical location)
+    // Prefer canonical location
     const mod = await import('../controllers/likesController.js');
     LikesCtrl = mod?.default || mod || {};
     return LikesCtrl;
   } catch (e1) {
     try {
-      // Fallback to project root (legacy layout)
+      // Fallback to legacy layout
       const mod2 = await import('../../controllers/likesController.js');
       LikesCtrl = mod2?.default || mod2 || {};
       return LikesCtrl;
@@ -43,78 +51,250 @@ async function getLikesCtrl() {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
+// Lazy-load rewind controller/service (best-effort, optional)
+// ──────────────────────────────────────────────────────────────────────────────
+let RewindCtrl = null;
+async function getRewindCtrl() {
+  if (RewindCtrl) return RewindCtrl;
+  try {
+    const mod = await import('../controllers/rewindController.js');
+    RewindCtrl = mod?.default || mod || {};
+    return RewindCtrl;
+  } catch (e1) {
+    try {
+      const mod2 = await import('../../controllers/rewindController.js');
+      RewindCtrl = mod2?.default || mod2 || {};
+      return RewindCtrl;
+    } catch (e2) {
+      // Keep silent in normal flow; not all repos have a dedicated rewind controller.
+      RewindCtrl = {};
+      return RewindCtrl;
+    }
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 /**
- * Lightweight ObjectId check (avoid pulling mongoose here).
- * We keep this conservative to not reject valid 24-hex strings.
+ * Lightweight ObjectId check (avoid importing mongoose in the router).
  */
 function isValidObjectId(id) {
   return typeof id === 'string' && /^[a-fA-F0-9]{24}$/.test(id);
 }
 
 /**
- * Validate target user for POST /:targetId
- *  - 400 if missing or malformed ObjectId
- *  - 404 if user model exists AND user not found
- *  - If the User model cannot be loaded, we log and continue (best-effort).
+ * Validate target user existence (best-effort; does not hard-fail if model missing).
  */
-async function validateTargetUser(req, res, next) {
+async function validateTargetUserExists(targetId) {
+  // Resolve User model lazily from either layout
+  let UserModel = null;
   try {
-    const { targetId } = req.params || {};
-    if (!targetId) {
-      return res.status(400).json({ error: 'targetId is required' });
-    }
-    if (!isValidObjectId(targetId)) {
-      return res.status(400).json({ error: 'Invalid targetId format (expected 24-hex ObjectId)' });
-    }
-
-    // Best-effort existence check; do not hard fail if model not available.
+    const modLegacy = await import('../../models/User.js'); // server/models/User.js (legacy)
+    UserModel = modLegacy?.default || modLegacy?.User || modLegacy || null;
+  } catch {
     try {
-      // Try project-root models first (legacy), then src/models (current).
-      let UserModel = null;
-      try {
-        const mod = await import('../../models/User.js'); // server/models/User.js (legacy root)
-        UserModel = mod?.default || mod?.User || mod || null;
-      } catch {
-        const mod = await import('../models/User.js'); // server/src/models/User.js (current)
-        UserModel = mod?.default || mod?.User || mod || null;
-      }
-
-      if (UserModel && typeof UserModel.findById === 'function') {
-        const exists = await UserModel.findById(targetId).select('_id').lean();
-        if (!exists) {
-          return res.status(404).json({ error: 'Target user not found' });
-        }
-      }
-      // If model could not be resolved, skip existence check silently.
-    } catch (e) {
-      console.warn('[likes routes] User existence check skipped:', e?.message || e);
+      const mod = await import('../models/User.js'); // server/src/models/User.js (current)
+      UserModel = mod?.default || mod?.User || mod || null;
+    } catch {
+      UserModel = null;
     }
-
-    return next();
-  } catch (err) {
-    console.warn('[likes routes] validateTargetUser error:', err?.message || err);
-    return res.status(500).json({ error: 'Internal validation error' });
   }
+  if (!UserModel || typeof UserModel.findById !== 'function') return true; // skip if unavailable
+  const exists = await UserModel.findById(targetId).select('_id').lean();
+  return !!exists;
 }
 
-// Create a like (idempotent in controller), with target validation
-router.post('/:targetId', authenticate, validateTargetUser, async (req, res) => {
-  const c = await getLikesCtrl();
-  return typeof c.likeUser === 'function'
-    ? c.likeUser(req, res)
-    : res.status(501).json({ error: 'likesController.likeUser not available' });
+// ──────────────────────────────────────────────────────────────────────────────
+// Helpers to normalize target id from body or params
+// ──────────────────────────────────────────────────────────────────────────────
+function getTargetIdFromReq(req) {
+  const bodyId =
+    req.body?.targetUserId ??
+    req.body?.targetId ??
+    req.body?.userId ??
+    req.body?.id ??
+    null;
+  return req.params?.targetId || bodyId || null;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Best-effort rewind push after a successful like (non-blocking if possible).
+// We try a few controller methods for wide compatibility.
+// ──────────────────────────────────────────────────────────────────────────────
+async function pushRewindBestEffort(req, resultPayload) {
+  try {
+    const c = await getLikesCtrl();
+    const r = await getRewindCtrl();
+
+    // Prefer a dedicated rewind controller if available
+    if (typeof r?.pushLikeAction === 'function') {
+      await r.pushLikeAction(req, resultPayload);
+      return true;
+    }
+    if (typeof r?.recordAction === 'function') {
+      await r.recordAction(req, { type: 'like', payload: resultPayload || {} });
+      return true;
+    }
+
+    // Fallbacks exposed by likes controller itself
+    if (typeof c?.pushRewind === 'function') {
+      await c.pushRewind(req, resultPayload);
+      return true;
+    }
+    if (typeof c?.recordLikeForRewind === 'function') {
+      await c.recordLikeForRewind(req, resultPayload);
+      return true;
+    }
+
+    // As a final ultra-light fallback, emit an app event if such bus exists.
+    const bus = req.app?.get?.('rewindBus');
+    if (bus && typeof bus.emit === 'function') {
+      bus.emit('rewind:like', {
+        userId: req.userId || req.auth?.userId || req.auth?.id,
+        targetUserId: getTargetIdFromReq(req),
+        at: Date.now(),
+      });
+      return true;
+    }
+  } catch (e) {
+    // Never block on rewind push; just log as debug.
+    console.warn('[likes routes] pushRewindBestEffort warning:', e?.message || e);
+  }
+  return false;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Route: POST /  { targetUserId }
+// - Validates input
+// - Delegates to controller likeUser (via params adapter)
+// - Ensures best-effort rewind push
+// - Returns 200/201 or 409 for idempotent no-op
+// ──────────────────────────────────────────────────────────────────────────────
+router.post('/', authenticate, express.json(), async (req, res) => {
+  try {
+    const targetId = getTargetIdFromReq(req);
+    if (!targetId) {
+      return res.status(400).json({ error: 'targetUserId is required' });
+    }
+    if (!isValidObjectId(targetId)) {
+      return res
+        .status(400)
+        .json({ error: 'Invalid targetUserId format (expected 24-hex ObjectId)' });
+    }
+
+    // Optional existence check (best-effort)
+    const exists = await validateTargetUserExists(targetId);
+    if (!exists) {
+      return res.status(404).json({ error: 'Target user not found' });
+    }
+
+    // Adapt body → params so existing controllers (likeUser) work unchanged
+    req.params = { ...(req.params || {}), targetId };
+
+    const c = await getLikesCtrl();
+
+    // Prefer a single-call controller if present
+    if (typeof c?.likeAndPush === 'function') {
+      return c.likeAndPush(req, res);
+    }
+
+    // Fallback: call likeUser and then attempt rewind push when the response finishes
+    if (typeof c?.likeUser === 'function') {
+      // Intercept completion to push rewind even if controller writes response itself
+      let pushed = false;
+      const onFinish = async () => {
+        if (pushed) return;
+        pushed = true;
+        try {
+          await pushRewindBestEffort(req, { targetUserId: targetId });
+        } catch {}
+      };
+      res.once('finish', onFinish);
+
+      // If the controller returns a promise, await it (for better ordering)
+      const maybePromise = c.likeUser(req, res);
+      if (maybePromise && typeof maybePromise.then === 'function') {
+        try {
+          await maybePromise;
+        } catch (e) {
+          // Controller handled the response; ensure our finish hook will still run.
+        }
+      }
+      return; // Controller owns the response
+    }
+
+    // As a last resort: explicit 501 if controller is missing
+    return res.status(501).json({ error: 'likesController.likeUser not available' });
+  } catch (err) {
+    console.error('[likes routes] POST / error:', err?.message || err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-// Remove a like (keep idempotent; do NOT 404 if target is unknown)
-// We intentionally do not attach validateTargetUser here to preserve idempotency.
+// ──────────────────────────────────────────────────────────────────────────────
+// Legacy path: POST /:targetId  (kept for backward compatibility)
+// ──────────────────────────────────────────────────────────────────────────────
+router.post('/:targetId', authenticate, async (req, res) => {
+  const targetId = req.params?.targetId;
+  if (!targetId) return res.status(400).json({ error: 'targetId is required' });
+  if (!isValidObjectId(targetId)) {
+    return res
+      .status(400)
+      .json({ error: 'Invalid targetId format (expected 24-hex ObjectId)' });
+  }
+
+  // Optional existence check (best-effort)
+  try {
+    const exists = await validateTargetUserExists(targetId);
+    if (!exists) return res.status(404).json({ error: 'Target user not found' });
+  } catch (e) {
+    // ignore
+  }
+
+  const c = await getLikesCtrl();
+
+  // Prefer combined controller if available
+  if (typeof c?.likeAndPush === 'function') {
+    return c.likeAndPush(req, res);
+  }
+
+  if (typeof c?.likeUser === 'function') {
+    let pushed = false;
+    const onFinish = async () => {
+      if (pushed) return;
+      pushed = true;
+      try {
+        await pushRewindBestEffort(req, { targetUserId: targetId });
+      } catch {}
+    };
+    res.once('finish', onFinish);
+
+    const maybePromise = c.likeUser(req, res);
+    if (maybePromise && typeof maybePromise.then === 'function') {
+      try {
+        await maybePromise;
+      } catch {
+        // controller will have handled response
+      }
+    }
+    return;
+  }
+
+  return res.status(501).json({ error: 'likesController.likeUser not available' });
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+// DELETE /:targetId — idempotent unlike (do not 404 if already absent)
+// ──────────────────────────────────────────────────────────────────────────────
 router.delete('/:targetId', authenticate, async (req, res) => {
   const c = await getLikesCtrl();
-  return typeof c.unlikeUser === 'function'
+  return typeof c?.unlikeUser === 'function'
     ? c.unlikeUser(req, res)
     : res.status(501).json({ error: 'likesController.unlikeUser not available' });
 });
 
-// Lists
+// ──────────────────────────────────────────────────────────────────────────────
+// GET /outgoing | /incoming | /matches — lists (keep legacy function names)
+// ──────────────────────────────────────────────────────────────────────────────
 router.get('/outgoing', authenticate, async (req, res) => {
   const c = await getLikesCtrl();
   const fn = c.getOutgoing || c.listOutgoingLikes;
@@ -142,4 +322,15 @@ router.get('/matches', authenticate, async (req, res) => {
 // --- REPLACE END ---
 
 export default router;
+
+
+
+
+
+
+
+
+
+
+
 

@@ -1,41 +1,26 @@
 // PATH: server/src/app.js
 // @ts-nocheck
 
-// --- REPLACE START: core imports remain (ESM) ---
-import express from "express"; // needed for express.raw()
+// ────────────────────────────────────────────────────────────────────────────────
+/**
+ * Core imports (ESM)
+ * The replacement region is marked between // --- REPLACE START and // --- REPLACE END
+ * so you can verify exactly what changed.
+ */
+// ────────────────────────────────────────────────────────────────────────────────
+
+// --- REPLACE START: core imports remain (ESM & project loaders) ---
+import cors from "cors";
+import express from "express"; // required for express.raw() on webhooks
+import helmet from "helmet";
+
+import { corsOptions } from "./config/cors.js";
+import { env } from "./config/env.js";
+import { stripeWebhookHandler } from "./controllers/stripeWebhookController.js";
 import expressLoader from "./loaders/express.js";
 import { connectMongo } from "./loaders/mongoose.js";
-import securityMiddleware from "./middleware/security.js";
-import routes from "./routes/index.js";
-import { notFound, errorHandler } from "./middleware/error.js";
-import { env } from "./config/env.js";
-
-// Auth middleware (ensure req.userId exists for includeSelf etc.)
 import authenticate from "./middleware/authenticate.js";
-
-// Stripe webhook handler (controller-level, single endpoint)
-import { stripeWebhookHandler } from "./controllers/stripeWebhookController.js";
-
-// ⬇️ Billing/payment router (unchanged)
-import paymentRouter from "./routes/payment.js";
-
-// ⬇️ Discover router (mount exactly once under /api/discover)
-import discoverRouter from "./routes/discover.js";
-// --- REPLACE END ---
-
-// --- REPLACE START: Swagger config (use the file we just created) ---
-/**
- * Swagger UI is mounted AFTER JSON/body parsers.
- * We use the dedicated config so that tests can no-op it.
- * This expects the spec file at: server/openapi/openapi.yaml
- */
-import swagger from "./swagger-config.js";
-// --- REPLACE END ---
-
-// --- REPLACE START: NEW imports for security hardening (helmet, CORS, rate limits) ---
-import helmet from "helmet";
-import cors from "cors";
-import { corsOptions } from "./config/cors.js"; // centralize allowed origins
+import { notFound, errorHandler } from "./middleware/error.js";
 import {
   apiBurstLimiter,
   loginLimiter,
@@ -43,29 +28,63 @@ import {
   billingLimiter,
   messagesLimiter,
 } from "./middleware/rateLimit.js";
+import securityMiddleware from "./middleware/security.js";
+
+// Central API router aggregator
+import authRouter from "./routes/auth.js";
+import discoverRouter from "./routes/discover.js";
+import routes from "./routes/index.js";
+
+// Routers
+import likesRouter from "./routes/likes.js";
+import paymentRouter from "./routes/payment.js";
+
+// ✅ NEW: Rewind router import
+import rewindRoutes from "./routes/rewind.js";
 // --- REPLACE END ---
 
-// Initialize Express app via loader (sets parsers, CORS, static, etc.)
+// --- REPLACE START: Swagger + Superlike router imports (dev-friendly) ---
+/**
+ * Swagger UI is mounted AFTER JSON/body parsers.
+ * Uses spec at: server/openapi/openapi.yaml
+ */
+import superlikeRouter from "./routes/superlike.js";
+import swagger from "./swagger-config.js";
+// --- REPLACE END ---
+
+// --- REPLACE START: AUTH router import for alias mounting under /api/auth ---
+// --- REPLACE END ---
+
+// ────────────────────────────────────────────────────────────────────────────────
+/** App bootstrap via loader (sets parsers, static, compression, etc.) */
+// ────────────────────────────────────────────────────────────────────────────────
 const app = expressLoader();
+
+// --- REPLACE START: baseline server flags & trust proxy ---
+/**
+ * Keep small baseline flags explicit here so future readers see them in app entrypoint.
+ * Note: expressLoader may already set some of these; keeping them here is harmless.
+ */
+app.disable("x-powered-by");
+if (process.env.TRUST_PROXY === "1") {
+  // When behind a reverse proxy (Heroku/Render/ALB), enable this so req.ip is correct.
+  app.set("trust proxy", true);
+}
+// --- REPLACE END ---
 
 /**
  * Mount order matters:
- * 1) Webhooks first (Stripe/PayPal, etc.) so they can use raw body parsers internally.
- * 2) Security middlewares bundle (helmet, rate limits, sanitizers, etc.).
- * 3) API routes under /api.
- * 4) Diagnostics endpoints (in dev) to list mounted routes.
- * 5) 404 and global error handler last.
+ * 1) Webhooks first (Stripe/PayPal) → raw body
+ * 2) Security middlewares (helmet, cors, sanitizers, rate limits)
+ * 3) API routes
+ * 4) Diagnostics (dev)
+ * 5) 404 + error handler last
  */
 
+// ────────────────────────────────────────────────────────────────────────────────
+/** 1) Webhooks (Stripe) — must be BEFORE any json/urlencoded body parser */
+// ────────────────────────────────────────────────────────────────────────────────
 // --- REPLACE START: Stripe webhook — raw body route defined explicitly here ---
-/**
- * IMPORTANT:
- * - Stripe signature verification requires the *raw* request body.
- * - This route uses express.raw() so that req.body is a Buffer.
- * - Keep this route mounted as early as possible.
- * - Other global parsers are already set by expressLoader(); this dedicated route
- *   still works because it declares its own body parser at route-level.
- */
 app.post(
   "/webhooks/stripe",
   express.raw({ type: "application/json" }),
@@ -73,101 +92,88 @@ app.post(
 );
 // --- REPLACE END ---
 
-// --- REPLACE START: Security hardening (helmet + CORS + baseline API rate limiters) ---
+// ────────────────────────────────────────────────────────────────────────────────
+/** 2) Security hardening (helmet + CORS + friendly CORS errors) + rate limits */
+// ────────────────────────────────────────────────────────────────────────────────
+// --- REPLACE START: security middlewares (helmet + CORS + JSON errors) ---
 /**
- * Security hardening
- * ------------------
- * - helmet(): secure headers (with permissive CORP for image/static hosting)
- * - cors(): restrict origins via ./config/cors.js
- * - apiBurstLimiter: generic burst limiter for the whole /api surface
- * - Specific limiters for sensitive POST-heavy namespaces
- *
- * NOTE:
- * - We keep securityMiddleware in place (sanitizers/headers you already had).
- * - Order: helmet → cors → (your) securityMiddleware → limiters → routes.
+ * helmet(): secure headers (with permissive CORP for images/static/CDN)
+ * cors():   restricts origins via ./config/cors.js
+ * NOTE: Avoid deprecated options (e.g., xssFilter) with Helmet v7+.
  */
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
+    referrerPolicy: { policy: "no-referrer" },
+    frameguard: { action: "sameorigin" },
+    // HSTS only in production under HTTPS
+    hsts:
+      process.env.NODE_ENV === "production"
+        ? { maxAge: 31536000, includeSubDomains: true, preload: false }
+        : false,
+    // In development keep CSP disabled to not break Swagger/Vite/etc.
+    contentSecurityPolicy: process.env.NODE_ENV === "production" ? undefined : false,
+    crossOriginEmbedderPolicy: false,
   })
 );
 
+// Primary CORS
 app.use(cors(corsOptions));
 
-// --- REPLACE START: CORS preflight override (normalize blocked origins to 403 JSON) ---
-// NOTE: Express v5-style matcher behind `router`/`path-to-regexp` does not accept "*".
-// Use a RegExp instead to match any path.
+/**
+ * CORS preflight override: return consistent 204 on allowed origins
+ * and a stable 403 JSON when origin is blocked (instead of generic HTML).
+ * NOTE: Express v5-style matcher does not accept "*", use RegExp.
+ */
 app.options(/.*/, (req, res) => {
-  // Re-run CORS just for preflight so we can intercept errors cleanly
   cors(corsOptions)(req, res, (err) => {
-    if (err) {
-      // Blocked origin → return stable JSON instead of 500/HTML
-      return res.status(403).json({ error: "CORS origin not allowed" });
-    }
-    // Allowed origin → standard preflight response
+    if (err) return res.status(403).json({ error: "CORS origin not allowed" });
     return res.sendStatus(204);
   });
 });
-// --- REPLACE END ---
 
-// --- REPLACE START: friendly JSON for blocked CORS origins (place right after CORS) ---
+// Friendly JSON for blocked CORS
 app.use((err, _req, res, next) => {
-  // Normalize message defensively
-  const msg = (err && (err.message || err.toString())) || "";
-
-  // Match common cors errors from `cors` lib and custom ones:
-  // - "Not allowed by CORS"
-  // - "CORS origin not allowed"
-  // - any message containing "CORS" case-insensitively
+  const msg = (err && (err.message || String(err))) || "";
   const isCorsError =
     !!err &&
     (/not allowed by cors/i.test(msg) ||
       /cors origin not allowed/i.test(msg) ||
       /\bcors\b/i.test(msg));
-
-  if (isCorsError) {
-    // Return stable JSON 403 instead of generic 500 HTML
-    return res.status(403).json({ error: "CORS origin not allowed" });
-  }
+  if (isCorsError) return res.status(403).json({ error: "CORS origin not allowed" });
   return next(err);
 });
 // --- REPLACE END ---
 
-// Keep your existing bundle (xss-clean, hpp, compression, etc.)
+// Keep your existing security bundle (xss-clean, hpp, compression, sanitizers, etc.)
 app.use(securityMiddleware);
 
-// Baseline: rate-limit entire API surface (safe defaults inside rateLimit.js)
+// Baseline rate limit for all /api + fine-grained for hot endpoints
+// --- REPLACE START: rate limits ---
 app.use("/api", apiBurstLimiter);
-
-// Sensitive namespaces (fine-grained)
 app.use("/api/auth/login", loginLimiter);
 app.use("/api/auth/register", registerLimiter);
 app.use("/api/billing", billingLimiter);
 app.use("/api/messages", messagesLimiter);
 // --- REPLACE END ---
 
-// --- REPLACE START: test-only stub for /api/auth/me ---
+// ────────────────────────────────────────────────────────────────────────────────
 /**
- * In test mode the auth route /api/auth/me may rely on DB models.
- * Provide a minimal JWT-based stub to return { user } when a Bearer token is present.
- * This does NOT run in production.
- *
- * NOTE:
- * - We deliberately avoid top-level await here to keep Node 16/older runners happy.
- * - We load jsonwebtoken lazily via dynamic import().then(...) so startup does not break.
+ * TEST-ONLY helper: /api/auth/me without DB hit.
+ * Returns decoded JWT content as a minimal { user }.
+ * Not used in production; real route lives in auth router.
  */
+// ────────────────────────────────────────────────────────────────────────────────
+// --- REPLACE START: test-only stub for /api/auth/me ---
 if (process.env.NODE_ENV === "test") {
   import("jsonwebtoken")
     .then((mod) => {
       const jwt = mod.default ?? mod;
       const TEST_JWT_SECRET = process.env.JWT_SECRET || "test_secret";
-
       app.get("/api/auth/me", (req, res) => {
-        const hdr = req.headers?.authorization || "";
+        const hdr = (req.headers && req.headers.authorization) || "";
         const token = hdr.startsWith("Bearer ") ? hdr.slice(7) : null;
-        if (!token) {
-          return res.status(401).json({ error: "No token provided" });
-        }
+        if (!token) return res.status(401).json({ error: "No token provided" });
         try {
           const payload = jwt.verify(token, TEST_JWT_SECRET);
           return res.status(200).json({
@@ -185,91 +191,145 @@ if (process.env.NODE_ENV === "test") {
       });
     })
     .catch(() => {
-      // If jsonwebtoken is not available for some reason, still offer a harmless stub
-      app.get("/api/auth/me", (_req, res) => {
-        return res
-          .status(200)
-          .json({ user: { id: "000000000000000000000001", role: "user" } });
-      });
+      app.get("/api/auth/me", (_req, res) =>
+        res.status(200).json({ user: { id: "000000000000000000000001", role: "user" } })
+      );
     });
 }
 // --- REPLACE END ---
 
-// API routes (central aggregator under /api)
+// ────────────────────────────────────────────────────────────────────────────────
+/** 3) API routers — Central aggregator first, then explicit mounts that must not be shadowed */
+// ────────────────────────────────────────────────────────────────────────────────
+// --- REPLACE START: API routers (order-sensitive) ---
 app.use("/api", routes);
 
-// --- PATCH START: mount discover once ---
 /**
- * Discover routes
- * ---------------
- * Mount EXACTLY once under /api/discover and protect with authenticate.
- * If your routes/index.js also mounts any legacy discover router,
- * remove that legacy mount to avoid duplication or shadowing.
+ * ✅ AUTH alias mount
+ * Ensures all relative paths in the auth router (/register, /login, /refresh, /me, /forgot-password, /reset-password, /verify-email)
+ * are also available under /api/auth/* (e.g., /api/auth/register).
+ * Keep WITHOUT authenticate here; router methods decide protection individually.
+ */
+app.options(/\/api\/auth(?:\/.*)?/, (_req, res) => res.sendStatus(204)); // explicit preflight for diagnostics
+app.use("/api/auth", authRouter);
+
+/**
+ * Discover
+ * - Protect with Bearer authenticate
+ * - Mount EXACTLY once under /api/discover
  */
 app.use("/api/discover", authenticate, discoverRouter);
-// --- PATCH END ---
 
-// --- REPLACE START: mount billing/payment routes (align with app.legacy.js) ---
 /**
- * Mount billing routes under /api.
- * Keeps legacy alias /api/payment for backward compatibility.
- * This mirrors app.legacy.js and ensures /api/billing/* endpoints are reachable.
+ * Likes
+ * - Ensure POST /api/likes (and related) are available.
+ * - Protected by Bearer authenticate.
+ */
+app.options("/api/likes", (_req, res) => res.sendStatus(204)); // explicit preflight
+app.use("/api/likes", authenticate, likesRouter);
+
+/**
+ * ✅ NEW: Rewind
+ * - Premium-gated in the router.
+ * - MUST be mounted after parsers and with authenticate.
+ */
+app.options("/api/rewind", (_req, res) => res.sendStatus(204)); // explicit preflight
+app.use("/api/rewind", authenticate, rewindRoutes);
+
+/**
+ * Billing/Payment
+ * - Modern:  /api/billing/*
+ * - Legacy:  /api/payment/*  (kept for backward compatibility)
  */
 app.use("/api/billing", paymentRouter);
-app.use("/api/payment", paymentRouter); // legacy compatibility
+app.use("/api/payment", paymentRouter);
+
+/**
+ * Superlike
+ * - Path variant: POST /api/superlike/:id
+ * - Body alias:   POST /api/superlikes  { id | userId | targetUserId }
+ */
+app.options("/api/superlike/:id", (_req, res) => res.sendStatus(204)); // explicit preflight
+app.use("/api/superlike", authenticate, superlikeRouter);
+app.use("/api/superlikes", authenticate, superlikeRouter);
 // --- REPLACE END ---
 
-// --- REPLACE START: mount Swagger UI AFTER routes/parsers ---
+// --- REPLACE START: lightweight /api/me (Bearer) for FE probes ---
 /**
- * Swagger UI (OpenAPI) — served after global parsers and routes are defined.
- * We expose BOTH:
- *   - /api/docs  (preferred, API prefix)
- *   - /docs      (convenient when testing locally)
- *
- * You can hide this in production by setting NODE_ENV=production
- * and not setting ENABLE_API_DOCS=true.
+ * Minimal /api/me that uses the same authenticate middleware.
+ * Returns a compact shape that FE can rely on when debugging entitlements.
+ * If your real /api/me exists in another router, keep this as a fallback until
+ * that path is guaranteed to be mounted.
  */
+app.get("/api/me", authenticate, (req, res) => {
+  const payload = req.auth || {};
+  res.status(200).json({
+    ok: true,
+    user: {
+      id: payload.userId || payload.id || null,
+      role: payload.role || "user",
+      email: payload.email || null,
+      isPremium: !!payload.isPremium || !!payload.premium || false,
+    },
+    entitlements: payload.entitlements || undefined,
+  });
+});
+// --- REPLACE END ---
+
+// ────────────────────────────────────────────────────────────────────────────────
+/** 4) Swagger UI (after routes/parsers) */
+// ────────────────────────────────────────────────────────────────────────────────
+// --- REPLACE START: Swagger UI AFTER routes/parsers ---
 const enableDocs =
-  process.env.NODE_ENV !== "production" ||
-  process.env.ENABLE_API_DOCS === "true";
+  process.env.NODE_ENV !== "production" || process.env.ENABLE_API_DOCS === "true";
 
 if (enableDocs) {
-  // using the config we imported above
   app.use("/api/docs", swagger.serve, swagger.setup);
   app.use("/docs", swagger.serve, swagger.setup);
 }
 // --- REPLACE END ---
 
-// --- REPLACE START: plain /health endpoint for load balancers & tests ---
+// ────────────────────────────────────────────────────────────────────────────────
 /**
- * Simple health endpoint used by tests (expects 200 + "OK").
- * Keep this outside /api so it’s always reachable.
+ * Health & whoami diagnostics
+ * - /health (GET, HEAD) returns "OK"
+ * - /__whoami (GET) returns decoded JWT using authenticate (no DB hit)
  */
+// ────────────────────────────────────────────────────────────────────────────────
+// --- REPLACE START: /health endpoint + HEAD + whoami ---
 app.get("/health", (_req, res) => res.status(200).send("OK"));
+app.head("/health", (_req, res) => res.status(200).end());
+
+app.get("/__whoami", authenticate, (req, res) => {
+  const a = req.auth || {};
+  res.status(200).json({
+    ok: true,
+    userId: req.userId || a.userId || a.id || null,
+    auth: {
+      id: a.id || undefined,
+      userId: a.userId || undefined,
+      email: a.email || undefined,
+      role: a.role || "user",
+      premium: !!a.premium || !!a.isPremium || false,
+      features: a.features || undefined,
+      quotas: a.quotas || undefined,
+    },
+  });
+});
 // --- REPLACE END ---
 
-// --- REPLACE START: diagnostics route listing (APP-level) ---
-/**
- * NOTE:
- * - This walker goes through *this* app instance (app._router.stack).
- * - In this project some routes are mounted via `routes/index.js` which itself
- *   is mounted at `/api`, so we ALSO add a second pair of routes below which
- *   walk that router directly.
- */
-
+// ────────────────────────────────────────────────────────────────────────────────
+/** Diagnostics — APP router walker (what this app instance exposes) */
+// ────────────────────────────────────────────────────────────────────────────────
+// --- REPLACE START: diagnostics (APP-level walker) ---
 function getMountPathFromLayer(layer) {
   try {
-    const src = layer?.regexp?.source || "";
+    const src = (layer && layer.regexp && layer.regexp.source) || "";
     if (!src) return "";
-    let s = src;
-    // strip leading '^'
-    s = s.replace(/^\^/, "");
-    // strip trailing '\/?(?=\/|$)' (escaped in the source)
-    s = s.replace(/\\\/\?\(\?=\\\/\|\$\)\$$/i, "");
-    // unescape '\/' to '/'
-    s = s.replace(/\\\//g, "/");
-    // strip trailing '$'
-    s = s.replace(/\$$/, "");
+    let s = src.replace(/^\^/, ""); // strip leading ^
+    s = s.replace(/\\\/\?\(\?=\\\/\|\$\)\$$/i, ""); // strip trailing '\/?(?=\/|$)$$'
+    s = s.replace(/\\\//g, "/"); // unescape '\/' → '/'
+    s = s.replace(/\$$/, ""); // strip trailing $
     if (!s.startsWith("/")) s = "/" + s;
     return s;
   } catch {
@@ -298,9 +358,7 @@ app.get("/__routes", (_req, res) => {
               .map((m) => m.toUpperCase())
               .join(",");
             const sub = typeof h.route.path === "string" ? h.route.path : "";
-            routesList.push(
-              `${methods} ${(mount + sub).replace(/\/{2,}/g, "/")}`
-            );
+            routesList.push(`${methods} ${(mount + sub).replace(/\/{2,}/g, "/")}`);
           }
         }
       }
@@ -317,13 +375,9 @@ app.get("/__routes_full", (_req, res) => {
     if (!Array.isArray(stack)) return out;
     for (const layer of stack) {
       if (layer?.route) {
-        const routePath =
-          typeof layer.route.path === "string" ? layer.route.path : "";
-        const methods = Object.keys(layer.route.methods || {}).map((m) =>
-          m.toUpperCase()
-        );
-        const full =
-          (base + (routePath || "")).replace(/\/{2,}/g, "/") || "/";
+        const routePath = typeof layer.route.path === "string" ? layer.route.path : "";
+        const methods = Object.keys(layer.route.methods || {}).map((m) => m.toUpperCase());
+        const full = (base + (routePath || "")).replace(/\/{2,}/g, "/") || "/";
         for (const m of methods) out.push(`${m} ${full}`);
         continue;
       }
@@ -345,13 +399,10 @@ app.get("/__routes_full", (_req, res) => {
 });
 // --- REPLACE END ---
 
-// --- REPLACE START: NEW diagnostics that walk the *API router* directly ---
-/**
- * Your case: /__routes_full returned [] even though /api/auth/* worked.
- * That tells us the real routes are on the router we mounted at /api.
- * So we add two helper endpoints that walk **that** router (`routes` import).
- */
-
+// ────────────────────────────────────────────────────────────────────────────────
+/** Diagnostics — API router walker (the aggregator we mounted at /api) */
+// ────────────────────────────────────────────────────────────────────────────────
+// --- REPLACE START: diagnostics (API-level walker) ---
 function walkRouter(stack, base = "") {
   const out = [];
   if (!Array.isArray(stack)) return out;
@@ -359,13 +410,9 @@ function walkRouter(stack, base = "") {
     // direct route
     if (layer?.route) {
       const p = typeof layer.route.path === "string" ? layer.route.path : "";
-      const methods = Object.keys(layer.route.methods || {}).map((m) =>
-        m.toUpperCase()
-      );
+      const methods = Object.keys(layer.route.methods || {}).map((m) => m.toUpperCase());
       const full = (base + p).replace(/\/{2,}/g, "/") || "/";
-      for (const m of methods) {
-        out.push(`${m} ${full}`);
-      }
+      for (const m of methods) out.push(`${m} ${full}`);
       continue;
     }
     // nested router
@@ -378,10 +425,8 @@ function walkRouter(stack, base = "") {
   return out;
 }
 
-// This will show the real /api/auth/* etc.
 app.get("/__routes_api", (_req, res) => {
   try {
-    // routes is the router we mounted at /api
     const stack = routes?.stack || routes?._router?.stack || [];
     const listed = walkRouter(stack, "/api");
     res.json(listed);
@@ -394,40 +439,34 @@ app.get("/__routes_api_full", (_req, res) => {
   try {
     const stack = routes?.stack || routes?._router?.stack || [];
     const listed = walkRouter(stack, "/api");
-    res.json({
-      count: listed.length,
-      routes: listed,
-    });
+    res.json({ count: listed.length, routes: listed });
   } catch (e) {
     res.status(500).json({ error: e?.message || String(e) });
   }
 });
 // --- REPLACE END ---
 
-// 404 + error handling (keep LAST)
+// ────────────────────────────────────────────────────────────────────────────────
+/** 5) 404 + error handling (keep LAST) */
+// ────────────────────────────────────────────────────────────────────────────────
 app.use(notFound);
 app.use(errorHandler);
 
-// Start when called directly (node ./src/app.js)
+// ────────────────────────────────────────────────────────────────────────────────
+/** Start when called directly (node ./src/app.js) */
+// ────────────────────────────────────────────────────────────────────────────────
 if (process.argv[1] && process.argv[1].endsWith("app.js")) {
   (async () => {
     try {
       await connectMongo();
     } catch (e) {
       // eslint-disable-next-line no-console
-      console.warn(
-        "[server] Mongo connection attempt failed at startup:",
-        e?.message || e
-      );
+      console.warn("[server] Mongo connection attempt failed at startup:", e?.message || e);
     }
     const PORT = Number(env.PORT || process.env.PORT || 5000);
     const HOST = env.HOST || process.env.HOST || "0.0.0.0";
-    app.listen(PORT, HOST, () =>
-      console.log(`[server] listening on ${HOST}:${PORT}`)
-    );
+    app.listen(PORT, HOST, () => console.log(`[server] listening on ${HOST}:${PORT}`));
   })();
 }
 
 export default app;
-
-

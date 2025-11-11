@@ -1,12 +1,12 @@
-// File: client/src/components/LikeButton.jsx
+// PATH: client/src/components/actions/LikeButton.jsx
 // --- REPLACE START: new LikeButton with "unlimitedLikes" feature gate + optional free-limited mode ---
 import React, { useCallback, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
-import FeatureGate from "./FeatureGate";
-import { useAuth } from "../contexts/AuthContext";
-import api from "../services/api/axiosInstance";
-import { hasFeature, isPremium } from "../utils/entitlements";
+import FeatureGate from "../FeatureGate";
+import { useAuth } from "../../contexts/AuthContext";
+import api from "../../services/api/axiosInstance";
+import { hasFeature, isPremium } from "../../utils/entitlements";
 
 /**
  * LikeButton
@@ -182,3 +182,5 @@ export default function LikeButton({
   );
 }
 // --- REPLACE END ---
+
+

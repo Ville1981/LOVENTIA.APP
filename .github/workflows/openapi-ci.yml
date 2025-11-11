@@ -1,0 +1,75 @@
+# PATH: .github/workflows/openapi-ci.yml
+# --- REPLACE START
+name: OpenAPI CI (Spectral + Redocly Bundle)
+
+on:
+  push:
+    branches: [ "**" ]
+    paths:
+      - "server/openapi/**"
+      - ".github/workflows/openapi-ci.yml"
+  pull_request:
+    branches: [ "**" ]
+    paths:
+      - "server/openapi/**"
+      - ".github/workflows/openapi-ci.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: openapi-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-bundle:
+    name: Lint & Bundle OpenAPI
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v4
+
+      - name: 🟩 Verify spec exists
+        run: |
+          test -f server/openapi/openapi.yaml || (echo "::error file=server/openapi/openapi.yaml::Spec file not found" && exit 1)
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: 📦 Install CLI helpers (local cache)
+        run: |
+          npm i -D @stoplight/spectral-cli @redocly/cli
+
+      - name: 🧹 Spectral Lint (OAS 3.1)
+        run: |
+          npx @stoplight/spectral-cli lint server/openapi/openapi.yaml \
+            --ruleset server/openapi/.spectral.yaml
+
+      - name: 🧩 Redocly Bundle (dereferenced)
+        run: |
+          npx @redocly/cli bundle server/openapi/openapi.yaml \
+            --output server/openapi/openapi.bundle.yaml \
+            --ext yaml \
+            --dereferenced
+
+      - name: 📄 Show bundle head
+        run: |
+          head -n 40 server/openapi/openapi.bundle.yaml || true
+
+      - name: ⬆️ Upload artifacts (spec + bundle + ruleset)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-artifacts-${{ github.run_number }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            server/openapi/openapi.yaml
+            server/openapi/openapi.bundle.yaml
+            server/openapi/.spectral.yaml
+# --- REPLACE END

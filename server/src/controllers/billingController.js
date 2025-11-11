@@ -21,11 +21,28 @@
  */
 
 import crypto from 'node:crypto';
+
 import * as UserModule from '../models/User.js';
 const User = UserModule.default || UserModule;
 
 import normalizeUserOut from '../utils/normalizeUserOut.js';
 import stripe, { billingUrls } from '../../config/stripe.js';
+
+/* -------------------------------------------------------------------------- */
+/* Constants                                                                  */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Default weekly quota for Super Likes when the user is Premium.
+ * You can override this via process.env.SUPERLIKES_PER_WEEK if desired.
+ */
+const SUPERLIKES_PER_WEEK_DEFAULT = Number(process.env.SUPERLIKES_PER_WEEK || 3);
+
+/**
+ * Subscription statuses that we consider as "active" for premium purposes.
+ * Adjust if your policy differs.
+ */
+const ACTIVE_SUB_STATUSES = new Set(['active', 'trialing', 'past_due', 'unpaid']);
 
 /* -------------------------------------------------------------------------- */
 /* Utilities                                                                  */
@@ -72,13 +89,16 @@ async function getOrCreateStripeCustomer(userDoc) {
 
 /**
  * Build entitlements.features block based on premium flag.
- * Keep qaVisibilityAll true for both tiers (as in current data model).
+ * NOTE:
+ *  - For PREMIUM we *explicitly* set superLikesPerWeek to a numeric quota (default 3).
+ *  - For FREE we keep it numeric 1 to make client logic simple and consistent.
+ *  - Keep qaVisibilityAll true for both tiers (matches current product decision).
  */
 function buildEntitlementFeatures(isPremium) {
   if (isPremium) {
     return {
       seeLikedYou: true,
-      superLikesPerWeek: true,
+      superLikesPerWeek: SUPERLIKES_PER_WEEK_DEFAULT, // ⭐ premium = 3 by default
       unlimitedLikes: true,
       unlimitedRewinds: true,
       dealbreakers: true,
@@ -89,7 +109,7 @@ function buildEntitlementFeatures(isPremium) {
   }
   return {
     seeLikedYou: false,
-    superLikesPerWeek: false,
+    superLikesPerWeek: 1, // free baseline (numeric for consistency)
     unlimitedLikes: false,
     unlimitedRewinds: false,
     dealbreakers: false,
@@ -104,9 +124,10 @@ function buildEntitlementFeatures(isPremium) {
  * Accepts statuses considered "active" by policy.
  */
 function derivePremiumStateFromSubscription(subscription) {
-  if (!subscription) return { isPremium: false, subscriptionId: null, tier: 'free', since: null, until: null };
-  const activeStatuses = new Set(['active', 'trialing', 'past_due', 'unpaid']); // adjust if needed
-  const isActive = activeStatuses.has(subscription.status);
+  if (!subscription) {
+    return { isPremium: false, subscriptionId: null, tier: 'free', since: null, until: null };
+  }
+  const isActive = ACTIVE_SUB_STATUSES.has(subscription.status);
   const since = subscription.current_period_start ? new Date(subscription.current_period_start * 1000) : null;
   const until = subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : null;
 
@@ -128,31 +149,40 @@ function derivePremiumStateFromSubscription(subscription) {
  *  - Always set user.subscriptionId
  *  - Always set entitlements.tier
  *  - Keep quotas.superLikes sane defaults
+ *  - ✅ Ensure premium superLikesPerWeek = 3 (or env override)
  */
 async function writeUserPremiumState(userId, premiumState) {
   const { isPremium, subscriptionId, tier, since, until } = premiumState;
-  const features = buildEntitlementFeatures(isPremium);
+
+  // Compute the desired features block from premium flag
+  const computed = buildEntitlementFeatures(isPremium);
 
   // Build $set for clarity and to avoid accidentally removing other fields
   const $set = {
+    // Top-level mirrors
     isPremium: !!isPremium,
     premium: !!isPremium, // legacy mirror if used elsewhere
     subscriptionId: subscriptionId ?? null,
+
+    // Entitlements tier + timing
     'entitlements.tier': tier || (isPremium ? 'premium' : 'free'),
     'entitlements.since': since ?? null,
     'entitlements.until': until ?? null,
 
-    // Merge features – each field explicitly set (non-destructive at the object level).
-    'entitlements.features.seeLikedYou': !!features.seeLikedYou,
-    'entitlements.features.superLikesPerWeek': !!features.superLikesPerWeek,
-    'entitlements.features.unlimitedLikes': !!features.unlimitedLikes,
-    'entitlements.features.unlimitedRewinds': !!features.unlimitedRewinds,
-    'entitlements.features.dealbreakers': !!features.dealbreakers,
-    'entitlements.features.qaVisibilityAll': !!features.qaVisibilityAll,
-    'entitlements.features.introsMessaging': !!features.introsMessaging,
-    'entitlements.features.noAds': !!features.noAds,
+    // Feature flags (explicit, non-destructive at object level)
+    'entitlements.features.seeLikedYou': !!computed.seeLikedYou,
+    'entitlements.features.dealbreakers': !!computed.dealbreakers,
+    'entitlements.features.qaVisibilityAll': !!computed.qaVisibilityAll,
+    'entitlements.features.introsMessaging': !!computed.introsMessaging,
+    'entitlements.features.noAds': !!computed.noAds,
+    'entitlements.features.unlimitedLikes': !!computed.unlimitedLikes,
+    'entitlements.features.unlimitedRewinds': !!computed.unlimitedRewinds,
 
-    // Ensure quotas object is present (defensive)
+    // ⭐ Numeric weekly quota (premium → 3 by default; coerced to Number)
+    'entitlements.features.superLikesPerWeek':
+      Number(computed.superLikesPerWeek) || (isPremium ? SUPERLIKES_PER_WEEK_DEFAULT : 1),
+
+    // Ensure quotas object present & reset usage window when toggling
     'entitlements.quotas.superLikes.used': 0,
     'entitlements.quotas.superLikes.window': 'weekly',
   };
@@ -278,7 +308,7 @@ export async function sync(req, res) {
 
   // Prefer an active/trialing subscription if present, otherwise take the newest
   const preferred =
-    subs.data.find(s => ['active', 'trialing', 'past_due', 'unpaid'].includes(s.status)) ||
+    subs.data.find(s => ACTIVE_SUB_STATUSES.has(s.status)) ||
     subs.data.sort((a, b) => (b.created || 0) - (a.created || 0))[0] ||
     null;
 
@@ -343,8 +373,7 @@ export async function handleWebhook(req, res) {
       case 'customer.subscription.updated': {
         const sub = event.data.object;
         const customerId = sub.customer;
-        const activeStatuses = new Set(['active', 'trialing', 'past_due', 'unpaid']); // adjust to your policy
-        const isActive = activeStatuses.has(sub.status);
+        const isActive = ACTIVE_SUB_STATUSES.has(sub.status);
         await upsertPremiumByCustomer(customerId, isActive, sub);
         break;
       }
@@ -369,5 +398,3 @@ export async function handleWebhook(req, res) {
   return res.status(200).send('ok');
 }
 // --- REPLACE END ---
-
-

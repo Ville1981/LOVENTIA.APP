@@ -1,3 +1,5 @@
+// PATH: server/src/utils/normalizeUserOut.js
+
 // --- REPLACE START: unified user normalizer (NO field cutting; arrays guaranteed; POSIX /uploads paths; no duplicates) ---
 /**
  * Unified user normalizer for API output.
@@ -21,12 +23,20 @@
  *      – Fill only missing premium features to true (at least `noAds`); never flip true→false.
  *      – If `isPremium` is missing (not boolean), compute effective view and set it.
  *      – Mirror legacy `premium` from `isPremium` if missing.
+ *  • Keep `entitlements.features.superLikesPerWeek` as a NUMBER if present; never coerce to boolean.
  *  • DO NOT remove `subscriptionId`.
  *
- * Implementation notes:
- *  • Keep comments & strings in English.
- *  • Expose helpers (toWebPath, normalizeUsersOut) for reuse in routes/controllers.
+ * Rewind rules:
+ *  • If `rewind` exists, expose a stable view with:
+ *      – `max` (number, default 50)
+ *      – `stackCount` (length of raw stack)
+ *      – `stack` preview array (first 10 items) with normalized alias fields:
+ *          { type, action, targetId, targetUserId, createdAt }
+ *  • Accept legacy aliases in items: type↔action, targetId↔target/targetUserId/target_id, createdAt↔at.
+ *  • Do NOT hide `rewind` (visibility required by FE & diagnostics).
  */
+
+"use strict";
 
 /* ─────────────────────────────────────────────────────────────────────────────
  * Path helpers
@@ -106,6 +116,7 @@ export function stripSensitive(u) {
   delete u.resetToken;
   delete u.passwordResetToken;
   delete u.passwordResetExpires;
+  delete u.passwordResetUsedAt;
   delete u.verificationCode;
   delete u.emailVerificationCode;
   delete u.emailVerificationToken;
@@ -224,15 +235,16 @@ export function applyPremiumSafety(u) {
  * Non-destructive entitlements merge for output:
  *  - Ensure u.entitlements object exists.
  *  - If user is premium (effective view) and entitlements.tier is missing/"free", lift to "premium".
- *  - If premium: set only missing premium features to true (at least `noAds`); never flip true→false.
+ *  - If premium: set only missing features to true (at least `noAds`); never flip true→false.
  *  - Preserve quotas and any existing features.
+ *  - Ensure `features.superLikesPerWeek` stays a NUMBER when present; do not coerce to boolean.
  *  - Never remove/alter `subscriptionId`.
  */
 export function applyEntitlementsView(u) {
   const effectivePremium = !!u.isPremium || computeEffectivePremiumView(u);
   const ent = u.entitlements && typeof u.entitlements === "object" ? u.entitlements : {};
-  const features = ent.features && typeof ent.features === "object" ? ent.features : {};
-  const quotas = ent.quotas && typeof ent.quotas === "object" ? ent.quotas : ent.quotas ?? undefined;
+  const features = ent.features && typeof ent.features === "object" ? { ...ent.features } : {};
+  const quotas = ent.quotas && typeof ent.quotas === "object" ? { ...ent.quotas } : undefined;
 
   // Lift tier only if missing or clearly "free"
   const currentTier = ent.tier;
@@ -240,37 +252,88 @@ export function applyEntitlementsView(u) {
     effectivePremium &&
     (currentTier === undefined || currentTier === null || String(currentTier).toLowerCase() === "free");
 
-  if (shouldLiftTier) {
-    ent.tier = "premium";
-  } else if (currentTier !== undefined) {
-    ent.tier = currentTier; // keep as-is if already set (including "premium")
-  }
+  const nextEnt = {
+    ...(ent || {}),
+    tier: shouldLiftTier ? "premium" : currentTier ?? ent.tier,
+  };
 
   // If premium, fill only missing features (minimal set: at least noAds)
   if (effectivePremium) {
     if (features.noAds === undefined || features.noAds === null) {
       features.noAds = true;
     }
-    // Optionally prefill more premium features here (ONLY when missing):
-    // const premiumDefaults = {
-    //   unlimitedLikes: true,
-    //   unlimitedRewinds: true,
-    //   dealbreakers: true,
-    //   seeLikedYou: true,
-    //   qaVisibilityAll: true,
-    //   introsMessaging: true,
-    //   noAds: true,
-    // };
-    // for (const [k, v] of Object.entries(premiumDefaults)) {
-    //   if (features[k] === undefined || features[k] === null) features[k] = v;
-    // }
   }
 
-  // Re-attach objects (avoid mutating shared references if upstream used frozen objects)
-  u.entitlements = {
-    ...ent,
-    features: { ...features },
-    ...(quotas ? { quotas } : {}), // keep quotas object if present
+  // Ensure superLikesPerWeek remains numeric when present
+  if (features.superLikesPerWeek !== undefined && features.superLikesPerWeek !== null) {
+    const n = Number(features.superLikesPerWeek);
+    if (Number.isFinite(n)) {
+      features.superLikesPerWeek = n;
+    } else {
+      // If somehow stored as boolean true in DB, keep it truthy (client may still treat premium as unlimited),
+      // but *prefer* to coerce to a sane numeric view (do NOT persist here).
+      features.superLikesPerWeek = features.superLikesPerWeek === true ? 3 : 0;
+    }
+  }
+
+  nextEnt.features = features;
+  if (quotas) {
+    // Ensure quotas.superLikes { used, window } are visible with sensible defaults
+    const q = { ...quotas };
+    const sl = { ...(q.superLikes || {}) };
+    if (!Number.isFinite(Number(sl.used))) sl.used = 0;
+    if (typeof sl.window !== "string" || !sl.window) sl.window = "weekly";
+    q.superLikes = sl;
+    nextEnt.quotas = q;
+  }
+
+  u.entitlements = nextEnt;
+  return u;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Rewind normalization (stack preview + count; accepts legacy aliases)
+ * ────────────────────────────────────────────────────────────────────────────*/
+
+/**
+ * Ensure a stable `rewind` view exists for API:
+ *  - `max`: number (default 50 if absent)
+ *  - `stackCount`: raw stack length
+ *  - `stack`: first N items with normalized aliases (type/action, targetId/targetUserId/target/target_id, createdAt/at)
+ * This function is non-destructive for unknown fields on `rewind`.
+ */
+export function ensureRewindView(u, previewLimit = 10) {
+  const rw = (u && typeof u.rewind === "object") ? u.rewind : undefined;
+
+  // If no rewind object at all, provide an empty view (do not fabricate data).
+  if (!rw) {
+    u.rewind = {
+      max: 50,
+      stackCount: 0,
+      stack: []
+    };
+    return u;
+  }
+
+  // Accept arrays or object-like `{0:...,1:...}` stacks
+  const rawStack = Array.isArray(rw.stack) ? rw.stack : asArray(rw.stack);
+
+  const max = Number.isFinite(Number(rw.max)) ? Number(rw.max) : 50;
+
+  // Preview: limit to first N to keep payloads tight
+  const preview = rawStack.slice(0, Math.max(0, Number(previewLimit) || 10)).map((a) => ({
+    type: a?.type ?? a?.action ?? "like",
+    action: a?.action ?? a?.type ?? "like",
+    targetId: a?.targetId ?? a?.targetUserId ?? a?.target ?? a?.target_id ?? null,
+    targetUserId: a?.targetUserId ?? a?.targetId ?? a?.target ?? a?.target_id ?? null,
+    createdAt: a?.createdAt ?? a?.at ?? null,
+  }));
+
+  u.rewind = {
+    ...rw,
+    max,
+    stackCount: rawStack.length,
+    stack: preview,
   };
 
   return u;
@@ -301,10 +364,13 @@ export function normalizeUserOut(src = {}) {
   // 4) Provide a stable string id
   ensureStringId(user);
 
-  // 5) Premium top-level safety (gap-filling only)
+  // 5) Rewind stable view (stackCount + preview), accepting legacy aliases
+  ensureRewindView(user, 10); // preview first 10 items
+
+  // 6) Premium top-level safety (gap-filling only)
   applyPremiumSafety(user);
 
-  // 6) Non-destructive entitlements merge for output (lift tier + fill missing premium features)
+  // 7) Non-destructive entitlements merge for output (lift tier + fill missing premium features)
   applyEntitlementsView(user);
 
   // Done — return the normalized user (no field whitelisting!)
@@ -333,4 +399,14 @@ export function normalizeUsersOut(arr) {
 // Keep a default export alias for compatibility with `import normalizeUserOut from ...`
 export default normalizeUserOut;
 // --- REPLACE END ---
+
+
+
+
+
+
+
+
+
+
 

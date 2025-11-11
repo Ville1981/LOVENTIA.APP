@@ -12,15 +12,16 @@
  */
 
 // --- REPLACE START: convert to **ESM** + centralized (optional) CORS with safe fallbacks ---
+import crypto from "crypto";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath, pathToFileURL } from "url";
+
+import bcrypt from "bcryptjs";
+import cookieParser from "cookie-parser";
+import dotenv from "dotenv";
 import express from "express";
 import jwt from "jsonwebtoken";
-import cookieParser from "cookie-parser";
-import crypto from "crypto";
-import bcrypt from "bcryptjs";
-import path from "path";
-import fs from "fs";
-import { fileURLToPath, pathToFileURL } from "url";
-import dotenv from "dotenv";
 // --- REPLACE END ---
 
 // --- REPLACE START: bring in the same normalizer as /api/users/me and /api/me ---
@@ -957,5 +958,6 @@ router.delete(
 
 // Final ESM export only (no CommonJS)
 export default router;
+
 
 

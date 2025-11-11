@@ -24,7 +24,7 @@ const Etusivu = () => {
       <p className="text-lg">{t("home.subtitle")}</p>
       {/* --- REPLACE END --- */}
 
-      {/* --- REPLACE START: standard inline content ad slot on Home --- */}
+      {/* --- REPLACE START: standard inline content ad slot on Home (hidden for Premium/no-ads) --- */}
       <div className="max-w-3xl mx-auto mt-6">
         <AdGate type="inline">
           <AdBanner
@@ -40,3 +40,4 @@ const Etusivu = () => {
 };
 
 export default Etusivu;
+

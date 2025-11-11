@@ -1,0 +1,36 @@
+﻿# PATH: server/.github/workflows/openapi.yml
+# --- REPLACE START
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+
+name: openapi
+on:
+  push:
+    paths:
+      - 'server/openapi/**'
+      - 'server/package.json'
+  pull_request:
+    paths:
+      - 'server/openapi/**'
+      - 'server/package.json'
+
+defaults:
+  run:
+    working-directory: server
+
+jobs:
+  lint-and-bundle:
+    name: Lint & bundle OpenAPI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: npm run openapi:lint
+      - run: npm run openapi:bundle
+      - uses: actions/upload-artifact@v4
+        with:
+          name: openapi-bundle
+          path: server/openapi/openapi.bundle.yaml
+# --- REPLACE END

@@ -1,4 +1,4 @@
-// server/models/User.js
+// PATH: server/models/User.js
 
 // --- REPLACE START: Hybrid loader — prefer ESM src model, fallback to CJS; keep exports stable ---
 //

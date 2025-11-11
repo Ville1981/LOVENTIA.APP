@@ -1,0 +1,7 @@
+﻿extends: ["spectral:oas"]
+rules:
+  no-duplicate-keys: error
+  operation-tags: off
+  operation-operationId-unique: warn
+  operation-operationId: warn
+  operation-deprecated: off

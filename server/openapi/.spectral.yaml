@@ -1,0 +1,13 @@
+# PATH: server/openapi/.spectral.yaml
+# --- REPLACE START
+# Minimal Spectral ruleset (v6-compatible)
+# Base ruleset: spectral:oas
+extends:
+  - spectral:oas
+
+rules:
+  # Warn (do not fail) if operationId is missing
+  operation-operationId: warn
+  # Warn (do not fail) if operationIds are not unique
+  operation-operationId-unique: warn
+# --- REPLACE END

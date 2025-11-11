@@ -2,13 +2,14 @@
 // @ts-nocheck
 
 // --- REPLACE START: migrate file to ESM and unify output normalizer across /me, /profile & PUT /profile ---
-import express from "express";
-import jwt from "jsonwebtoken";
-import multer from "multer";
-import pathFs from "path";
 import fs from "fs";
-import mongoose from "mongoose";
+import pathFs from "path";
+
+import express from "express";
 import { body, validationResult } from "express-validator";
+import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
+import multer from "multer";
 // --- REPLACE END ---
 
 // --- REPLACE START: configuration/constants carried from legacy user.js ---
@@ -115,6 +116,20 @@ async function getUserController() {
     _UserController = {};
   }
   return _UserController;
+}
+// --- REPLACE END ---
+
+// --- REPLACE START: lazy-load Superlike controller (weekly quota; single source of truth) ---
+let _SuperlikeController = null;
+async function getSuperlikeController() {
+  if (_SuperlikeController) return _SuperlikeController;
+  try {
+    const mod = await import("../controllers/superlikeController.js");
+    _SuperlikeController = mod?.default || mod || {};
+  } catch (_e) {
+    _SuperlikeController = {};
+  }
+  return _SuperlikeController;
 }
 // --- REPLACE END ---
 
@@ -909,79 +924,26 @@ router.post("/like/:id", authenticateToken, async (req, res) => {
   }
 });
 
-router.post("/superlike/:id", authenticateToken, async (req, res) => {
+// --- REPLACE START: delegate superlike to unified weekly-quota controller ---
+router.post("/superlike/:id", authenticateToken, async (req, res, next) => {
   try {
-    const User = await getUserModel();
-    if (!User) return res.status(500).json({ error: "User model not available" });
+    const ctrl = await getSuperlikeController();
+    const handler =
+      ctrl?.superlikeUser ||
+      ctrl?.default ||
+      ctrl?.superlike ||
+      ctrl?.create;
 
-    const current = await User.findById(req.userId);
-    const targetId = String(req.params.id || "");
-
-    if (!current || !mongoose.Types.ObjectId.isValid(targetId)) {
-      return res.status(400).json({ error: "Invalid request" });
+    if (typeof handler === "function") {
+      return handler(req, res, next);
     }
-    if (current._id.equals(targetId)) {
-      return res.status(400).json({ error: "Cannot superlike yourself" });
-    }
-
-    const now = new Date();
-    current.superLikeTimestamps = (current.superLikeTimestamps || []).filter(
-      (ts) => now - new Date(ts) < 48 * 60 * 60 * 1000
-    );
-
-    const premium =
-      current.isPremium || current.premium || current?.entitlements?.tier === "premium";
-    const limit = premium ? 3 : 1;
-
-    if (current.superLikeTimestamps.length >= limit) {
-      return res.status(403).json({
-        error: "Superlike limit reached",
-        window: "48h",
-        limit,
-        used: current.superLikeTimestamps.length,
-        remaining: Math.max(0, limit - current.superLikeTimestamps.length),
-      });
-    }
-
-    if (!Array.isArray(current.superLikes)) current.superLikes = [];
-    if (!current.superLikes.includes(targetId)) {
-      current.superLikes.push(targetId);
-      current.superLikeTimestamps.push(now);
-      await current.save();
-    }
-
-    try {
-      const { _NotificationsController, _NotificationModel } = await getNotificationsHelper();
-      const createNotificationHelper = _NotificationsController?.create;
-      const Notification = _NotificationModel;
-
-      const payload = {
-        toUser: targetId,
-        fromUser: req.userId,
-        type: "superlike",
-        message: "You got a Superlike!",
-      };
-      if (typeof createNotificationHelper === "function") {
-        await createNotificationHelper(payload);
-      } else if (Notification && typeof Notification.create === "function") {
-        await Notification.create(payload);
-      }
-    } catch (notifyErr) {
-      console.warn("[superlike] notification failed:", notifyErr?.message || notifyErr);
-    }
-
-    return res.json({
-      message: "Superliked successfully",
-      window: "48h",
-      limit,
-      used: current.superLikeTimestamps.length,
-      remaining: Math.max(0, limit - current.superLikeTimestamps.length),
-    });
+    return res.status(500).json({ error: "Superlike controller not available" });
   } catch (e) {
-    console.error("superlike error:", e?.message || e);
-    res.status(500).json({ error: "Server error" });
+    console.error("[userRoutes] superlike delegate error:", e?.message || e);
+    return res.status(500).json({ error: "Superlike failed" });
   }
 });
+// --- REPLACE END ---
 
 router.post("/block/:id", authenticateToken, async (req, res) => {
   try {
@@ -1503,5 +1465,8 @@ try {
      this router is mounted at the base path `/api/users`, so the actual login URL
      exposed by THIS file is `/api/users/login` (without the extra `/auth` in the path).
      The dedicated auth router (server/src/routes/auth.js) exposes the login at `/api/auth/login`.
+   - Superlike is now DELEGATED to controllers/superlikeController.js to ensure the same weekly quota logic
+     is used across both /api/superlike/:id and this legacy /api/users/superlike/:id endpoint.
 ============================================================================= */
+
 

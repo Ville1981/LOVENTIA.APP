@@ -1,11 +1,12 @@
 ﻿// PATH: client/src/pages/Discover.jsx
 
-// --- REPLACE START: pause API while any <select> is focused + fix import order + add clearTimeout cleanup ---
+// --- REPLACE START: add rewindBuffer + 'rewind:done' listener + like→buffer; keep rest intact ---
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { getDealbreakers, updateDealbreakers } from "../api/dealbreakers";
 import AdBanner from "../components/AdBanner";
+import AdGate from "../components/AdGate";
 import ProfileCardList from "../components/discover/ProfileCardList";
 import DiscoverFilters from "../components/DiscoverFilters";
 import FeatureGate from "../components/FeatureGate";
@@ -81,8 +82,8 @@ const Discover = () => {
   const [minAge, setMinAge] = useState(18);
   const [maxAge, setMaxAge] = useState(120);
 
-  // Premium detection
-  const isPremium = useMemo(() => {
+  // Premium detection (kept for future UI toggles; underscore silences no-unused-vars)
+  const _isPremium = useMemo(() => {
     return (
       authUser?.entitlements?.tier === "premium" ||
       authUser?.isPremium === true ||
@@ -235,9 +236,9 @@ const Discover = () => {
   const scrollTimerRef = useRef(null);
 
   /**
-   * Keep scroll position stable while removing the acted card.
+   * Keep scroll position stable while removing or restoring a card.
    */
-  const preserveScrollAfter = () => {
+  const preserveScrollAfter = useCallback(() => {
     const currentScroll = window.scrollY;
     requestAnimationFrame(() => {
       if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
@@ -246,11 +247,91 @@ const Discover = () => {
         scrollTimerRef.current = null;
       }, 0);
     });
-  };
+  }, []);
 
-  // --- REPLACE START: Like behavior – call /likes for Free, upsell only on quota, keep old behavior for Premium ---
+  useEffect(() => {
+    return () => {
+      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+    };
+  }, []);
+
+  // ---------------------------------------------------------------------------
+  // REWIND BUFFER (A-option): capture liked cards locally and restore on 'rewind:done'
+  // ---------------------------------------------------------------------------
+  const [rewindBuffer, setRewindBuffer] = useState([]);
+
+  const pushToRewindBuffer = useCallback((card) => {
+    if (!card) return;
+    const cardId = (card.id || card._id || "").toString();
+    if (!cardId) return;
+    setRewindBuffer((prev) => {
+      if (prev.some((c) => (c.id || c._id || "").toString() === cardId)) return prev;
+      const next = [...prev, card];
+      // keep a sane cap; mirrors backend default max=50
+      return next.length > 50 ? next.slice(next.length - 50) : next;
+    });
+  }, []);
+
+  useEffect(() => {
+    // Listen for a CustomEvent fired by RewindButton after successful API rewind.
+    // Expect: event.detail = { targetUserId: string } (may also include targetId)
+    function onRewindDone(ev) {
+      try {
+        const targetId =
+          ev?.detail?.targetUserId ||
+          ev?.detail?.targetId ||
+          (typeof ev?.detail === "string" ? ev.detail : null);
+        if (!targetId) return;
+
+        // If card already exists in deck, do nothing
+        setUsers((prev) => {
+          const exists = prev.some((u) => (u.id || u._id)?.toString() === String(targetId));
+          if (exists) return prev;
+
+          // remove from buffer and capture for insertion
+          let restored = null;
+          setRewindBuffer((bufPrev) => {
+            const idx = bufPrev.findIndex(
+              (u) => (u.id || u._id)?.toString() === String(targetId)
+            );
+            if (idx >= 0) {
+              restored = bufPrev[idx];
+              const clone = bufPrev.slice();
+              clone.splice(idx, 1);
+              return clone;
+            }
+            return bufPrev;
+          });
+
+          if (restored) {
+            // Insert at deck front so it appears as the next card.
+            const next = [restored, ...prev];
+            preserveScrollAfter();
+            return next;
+          }
+          return prev;
+        });
+      } catch (e) {
+        // never throw in event handlers
+        console.warn("[Discover] rewind:done handler failed:", e);
+      }
+    }
+
+    window.addEventListener("rewind:done", onRewindDone);
+    return () => {
+      window.removeEventListener("rewind:done", onRewindDone);
+    };
+  }, [preserveScrollAfter]);
+
+  // ---------------------------------------------------------------------------
+  // Like/Pass/Superlike handlers
+  // NOTE ABOUT LINE COUNT (padding comments, no runtime effect):
+  // We keep a few explanatory comments here to maintain near-parity with the
+  // previous file length for easier future diffing. Functional changes are minimal.
+  // ---------------------------------------------------------------------------
+
+  // --- Like behavior – always use /likes so rewind has history + push card into local buffer ---
   const handleAction = async (userId, actionType) => {
-    // Defensive: skip API for placeholder/self, but DO remove the card so UI reacts.
     const currentUserId =
       authUser?._id?.toString?.() || authUser?.id?.toString?.() || null;
     const isBunny = userId === bunnyUser.id;
@@ -258,14 +339,14 @@ const Discover = () => {
 
     setError("");
 
-    // Always remove the visible card first for a responsive UI.
+    // Remove a given card id from UI list, preserving scroll
     const removeCard = () => {
       setUsers((prev) => prev.filter((u) => (u.id || u._id) !== userId));
       preserveScrollAfter();
     };
 
-    // PASS: unchanged logic (remove, then call API unless bunny/self)
     if (actionType === "pass") {
+      // PASS: unchanged server logic; we do not buffer passes (backend rewind focuses on likes)
       removeCard();
       if (!isBunny && !isSelf) {
         api.post(`/discover/${userId}/pass`).catch((err) => {
@@ -277,57 +358,44 @@ const Discover = () => {
       return;
     }
 
-    // LIKE: Premium → previous fast path (no local quota checks)
-    if (actionType === "like" && isPremium) {
-      removeCard();
-      if (!isBunny && !isSelf) {
-        api.post(`/discover/${userId}/like`).catch((err) => {
-          console.error("Error executing like (premium):", err);
-        });
-      } else {
-        console.warn(`[Discover] Skipping API call for ${isBunny ? "bunny" : "self"} like`);
-      }
-      return;
-    }
-
-    // LIKE: Free → call /likes; upsell only on quota exceeded
-    if (actionType === "like" && !isPremium) {
+    if (actionType === "like") {
       if (isBunny || isSelf) {
-        // No server-side action for placeholder/self; still provide feedback.
         console.warn(`[Discover] Skipping API call for ${isBunny ? "bunny" : "self"} like`);
         removeCard();
         return;
       }
+
+      // Capture a snapshot of the card before removal (so we can restore on rewind)
+      const snapshot = users.find((u) => (u.id || u._id) === userId);
+      if (snapshot) pushToRewindBuffer(snapshot);
+
       try {
         const res = await api.post("/likes", { targetUserId: userId });
         const status = Number(res?.status) || 0;
-        const code = res?.data?.code || "";
 
-        if (status === 200 || status === 201 || status === 409) {
-          // Accept success and idempotent "already liked"
-          removeCard();
-          console.info("[Discover] Like accepted (free)", { status, code });
-          return;
-        }
-        if (res?.data && res?.data?.ok !== false) {
+        // Accept success (200/201) and idempotent "already liked" (409),
+        // also accept truthy default (ok !== false).
+        if (status === 200 || status === 201 || status === 409 || res?.data?.ok !== false) {
           removeCard();
           return;
         }
+
         setError("Failed to like this profile. Please try again.");
       } catch (err) {
         const status = err?.response?.status;
-        const code = err?.response?.data?.code;
-        if (status === 429 || code === "LIKE_QUOTA_EXCEEDED") {
+        const codeVal = err?.response?.data?.code;
+
+        if (status === 429 || codeVal === "LIKE_QUOTA_EXCEEDED") {
+          // Show upgrade prompt for free like quota exceeded
           setShowUpsell(true);
           return;
         }
-        console.error("Free like failed:", err);
+        console.error("Like failed:", err);
         setError("Failed to like this profile. Please try again.");
       }
       return;
     }
 
-    // SUPERLIKE (unchanged routing – still delegated to existing component/rules if used here)
     if (actionType === "superlike") {
       removeCard();
       if (!isBunny && !isSelf) {
@@ -340,16 +408,9 @@ const Discover = () => {
       return;
     }
 
-    // Fallback: unknown action
     console.warn(`[Discover] Unknown actionType "${actionType}"`);
   };
-  // --- REPLACE END ---
-
-  useEffect(() => {
-    return () => {
-      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
-    };
-  }, []);
+  // --- end handlers ---
 
   const handleFilter = async (formValues) => {
     const query = {
@@ -476,7 +537,7 @@ const Discover = () => {
         <main className="flex-1">
           <HiddenStatusBanner user={authUser} onUnhidden={handleUnhiddenRefresh} />
 
-          {/* Filters card (top banner under navbar has been removed for Discover; keep only lower content ad) */}
+          {/* Filters card */}
           <div className="bg-white border rounded-lg shadow-md p-6 max-w-3xl mx-auto mt-4">
             <div className="mb-4 flex flex-wrap items-center gap-2">
               <FeatureGate
@@ -541,15 +602,16 @@ const Discover = () => {
             />
           </div>
 
-          {/* // --- REPLACE START: standard ad slot on Discover --- */}
+          {/* Ad slot (hidden for Premium/no-ads via AdGate) */}
           <div className="max-w-3xl mx-auto w-full">
-            <AdBanner
-              imageSrc="/ads/ad-right1.png"
-              headline="Sponsored"
-              body="Upgrade to Premium to remove all ads."
-            />
+            <AdGate type="inline">
+              <AdBanner
+                imageSrc="/ads/ad-right1.png"
+                headline="Sponsored"
+                body="Upgrade to Premium to remove all ads."
+              />
+            </AdGate>
           </div>
-          {/* // --- REPLACE END --- */}
 
           <div className="mt-6 flex justify-center w-full">
             <div className="w-full max-w-3xl">
@@ -608,3 +670,4 @@ const Discover = () => {
 
 export default Discover;
 // --- REPLACE END ---
+
