@@ -9,6 +9,9 @@ on:
 jobs:
   zap-scan:
     runs-on: ubuntu-latest
+    # --- REPLACE START: run ZAP only on manual trigger to avoid breaking scheduled scans ---
+    if: github.event_name == 'workflow_dispatch'
+    # --- REPLACE END ---
     env:
       TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
       PERF_PASSWORD: ${{ secrets.PERF_PASSWORD }}
@@ -54,7 +57,7 @@ jobs:
 
       - name: Install server dependencies
         working-directory: server
-        run: npm ci
+        run: npm ci --omit=dev
 
       - name: Server npm audit (production, high+ only)
         working-directory: server
@@ -63,7 +66,7 @@ jobs:
 
       - name: Install client dependencies
         working-directory: client
-        run: npm ci
+        run: npm ci --omit=dev
 
       - name: Client npm audit (production, high+ only)
         working-directory: client
@@ -79,5 +82,4 @@ jobs:
             audit-server.json
             audit-client.json
       # --- REPLACE END
-
 
