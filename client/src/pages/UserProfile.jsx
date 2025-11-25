@@ -1,3 +1,5 @@
+// PATH: client/src/pages/UserProfile.jsx
+
 // --- REPLACE START: whitelist & FI→EN fallbacks in submit, no server-managed fields, preserve full structure ---
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
@@ -5,11 +7,11 @@ import { useTranslation } from "react-i18next";
 
 import ProfileForm from "../components/profileFields/ProfileForm";
 import PhotoCarousel from "../components/discover/PhotoCarousel";
-import api from "../services/api/axiosInstance";
+import api from "../services/api/axiosInstance"; // use shared Axios instance (auth + baseURL)
 import { BACKEND_BASE_URL, PLACEHOLDER_IMAGE } from "../config";
 import AdGate from "../components/AdGate";
 import AdBanner from "../components/AdBanner";
-
+import { useAuth } from "../contexts/AuthContext";
 
 /** Normalize FS path → web path (handles Windows backslashes) */
 const toWebPath = (p = "") =>
@@ -28,25 +30,25 @@ const buildImgSrc = (p) => {
    Only include fields known to be localized previously.
 ──────────────────────────────────────────────────────────────────────────── */
 const FI_EN_CHILDREN = {
-  "Kyllä": "yes",
-  "Ei": "no",
+  Kyllä: "yes",
+  Ei: "no",
   "Aikuisia lapsia": "adultChildren",
-  "Muu": "other",
+  Muu: "other",
 };
 const FI_EN_PETS = {
-  "Kissa": "cat",
-  "Koira": "dog",
-  "Molemmat": "both",
+  Kissa: "cat",
+  Koira: "dog",
+  Molemmat: "both",
   "Ei lemmikkiä": "none",
-  "Muu": "other",
+  Muu: "other",
 };
 const FI_EN_EDUCATION = {
-  "Peruskoulu": "Basic",
+  Peruskoulu: "Basic",
   "Toinen aste": "Secondary",
-  "Ammatillinen": "Vocational",
+  Ammatillinen: "Vocational",
   "Korkeakoulu / yliopisto": "Higher",
   "Tohtori / tutkimus": "PhD",
-  "Muu": "Other",
+  Muu: "Other",
 };
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -291,6 +293,7 @@ function sanitizeAndWhitelistPayload(data) {
 const UserProfile = () => {
   const { t } = useTranslation(["common", "profile", "lifestyle"]);
   const { userId: userIdParam } = useParams();
+  const { user: authUser } = useAuth();
 
   const [user, setUser] = useState(null);
   const [message, setMessage] = useState("");
@@ -309,28 +312,78 @@ const UserProfile = () => {
 
   const isOwnProfile = useMemo(() => !userIdParam, [userIdParam]);
 
-  const refreshUser = useCallback(async () => {
-    setReloading(true);
-    setMessage("");
-    try {
-      const apiPath = userIdParam ? `/users/${userIdParam}` : "/users/me";
-      const res = await api.get(apiPath);
-      const u = normalizeUser(res?.data?.user || res?.data);
-      if (!mountedRef.current) return;
-      setUser(u);
-    } catch (err) {
-      if (!mountedRef.current) return;
-      const status = err?.response?.status;
-      setMessage(
-        (status === 401 &&
-          (t("profile:authRequired") || "Authentication required.")) ||
-          t("profile:loadError") ||
-          "Failed to load profile."
-      );
-    } finally {
-      if (mountedRef.current) setReloading(false);
+  // This changes when logged-in user really changes (multi-session safe)
+  const authUserId =
+    authUser?.id || authUser?._id || authUser?.uid || authUser?.email || null;
+
+  // Keep local profile user in sync with AuthContext for own profile (multi-session safe)
+  useEffect(() => {
+    if (!isOwnProfile) return;
+
+    // When logged out while on /profile, clear local user so we do not show stale data
+    if (!authUser) {
+      setUser(null);
+      return;
     }
-  }, [t, userIdParam]);
+
+    const normalized = normalizeUser(authUser);
+
+    setUser((prev) => {
+      if (!prev) return normalized;
+
+      const prevId = prev.id || prev._id || prev.uid || prev.email;
+      const nextId =
+        normalized.id ||
+        normalized._id ||
+        normalized.uid ||
+        normalized.email;
+
+      // If the identity really changed (Ville ↔ MultiSession), replace immediately
+      if (prevId && nextId && prevId !== nextId) {
+        return normalized;
+      }
+
+      // Same identity: keep existing state (may contain unsaved edits)
+      return prev;
+    });
+  }, [isOwnProfile, authUserId, authUser]);
+
+  const refreshUser = useCallback(
+    async () => {
+      setReloading(true);
+      setMessage("");
+
+      try {
+        let resolvedUser = null;
+
+        // If we are viewing our own profile and have authUser, use it as baseline
+        if (!userIdParam && authUser) {
+          resolvedUser = normalizeUser(authUser);
+        }
+
+        const apiPath = userIdParam ? `/users/${userIdParam}` : "/users/me";
+        const res = await api.get(apiPath);
+        const fromApi = normalizeUser(res?.data?.user || res?.data);
+
+        resolvedUser = fromApi || resolvedUser;
+
+        if (!mountedRef.current) return;
+        setUser(resolvedUser);
+      } catch (err) {
+        if (!mountedRef.current) return;
+        const status = err?.response?.status;
+        setMessage(
+          (status === 401 &&
+            (t("profile:authRequired") || "Authentication required.")) ||
+            t("profile:loadError") ||
+            "Failed to load profile."
+        );
+      } finally {
+        if (mountedRef.current) setReloading(false);
+      }
+    },
+    [t, userIdParam, authUser, authUserId]
+  );
 
   // Handle submit with sanitize + whitelist
   const handleSubmit = async (data) => {
@@ -363,19 +416,32 @@ const UserProfile = () => {
     }
   };
 
-  // Initial fetch
+  // Initial fetch + react to authUser changes (multi-session safe)
   useEffect(() => {
     let mounted = true;
 
     (async () => {
       setLoading(true);
       setMessage("");
+
       try {
+        let resolvedUser = null;
+
+        // If own profile and we have authUser from context, use it as baseline
+        if (!userIdParam && authUser) {
+          resolvedUser = normalizeUser(authUser);
+        }
+
+        // Always hit backend once as source of truth (with correct token)
         const apiPath = userIdParam ? `/users/${userIdParam}` : "/users/me";
         const res = await api.get(apiPath);
-        const u = normalizeUser(res?.data?.user || res?.data);
+        const fromApi = normalizeUser(res?.data?.user || res?.data);
+
+        // Prefer API payload, but fall back to authUser-based normalization if needed
+        resolvedUser = fromApi || resolvedUser;
+
         if (!mounted) return;
-        setUser(u);
+        setUser(resolvedUser);
         setLoading(false);
       } catch (err) {
         if (!mounted) return;
@@ -393,8 +459,7 @@ const UserProfile = () => {
     return () => {
       mounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userIdParam]);
+  }, [userIdParam, authUserId, authUser, t]);
 
   // Update document title
   useEffect(() => {
@@ -406,7 +471,7 @@ const UserProfile = () => {
     }
   }, [user?.username, t]);
 
-  const profileUserId = userIdParam || user?.id || user?._id;
+  const profileUserId = userIdParam || user?.id || user?._id || authUserId;
 
   if (loading) {
     return (
@@ -430,14 +495,18 @@ const UserProfile = () => {
           disabled={reloading}
           className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
         >
-          {reloading ? (t("common:loading") || "Loading") : (t("common:retry") || "Retry")}
+          {reloading
+            ? t("common:loading") || "Loading"
+            : t("common:retry") || "Retry"}
         </button>
       </div>
     );
   }
 
   // Server-normalized photos only
-  const photosArray = Array.isArray(user.photos) ? user.photos.filter(Boolean) : [];
+  const photosArray = Array.isArray(user.photos)
+    ? user.photos.filter(Boolean)
+    : [];
   const photosKey = photosArray.map((x) => String(x || "")).join("|");
   const hasPhotos = photosArray.length > 0;
 
@@ -459,7 +528,10 @@ const UserProfile = () => {
   if (process.env.NODE_ENV !== "production") {
     try {
       // eslint-disable-next-line no-console
-      console.debug?.("[UserProfile] photos (server-normalized only):", photosArray);
+      console.debug?.(
+        "[UserProfile] photos (server-normalized only):",
+        photosArray
+      );
     } catch {
       /* noop */
     }
@@ -468,12 +540,19 @@ const UserProfile = () => {
   const displayName =
     user?.username ||
     (user?.email ? String(user.email).split("@")[0] : "") ||
-    (t("profile:anonymous") || "Anonymous");
+    t("profile:anonymous") ||
+    "Anonymous";
 
   return (
     <div className="max-w-3xl mx-auto">
-      <h2 className="text-2xl font-bold text-center mb-6" data-cy="UserProfile__title">
-        👤 {isOwnProfile ? t("profile:viewOwn") || "My Profile" : t("profile:viewOther") || "Profile"}
+      <h2
+        className="text-2xl font-bold text-center mb-6"
+        data-cy="UserProfile__title"
+      >
+        👤{" "}
+        {isOwnProfile
+          ? t("profile:viewOwn") || "My Profile"
+          : t("profile:viewOther") || "Profile"}
       </h2>
 
       {/* Header card */}
@@ -483,16 +562,22 @@ const UserProfile = () => {
             src={buildImgSrc(user.profilePicture)}
             alt="Avatar"
             className="w-20 h-20 rounded-full object-cover border"
-            onError={(e) => (e.currentTarget.src = PLACEHOLDER_IMAGE)}
+            onError={(e) => {
+              e.currentTarget.src = PLACEHOLDER_IMAGE;
+            }}
           />
           <div className="flex-1">
             <div className="text-lg font-semibold">{displayName}</div>
             <div className="text-sm text-gray-600">
-              {[user.city, user.region, user.country].filter(Boolean).join(", ") || "—"}
+              {[user.city, user.region, user.country]
+                .filter(Boolean)
+                .join(", ") || "—"}
             </div>
             {user.politicalIdeology && (
               <div className="text-sm mt-1">
-                <strong>{t("profile:politicalIdeology") || "Political ideology"}:</strong>{" "}
+                <strong>
+                  {t("profile:politicalIdeology") || "Political ideology"}:
+                </strong>{" "}
                 {user.politicalIdeology}
               </div>
             )}
@@ -505,7 +590,9 @@ const UserProfile = () => {
               className="px-3 py-1.5 rounded border text-sm hover:bg-gray-50 disabled:opacity-60"
               title={t("common:refresh") || "Refresh"}
             >
-              {reloading ? (t("common:loading") || "Loading") : (t("common:refresh") || "Refresh")}
+              {reloading
+                ? t("common:loading") || "Loading"
+                : t("common:refresh") || "Refresh"}
             </button>
           </div>
         </div>
@@ -523,7 +610,10 @@ const UserProfile = () => {
               <PhotoCarousel photos={displayPhotos} />
             </div>
 
-            <div className="grid grid-cols-3 gap-3" data-cy="UserProfile__photos">
+            <div
+              className="grid grid-cols-3 gap-3"
+              data-cy="UserProfile__photos"
+            >
               {displayPhotos.map((p, idx) => (
                 <div
                   key={`${p}-${idx}`}
@@ -534,7 +624,9 @@ const UserProfile = () => {
                     src={buildImgSrc(p)}
                     alt={`photo-${idx}`}
                     className="w-full h-full object-cover"
-                    onError={(e) => (e.currentTarget.src = PLACEHOLDER_IMAGE)}
+                    onError={(e) => {
+                      e.currentTarget.src = PLACEHOLDER_IMAGE;
+                    }}
                   />
                 </div>
               ))}
@@ -546,7 +638,10 @@ const UserProfile = () => {
               {t("profile:noPhotos") || "No photos yet."}
             </div>
             {isOwnProfile && (
-              <a href="/profile/photos" className="text-sm text-blue-600 hover:underline">
+              <a
+                href="/profile/photos"
+                className="text-sm text-blue-600 hover:underline"
+              >
                 {t("profile:addPhotos") || "Add photos"}
               </a>
             )}
@@ -560,7 +655,9 @@ const UserProfile = () => {
         <>
           {message && (
             <div
-              className={`mb-4 text-center ${success ? "text-green-600" : "text-red-600"}`}
+              className={`mb-4 text-center ${
+                success ? "text-green-600" : "text-red-600"
+              }`}
               data-cy="UserProfile__message"
             >
               {message}
@@ -568,6 +665,7 @@ const UserProfile = () => {
           )}
 
           <ProfileForm
+            key={profileUserId || "own-profile"} // force remount when user changes (multi-session safe)
             userId={profileUserId}
             user={user}
             isPremium={user?.isPremium}
@@ -575,7 +673,10 @@ const UserProfile = () => {
             message={message}
             success={success}
             onUserUpdate={(u) =>
-              setUser((prev) => ({ ...(prev || {}), ...(normalizeUser(u) || {}) }))
+              setUser((prev) => ({
+                ...(prev || {}),
+                ...(normalizeUser(u) || {}),
+              }))
             }
             onSubmit={handleSubmit}
           />
@@ -587,7 +688,10 @@ const UserProfile = () => {
 
 function PublicInfoCard({ user, t }) {
   return (
-    <div className="bg-white shadow rounded-lg p-6 space-y-4" data-cy="UserProfile__public">
+    <div
+      className="bg-white shadow rounded-lg p-6 space-y-4"
+      data-cy="UserProfile__public"
+    >
       <h3 className="text-lg font-semibold">
         {t("profile:publicInfo") || "Public information"}
       </h3>
@@ -598,8 +702,7 @@ function PublicInfoCard({ user, t }) {
           {user.username || "-"}
         </p>
         <p>
-          <strong>{t("profile:age") || "Age"}:</strong>{" "}
-          {user.age ?? "-"}
+          <strong>{t("profile:age") || "Age"}:</strong> {user.age ?? "-"}
         </p>
         <p>
           <strong>{t("profile:location") || "Location"}:</strong>{" "}
@@ -612,29 +715,34 @@ function PublicInfoCard({ user, t }) {
             .join(", ") || "-"}
         </p>
         <p>
-          <strong>{t("profile:politicalIdeology") || "Political ideology"}:</strong>{" "}
+          <strong>
+            {t("profile:politicalIdeology") || "Political ideology"}:
+          </strong>{" "}
           {user.politicalIdeology || "-"}
         </p>
       </div>
 
       <div className="pt-2 text-sm text-gray-500">
-        {t("profile:publicDisclaimer") || "Only basic public information is shown."}
+        {t("profile:publicDisclaimer") ||
+          "Only basic public information is shown."}
       </div>
-    
-{/* // --- REPLACE START: standard content ad slot (inline) --- */}
-<AdGate type="inline" debug={false}>
-  <div className="max-w-3xl mx-auto mt-6">
-    <AdBanner
-      imageSrc="/ads/ad-right1.png"
-      headline="Sponsored"
-      body="Upgrade to Premium to remove all ads."
-    />
-  </div>
-</AdGate>
-{/* // --- REPLACE END --- */}
-</div>
+
+      {/* // --- REPLACE START: standard content ad slot (inline) --- */}
+      <AdGate type="inline" debug={false}>
+        <div className="max-w-3xl mx-auto mt-6">
+          <AdBanner
+            imageSrc="/ads/ad-right1.png"
+            headline="Sponsored"
+            body="Upgrade to Premium to remove all ads."
+          />
+        </div>
+      </AdGate>
+      {/* // --- REPLACE END --- */}
+    </div>
   );
 }
 
 export default UserProfile;
 // --- REPLACE END ---
+
+

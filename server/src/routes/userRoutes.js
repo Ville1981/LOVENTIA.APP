@@ -484,6 +484,134 @@ router.get("/profile", authenticateToken, getFullProfile);
 // ➜ /api/users/me  (matches /api/me)
 router.get("/me", authenticateToken, getFullMe);
 
+// --- REPLACE START: self-service account deletion (DELETE /api/users/me) ---
+router.delete("/me", authenticateToken, async (req, res) => {
+  try {
+    console.log("DELETE /me: handler entered, userId =", req.userId);
+
+    const User = await getUserModel();
+    if (!User) {
+      console.error("DELETE /me: User model not available (getUserModel returned null/undefined)");
+      return res.status(500).json({ error: "User model not available" });
+    }
+
+    // Extra diagnostics about the model
+    try {
+      console.log(
+        "DELETE /me: User model type =",
+        typeof User,
+        "keys =",
+        User && typeof User === "function" ? Object.keys(User) : Object.keys(User || {})
+      );
+    } catch (diagErr) {
+      console.error(
+        "DELETE /me: diagnostic on User model failed:",
+        diagErr?.message || diagErr
+      );
+    }
+
+    let user;
+    try {
+      console.log("DELETE /me: calling User.findById(", req.userId, ")");
+      user = await User.findById(req.userId);
+      console.log("DELETE /me: findById result =", user ? "FOUND" : "NOT FOUND");
+    } catch (findErr) {
+      console.error(
+        "DELETE /me: User.findById threw:",
+        findErr?.message || findErr,
+        "\nstack:",
+        findErr?.stack
+      );
+      return res.status(500).json({ error: "Account deletion failed" });
+    }
+
+    // Idempotent: if user is already gone, still return 204
+    if (!user) {
+      console.log("DELETE /me: user not found, returning 204 (idempotent)");
+      return res.status(204).send();
+    }
+
+    // Best-effort: delete user's images from disk
+    try {
+      console.log("DELETE /me: starting image cleanup");
+      if (user.profilePicture) {
+        console.log("DELETE /me: removing profilePicture =", user.profilePicture);
+        removeFile(user.profilePicture);
+      }
+
+      const imgList = [
+        ...(Array.isArray(user.photos) ? user.photos : []),
+        ...(Array.isArray(user.extraImages) ? user.extraImages : []),
+      ];
+
+      const uniqueImgs = [...new Set(imgList)];
+      console.log("DELETE /me: unique image paths =", uniqueImgs);
+
+      for (const p of uniqueImgs) {
+        if (!p) continue;
+        if (p === user.profilePicture) continue; // already handled
+        console.log("DELETE /me: removing extra image =", p);
+        removeFile(p);
+      }
+      console.log("DELETE /me: image cleanup finished");
+    } catch (cleanupErr) {
+      console.error(
+        "DELETE /me: image cleanup error:",
+        cleanupErr?.message || cleanupErr,
+        "\nstack:",
+        cleanupErr?.stack
+      );
+      // Ignore file delete errors, account deletion should still continue
+    }
+
+    // Actual account deletion
+    try {
+      console.log(
+        "DELETE /me: calling User.collection.deleteOne({_id:",
+        user._id,
+        "})"
+      );
+
+      // ✅ Use direct collection delete to bypass Mongoose execPre/execPost quirks
+      const result = await User.collection.deleteOne({ _id: user._id });
+
+      console.log("DELETE /me: collection.deleteOne raw result =", result);
+
+      if (!result || result.deletedCount !== 1) {
+        console.error(
+          "DELETE /me: collection.deleteOne did not delete exactly one document:",
+          result
+        );
+        return res.status(500).json({ error: "Account deletion failed" });
+      }
+    } catch (innerErr) {
+      console.error(
+        "DELETE /me: collection.deleteOne error:",
+        innerErr?.message || innerErr,
+        "\nstack:",
+        innerErr?.stack
+      );
+      return res.status(500).json({ error: "Account deletion failed" });
+    }
+
+    // Frontend expectation: 204 = success, FE logs user out and clears state
+    console.log("DELETE /me: success, returning 204");
+    return res.status(204).send();
+  } catch (err) {
+    console.error(
+      "DELETE /me error (outer catch):",
+      err?.message || err,
+      "\nstack:",
+      err?.stack
+    );
+    return res.status(500).json({ error: "Account deletion failed" });
+  }
+});
+// --- REPLACE END ---
+
+
+
+
 /* =============================================================================
    VISIBILITY (hide / unhide)
 ============================================================================= */
@@ -789,6 +917,101 @@ router.put(
     }
   }
 );
+
+/* =============================================================================
+   ACCOUNT DELETION (Danger zone)
+============================================================================= */
+// --- REPLACE START: DELETE /api/users/me and DELETE /api/users/:id (self or admin) ---
+async function performAccountDeletion(userId, options = {}) {
+  const User = await getUserModel();
+  if (!User) {
+    throw new Error("User model not available");
+  }
+
+  const user = await User.findById(userId);
+  if (!user) {
+    return { notFound: true };
+  }
+
+  // Optional soft-delete flags; if schema does not have these, Mongoose will just ignore them.
+  user.deleted = {
+    at: new Date(),
+    reason: options.reason || "user_requested",
+  };
+  user.deletedAt = new Date();
+
+  // For now we also physically delete the document to keep things simple in dev.
+  // If later you want pure soft delete, remove this line and only save().
+  await user.deleteOne();
+
+  return { notFound: false };
+}
+
+// DELETE /api/users/me  → current user deletes own account
+router.delete("/me", authenticateToken, async (req, res) => {
+  try {
+    const ctrl = await getUserController();
+    const handler =
+      ctrl?.deleteAccount ||
+      ctrl?.deleteMe ||
+      ctrl?.deleteUser;
+
+    if (typeof handler === "function") {
+      // If a dedicated controller exists, delegate to it (for Stripe cleanup, etc.)
+      return handler(req, res);
+    }
+
+    const result = await performAccountDeletion(req.userId, {
+      reason: "user_requested_me",
+    });
+
+    if (result.notFound) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    return res.status(200).json({
+      ok: true,
+      deleted: true,
+      message: "Account deleted successfully",
+    });
+  } catch (err) {
+    console.error("DELETE /me error:", err?.message || err);
+    return res.status(500).json({ error: "Account deletion failed" });
+  }
+});
+
+// DELETE /api/users/:id  → self or admin删除 (mustBeSelfOrAdmin enforces access)
+router.delete("/:id", authenticateToken, mustBeSelfOrAdmin, async (req, res) => {
+  try {
+    const ctrl = await getUserController();
+    const handler =
+      ctrl?.deleteAccountById ||
+      ctrl?.deleteUser ||
+      null;
+
+    if (typeof handler === "function") {
+      return handler(req, res);
+    }
+
+    const result = await performAccountDeletion(req.params.id, {
+      reason: "user_or_admin_delete",
+    });
+
+    if (result.notFound) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    return res.status(200).json({
+      ok: true,
+      deleted: true,
+      message: "Account deleted successfully",
+    });
+  } catch (err) {
+    console.error("DELETE /:id error:", err?.message || err);
+    return res.status(500).json({ error: "Account deletion failed" });
+  }
+});
+// --- REPLACE END ---
 
 /* =============================================================================
    PREMIUM

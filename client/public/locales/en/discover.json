@@ -1,3 +1,4 @@
+
 {
   "labels": {
     "header": "Discover",
@@ -110,5 +111,9 @@
   "state": {
     "noResults": "No matching profiles found.",
     "loading": "Loading…"
-  }
+  },
+
+  
+  "error": "Failed to load profiles. Please log in again and try once more."
 }
+

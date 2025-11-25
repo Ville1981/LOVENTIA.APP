@@ -1,15 +1,16 @@
 // File: client/src/pages/WhoLikedMe.jsx
-// --- REPLACE START: robust "Who liked me" page (gated, English texts, shared API wrapper + safe image URL) ---
+// --- REPLACE START: robust "Who liked me" page (gated, English texts, shared API wrapper + safe image URL + clickable cards -> chat) ---
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import FeatureGate from "../components/FeatureGate";
 import { useAuth } from "../contexts/AuthContext";
-import api from "../services/api/axiosInstance"; // ✅ shared Axios wrapper (includes auth headers/interceptors)
+import api from "../services/api/axiosInstance"; // shared Axios wrapper (includes auth headers/interceptors)
 import { BACKEND_BASE_URL } from "../utils/config";
 import { hasFeature, isPremium } from "../utils/entitlements";
 import AdGate from "../components/AdGate";
 import AdBanner from "../components/AdBanner";
+import WhoLikedMeCard from "../components/WhoLikedMeCard";
 
 /**
  * Resolve a usable image URL for a user card (tolerant to various shapes).
@@ -28,6 +29,24 @@ function resolvePhotoUrl(user) {
   // Ensure single slash between base and path
   const path = raw.startsWith("/") ? raw : `/${raw}`;
   return `${BACKEND_BASE_URL}${path}`;
+}
+
+/**
+ * Determine if a user in the likes API payload should be treated as Premium.
+ * Supports multiple shapes:
+ *  - user.premium === true
+ *  - user.isPremium === true
+ *  - user.entitlements.tier === "premium"
+ */
+function isPremiumLikeUser(user) {
+  if (!user) return false;
+
+  if (user.premium === true || user.isPremium === true) {
+    return true;
+  }
+
+  const tier = user.entitlements?.tier;
+  return tier === "premium";
 }
 
 /**
@@ -65,10 +84,10 @@ const WhoLikedMe = () => {
       if (!entitled) return;
 
       try {
-        // ✅ Use existing likes API: incoming likes to the current user
+        // Use existing likes API: incoming likes to the current user
         const res = await api.get("/likes/incoming");
 
-        // ✅ Be tolerant to different shapes:
+        // Be tolerant to different shapes:
         // - { ok, count, users: [ {...}, {...} ] }
         // - { ok, count, users: { "<id>": {...}, ... } }
         // - or even array at root for older versions.
@@ -76,10 +95,7 @@ const WhoLikedMe = () => {
 
         if (Array.isArray(res?.data?.users)) {
           list = res.data.users;
-        } else if (
-          res?.data?.users &&
-          typeof res.data.users === "object"
-        ) {
+        } else if (res?.data?.users && typeof res.data.users === "object") {
           list = Object.values(res.data.users);
         } else if (Array.isArray(res?.data)) {
           list = res.data;
@@ -92,6 +108,7 @@ const WhoLikedMe = () => {
           setError("");
         }
       } catch (err) {
+        // eslint-disable-next-line no-console
         console.error("Error fetching incoming likes:", err?.response?.data || err);
 
         if (!mounted) return;
@@ -134,24 +151,21 @@ const WhoLikedMe = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {users.map((u) => {
               const key = u?._id || u?.id;
+              const targetId = key;
               const img = resolvePhotoUrl(u);
               const title = u?.name || u?.username || "Anonymous";
               const email = u?.email || "";
+              const premiumTarget = isPremiumLikeUser(u);
 
               return (
-                <div
+                <WhoLikedMeCard
                   key={key}
-                  className="bg-white p-4 rounded shadow-md text-center"
-                >
-                  <img
-                    src={img}
-                    alt={title}
-                    className="w-full h-48 object-cover rounded mb-3"
-                    loading="lazy"
-                  />
-                  <h3 className="text-lg font-bold">{title}</h3>
-                  {email && <p className="text-sm text-gray-600">{email}</p>}
-                </div>
+                  targetId={targetId}
+                  imageSrc={img}
+                  title={title}
+                  email={email}
+                  isPremium={premiumTarget}
+                />
               );
             })}
           </div>
@@ -168,11 +182,13 @@ const WhoLikedMe = () => {
           />
         </div>
       </AdGate>
-      {/* // --- REPLACE END --- */}
+      {/* // --- REPLACE END: standard content ad slot (inline) --- */}
     </div>
   );
 };
 
 export default WhoLikedMe;
 // --- REPLACE END ---
+
+
 

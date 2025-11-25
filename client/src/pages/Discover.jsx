@@ -1,6 +1,6 @@
 ﻿// PATH: client/src/pages/Discover.jsx
 
-// --- REPLACE START: add rewindBuffer + 'rewind:done' listener + like→buffer; keep rest intact ---
+// --- REPLACE START: add rewindBuffer + 'rewind:done' listener + like→buffer + superlike quota-aware handler + likes quota state wiring + premium flag on cards ---
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -34,6 +34,9 @@ const bunnyUser = {
   summary: "Hi, I'm Bunny!",
 };
 
+/**
+ * Normalize and absolutize image URLs for Discover cards.
+ */
 function absolutizeImage(pathOrUrl) {
   if (!pathOrUrl || typeof pathOrUrl !== "string") return null;
   let s = pathOrUrl.trim();
@@ -47,14 +50,44 @@ function absolutizeImage(pathOrUrl) {
   return `${BACKEND_BASE_URL}${s}`;
 }
 
+/**
+ * Determine if a candidate user in Discover should be treated as Premium.
+ * Supports multiple shapes:
+ *  - user.premium === true
+ *  - user.isPremium === true
+ *  - user.entitlements.tier === "premium"
+ *
+ * We attach this as a boolean flag on each Discover user so that card
+ * components can render a Premium badge without guessing field names.
+ */
+function isPremiumDiscoverUser(user) {
+  if (!user) return false;
+
+  if (user.premium === true || user.isPremium === true) {
+    return true;
+  }
+
+  const tier = user.entitlements?.tier;
+  return tier === "premium";
+}
+
 const Discover = () => {
   const { t } = useTranslation(["discover", "common", "profile", "lifestyle"]);
-  const { user: authUser, bootstrapped } = useAuth();
+  const {
+    user: authUser,
+    bootstrapped,
+    refreshMe,
+    superLikesRemaining,
+  } = useAuth();
 
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [filterKey, setFilterKey] = useState("initial");
+
+  // (NEW) Daily likes quota (for free users UI)
+  const [likesLimitPerDay, setLikesLimitPerDay] = useState(null);
+  const [likesRemainingToday, setLikesRemainingToday] = useState(null);
 
   // local filter states
   const [username, setUsername] = useState("");
@@ -203,7 +236,16 @@ const Discover = () => {
               : [];
             const profilePicture =
               absolutizeImage(u.profilePicture) || photos?.[0]?.url || null;
-            return { ...u, id: u._id || u.id, profilePicture, photos };
+
+            const isPremiumUser = isPremiumDiscoverUser(u);
+
+            return {
+              ...u,
+              id: u._id || u.id,
+              profilePicture,
+              photos,
+              isPremiumUser,
+            };
           })
         : [];
 
@@ -225,7 +267,19 @@ const Discover = () => {
       setFilterKey(Date.now().toString());
     } catch (err) {
       console.error("Error loading users:", err);
-      setError(t("discover:error"));
+      // Avoid i18next object/translation errors here; always ensure a plain string.
+      let fallbackMessage = "Failed to load profiles. Please log in again and try once more.";
+      try {
+        const maybe = t("discover:error");
+        if (typeof maybe === "string") {
+          fallbackMessage = maybe;
+        } else if (maybe && typeof maybe === "object" && typeof maybe.en === "string") {
+          fallbackMessage = maybe.en;
+        }
+      } catch {
+        // ignore and keep fallbackMessage
+      }
+      setError(fallbackMessage);
       setUsers([bunnyUser]);
       setFilterKey(Date.now().toString());
     } finally {
@@ -274,45 +328,53 @@ const Discover = () => {
 
   useEffect(() => {
     // Listen for a CustomEvent fired by RewindButton after successful API rewind.
-    // Expect: event.detail = { targetUserId: string } (may also include targetId)
+    // Expect: event.detail = { targetUserId: string } (may also include targetId, userId).
     function onRewindDone(ev) {
       try {
         const targetId =
           ev?.detail?.targetUserId ||
           ev?.detail?.targetId ||
           (typeof ev?.detail === "string" ? ev.detail : null);
+
         if (!targetId) return;
 
-        // If card already exists in deck, do nothing
-        setUsers((prev) => {
-          const exists = prev.some((u) => (u.id || u._id)?.toString() === String(targetId));
-          if (exists) return prev;
+        // First update the rewind buffer: remove the matching card and, if found,
+        // restore it into the front of the users deck in a separate state update.
+        setRewindBuffer((bufPrev) => {
+          const stringId = String(targetId);
+          const idx = bufPrev.findIndex(
+            (u) => (u.id || u._id)?.toString() === stringId
+          );
 
-          // remove from buffer and capture for insertion
-          let restored = null;
-          setRewindBuffer((bufPrev) => {
-            const idx = bufPrev.findIndex(
-              (u) => (u.id || u._id)?.toString() === String(targetId)
-            );
-            if (idx >= 0) {
-              restored = bufPrev[idx];
-              const clone = bufPrev.slice();
-              clone.splice(idx, 1);
-              return clone;
-            }
+          if (idx < 0) {
+            // Nothing to restore from buffer – leave buffer as-is and deck untouched.
             return bufPrev;
-          });
+          }
+
+          const clone = bufPrev.slice();
+          const [restored] = clone.splice(idx, 1);
 
           if (restored) {
-            // Insert at deck front so it appears as the next card.
-            const next = [restored, ...prev];
-            preserveScrollAfter();
-            return next;
+            setUsers((prevUsers) => {
+              const exists = prevUsers.some(
+                (u) => (u.id || u._id)?.toString() === stringId
+              );
+              if (exists) return prevUsers;
+
+              const next = [restored, ...prevUsers];
+              console.log("[Discover] Rewind restored card to deck:", stringId);
+              preserveScrollAfter();
+              return next;
+            });
+
+            // Force ProfileCardList to remount so it definitely picks up the new deck.
+            setFilterKey(Date.now().toString());
           }
-          return prev;
+
+          return clone;
         });
       } catch (e) {
-        // never throw in event handlers
+        // Never throw from event handlers – just log a warning.
         console.warn("[Discover] rewind:done handler failed:", e);
       }
     }
@@ -341,7 +403,11 @@ const Discover = () => {
 
     // Remove a given card id from UI list, preserving scroll
     const removeCard = () => {
-      setUsers((prev) => prev.filter((u) => (u.id || u._id) !== userId));
+      setUsers((prev) =>
+        prev.filter(
+          (u) => (u.id || u._id)?.toString() !== String(userId)
+        )
+      );
       preserveScrollAfter();
     };
 
@@ -366,12 +432,50 @@ const Discover = () => {
       }
 
       // Capture a snapshot of the card before removal (so we can restore on rewind)
-      const snapshot = users.find((u) => (u.id || u._id) === userId);
+      const snapshot = users.find(
+        (u) => (u.id || u._id)?.toString() === String(userId)
+      );
       if (snapshot) pushToRewindBuffer(snapshot);
 
       try {
         const res = await api.post("/likes", { targetUserId: userId });
         const status = Number(res?.status) || 0;
+
+        // (NEW) Extract like quota from successful response for UI ("X / Y likes today").
+        // Expected shape for free users:
+        //   { ok: true, newLike, remaining, limit, resetAt, timeZone }
+        try {
+          const payload = res?.data || {};
+          const rawLimit =
+            payload?.limit ??
+            (payload?.quota && payload.quota.limit);
+          const rawRemaining =
+            payload?.remaining ??
+            (payload?.quota && payload.quota.remaining);
+
+          const limitNum = Number(rawLimit);
+          const remainingNum = Number(rawRemaining);
+
+          if (Number.isFinite(limitNum) && limitNum > 0) {
+            setLikesLimitPerDay(limitNum);
+          } else {
+            // For premium / unlimited likes, clear quota UI.
+            setLikesLimitPerDay(null);
+          }
+
+          if (
+            Number.isFinite(remainingNum) &&
+            remainingNum >= 0 &&
+            Number.isFinite(limitNum) &&
+            limitNum > 0
+          ) {
+            setLikesRemainingToday(remainingNum);
+          } else {
+            setLikesRemainingToday(null);
+          }
+        } catch (quotaErr) {
+          console.warn("[Discover] Failed to parse likes quota from response:", quotaErr);
+        }
 
         // Accept success (200/201) and idempotent "already liked" (409),
         // also accept truthy default (ok !== false).
@@ -385,6 +489,34 @@ const Discover = () => {
         const status = err?.response?.status;
         const codeVal = err?.response?.data?.code;
 
+        // (BEST EFFORT) If backend returns quota data even on error, capture it.
+        try {
+          const payloadErr = err?.response?.data || {};
+          const rawLimitErr =
+            payloadErr?.limit ??
+            (payloadErr?.quota && payloadErr.quota.limit);
+          const rawRemainingErr =
+            payloadErr?.remaining ??
+            (payloadErr?.quota && payloadErr.quota.remaining);
+
+          const limitErrNum = Number(rawLimitErr);
+          const remainingErrNum = Number(rawRemainingErr);
+
+          if (Number.isFinite(limitErrNum) && limitErrNum > 0) {
+            setLikesLimitPerDay(limitErrNum);
+          }
+          if (
+            Number.isFinite(remainingErrNum) &&
+            remainingErrNum >= 0 &&
+            Number.isFinite(limitErrNum) &&
+            limitErrNum > 0
+          ) {
+            setLikesRemainingToday(remainingErrNum);
+          }
+        } catch (quotaErr2) {
+          console.warn("[Discover] Failed to parse likes quota from error response:", quotaErr2);
+        }
+
         if (status === 429 || codeVal === "LIKE_QUOTA_EXCEEDED") {
           // Show upgrade prompt for free like quota exceeded
           setShowUpsell(true);
@@ -396,17 +528,84 @@ const Discover = () => {
       return;
     }
 
+    // --- REPLACE START: superlike handler uses /superlike + quota-aware error handling + refreshMe() ---
     if (actionType === "superlike") {
-      removeCard();
-      if (!isBunny && !isSelf) {
-        api.post(`/discover/${userId}/superlike`).catch((err) => {
-          console.error("Error executing superlike:", err);
-        });
-      } else {
-        console.warn(`[Discover] Skipping API call for ${isBunny ? "bunny" : "self"} superlike`);
+      if (isBunny || isSelf) {
+        console.warn(
+          `[Discover] Skipping API call for ${isBunny ? "bunny" : "self"} superlike`
+        );
+        // For bunny/self we just advance the deck locally without touching quotas.
+        removeCard();
+        return;
+      }
+
+      // Optional client-side guard: if AuthContext already knows there are 0 Super Likes left,
+      // skip the API call and show a clear message instead of a generic error.
+      if (typeof superLikesRemaining === "number" && superLikesRemaining <= 0) {
+        setError(
+          "You have used all your Super Likes for this week. They reset on Monday 00:00."
+        );
+        return;
+      }
+
+      try {
+        const res = await api.post("/superlike", { targetUserId: userId });
+        const status = Number(res?.status) || 0;
+        const ok = res?.data?.ok;
+
+        if (status === 200 || status === 201 || ok === true) {
+          // On success we advance the deck.
+          removeCard();
+
+          // Refresh AuthContext quotas so ActionButtons label updates (X/Y).
+          try {
+            if (typeof refreshMe === "function") {
+              // Fire-and-forget; the current view does not wait for this promise.
+              void refreshMe();
+            }
+          } catch (refreshErr) {
+            console.warn("[Discover] refreshMe() after superlike failed:", refreshErr);
+          }
+
+          return;
+        }
+
+        // Unexpected non-error response (no exception thrown but also not marked ok)
+        setError("Failed to Super Like this profile. Please try again.");
+      } catch (err) {
+        const status = err?.response?.status;
+        const codeVal = err?.response?.data?.code;
+
+        // Prefer backend-provided error text where available.
+        const backendError =
+          err?.response?.data?.error ||
+          err?.response?.data?.message ||
+          "";
+
+        const quotaMessage =
+          backendError &&
+          typeof backendError === "string" &&
+          backendError.trim().length > 0
+            ? backendError
+            : "You have used all your Super Likes for this week. They reset on Monday 00:00.";
+
+        // Backend currently returns HTTP 429 + code "SUPERLIKE_QUOTA_EXCEEDED" when quota is exhausted.
+        if (
+          status === 429 ||
+          status === 403 ||
+          codeVal === "SUPERLIKE_QUOTA_EXCEEDED"
+        ) {
+          // Quota reached → do NOT remove the card, only show a clear message.
+          setError(quotaMessage);
+          return;
+        }
+
+        console.error("Super Like failed:", err);
+        setError("Failed to Super Like this profile. Please try again.");
       }
       return;
     }
+    // --- REPLACE END: superlike handler uses /superlike + quota-aware error handling + refreshMe() ---
 
     console.warn(`[Discover] Unknown actionType "${actionType}"`);
   };
@@ -629,6 +828,9 @@ const Discover = () => {
                     key={filterKey}
                     users={users}
                     onAction={handleAction}
+                    // (NEW) Forward likes quota to ProfileCardList → ProfileCard → ActionButtons
+                    likesLimitPerDay={likesLimitPerDay}
+                    likesRemainingToday={likesRemainingToday}
                   />
                   {users.length === 0 && (
                     <div className="mt-12 text-center text-gray-500">
@@ -670,4 +872,5 @@ const Discover = () => {
 
 export default Discover;
 // --- REPLACE END ---
+
 

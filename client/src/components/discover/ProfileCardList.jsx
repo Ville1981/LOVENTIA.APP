@@ -1,4 +1,6 @@
-// --- REPLACE START: ProfileCardList – stable ids + inline ad slots every N items (minimal changes) ---
+// PATH: client/src/components/discover/ProfileCardList.jsx
+
+// --- REPLACE START: ProfileCardList – stable ids + inline ad slots every N items (minimal changes) + likes quota passthrough ---
 import PropTypes from "prop-types";
 import React, { memo, useMemo, useRef, useEffect } from "react";
 import Slider from "react-slick";
@@ -20,8 +22,16 @@ import "slick-carousel/slick/slick-theme.css";
  * - Hook order remains stable (no early return before hooks)
  * - Inline ads are rendered via <InlineAdSlot/> which wraps its own <AdGate type="inline" />
  *   so business rules (consent/premium/freq-cap/flags) are centralized.
+ * - (NEW) Can forward likes quota information to ProfileCard → ActionButtons
+ *   via likesLimitPerDay / likesRemainingToday props (optional).
  */
-const ProfileCardList = ({ users = [], onAction }) => {
+const ProfileCardList = ({
+  users = [],
+  onAction,
+  // (NEW) Optional likes quota data for free users
+  likesLimitPerDay,
+  likesRemainingToday,
+}) => {
   const sliderRef = useRef(null);
 
   // --- Normalize ids and filter out invalid user entries (defensive) ---
@@ -161,6 +171,9 @@ const ProfileCardList = ({ users = [], onAction }) => {
                   onPass={() => onAction(u.id, "pass")}
                   onLike={() => onAction(u.id, "like")}
                   onSuperlike={() => onAction(u.id, "superlike")}
+                  // (NEW) Forward likes quota data down to ProfileCard → ActionButtons
+                  likesLimitPerDay={likesLimitPerDay}
+                  likesRemainingToday={likesRemainingToday}
                 />
               </div>
             );
@@ -179,12 +192,12 @@ ProfileCardList.propTypes = {
     })
   ).isRequired,
   onAction: PropTypes.func.isRequired,
+  // (NEW) Optional likes quota props (used to show "X / Y likes today")
+  likesLimitPerDay: PropTypes.number,
+  likesRemainingToday: PropTypes.number,
 };
 
 export default memo(ProfileCardList);
 // --- REPLACE END ---
-
-
-
 
 

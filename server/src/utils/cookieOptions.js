@@ -18,10 +18,11 @@
  *       path     = '/api/auth'
  *
  * .env overrides:
- *   - COOKIE_SAMESITE = 'Lax' | 'Strict' | 'None' (case-insensitive)
- *   - COOKIE_SECURE   = 'true' | 'false'
- *   - COOKIE_PATH     = any string path (e.g. '/api/auth' or '/')
- *   - COOKIE_DOMAIN   = optional domain (e.g. '.example.com')  ← only if you need it
+ *   - COOKIE_SAMESITE        = 'Lax' | 'Strict' | 'None' (case-insensitive)
+ *   - COOKIE_SECURE          = 'true' | 'false'
+ *   - COOKIE_PATH            = any string path (e.g. '/api/auth' or '/')
+ *   - COOKIE_DOMAIN          = optional domain (e.g. '.example.com')
+ *   - REFRESH_COOKIE_NAME    = optional cookie name override (default: 'refreshToken')
  *
  * Notes:
  *   - We intentionally DO NOT set maxAge here to keep controllers free to decide
@@ -31,6 +32,18 @@
  */
 
 const isProd = process.env.NODE_ENV === 'production';
+
+/* -------------------------------------------------------------------------- */
+/*                          Cookie name (shared constant)                     */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Shared refresh cookie name.
+ * Used by controllers/services when calling:
+ *   res.cookie(REFRESH_COOKIE_NAME, token, { ...authCookieOptions, maxAge: ... })
+ */
+export const REFRESH_COOKIE_NAME =
+  (process.env.REFRESH_COOKIE_NAME || 'refreshToken').trim();
 
 /* -------------------------------------------------------------------------- */
 /*                             Helpers & normalizers                           */
@@ -90,9 +103,9 @@ let cookieOptions = isProd ? { ...baseProd } : { ...baseDev };
 /* -------------------------------------------------------------------------- */
 
 const ENV_SAMESITE = process.env.COOKIE_SAMESITE;
-const ENV_PATH     = process.env.COOKIE_PATH;
-const ENV_SECURE   = parseEnvBool(process.env.COOKIE_SECURE);
-const ENV_DOMAIN   = process.env.COOKIE_DOMAIN;
+const ENV_PATH = process.env.COOKIE_PATH;
+const ENV_SECURE = parseEnvBool(process.env.COOKIE_SECURE);
+const ENV_DOMAIN = process.env.COOKIE_DOMAIN;
 
 // Path override
 if (typeof ENV_PATH === 'string' && ENV_PATH.trim()) {
@@ -106,7 +119,10 @@ if (typeof ENV_SECURE === 'boolean') {
 
 // SameSite override
 if (typeof ENV_SAMESITE === 'string' && ENV_SAMESITE.trim()) {
-  cookieOptions.sameSite = normalizeSameSite(ENV_SAMESITE, cookieOptions.sameSite);
+  cookieOptions.sameSite = normalizeSameSite(
+    ENV_SAMESITE,
+    cookieOptions.sameSite
+  );
 }
 
 // Domain override (optional)
@@ -115,7 +131,10 @@ if (typeof ENV_DOMAIN === 'string' && ENV_DOMAIN.trim()) {
 }
 
 // Ensure canonical casing for SameSite
-cookieOptions.sameSite = normalizeSameSite(cookieOptions.sameSite, isProd ? 'Strict' : 'Lax');
+cookieOptions.sameSite = normalizeSameSite(
+  cookieOptions.sameSite,
+  isProd ? 'Strict' : 'Lax'
+);
 
 // Guard: SameSite=None implies Secure=true for modern browsers.
 // Only auto-fix if user did not explicitly force COOKIE_SECURE=false.
@@ -130,7 +149,7 @@ if (cookieOptions.sameSite === 'None' && typeof ENV_SECURE !== 'boolean') {
 /**
  * The shared, environment-aware cookie options object.
  * Controllers can spread this and add `maxAge` per cookie:
- *   res.cookie('refreshToken', token, { ...cookieOptions, maxAge: 7*24*60*60*1000 });
+ *   res.cookie(REFRESH_COOKIE_NAME, token, { ...authCookieOptions, maxAge: 7*24*60*60*1000 });
  */
 export const authCookieOptions = cookieOptions;
 
@@ -139,9 +158,13 @@ export const authCookieOptions = cookieOptions;
  */
 export function withMaxAge(ms) {
   const n = Number(ms);
-  return Number.isFinite(n) ? { ...authCookieOptions, maxAge: n } : { ...authCookieOptions };
+  return Number.isFinite(n)
+    ? { ...authCookieOptions, maxAge: n }
+    : { ...authCookieOptions };
 }
 
 // Backward-compatible default export
 export default authCookieOptions;
 // --- REPLACE END ---
+
+

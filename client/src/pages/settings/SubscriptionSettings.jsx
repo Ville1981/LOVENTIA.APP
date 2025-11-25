@@ -78,14 +78,23 @@ const SubscriptionSettings = () => {
   // --- REPLACE END ---
 
   // When we come back from Stripe/Portal, URL may include flags → refresh state
-  // --- REPLACE START: on return, run sync first, then refresh user, then show small success banner ---
+  // --- REPLACE START: on return, handle both legacy flags and ?status=success|cancel, run sync + show banner ---
   useEffect(() => {
+    const status = searchParams.get("status"); // new style: ?status=success|cancel
+    const successFlag = searchParams.get("success"); // legacy: ?success=1|true
+    const canceledFlag = searchParams.get("canceled"); // legacy: ?canceled=1|true
+    const portalReturn = searchParams.get("portal_return"); // legacy portal flag
+    const sessionId = searchParams.get("session_id"); // Stripe checkout session id (debug)
+
     const returned =
-      searchParams.get("success") === "1" ||
-      searchParams.get("canceled") === "1" ||
-      searchParams.get("portal_return") === "1" ||
-      searchParams.get("success") === "true" ||
-      searchParams.get("canceled") === "true";
+      status === "success" ||
+      status === "cancel" ||
+      successFlag === "1" ||
+      successFlag === "true" ||
+      canceledFlag === "1" ||
+      canceledFlag === "true" ||
+      portalReturn === "1" ||
+      portalReturn === "true";
 
     if (!returned) return;
 
@@ -93,18 +102,63 @@ const SubscriptionSettings = () => {
     (async () => {
       setMsg("");
       setSuccess("");
+
+      // Debug only – helps when checking logs during support
+      // (safe to leave in dev builds)
+      console.debug("[SubscriptionSettings] Returned from billing", {
+        status,
+        successFlag,
+        canceledFlag,
+        portalReturn,
+        sessionId,
+      });
+
       try {
-        // First sync (source of truth), then refresh local user
-        await syncBilling();
+        // Explicit cancel: do not call syncBilling, just refresh local user and show a clear message.
+        if (status === "cancel") {
+          await safeRefreshUser();
+          if (!ignore) {
+            setSuccess(
+              "Checkout was cancelled. Your subscription status did not change."
+            );
+          }
+          return;
+        }
+
+        // Success or generic portal return:
+        // First sync (source of truth), then refresh local user.
+        const syncRes = await syncBilling();
         await safeRefreshUser();
+
         if (!ignore) {
-          setSuccess("Returned from billing and reconciled with provider.");
+          const becamePremium =
+            syncRes?.isPremium === true ||
+            syncRes?.user?.isPremium === true ||
+            syncRes?.user?.entitlements?.tier === "premium";
+
+          // If we explicitly know this was a success-return, show a more specific banner.
+          if (
+            status === "success" ||
+            successFlag === "1" ||
+            successFlag === "true"
+          ) {
+            setSuccess(
+              becamePremium
+                ? "Payment successful. Loventia Premium is now active on your account."
+                : "Payment succeeded, but we could not confirm Premium state yet. It may update in a moment or you can press Sync now."
+            );
+          } else {
+            // Fallback banner for generic portal returns
+            setSuccess("Returned from billing and reconciled with provider.");
+          }
         }
       } catch {
-        // Even if sync fails, attempt to refresh local user so the UI won't get stuck
+        // Even if sync fails, attempt to refresh local user so the UI will not get stuck.
         await safeRefreshUser();
         if (!ignore) {
-          setMsg("We could not fully reconcile with billing yet. Please try Sync now.");
+          setMsg(
+            "We could not fully reconcile with billing yet. Please try Sync now."
+          );
         }
       }
     })();
@@ -145,165 +199,193 @@ const SubscriptionSettings = () => {
     );
   }, []);
 
-  const handleStartPremium = useCallback(async () => {
-    if (!isLoggedIn) {
-      navigate("/login");
-      return;
-    }
-    if (busy) return; // guard against double clicks
-    setBusy(true);
-    clearBanners();
-    try {
-      // billing.js returns an object → destructure the URL
-      const { url } = await createCheckoutSession({ email: userEmail || undefined });
-      if (url) {
-        window.location.assign(url);
-      } else {
-        friendlyError("Checkout session URL not returned by the server.");
+  const handleStartPremium = useCallback(
+    async () => {
+      if (!isLoggedIn) {
+        navigate("/login");
+        return;
       }
-    } catch (e) {
-      const status = e?.response?.status;
-      if (status === 401) {
-        friendlyError("Unauthorized. Please log in and try again.");
-      } else if (status === 404 || status === 501) {
-        friendlyError();
-      } else {
-        setMsg(e?.message || "Unable to start checkout right now.");
+      if (busy) return; // guard against double clicks
+      setBusy(true);
+      clearBanners();
+      try {
+        // billing.js returns an object → destructure the URL
+        const { url } = await createCheckoutSession({
+          email: userEmail || undefined,
+        });
+        if (url) {
+          window.location.assign(url);
+        } else {
+          friendlyError("Checkout session URL not returned by the server.");
+        }
+      } catch (e) {
+        const status = e?.response?.status;
+        if (status === 401) {
+          friendlyError("Unauthorized. Please log in and try again.");
+        } else if (status === 404 || status === 501) {
+          friendlyError();
+        } else {
+          setMsg(e?.message || "Unable to start checkout right now.");
+        }
+      } finally {
+        setBusy(false);
       }
-    } finally {
-      setBusy(false);
-    }
-  }, [isLoggedIn, navigate, userEmail, friendlyError, busy]);
+    },
+    [isLoggedIn, navigate, userEmail, friendlyError, busy]
+  );
 
-  const handleOpenPortal = useCallback(async () => {
-    if (!isLoggedIn) {
-      navigate("/login");
-      return;
-    }
-    if (busy) return; // guard against double clicks
-    setBusy(true);
-    clearBanners();
-    try {
-      // billing.js returns { url, raw }
-      const { url } = await openBillingPortal();
-      if (url) {
-        window.location.assign(url);
-      } else {
-        friendlyError("Billing portal URL not returned by the server.");
+  const handleOpenPortal = useCallback(
+    async () => {
+      if (!isLoggedIn) {
+        navigate("/login");
+        return;
       }
-    } catch (e) {
-      const status = e?.response?.status;
-      if (status === 401) {
-        friendlyError("Unauthorized. Please log in and try again.");
-      } else if (status === 404 || status === 501 || status === 502) {
-        friendlyError(
-          status === 502
-            ? "Temporary connection issue to Stripe. Please try again."
-            : undefined
-        );
-      } else {
-        setMsg(e?.message || "Unable to open billing portal right now.");
+      if (busy) return; // guard against double clicks
+      setBusy(true);
+      clearBanners();
+      try {
+        // billing.js returns { url, raw }
+        const { url } = await openBillingPortal();
+        if (url) {
+          window.location.assign(url);
+        } else {
+          friendlyError("Billing portal URL not returned by the server.");
+        }
+      } catch (e) {
+        const status = e?.response?.status;
+        if (status === 401) {
+          friendlyError("Unauthorized. Please log in and try again.");
+        } else if (status === 404 || status === 501 || status === 502) {
+          friendlyError(
+            status === 502
+              ? "Temporary connection issue to Stripe. Please try again."
+              : undefined
+          );
+        } else {
+          setMsg(e?.message || "Unable to open billing portal right now.");
+        }
+      } finally {
+        setBusy(false);
       }
-    } finally {
-      setBusy(false);
-    }
-  }, [isLoggedIn, navigate, friendlyError, busy]);
+    },
+    [isLoggedIn, navigate, friendlyError, busy]
+  );
 
   // NEW: explicit Sync handler (calls POST /api/billing/sync and refreshes user)
-  const handleSync = useCallback(async () => {
-    if (!isLoggedIn) {
-      navigate("/login");
-      return;
-    }
-    if (busy) return; // guard against double clicks
-    setBusy(true);
-    clearBanners();
-    try {
-      const res = await syncBilling();
-      const becamePremium = res?.isPremium === true;
-      const subId = res?.subscriptionId || null;
-      setSuccess(
-        `Synced with billing provider: isPremium=${becamePremium ? "true" : "false"}${subId ? `, subscriptionId=${subId}` : ""}`
-      );
-      await safeRefreshUser();
-    } catch (e) {
-      const status = e?.response?.status;
-      if (status === 401) {
-        friendlyError("Unauthorized. Please log in and try again.");
-      } else {
-        setMsg(e?.response?.data?.error || e?.message || "Sync failed. Please try again.");
+  const handleSync = useCallback(
+    async () => {
+      if (!isLoggedIn) {
+        navigate("/login");
+        return;
       }
-    } finally {
-      setBusy(false);
-    }
-  }, [isLoggedIn, navigate, friendlyError, safeRefreshUser, busy]);
+      if (busy) return; // guard against double clicks
+      setBusy(true);
+      clearBanners();
+      try {
+        const res = await syncBilling();
+        const becamePremium = res?.isPremium === true;
+        const subId = res?.subscriptionId || null;
+        setSuccess(
+          `Synced with billing provider: isPremium=${
+            becamePremium ? "true" : "false"
+          }${subId ? `, subscriptionId=${subId}` : ""}`
+        );
+        await safeRefreshUser();
+      } catch (e) {
+        const status = e?.response?.status;
+        if (status === 401) {
+          friendlyError("Unauthorized. Please log in and try again.");
+        } else {
+          setMsg(
+            e?.response?.data?.error ||
+              e?.message ||
+              "Sync failed. Please try again."
+          );
+        }
+      } finally {
+        setBusy(false);
+      }
+    },
+    [isLoggedIn, navigate, friendlyError, safeRefreshUser, busy]
+  );
 
   // --- REPLACE START: add 2× retry sync after cancel to handle webhook lag ---
-  const handleCancelNow = useCallback(async () => {
-    if (!isLoggedIn) {
-      navigate("/login");
-      return;
-    }
-    if (
-      !window.confirm(
-        "Cancel your active subscription immediately? This will end access right away."
-      )
-    ) {
-      return;
-    }
-    if (busy) return; // guard against double clicks
-    setBusy(true);
-    clearBanners();
-    try {
-      const res = await cancelNow();
-      const results = res?.results || res?.canceled || [];
-      if (Array.isArray(results) && results.length > 0) {
-        setSuccess("Subscription canceled immediately. Premium access will be removed.");
+  const handleCancelNow = useCallback(
+    async () => {
+      if (!isLoggedIn) {
+        navigate("/login");
+        return;
+      }
+      if (
+        !window.confirm(
+          "Cancel your active subscription immediately? This will end access right away."
+        )
+      ) {
+        return;
+      }
+      if (busy) return; // guard against double clicks
+      setBusy(true);
+      clearBanners();
+      try {
+        const res = await cancelNow();
+        const results = res?.results || res?.canceled || [];
+        if (Array.isArray(results) && results.length > 0) {
+          setSuccess(
+            "Subscription canceled immediately. Premium access will be removed."
+          );
 
-        // Try to reconcile quickly without waiting for webhook delivery
-        try {
-          // First attempt
-          let syncRes = await syncBilling();
+          // Try to reconcile quickly without waiting for webhook delivery
+          try {
+            // First attempt
+            let syncRes = await syncBilling();
 
-          // If still premium (or uncertain), try two more times with short delays
-          if (syncRes?.isPremium === true) {
-            syncRes = await trySyncWithRetry(2, 450);
-          }
+            // If still premium (or uncertain), try two more times with short delays
+            if (syncRes?.isPremium === true) {
+              syncRes = await trySyncWithRetry(2, 450);
+            }
 
-          await safeRefreshUser();
+            await safeRefreshUser();
 
-          // If after retries user still premium, inform user but don't fail the action
-          if (syncRes?.isPremium === true) {
+            // If after retries user still premium, inform user but do not fail the action
+            if (syncRes?.isPremium === true) {
+              setMsg(
+                "Cancellation is processed, but premium state may take a moment to reflect. It will update shortly or you can press Sync now."
+              );
+            }
+          } catch {
+            // Even if syncing fails, ensure UI refresh and show clear info
+            await safeRefreshUser();
             setMsg(
-              "Cancellation is processed, but premium state may take a moment to reflect. It will update shortly or you can press Sync now."
+              "Cancellation done. Waiting for billing confirmation. You can press Sync now."
             );
           }
-        } catch {
-          // Even if syncing fails, ensure UI refresh and show clear info
+        } else {
+          setMsg("No active subscription was found to cancel.");
+          // Attempt sync anyway in case server already updated
+          try {
+            await trySyncWithRetry(2, 450);
+          } catch {
+            // ignore retry errors here
+          }
           await safeRefreshUser();
-          setMsg("Cancellation done. Waiting for billing confirmation. You can press Sync now.");
         }
-      } else {
-        setMsg("No active subscription was found to cancel.");
-        // Attempt sync anyway in case server already updated
-        try {
-          await trySyncWithRetry(2, 450);
-        } catch {}
-        await safeRefreshUser();
+      } catch (e) {
+        const status = e?.response?.status;
+        if (status === 401) {
+          friendlyError("Unauthorized. Please log in and try again.");
+        } else {
+          setMsg(
+            e?.response?.data?.error ||
+              e?.message ||
+              "Cancel failed. Please try again."
+          );
+        }
+      } finally {
+        setBusy(false);
       }
-    } catch (e) {
-      const status = e?.response?.status;
-      if (status === 401) {
-        friendlyError("Unauthorized. Please log in and try again.");
-      } else {
-        setMsg(
-          e?.response?.data?.error || e?.message || "Cancel failed. Please try again."
-        );
-      }
-    } finally {
-      setBusy(false);
-    }
-  }, [isLoggedIn, navigate, safeRefreshUser, friendlyError, busy, trySyncWithRetry]);
+    },
+    [isLoggedIn, navigate, safeRefreshUser, friendlyError, busy, trySyncWithRetry]
+  );
   // --- REPLACE END ---
 
   return (
@@ -408,3 +490,5 @@ const SubscriptionSettings = () => {
 
 export default SubscriptionSettings;
 // --- REPLACE END ---
+
+

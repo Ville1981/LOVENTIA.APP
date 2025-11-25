@@ -36,14 +36,21 @@ const StatsPanel = ({ user, onAction = () => {} }) => {
   // - Replace older '/assets/bunny*.jpg' with neutral placeholder; Bunny is demo-only.
   const youPhoto = resolveImg(user?.youPhoto, PLACEHOLDER_IMAGE);
 
-  // Prefer profilePicture, fallback to profilePhoto, and finally to neutral placeholder.
+  // Prefer profilePicture, fallback to profilePhoto, then first photo, and finally neutral placeholder.
   const profilePhoto = resolveImg(
-    user?.profilePicture || user?.profilePhoto,
+    user?.profilePicture || user?.profilePhoto || user?.photos?.[0],
     PLACEHOLDER_IMAGE
   );
 
-  const compatibility =
+  let compatibility =
     user?.compatibility != null ? Number(user.compatibility) : 0;
+
+  if (!Number.isFinite(compatibility)) {
+    compatibility = 0;
+  } else {
+    // Clamp into 0–100 range
+    compatibility = Math.max(0, Math.min(compatibility, 100));
+  }
 
   // Support both id shapes
   const userId = user?.id || user?._id || null;
@@ -79,7 +86,7 @@ const StatsPanel = ({ user, onAction = () => {} }) => {
         />
 
         <span className="text-lg font-bold text-[#005FFF]">
-          {Number.isFinite(compatibility) ? compatibility : 0}%
+          {compatibility}%
         </span>
 
         <img
@@ -152,6 +159,7 @@ StatsPanel.propTypes = {
     youPhoto: PropTypes.string,
     profilePhoto: PropTypes.string,
     profilePicture: PropTypes.string,
+    photos: PropTypes.arrayOf(PropTypes.string),
     agreeCount: PropTypes.number,
     disagreeCount: PropTypes.number,
     findOutCount: PropTypes.number,
@@ -161,3 +169,5 @@ StatsPanel.propTypes = {
 
 export default React.memo(StatsPanel);
 // --- REPLACE END ---
+
+

@@ -1,5 +1,6 @@
-import React from "react";
-import { useState } from "react";
+// PATH: client/src/pages/Login.jsx
+
+import React, { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 
 // --- REPLACE START: use plural 'contexts' folder + rely on AuthContext.login ---
@@ -8,9 +9,8 @@ import { useAuth } from "../contexts/AuthContext";
 
 // NOTE:
 // - We do NOT call axios directly here.
-// - AuthContext.login(...) already knows the correct backend endpoint
-//   (we just changed it to `/api/users/login` in AuthContext).
-// - That keeps this component clean and future-proof.
+// - AuthContext.login(...) handles tokens + /me fetch and knows the correct backend endpoint.
+// - This component only shows the form and redirects after a successful login.
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -22,7 +22,7 @@ const Login = () => {
   const location = useLocation();
   const { login } = useAuth();
 
-  // Prefer redirect target passed by ProtectedRoute, fallback to /profile (or /)
+  // Prefer redirect target passed by ProtectedRoute, fallback to /profile
   const from = location.state?.from?.pathname || "/profile";
 
   const handleSubmit = async (e) => {
@@ -30,13 +30,21 @@ const Login = () => {
     setMessage("");
     setLoading(true);
 
+    // Normalize inputs a bit before sending
+    const trimmedEmail = (email || "").trim();
+    const trimmedPassword = password || "";
+
     try {
-      // --- REPLACE START: call context login only (it already hits /api/users/login) ---
-      await login(email, password);
-      // --- REPLACE END ---
+      if (import.meta?.env?.DEV) {
+        // eslint-disable-next-line no-console
+        console.info("[Login] Attempting login for:", trimmedEmail);
+      }
+
+      // Call only the context login – it handles tokens and user fetching.
+      await login(trimmedEmail, trimmedPassword);
 
       setMessage("Login successful!");
-      // Replace history so back button doesn't return to /login
+      // Replace history so that back button does not return to /login
       navigate(from, { replace: true });
     } catch (err) {
       const apiMsg =
@@ -104,6 +112,20 @@ const Login = () => {
         </Link>
       </div>
 
+      {/* --- REPLACE START: add visible link to Register page --- */}
+      <div className="mt-2 text-center">
+        <span className="text-sm text-gray-700 mr-1">
+          Don&apos;t have an account yet?
+        </span>
+        <Link
+          to="/register"
+          className="text-sm text-blue-600 font-medium hover:underline"
+        >
+          Create account
+        </Link>
+      </div>
+      {/* --- REPLACE END: add visible link to Register page --- */}
+
       {message && (
         <p
           className={`mt-4 text-center ${
@@ -121,4 +143,5 @@ const Login = () => {
 
 export default Login;
 
-// The replacement region is marked between // --- REPLACE START and // --- REPLACE END
+// The replacement regions are marked between // --- REPLACE START and // --- REPLACE END
+

@@ -10,14 +10,38 @@ const router = express.Router();
 
 /**
  * Lightweight entitlement check.
- * If user.isPremium is true (or legacy premium), consider all premium features granted.
- * Otherwise check entitlements.features.dealbreakers.
+ * If user.isPremium or entitlements.tier === "premium" is true (or legacy premium),
+ * consider dealbreakers (and other premium filters) granted.
+ * Otherwise check entitlements.features.dealbreakers and a few related premium flags.
  */
 function hasDealbreakers(user) {
   try {
     if (!user) return false;
-    if (user.isPremium || user.premium) return true;
-    return !!(user.entitlements && user.entitlements.features && user.entitlements.features.dealbreakers);
+
+    // Hard premium flags on the user document
+    if (user.isPremium === true || user.premium === true) {
+      return true;
+    }
+
+    const ent = user.entitlements || {};
+    const feat = ent.features || {};
+
+    // Entitlements-tier based premium
+    if (ent.tier === 'premium') {
+      return true;
+    }
+
+    // Explicit dealbreakers feature flag
+    if (feat.dealbreakers === true) {
+      return true;
+    }
+
+    // Fallback: if any of these strong premium features are granted, we also allow dealbreakers
+    if (feat.unlimitedLikes === true || feat.unlimitedRewinds === true || feat.noAds === true) {
+      return true;
+    }
+
+    return false;
   } catch {
     return false;
   }
@@ -227,3 +251,5 @@ router.post('/discover/search', authenticate, async (req, res) => {
 
 export default router;
 // --- REPLACE END ---
+
+

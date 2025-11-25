@@ -1,9 +1,43 @@
 // File: client/src/components/ConversationCard.jsx
+
 import { formatDistanceToNowStrict, parseISO } from "date-fns";
 import React from "react";
 import { useTranslation } from "react-i18next";
 // --- REPLACE START: import Link for navigation ---
 import { Link } from "react-router-dom";
+// --- REPLACE END ---
+
+// --- REPLACE START: premium helper + badge (for conversations list) ---
+/**
+ * Determine if the conversation partner should be treated as Premium in the UI.
+ * Supports multiple possible shapes from the API payload.
+ */
+function isPremiumPeer(convo) {
+  if (!convo) return false;
+
+  // Direct flags on conversation object
+  if (convo.peerPremium === true) return true;
+  if (convo.premium === true || convo.isPremium === true) return true;
+
+  // Entitlements under various keys
+  const tier =
+    convo.peerEntitlements?.tier ||
+    convo.entitlements?.tier ||
+    convo.partnerEntitlements?.tier;
+
+  return tier === "premium";
+}
+
+/**
+ * Small pill badge for Premium users in the conversation list.
+ */
+function PremiumBadge() {
+  return (
+    <span className="ml-1 inline-flex items-center rounded-full bg-yellow-400 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-900">
+      Premium
+    </span>
+  );
+}
 // --- REPLACE END ---
 
 /**
@@ -21,6 +55,7 @@ export default function ConversationCard(
   const rawTimestamp =
     convo.lastMessageTimestamp ||
     convo.lastTimestamp ||
+    convo.lastMessageTime ||
     convo.timestamp ||
     null;
 
@@ -28,7 +63,9 @@ export default function ConversationCard(
   if (rawTimestamp) {
     try {
       const parsed =
-        typeof rawTimestamp === "string" ? parseISO(rawTimestamp) : new Date(rawTimestamp);
+        typeof rawTimestamp === "string"
+          ? parseISO(rawTimestamp)
+          : new Date(rawTimestamp);
       const time = parsed instanceof Date ? parsed.getTime() : NaN;
       if (!Number.isNaN(time)) {
         timeAgo = formatDistanceToNowStrict(parsed, { addSuffix: true });
@@ -38,6 +75,28 @@ export default function ConversationCard(
       timeAgo = "";
     }
   }
+  // --- REPLACE END ---
+
+  // --- REPLACE START: derive stable partner identifiers for link + display ---
+  const displayName =
+    convo.peerName ||
+    convo.partnerUsername ||
+    convo.partnerEmail ||
+    convo.username ||
+    t("conversationCard.unknownUser", "Unknown user");
+
+  const targetId =
+    convo.userId ??
+    convo.partnerId ??
+    convo.peerId ??
+    convo.id ??
+    "";
+
+  const premiumPeer = isPremiumPeer(convo);
+
+  // Resolve last message snippet with safe fallbacks
+  const messageSnippet =
+    convo.lastMessage ?? convo.lastMessageSnippet ?? convo.snippet ?? "";
   // --- REPLACE END ---
 
   // --- REPLACE START: determine wrapper element for link vs. click handler ---
@@ -58,7 +117,7 @@ export default function ConversationCard(
       )
     : ({ children }) => (
         <Link
-          to={`/chat/${convo.userId ?? ""}`}
+          to={`/chat/${targetId}`}
           className="flex items-center p-4 bg-white rounded-lg shadow hover:bg-gray-50"
           data-testid="conversation-card-link"
         >
@@ -73,8 +132,8 @@ export default function ConversationCard(
       <img
         src={convo.peerAvatarUrl || "/default-avatar.png"}
         alt={
-          convo.peerName
-            ? `${convo.peerName}'s avatar`
+          displayName && displayName !== "Unknown user"
+            ? `${displayName}'s avatar`
             : t("conversationCard.avatarAlt", "User avatar")
         }
         className="w-12 h-12 rounded-full object-cover mr-4"
@@ -88,10 +147,10 @@ export default function ConversationCard(
 
       <div className="flex-1 overflow-hidden">
         <div className="flex justify-between items-center">
-          <h3 className="font-medium text-gray-900 truncate">
+          <h3 className="font-medium text-gray-900 truncate flex items-center gap-1">
             {/* Keep original display logic; add safe default to avoid empty heading */}
-            {convo.peerName ||
-              t("conversationCard.unknownUser", "Unknown user")}
+            <span className="truncate">{displayName}</span>
+            {premiumPeer && <PremiumBadge />}
           </h3>
           <span className="text-xs text-gray-500">
             {/* Show computed timeAgo only if available */}
@@ -100,14 +159,17 @@ export default function ConversationCard(
         </div>
         <p className="text-sm text-gray-600 truncate">
           {/* Preserve original priorities with safe fallback to empty string */}
-          {convo.lastMessage ?? convo.lastMessageSnippet ?? ""}
+          {messageSnippet}
         </p>
       </div>
 
       {Number(convo.unreadCount) > 0 && (
         <span
           className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold text-white bg-red-500 rounded-full"
-          aria-label={t("conversationCard.unreadCount", "Unread messages")}
+          aria-label={t(
+            "conversationCard.unreadCount",
+            "Unread messages"
+          )}
         >
           {convo.unreadCount}
         </span>
@@ -119,3 +181,5 @@ export default function ConversationCard(
 // The replacement regions are marked between
 // --- REPLACE START and // --- REPLACE END
 // so you can verify exactly what changed.
+
+
