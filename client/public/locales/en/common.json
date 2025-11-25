@@ -1,4 +1,3 @@
-
 {
   "appName": "Loventia",
   "select": "Select",
@@ -85,5 +84,28 @@
     "middleEast": "🌍 MIDDLE EAST",
     "eastAsia": "🌏 EAST ASIA",
     "africa": "🌍 AFRICA"
+  },
+  "premium": {
+    "superLike": {
+      "buttonLabelWithQuota": "Super Like {{remaining}}/{{limit}}",
+      "buttonLabel": "Super Like",
+      "sent": "Super Like sent ✨",
+      "sentCompact": "Sent.",
+      "premiumRequired": "Premium required to use Super Likes.",
+      "quotaPremiumExhausted": "You have used all your Super Likes for this week. They reset on Monday.",
+      "quotaFreeExhausted": "You have used your weekly Super Like. Upgrade to Premium for more.",
+      "failed": "Failed to send Super Like.",
+      "networkError": "Network error.",
+      "ariaLabel": "Send Super Like",
+      "buttonCompactLabel": "Super",
+      "counterLabel": "({{used}}/{{limit}} this week)",
+      "premiumRequiredTitle": "Premium required",
+      "premiumCtaLabel": "Super Like (Premium)"
+    },
+    "likes": {
+      "quotaLabel": "You have used {{used}} / {{limit}} likes today.",
+      "quotaResetHint": "Resets at midnight (Europe/Helsinki)."
+    }
   }
 }
+

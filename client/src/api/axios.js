@@ -13,13 +13,15 @@ export function attachAccessToken(token) {
       // persist (keep legacy key too)
       localStorage.setItem("accessToken", token);
       localStorage.setItem("token", token);
-      // set header
+
+      // set header on the shared axios instance
       api.defaults.headers.common.Authorization = `Bearer ${token}`;
     } else {
       localStorage.removeItem("accessToken");
       localStorage.removeItem("token");
       delete api.defaults.headers.common.Authorization;
     }
+
     if (import.meta?.env?.DEV) {
       // eslint-disable-next-line no-console
       console.info("[api/axios] token attached:", Boolean(token));
@@ -30,7 +32,7 @@ export function attachAccessToken(token) {
 }
 
 /**
- * Read bearer token from memory/storage.
+ * Read bearer token from storage.
  */
 export function getAccessToken() {
   try {
@@ -44,5 +46,10 @@ export function getAccessToken() {
   }
 }
 
+// Re-export the shared axios instance so all imports get the same object
 export default api;
 // --- REPLACE END ---
+
+
+
+

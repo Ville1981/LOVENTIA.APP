@@ -1,6 +1,6 @@
 // PATH: client/src/App.jsx
 
-// --- REPLACE START: use the corrected ResetPassword component from components/ and keep routes intact ---
+// --- REPLACE START: use AuthContext.user instead of authUser field ---
 import React, { Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -37,6 +37,7 @@ import MapPage from "./pages/MapPage";
 import Upgrade from "./pages/Upgrade";
 import WhoLikedMe from "./pages/WhoLikedMe";
 import PremiumCancel from "./pages/PremiumCancel";
+import LikesOverview from "./pages/LikesOverview";
 
 import AdminPanel from "./pages/AdminPanel";
 
@@ -55,19 +56,31 @@ const queryClient = new QueryClient({
   },
 });
 
-// Private route gate
+// Private route gate – uses user from AuthContext
 function PrivateRoute({ children }) {
-  const { user, bootstrapped } = useAuth();
-  if (!bootstrapped) return <div className="p-4">Loading...</div>;
-  return user ? children : <Navigate to="/login" replace />;
+  // 🔑 AuthContext exposes `user`, so alias it locally to authUser
+  const { user: authUser, bootstrapped } = useAuth();
+
+  if (!bootstrapped) {
+    return <div className="p-4">Loading...</div>;
+  }
+
+  return authUser ? children : <Navigate to="/login" replace />;
 }
 
-// Admin-only route gate
+// Admin-only route gate – also uses user from AuthContext
 function AdminRoute({ children }) {
-  const { user, bootstrapped } = useAuth();
-  if (!bootstrapped) return <div className="p-4">Loading...</div>;
-  if (!user) return <Navigate to="/login" replace />;
-  return user.role === "admin" ? children : <Navigate to="/" replace />;
+  const { user: authUser, bootstrapped } = useAuth();
+
+  if (!bootstrapped) {
+    return <div className="p-4">Loading...</div>;
+  }
+
+  if (!authUser) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return authUser.role === "admin" ? children : <Navigate to="/" replace />;
 }
 
 // MSW in dev only
@@ -162,6 +175,14 @@ export default function App() {
                   }
                 />
                 <Route
+                  path="likes"
+                  element={
+                    <PrivateRoute>
+                      <LikesOverview />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
                   path="messages"
                   element={
                     <PrivateRoute>
@@ -234,7 +255,7 @@ export default function App() {
 
                 {/* Password helpers */}
                 <Route path="forgot-password" element={<ForgotPassword />} />
-                {/* ✅ NOW this route uses the fixed component that sends {token, password, id?} */}
+                {/* ✅ This route uses the fixed component that sends { token, password, id? } */}
                 <Route path="reset-password" element={<ResetPassword />} />
 
                 {/* Admin-only */}

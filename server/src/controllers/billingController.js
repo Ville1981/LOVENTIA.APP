@@ -150,6 +150,11 @@ function derivePremiumStateFromSubscription(subscription) {
  *  - Always set entitlements.tier
  *  - Keep quotas.superLikes sane defaults
  *  - ✅ Ensure premium superLikesPerWeek = 3 (or env override)
+ *
+ * IMPORTANT:
+ *  - We do NOT reset entitlements.quotas.superLikes.used here.
+ *    Super Like usage is managed by the Super Like controller (weekly window logic).
+ *    Billing sync only controls tier and feature flags.
  */
 async function writeUserPremiumState(userId, premiumState) {
   const { isPremium, subscriptionId, tier, since, until } = premiumState;
@@ -182,9 +187,9 @@ async function writeUserPremiumState(userId, premiumState) {
     'entitlements.features.superLikesPerWeek':
       Number(computed.superLikesPerWeek) || (isPremium ? SUPERLIKES_PER_WEEK_DEFAULT : 1),
 
-    // Ensure quotas object present & reset usage window when toggling
-    'entitlements.quotas.superLikes.used': 0,
-    'entitlements.quotas.superLikes.window': 'weekly',
+    // NOTE:
+    //  - We deliberately do NOT touch entitlements.quotas.superLikes.used / weekKey / window here.
+    //  - Those fields are updated by the Super Like quota logic and must not be reset on billing sync.
   };
 
   const updated = await User.findByIdAndUpdate(
@@ -291,6 +296,10 @@ export async function createPortal(req, res) {
  * POST /api/billing/sync
  * Explicitly reconcile Stripe → User and persist premium state.
  * Returns the *updated* normalized user so the client can reflect changes immediately.
+ *
+ * IMPORTANT:
+ *  - This endpoint manages premium flags, subscriptionId, tier and feature toggles.
+ *  - It intentionally does NOT reset Super Like quotas; those are updated by /api/superlike.
  */
 export async function sync(req, res) {
   const user = await resolveUserFromRequest(req);
@@ -308,7 +317,7 @@ export async function sync(req, res) {
 
   // Prefer an active/trialing subscription if present, otherwise take the newest
   const preferred =
-    subs.data.find(s => ACTIVE_SUB_STATUSES.has(s.status)) ||
+    subs.data.find((s) => ACTIVE_SUB_STATUSES.has(s.status)) ||
     subs.data.sort((a, b) => (b.created || 0) - (a.created || 0))[0] ||
     null;
 
@@ -398,3 +407,4 @@ export async function handleWebhook(req, res) {
   return res.status(200).send('ok');
 }
 // --- REPLACE END ---
+

@@ -1,4 +1,4 @@
-// PATH: server/src/controllers/authController.js
+// PATH: server/src/api/controllers/authController.js
 
 /* eslint-disable no-console */
 
@@ -27,6 +27,7 @@
 //    - normalizes the returned user (no password, no reset fields)
 //    - issues JWT access + refresh tokens from env (JWT_SECRET / JWT_REFRESH_SECRET / REFRESH_TOKEN_SECRET)
 //    - **and now** packs ALL id fields into the token: sub, id, userId, uid
+//    - **and now** ALSO sets httpOnly refresh cookie using centralized cookieOptions
 //
 // 4) **refresh**
 //    - accepts refresh token (body.refreshToken, header.Authorization: Bearer <token>, or cookie)
@@ -36,6 +37,7 @@
 //    - loads the user again to make sure the account still exists
 //    - issues a new pair of tokens (access + refresh) with the SAME core claims
 //    - returns normalized user too, so FE can update premium / billing flags
+//    - **and now** refresh() also rotates the httpOnly refresh cookie
 //
 // 5) **me**
 //    - reads current user from (1) req.user (if authenticate ran), (2) Bearer token,
@@ -57,7 +59,7 @@ import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
 
 import {
-  issueTokens,                               // returns { accessToken, refreshToken, ... }
+  issueTokens, // returns { accessToken, refreshToken, ... }
   signAccessToken as utilSignAccessToken,
   signRefreshToken as utilSignRefreshToken,
   verifyRefreshToken as utilVerifyRefreshToken,
@@ -66,13 +68,20 @@ import normalizeUserOut from "../../utils/normalizeUserOut.js";
 import sendEmail from "../../utils/sendEmail.js";
 import renderResetEmail from "../emails/renderResetEmail.js";
 // --- REPLACE START: fixed sendEmail import path (use shared util that writes logs/mail-*.log) ---
+// (path already fixed above – kept marker for future diffs)
 // --- REPLACE END ---
 // --- REPLACE START: token util (access + refresh) ---
 // --- REPLACE START: fix generateTokens import path (only path changes) ---
+// (path already fixed above – kept marker for future diffs)
 // --- REPLACE END ---
-
 // --- REPLACE END ---
 // --- REPLACE START: import normalizeUserOut for consistent API shape (+rewind) ---
+// (normalizeUserOut already imported above – marker kept for future diffs)
+// --- REPLACE END ---
+// --- REPLACE START: centralized cookie options for refresh cookie ---
+import authCookieOptions, {
+  withMaxAge as withCookieMaxAge,
+} from "../../utils/cookieOptions.js";
 // --- REPLACE END ---
 
 /**
@@ -142,9 +151,7 @@ function buildTransporter() {
 async function sendMailLegacy({ to, subject, text, html }) {
   const transporter = buildTransporter();
   const fromName =
-    process.env.MAIL_FROM_NAME ||
-    process.env.EMAIL_FROM_NAME ||
-    "Loventia";
+    process.env.MAIL_FROM_NAME || process.env.EMAIL_FROM_NAME || "Loventia";
   const fromEmail =
     process.env.MAIL_FROM_EMAIL ||
     process.env.EMAIL_FROM ||
@@ -277,11 +284,7 @@ function signRefreshToken(payload = {}) {
 
   // normalize id fields – this fixes "Invalid token payload" in stricter refresh routes
   const guessedId =
-    payload.userId ||
-    payload.id ||
-    payload.sub ||
-    payload.uid ||
-    "";
+    payload.userId || payload.id || payload.sub || payload.uid || "";
   const finalId = guessedId ? String(guessedId) : "";
 
   let finalPayload = { ...payload, type: payload.type || "refresh" };
@@ -309,6 +312,7 @@ function signRefreshToken(payload = {}) {
  * NOTE:
  * - earlier PS output showed token with empty `sub` and `id`
  * - here we FORCE all id fields into payload: sub, id, userId, uid
+ * - and we now set an httpOnly refresh cookie for browser flows
  */
 export async function login(req, res) {
   try {
@@ -398,6 +402,28 @@ export async function login(req, res) {
       refreshToken = signRefreshToken({ ...basePayload, type: "refresh" });
     }
 
+    // --- REPLACE START: set httpOnly refresh cookie for browser clients ---
+    try {
+      if (refreshToken) {
+        const maxAgeMs =
+          Number(process.env.REFRESH_TOKEN_MAX_AGE_MS) ||
+          Number(process.env.JWT_REFRESH_MAX_AGE_MS) ||
+          30 * 24 * 60 * 60 * 1000; // default 30 days
+
+        res.cookie(
+          "refreshToken",
+          refreshToken,
+          withCookieMaxAge(maxAgeMs)
+        );
+      }
+    } catch (cookieErr) {
+      console.warn(
+        "[auth/login] failed to set refresh cookie (non-fatal):",
+        cookieErr?.message || cookieErr
+      );
+    }
+    // --- REPLACE END ---
+
     return res.status(200).json({
       message: "Login successful.",
       user: userOut,
@@ -415,29 +441,58 @@ export async function login(req, res) {
 }
 // --- REPLACE END ---
 
-// --- REPLACE START: REFRESH HANDLER (recommended) ---
+// --- REPLACE START: REFRESH HANDLER (recommended, with robust cookie support) ---
 /**
  * POST /api/auth/refresh
  * Body (preferred): { "refreshToken": "..." }
  *
  * Tries util.verifyRefreshToken(...) first, then falls back to local jwt.verify.
  * Always re-issues BOTH tokens with the SAME id packing as login.
+ *
+ * IMPORTANT:
+ * We now look for the refresh token in **all** common cookie names as well:
+ * - refreshToken
+ * - refresh_token
+ * - jwt
+ * - jid
+ * - token
+ * This makes the route tolerant to older middlewares that set a different cookie name.
  */
 export async function refresh(req, res) {
   try {
-    // 1) read token from body / header / cookie
-    let token =
-      (req?.body && req.body.refreshToken) ||
-      (req?.headers && typeof req.headers.authorization === "string"
-        ? req.headers.authorization.replace(/Bearer\s+/i, "").trim()
-        : "") ||
-      (req?.cookies && (req.cookies.refreshToken || req.cookies.token)) ||
-      "";
+    // --- REPLACE START: unified token extraction (body → Bearer → cookies) ---
+    const bodyToken =
+      req?.body && typeof req.body.refreshToken === "string"
+        ? req.body.refreshToken
+        : "";
 
+    const bearerToken =
+      req?.headers && typeof req.headers.authorization === "string"
+        ? req.headers.authorization.replace(/Bearer\s+/i, "").trim()
+        : "";
+
+    const cookieTokenRaw =
+      req?.cookies &&
+      (req.cookies.refreshToken ||
+        req.cookies.refresh_token ||
+        req.cookies.jwt ||
+        req.cookies.jid ||
+        req.cookies.token);
+
+    const cookieToken =
+      typeof cookieTokenRaw === "string"
+        ? cookieTokenRaw
+        : cookieTokenRaw
+        ? String(cookieTokenRaw)
+        : "";
+
+    let token = bodyToken || bearerToken || cookieToken;
     token = (token || "").trim();
+    // --- REPLACE END ---
 
     if (!token) {
-      return res.status(400).json({ error: "Refresh token is required." });
+      // No token anywhere → treat as unauthenticated
+      return res.status(401).json({ error: "Refresh token is required." });
     }
 
     // 2) verify token (util first)
@@ -558,6 +613,28 @@ export async function refresh(req, res) {
       // our normalized fallback will re-pack id fields → OK for stricter routers
       refreshToken = signRefreshToken({ ...basePayload, type: "refresh" });
     }
+
+    // --- REPLACE START: rotate httpOnly refresh cookie on refresh() as well ---
+    try {
+      if (refreshToken) {
+        const maxAgeMs =
+          Number(process.env.REFRESH_TOKEN_MAX_AGE_MS) ||
+          Number(process.env.JWT_REFRESH_MAX_AGE_MS) ||
+          30 * 24 * 60 * 60 * 1000;
+
+        res.cookie(
+          "refreshToken",
+          refreshToken,
+          withCookieMaxAge(maxAgeMs)
+        );
+      }
+    } catch (cookieErr) {
+      console.warn(
+        "[auth/refresh] failed to set refresh cookie (non-fatal):",
+        cookieErr?.message || cookieErr
+      );
+    }
+    // --- REPLACE END ---
 
     return res.status(200).json({
       message: "Token refreshed.",
@@ -801,6 +878,7 @@ export async function resetPassword(req, res) {
     // 8) Extra hard delete
     // --- REPLACE START: extra $unset for reset fields ---
     try {
+      const User = await getUserModel();
       await User.updateOne(
         { _id: userDoc._id },
         {
@@ -856,13 +934,17 @@ export async function register(req, res) {
       email.split("@")[0];
 
     if (!email || !password) {
-      return res.status(400).json({ error: "Email and password are required." });
+      return res
+        .status(400)
+        .json({ error: "Email and password are required." });
     }
 
     const User = await getUserModel();
     const existing = await User.findOne({ email }).lean();
     if (existing) {
-      return res.status(409).json({ error: "User with this email already exists." });
+      return res
+        .status(409)
+        .json({ error: "User with this email already exists." });
     }
 
     // create
@@ -913,7 +995,9 @@ export async function register(req, res) {
     });
   } catch (err) {
     console.error("[auth/register] unexpected error:", err);
-    return res.status(500).json({ error: "Unexpected error during registration." });
+    return res
+      .status(500)
+      .json({ error: "Unexpected error during registration." });
   }
 }
 // --- REPLACE END ---
@@ -1029,15 +1113,15 @@ export async function verifyEmail(req, res) {
 // Keep default export shape unchanged (include other handlers in your real file)
 const controller = {
   // public
-  login,            // ← UPDATED
-  register,         // ← NEW
-  refresh,          // ← UPDATED (secret order now matches util, payload normalized)
+  login, // ← UPDATED
+  register, // ← NEW
+  refresh, // ← UPDATED (robust token extraction + secret order + cookie rotation)
   forgotPassword,
   resetPassword,
-  logout,           // ← NEW
-  verifyEmail,      // ← NEW
+  logout, // ← NEW
+  verifyEmail, // ← NEW
   // shared
-  me,               // ← UPDATED: normalizeUserOut + .select("+rewind")
+  me, // ← UPDATED: normalizeUserOut + .select("+rewind")
 };
 
 export default controller;

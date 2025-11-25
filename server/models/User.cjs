@@ -586,22 +586,72 @@ function syncGeoPoint(doc) {
   }
 }
 
-// ✅ Keep weekKey/window in sync before validate/save (helps controllers that still write "window")
+// --- REPLACE START: syncSuperLikesQuotaKeys ---
+
+// Helper for ISO-like week key, e.g. "2025-W46"
+function getCurrentWeekKey() {
+  const now = new Date();
+  const year = now.getUTCFullYear();
+
+  // Find first Thursday of the year (ISO week reference)
+  const firstThursday = new Date(Date.UTC(year, 0, 1));
+  while (firstThursday.getUTCDay() !== 4) {
+    firstThursday.setUTCDate(firstThursday.getUTCDate() + 1);
+  }
+
+  const diffDays = Math.floor((now - firstThursday) / 86400000);
+  const week = 1 + Math.floor(diffDays / 7);
+
+  return `${year}-W${String(week).padStart(2, '0')}`;
+}
+
+// ✅ Keep weekKey/window in sync, but **never touch brand-new docs**
+// This avoids Mongoose subdocument casting issues during register.
 function syncSuperLikesQuotaKeys(doc) {
   try {
-    const e = doc.entitlements;
-    if (!e || typeof e !== 'object') return;
-    if (!e.quotas || typeof e.quotas !== 'object') e.quotas = { superLikes: {} };
-    const sl = (e.quotas.superLikes = e.quotas.superLikes || {});
-    if (sl.weekKey == null && typeof sl.window === 'string') sl.weekKey = sl.window;
-    if (sl.window == null && typeof sl.weekKey === 'string') sl.window = sl.weekKey;
-    if (typeof sl.used !== 'number') sl.used = 0;
-    if (typeof sl.weekKey !== 'string') sl.weekKey = '';
-    if (typeof sl.window !== 'string') sl.window = sl.weekKey || '';
+    // For newly created users, rely entirely on schema defaults.
+    // This prevents any CastError from subdocument internals.
+    if (doc && doc.isNew) {
+      return;
+    }
+
+    const ent = doc.entitlements;
+    if (!ent || typeof ent !== 'object') return;
+
+    const quotas = ent.quotas;
+    if (!quotas || typeof quotas !== 'object') return;
+
+    const sl = quotas.superLikes;
+    if (!sl || typeof sl !== 'object') return;
+
+    // Ensure "used" is a number
+    if (typeof sl.used !== 'number' || Number.isNaN(sl.used)) {
+      sl.used = 0;
+    }
+
+    // Mirror weekKey/window both ways, but only if strings
+    if (!sl.weekKey && typeof sl.window === 'string' && sl.window) {
+      sl.weekKey = sl.window;
+    }
+    if (!sl.window && typeof sl.weekKey === 'string' && sl.weekKey) {
+      sl.window = sl.weekKey;
+    }
+
+    // Sensible defaults if still missing
+    if (!sl.weekKey || typeof sl.weekKey !== 'string') {
+      sl.weekKey = getCurrentWeekKey();
+    }
+    if (!sl.window || typeof sl.window !== 'string') {
+      sl.window = sl.weekKey;
+    }
   } catch {
-    // noop
+    // noop – never break validation because of this helper
   }
 }
+
+// --- REPLACE END: syncSuperLikesQuotaKeys ---
+
+
 
 // ✅ Soft-cap rewind.stack length (keeps only newest N items based on rewind.max)
 function capRewindStack(doc) {
@@ -791,4 +841,5 @@ module.exports = UserModel;
 module.exports.User = UserModel;
 module.exports.default = UserModel;
 // --- REPLACE END ---
+
 

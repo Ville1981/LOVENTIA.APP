@@ -54,61 +54,64 @@ export default function LikeButton({
     }
   }, [refreshUser]);
 
-  const handleLike = useCallback(async () => {
-    setMsg("");
-    if (!canClick) return;
+  const handleLike = useCallback(
+    async () => {
+      setMsg("");
+      if (!canClick) return;
 
-    // If user is not entitled to unlimited likes and free-limited mode is off → do nothing
-    // (CTA branch renders separately below).
-    if (!entitledUnlimited && !allowFreeLimited) return;
+      // If user is not entitled to unlimited likes and free-limited mode is off → do nothing
+      // (CTA branch renders separately below).
+      if (!entitledUnlimited && !allowFreeLimited) return;
 
-    setBusy(true);
-    try {
-      // Server should enforce daily cap when user is not premium.
-      // Axios instance has baseURL '/api', so this hits POST /api/likes.
-      const res = await api.post("/likes", { targetUserId });
+      setBusy(true);
+      try {
+        // Server should enforce daily cap when user is not premium.
+        // Axios instance has baseURL '/api', so this hits POST /api/likes.
+        const res = await api.post("/likes", { targetUserId });
 
-      const ok = res?.data?.ok !== false;
-      if (ok) {
-        setMsg(compact ? "Liked." : "You liked this profile.");
-        if (typeof onSuccess === "function") onSuccess(res?.data);
-        // Optional sync in case counters/quotas changed on the server
-        void safeRefresh();
-      } else {
-        const code = res?.data?.code || "";
+        const ok = res?.data?.ok !== false;
+        if (ok) {
+          setMsg(compact ? "Liked." : "You liked this profile.");
+          if (typeof onSuccess === "function") onSuccess(res?.data);
+          // Optional sync in case counters/quotas changed on the server
+          void safeRefresh();
+        } else {
+          const code = res?.data?.code || "";
+          const errMsg =
+            res?.data?.message ||
+            res?.data?.error ||
+            (code === "LIMIT_REACHED"
+              ? "Daily like limit reached."
+              : "Failed to like.");
+          setMsg(errMsg);
+          if (typeof onError === "function") onError(res?.data);
+        }
+      } catch (err) {
+        const status = err?.response?.status;
+        const code = err?.response?.data?.code;
         const errMsg =
-          res?.data?.message ||
-          res?.data?.error ||
-          (code === "LIMIT_REACHED"
+          err?.response?.data?.message ||
+          err?.response?.data?.error ||
+          (status === 403 && code === "LIMIT_REACHED"
             ? "Daily like limit reached."
-            : "Failed to like.");
+            : err?.message || "Network error.");
         setMsg(errMsg);
-        if (typeof onError === "function") onError(res?.data);
+        if (typeof onError === "function") onError(err);
+      } finally {
+        setBusy(false);
       }
-    } catch (err) {
-      const status = err?.response?.status;
-      const code = err?.response?.data?.code;
-      const errMsg =
-        err?.response?.data?.message ||
-        err?.response?.data?.error ||
-        (status === 403 && code === "LIMIT_REACHED"
-          ? "Daily like limit reached."
-          : err?.message || "Network error.");
-      setMsg(errMsg);
-      if (typeof onError === "function") onError(err);
-    } finally {
-      setBusy(false);
-    }
-  }, [
-    allowFreeLimited,
-    canClick,
-    compact,
-    entitledUnlimited,
-    onError,
-    onSuccess,
-    safeRefresh,
-    targetUserId,
-  ]);
+    },
+    [
+      allowFreeLimited,
+      canClick,
+      compact,
+      entitledUnlimited,
+      onError,
+      onSuccess,
+      safeRefresh,
+      targetUserId,
+    ]
+  );
 
   // --- UI styles ---
   const baseBtn =
@@ -182,5 +185,3 @@ export default function LikeButton({
   );
 }
 // --- REPLACE END ---
-
-

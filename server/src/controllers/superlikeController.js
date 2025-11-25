@@ -13,11 +13,19 @@ const PREMIUM_FALLBACK = Number(process.env.SUPERLIKES_PER_WEEK || 3);
  *  - Reads the numeric weekly quota from user.entitlements.features.superLikesPerWeek.
  *  - Tracks usage in user.entitlements.quotas.superLikes.{used, weekKey}.
  *  - Resets usage when ISO week changes.
- *  - Enforces limit (403 + code='LIMIT_REACHED' when exceeded).
+ *  - Enforces limit (429 + code='SUPERLIKE_QUOTA_EXCEEDED' when exceeded).
  *  - Optionally delegates to a root controller if present (after quota accounting).
  *
  * Success payload shape (if we respond):
- *   { ok: true, superliked: "<targetId>", remaining, limit, resetAt }
+ *   {
+ *     ok: true,
+ *     superliked: "<targetId>",
+ *     remaining,
+ *     used,
+ *     limit,
+ *     resetAt,
+ *     quota: { used, weekKey, window: "weekly" }
+ *   }
  */
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -25,18 +33,24 @@ const PREMIUM_FALLBACK = Number(process.env.SUPERLIKES_PER_WEEK || 3);
 // ──────────────────────────────────────────────────────────────────────────────
 
 function isValidObjectId(id) {
-  if (mongoose?.Types?.ObjectId?.isValid) return mongoose.Types.ObjectId.isValid(id);
+  if (mongoose?.Types?.ObjectId?.isValid) {
+    return mongoose.Types.ObjectId.isValid(id);
+  }
   return typeof id === 'string' && /^[a-fA-F0-9]{24}$/.test(id);
 }
 
-/** YYYY-Www (ISO week), e.g. "2025-W45" */
+/** YYYY-Www (ISO week), e.g. "2025-W47" */
 function isoWeekKey(d = new Date()) {
   const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
   const dayNum = (date.getUTCDay() + 6) % 7; // 0..6, Mon..Sun
   date.setUTCDate(date.getUTCDate() - dayNum + 3);
   const firstThursday = new Date(Date.UTC(date.getUTCFullYear(), 0, 4));
   const week =
-    1 + Math.round(((date - firstThursday) / 86400000 - 3 + ((firstThursday.getUTCDay() + 6) % 7)) / 7);
+    1 +
+    Math.round(
+      ((date - firstThursday) / 86400000 - 3 + ((firstThursday.getUTCDay() + 6) % 7)) /
+        7
+    );
   const wk = String(week).padStart(2, '0');
   return `${date.getUTCFullYear()}-W${wk}`;
 }
@@ -61,16 +75,25 @@ function nextIsoWeekStart(d = new Date()) {
 function resolveQuotaLimitFromEntitlements(user, dbEntitlements) {
   const rawFromUser = user?.entitlements?.features?.superLikesPerWeek;
   const rawFromDb = dbEntitlements?.features?.superLikesPerWeek;
-  const raw = (typeof rawFromDb !== 'undefined') ? rawFromDb : rawFromUser;
+  const raw = typeof rawFromDb !== 'undefined' ? rawFromDb : rawFromUser;
 
-  if (typeof raw === 'number' && Number.isFinite(raw)) return Math.max(0, Math.floor(raw));
-  if (raw === true) return PREMIUM_FALLBACK;
+  if (typeof raw === 'number' && Number.isFinite(raw)) {
+    return Math.max(0, Math.floor(raw));
+  }
+  if (raw === true) {
+    return PREMIUM_FALLBACK;
+  }
+
   const premiumFlag =
     user?.isPremium === true ||
     user?.premium === true ||
     dbEntitlements?.isPremium === true ||
     dbEntitlements?.premium === true;
-  if (premiumFlag) return PREMIUM_FALLBACK;
+
+  if (premiumFlag) {
+    return PREMIUM_FALLBACK;
+  }
+
   return 0;
 }
 
@@ -81,7 +104,10 @@ function resolveQuotaLimitFromEntitlements(user, dbEntitlements) {
 function ensureQuotaBucket(user) {
   if (!user.entitlements) user.entitlements = {};
   if (!user.entitlements.quotas) user.entitlements.quotas = {};
-  if (!user.entitlements.quotas.superLikes) user.entitlements.quotas.superLikes = {};
+  if (!user.entitlements.quotas.superLikes) {
+    user.entitlements.quotas.superLikes = {};
+  }
+
   const bucket = user.entitlements.quotas.superLikes;
 
   const nowKey = isoWeekKey();
@@ -99,18 +125,22 @@ function ensureQuotaBucket(user) {
 let _rootCtrl = null;
 async function getRootCtrl() {
   if (_rootCtrl) return _rootCtrl;
+
   const candidates = [
     '../../controllers/superlikeController.js',
     '../../controllers/superlikesController.js',
     '../../controllers/superLikeController.js',
     '../../controllers/superLikesController.js',
   ];
+
   for (const rel of candidates) {
     try {
       const mod = await import(rel);
       _rootCtrl = mod?.default || mod || null;
       if (_rootCtrl) return _rootCtrl;
-    } catch { /* continue */ }
+    } catch {
+      // continue
+    }
     try {
       // eslint-disable-next-line no-undef
       const cjs = typeof require !== 'undefined' ? require(rel) : null;
@@ -118,37 +148,76 @@ async function getRootCtrl() {
         _rootCtrl = cjs?.default || cjs || null;
         if (_rootCtrl) return _rootCtrl;
       }
-    } catch { /* continue */ }
+    } catch {
+      // continue
+    }
   }
+
   return null;
 }
 
-/** Compose response payload consistently */
-function makeOkPayload(targetId, limit, used) {
+/** Compose response payload consistently (including quota snapshot) */
+function makeOkPayload(targetId, limit, used, weekKey) {
+  const safeUsed = typeof used === 'number' && Number.isFinite(used) ? used : 0;
+  const safeLimit = typeof limit === 'number' && Number.isFinite(limit) ? limit : 0;
+  const remaining = Math.max(0, safeLimit - safeUsed);
+  const wk = weekKey || isoWeekKey();
+
   return {
     ok: true,
     superliked: String(targetId),
-    remaining: Math.max(0, limit - used),
-    limit,
+    remaining,
+    used: safeUsed,
+    limit: safeLimit,
     resetAt: nextIsoWeekStart().toISOString(),
+    quota: {
+      used: safeUsed,
+      weekKey: wk,
+      window: 'weekly',
+    },
   };
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Model loader (no hard import at top-level)
 // ──────────────────────────────────────────────────────────────────────────────
+
 async function loadUserModel() {
-  try {
-    const m = await import('../models/User.js'); // server/src/models/User.js
-    return m?.default || m?.User || m || null;
-  } catch {
+  const candidates = [
+    '../models/User.js', // server/src/models/User.js
+    '../models/User.cjs', // server/src/models/User.cjs (if exists)
+    '../../models/User.js', // server/models/User.js
+    '../../models/User.cjs', // server/models/User.cjs
+  ];
+
+  for (const rel of candidates) {
     try {
-      const m = await import('../../models/User.js'); // server/models/User.js
-      return m?.default || m?.User || m || null;
+      const m = await import(rel);
+      const Model = m?.default || m?.User || m;
+      if (Model) {
+        return Model;
+      }
     } catch {
-      return null;
+      // continue to CJS require fallback
+    }
+
+    try {
+      // eslint-disable-next-line no-undef
+      if (typeof require !== 'undefined') {
+        const cjs = require(rel);
+        const Model = cjs?.default || cjs?.User || cjs;
+        if (Model) {
+          return Model;
+        }
+      }
+    } catch {
+      // continue
     }
   }
+
+  // eslint-disable-next-line no-console
+  console.warn('[superlike] User model could not be resolved by loadUserModel()');
+  return null;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -163,6 +232,7 @@ export async function superlikeUser(req, res) {
   try {
     const user = req?.user || {};
     const subjectId = req?.userId || user?._id || user?.id || null; // prefer req.userId
+
     if (!subjectId) {
       return res.status(401).json({ ok: false, error: 'Authentication required' });
     }
@@ -177,10 +247,12 @@ export async function superlikeUser(req, res) {
     if (!targetId) {
       return res.status(400).json({ ok: false, error: 'Target id is required' });
     }
+
     if (!isValidObjectId(targetId)) {
-      return res
-        .status(400)
-        .json({ ok: false, error: 'Invalid id format (expected 24-hex ObjectId)' });
+      return res.status(400).json({
+        ok: false,
+        error: 'Invalid targetId format (expected 24-hex ObjectId)',
+      });
     }
 
     // Prepare in-memory bucket (keeps req.user coherent)
@@ -217,7 +289,9 @@ export async function superlikeUser(req, res) {
         dbEntitlements = { premium: doc?.premium, isPremium: doc?.isPremium };
       }
 
-      if (dbWeekKey !== nowKey) dbUsed = 0;
+      if (dbWeekKey !== nowKey) {
+        dbUsed = 0;
+      }
     }
 
     // 1) Determine limit (prefer DB entitlements when present)
@@ -225,13 +299,19 @@ export async function superlikeUser(req, res) {
 
     // 2) Enforce against DB-used
     if (!limit || dbUsed >= limit) {
-      return res.status(403).json({
+      return res.status(429).json({
         ok: false,
-        code: 'LIMIT_REACHED',
+        code: 'SUPERLIKE_QUOTA_EXCEEDED',
         error: 'Weekly Super Like limit reached.',
         remaining: 0,
+        used: dbUsed,
         limit,
         resetAt: nextIsoWeekStart().toISOString(),
+        quota: {
+          used: dbUsed,
+          weekKey: dbWeekKey || nowKey,
+          window: 'weekly',
+        },
       });
     }
 
@@ -280,7 +360,10 @@ export async function superlikeUser(req, res) {
       } catch (e) {
         // Log once in server logs without leaking details to clients
         // eslint-disable-next-line no-console
-        console.warn('[superlike] DB persist failed, continuing with in-memory bucket:', e?.message || e);
+        console.warn(
+          '[superlike] DB persist failed, continuing with in-memory bucket:',
+          e?.message || e
+        );
         bucket.used = (typeof bucket.used === 'number' ? bucket.used : 0) + 1;
         updatedUsed = bucket.used;
       }
@@ -305,8 +388,11 @@ export async function superlikeUser(req, res) {
 
         await impl(req, res);
 
-        if (res.headersSent) return;
-        return res.json(makeOkPayload(targetId, limit, updatedUsed));
+        if (res.headersSent) {
+          return;
+        }
+
+        return res.json(makeOkPayload(targetId, limit, updatedUsed, nowKey));
       }
     } catch (e) {
       // eslint-disable-next-line no-console
@@ -314,11 +400,13 @@ export async function superlikeUser(req, res) {
     }
 
     // 5) Respond with our standard payload
-    return res.json(makeOkPayload(targetId, limit, updatedUsed));
+    return res.json(makeOkPayload(targetId, limit, updatedUsed, nowKey));
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('[superlike] error:', err);
-    return res.status(500).json({ ok: false, error: err?.message || 'Internal error' });
+    return res
+      .status(500)
+      .json({ ok: false, error: err?.message || 'Internal error' });
   }
 }
 
@@ -329,7 +417,10 @@ export const create = superlikeUser;
 export async function superlikeByBody(req, res) {
   req.params = req.params || {};
   req.params.id =
-    req?.body?.id || req?.body?.userId || req?.body?.targetId || req?.body?.targetUserId;
+    req?.body?.id ||
+    req?.body?.userId ||
+    req?.body?.targetId ||
+    req?.body?.targetUserId;
   return superlikeUser(req, res);
 }
 

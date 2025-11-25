@@ -35,11 +35,11 @@ function attachAccessToken(token) {
   // Fallback (defensive)
   try {
     if (token) {
-      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      api.defaults.headers.common.Authorization = `Bearer ${token}`;
       localStorage?.setItem?.("accessToken", token);
       localStorage?.setItem?.("token", token);
     } else {
-      delete api.defaults.headers.common["Authorization"];
+      delete api.defaults.headers.common.Authorization;
       localStorage?.removeItem?.("accessToken");
       localStorage?.removeItem?.("token");
     }
@@ -66,7 +66,43 @@ function getAccessToken() {
 }
 
 /**
+ * Clear all known auth-related keys from storage.
+ * This is used by both logout and hard session resets.
+ */
+function clearStoredTokens() {
+  try {
+    const keys = [
+      // Newer / namespaced keys
+      "loventia_accessToken",
+      "loventia_refreshToken",
+      "authToken",
+      "user",
+      // Older keys still present in storage
+      "refreshToken",
+      "accessToken",
+      "token",
+    ];
+
+    for (const k of keys) {
+      try {
+        localStorage?.removeItem?.(k);
+      } catch {
+        /* ignore */
+      }
+      try {
+        sessionStorage?.removeItem?.(k);
+      } catch {
+        /* ignore */
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
  * Lightweight equality to avoid unnecessary state updates.
+ * NOTE: now also compares Super Like quota so UI updates when quota changes.
  */
 function areUsersEffectivelyEqual(a, b) {
   if (a === b) return true;
@@ -88,6 +124,25 @@ function areUsersEffectivelyEqual(a, b) {
   const picB = b.profilePicture || b.profilePhoto || null;
   if (picA !== picB) return false;
 
+  // Super Like quota: if used or weekKey changes, treat as different user state.
+  const qA =
+    a.entitlements &&
+    a.entitlements.quotas &&
+    a.entitlements.quotas.superLikes;
+  const qB =
+    b.entitlements &&
+    b.entitlements.quotas &&
+    b.entitlements.quotas.superLikes;
+
+  const usedA = qA && qA.used != null ? Number(qA.used) : 0;
+  const usedB = qB && qB.used != null ? Number(qB.used) : 0;
+
+  if (usedA !== usedB) return false;
+
+  const weekA = (qA && qA.weekKey) || null;
+  const weekB = (qB && qB.weekKey) || null;
+  if (weekA !== weekB) return false;
+
   return true;
 }
 
@@ -106,8 +161,9 @@ function mergeDefined(dst, src) {
 
 /**
  * Normalize server user payload to a consistent shape for the app.
- * Ensures entitlements object exists and includes features with safe defaults.
+ * Ensures entitlements object exists and includes features + quotas with safe defaults.
  */
+// --- REPLACE START: normalizeUserPayload (keep entitlements.quotas.superLikes) ---
 function normalizeUserPayload(raw) {
   const u = raw?.user ?? raw ?? null;
   if (!u || typeof u !== "object") return null;
@@ -134,7 +190,11 @@ function normalizeUserPayload(raw) {
 
   // Visibility defaults
   copy.visibility =
-    copy.visibility || { isHidden: false, hiddenUntil: null, resumeOnLogin: true };
+    copy.visibility || {
+      isHidden: false,
+      hiddenUntil: null,
+      resumeOnLogin: true,
+    };
 
   // Normalize premium flag
   copy.isPremium = Boolean(copy.isPremium ?? copy.premium);
@@ -150,17 +210,43 @@ function normalizeUserPayload(raw) {
     introsMessaging: false,
     superLikesPerWeek: 0,
   };
+
   const incomingEnt = copy.entitlements || {};
-  const incomingFeat = (incomingEnt.features && typeof incomingEnt.features === "object")
-    ? incomingEnt.features
-    : {};
+  const incomingFeat =
+    incomingEnt.features && typeof incomingEnt.features === "object"
+      ? incomingEnt.features
+      : {};
+
+  // Quotas: keep everything from backend, but guarantee superLikes shape
+  const incomingQuotas =
+    incomingEnt.quotas && typeof incomingEnt.quotas === "object"
+      ? incomingEnt.quotas
+      : {};
+
+  const defaultSuperLikesQuota = {
+    used: 0,
+    weekKey: null,
+    window: "weekly",
+  };
+
+  const normalizedSuperLikesQuota =
+    incomingQuotas.superLikes &&
+    typeof incomingQuotas.superLikes === "object"
+      ? { ...defaultSuperLikesQuota, ...incomingQuotas.superLikes }
+      : defaultSuperLikesQuota;
+
   copy.entitlements = {
     tier: incomingEnt.tier ?? (copy.isPremium ? "premium" : "free"),
     features: { ...defaultFeatures, ...incomingFeat },
+    quotas: {
+      ...incomingQuotas,
+      superLikes: normalizedSuperLikesQuota,
+    },
   };
 
   return copy;
 }
+// --- REPLACE END: normalizeUserPayload (keep entitlements.quotas.superLikes) ---
 
 /**
  * Context shape
@@ -172,7 +258,20 @@ const AuthContext = createContext({
   noAds: false,
   unlimitedLikes: false,
   unlimitedRewinds: false,
-  entitlements: { tier: "free", features: {} },
+  entitlements: { tier: "free", features: {}, quotas: {} },
+
+  // super like convenience
+  superLikesPerWeek: 0,
+  superLikesUsed: 0,
+  superLikesRemaining: 0,
+
+  // FREE like quota (daily) – used for FREE user like-limit UI
+  dailyLikeQuota: {
+    limit: null,
+    remaining: null,
+    resetAt: null,
+  },
+  updateDailyLikeQuotaFromPayload: () => {},
 
   setUser: () => {},
   setAuthUser: () => {},
@@ -195,9 +294,65 @@ export function AuthProvider({ children }) {
   const [accessToken, setAccessTokenState] = useState(getAccessToken() || null);
   const [bootstrapped, setBootstrapped] = useState(false);
 
+  // FREE like quota (daily) – for FREE user like-limit banner
+  const [dailyLikeQuota, setDailyLikeQuota] = useState({
+    limit: null,
+    remaining: null,
+    resetAt: null,
+  });
+
+  // Keep track of current identity in this tab to avoid accidentally
+  // swapping to a different user (e.g. due to a stray /me from another session).
+  const identityRef = useRef({ id: null, email: null });
+
   // Prevent overlapping calls
   const refreshInFlightRef = useRef(null);
   const billingSyncInFlightRef = useRef(null);
+
+  // Update FREE like quota from /api/likes response
+  const updateDailyLikeQuotaFromPayload = useCallback((payload) => {
+    if (!payload || typeof payload !== "object") return;
+
+    // Support both flat { limit, remaining, resetAt } and nested { quota: { ... } }
+    const source = payload.quota ?? payload;
+
+    const hasNumbers =
+      source &&
+      typeof source.limit === "number" &&
+      typeof source.remaining === "number";
+
+    if (!hasNumbers) {
+      return;
+    }
+
+    const next = {
+      limit: source.limit,
+      remaining: source.remaining,
+      resetAt: source.resetAt ?? payload.resetAt ?? null,
+    };
+
+    setDailyLikeQuota((prev) => {
+      // Avoid unnecessary updates if nothing changed
+      if (
+        prev &&
+        prev.limit === next.limit &&
+        prev.remaining === next.remaining &&
+        prev.resetAt === next.resetAt
+      ) {
+        return prev;
+      }
+      return next;
+    });
+
+    if (import.meta?.env?.DEV) {
+      try {
+        // eslint-disable-next-line no-console
+        console.debug("[AuthContext] dailyLikeQuota updated", next);
+      } catch {
+        /* noop */
+      }
+    }
+  }, []);
 
   // Keep axios header in sync when token changes
   useEffect(() => {
@@ -212,14 +367,79 @@ export function AuthProvider({ children }) {
     }
   }, [accessToken]);
 
-  // Replace user only when it meaningfully changes
-  const setAuthUser = useCallback((incomingRaw) => {
-    const incoming = normalizeUserPayload(incomingRaw);
-    setUserState((prev) => {
-      if (!incoming) return prev ?? null;
-      return areUsersEffectivelyEqual(prev, incoming) ? prev : incoming;
-    });
-  }, []);
+  // Mirror current auth state to window for debugging multi-session issues
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.__AUTH_DEBUG__ = {
+        user,
+        accessToken,
+        email: user?.email || null,
+        id: user?.id || user?._id || null,
+        identity: { ...identityRef.current },
+        dailyLikeQuota,
+      };
+
+      if (import.meta?.env?.DEV) {
+        try {
+          // eslint-disable-next-line no-console
+          console.debug(
+            "[AuthContext] user changed →",
+            window.__AUTH_DEBUG__
+          );
+        } catch {
+          /* noop */
+        }
+      }
+    }
+  }, [user, accessToken, dailyLikeQuota]);
+
+  // Replace user only when it meaningfully changes.
+  // Additionally, guard against switching to a *different* user id
+  // inside the same tab unless explicitly allowed (login/register).
+  const setAuthUser = useCallback(
+    (incomingRaw, options = {}) => {
+      const { allowIdentityChange = false } = options;
+      const incoming = normalizeUserPayload(incomingRaw);
+      if (!incoming) return;
+
+      const incomingId = incoming.id || incoming._id || null;
+      const incomingEmail = incoming.email || incoming.username || null;
+
+      setUserState((prev) => {
+        if (!incoming) return prev ?? null;
+
+        if (prev && !allowIdentityChange) {
+          const prevId = prev.id || prev._id || null;
+          if (prevId && incomingId && prevId !== incomingId) {
+            // Ignore payload that tries to swap to a different user
+            // without an explicit login/register in this tab.
+            if (import.meta?.env?.DEV) {
+              try {
+                // eslint-disable-next-line no-console
+                console.warn(
+                  "[AuthContext] Ignoring user payload with different id in current session",
+                  { prevId, incomingId }
+                );
+              } catch {
+                /* noop */
+              }
+            }
+            return prev;
+          }
+        }
+
+        const next = areUsersEffectivelyEqual(prev, incoming) ? prev : incoming;
+        if (next !== prev) {
+          identityRef.current = {
+            id: incomingId,
+            email: incomingEmail,
+          };
+        }
+        return next;
+      });
+    },
+    [identityRef]
+  );
 
   // Shallow merge partial updates
   const mergeUser = useCallback((partialRaw) => {
@@ -228,44 +448,68 @@ export function AuthProvider({ children }) {
   }, []);
 
   /**
+   * Hard reset of client auth state.
+   * Used by logout and by login/register before starting a new session.
+   */
+  const resetAuthState = useCallback(() => {
+    setUserState(null);
+    setAccessTokenState(null);
+    attachAccessToken(null);
+    clearStoredTokens();
+    identityRef.current = { id: null, email: null };
+    setDailyLikeQuota({
+      limit: null,
+      remaining: null,
+      resetAt: null,
+    });
+  }, [identityRef]);
+
+  /**
    * Load current user from preferred endpoints.
-   * Order chosen to match what we observed in PS:
-   * 1) /api/me
-   * 2) /api/users/profile
-   * 3) /api/auth/me
+   * NEW ORDER:
+   * 1) /api/auth/me  (auth module, includes entitlements/quotas)
+   * 2) /api/me       (aggregated)
+   * 3) /api/users/profile
    * 4) /api/users/me
    */
   const fetchMe = useCallback(async () => {
-    // 1) /api/me
-    try {
-      const r0 = await api.get("/api/me");
-      return normalizeUserPayload(r0?.data ?? null);
-    } catch {
-      /* continue */
+    const endpoints = [
+      "/api/auth/me",
+      "/api/me",
+      "/api/users/profile",
+      "/api/users/me",
+    ];
+
+    let lastError = null;
+
+    for (const path of endpoints) {
+      try {
+        const res = await api.get(path);
+        if (import.meta?.env?.DEV) {
+          try {
+            // eslint-disable-next-line no-console
+            console.debug("[AuthContext] fetchMe source:", path);
+          } catch {
+            /* ignore */
+          }
+        }
+        return normalizeUserPayload(res?.data ?? null);
+      } catch (err) {
+        lastError = err;
+        continue;
+      }
     }
 
-    // 2) /api/users/profile
-    try {
-      const r1 = await api.get("/api/users/profile");
-      return normalizeUserPayload(r1?.data ?? null);
-    } catch {
-      /* continue */
-    }
-
-    // 3) /api/auth/me
-    try {
-      const r2 = await api.get("/api/auth/me");
-      return normalizeUserPayload(r2?.data ?? null);
-    } catch {
-      /* continue */
-    }
-
-    // 4) /api/users/me
-    try {
-      const r3 = await api.get("/api/users/me");
-      return normalizeUserPayload(r3?.data ?? null);
-    } catch {
-      /* final fail */
+    if (import.meta?.env?.DEV && lastError) {
+      try {
+        // eslint-disable-next-line no-console
+        console.warn(
+          "[AuthContext] fetchMe failed, last error:",
+          lastError?.message || lastError
+        );
+      } catch {
+        /* ignore */
+      }
     }
 
     return null;
@@ -294,8 +538,8 @@ export function AuthProvider({ children }) {
     const task = (async () => {
       try {
         const payload = await syncBilling();
-        // payload may contain: { isPremium, entitlements: { tier, features {...} } }
-        if (payload && (typeof payload === "object")) {
+        // payload may contain: { isPremium, entitlements: { tier, features {...}, quotas {...} } }
+        if (payload && typeof payload === "object") {
           const update = {};
           if (typeof payload.isPremium === "boolean") {
             update.isPremium = payload.isPremium;
@@ -314,9 +558,24 @@ export function AuthProvider({ children }) {
             };
             const ent = payload.entitlements || {};
             const feat = ent.features || {};
+            const quotas = ent.quotas || {};
+            const defaultSuperLikesQuota = {
+              used: 0,
+              weekKey: null,
+              window: "weekly",
+            };
+            const mergedSuperLikes =
+              quotas.superLikes && typeof quotas.superLikes === "object"
+                ? { ...defaultSuperLikesQuota, ...quotas.superLikes }
+                : defaultSuperLikesQuota;
+
             update.entitlements = {
               tier: ent.tier ?? (update.isPremium ? "premium" : "free"),
               features: { ...def, ...feat },
+              quotas: {
+                ...quotas,
+                superLikes: mergedSuperLikes,
+              },
             };
           }
           if (Object.keys(update).length) {
@@ -347,71 +606,73 @@ export function AuthProvider({ children }) {
    *  - cookie-based: POST /api/auth/refresh {}
    *  - body-based:   POST /api/auth/refresh { refreshToken }
    */
-  const refreshMe = useCallback(async () => {
-    if (refreshInFlightRef.current) {
-      return refreshInFlightRef.current;
-    }
-
-    const task = (async () => {
-      try {
-        let nextToken = null;
-
-        // 1) Try cookie-based refresh (original)
-        try {
-          const r = await api.post(
-            "/api/auth/refresh",
-            {},
-            { withCredentials: true }
-          );
-          nextToken = r?.data?.accessToken || r?.data?.token || null;
-        } catch (err1) {
-          // 2) If cookie refresh fails, try body-based refresh using stored refreshToken (if any)
-          try {
-            const storedRefresh =
-              localStorage?.getItem?.("refreshToken") ||
-              sessionStorage?.getItem?.("refreshToken") ||
-              null;
-            if (storedRefresh) {
-              const r2 = await api.post(
-                "/api/auth/refresh",
-                { refreshToken: storedRefresh },
-                { withCredentials: true }
-              );
-              nextToken = r2?.data?.accessToken || r2?.data?.token || null;
-            } else {
-              // rethrow original
-              throw err1;
-            }
-          } catch {
-            // ignore, user might be anonymous
-          }
-        }
-
-        if (nextToken && nextToken !== getAccessToken()) {
-          attachAccessToken(nextToken);
-          setAccessTokenState(nextToken);
-        }
-
-        // Reconcile after refresh
-        await reconcileBillingNow();
-
-        // Fetch user profile
-        const current = await fetchMe();
-        setAuthUser(current);
-        return current;
-      } catch {
-        setAuthUser(null);
-        setAccessTokenState(null);
-        attachAccessToken(null);
-        return null;
-      } finally {
-        refreshInFlightRef.current = null;
+  const refreshMe = useCallback(
+    async () => {
+      if (refreshInFlightRef.current) {
+        return refreshInFlightRef.current;
       }
-    })();
 
-    refreshInFlightRef.current = task;
-    return task;
-  }, [fetchMe, setAuthUser, reconcileBillingNow]);
+      const task = (async () => {
+        try {
+          let nextToken = null;
+
+          // 1) Try cookie-based refresh (original)
+          try {
+            const r = await api.post(
+              "/api/auth/refresh",
+              {},
+              { withCredentials: true }
+            );
+            nextToken = r?.data?.accessToken || r?.data?.token || null;
+          } catch (err1) {
+            // 2) If cookie refresh fails, try body-based refresh using stored refreshToken (if any)
+            try {
+              const storedRefresh =
+                localStorage?.getItem?.("refreshToken") ||
+                sessionStorage?.getItem?.("refreshToken") ||
+                null;
+              if (storedRefresh) {
+                const r2 = await api.post(
+                  "/api/auth/refresh",
+                  { refreshToken: storedRefresh },
+                  { withCredentials: true }
+                );
+                nextToken = r2?.data?.accessToken || r2?.data?.token || null;
+              } else {
+                // rethrow original
+                throw err1;
+              }
+            } catch {
+              // ignore, user might be anonymous
+            }
+          }
+
+          if (nextToken && nextToken !== getAccessToken()) {
+            attachAccessToken(nextToken);
+            setAccessTokenState(nextToken);
+          }
+
+          // Reconcile after refresh
+          await reconcileBillingNow();
+
+          // Fetch user profile
+          const current = await fetchMe();
+          setAuthUser(current);
+          return current;
+        } catch {
+          // If refresh fails, clear all local auth state
+          resetAuthState();
+          return null;
+        } finally {
+          refreshInFlightRef.current = null;
+        }
+      })();
+
+      refreshInFlightRef.current = task;
+      return task;
+    },
+    [fetchMe, setAuthUser, reconcileBillingNow, resetAuthState]
+  );
 
   // Backward-compatible alias
   const refreshUser = refreshMe;
@@ -431,40 +692,43 @@ export function AuthProvider({ children }) {
    * Detect if we returned from a Stripe Checkout or Billing Portal
    * and trigger an immediate reconcile.
    */
-  const detectBillingReturnAndReconcile = useCallback(async () => {
-    try {
-      const qs = new URLSearchParams(window.location.search || "");
-      const hasCheckoutFlag =
-        qs.has("success") || qs.has("canceled") || qs.has("session_id");
-      const hasPortalFlag =
-        qs.has("return_from") || qs.has("portal_session_id");
+  const detectBillingReturnAndReconcile = useCallback(
+    async () => {
+      try {
+        const qs = new URLSearchParams(window.location.search || "");
+        const hasCheckoutFlag =
+          qs.has("success") || qs.has("canceled") || qs.has("session_id");
+        const hasPortalFlag =
+          qs.has("return_from") || qs.has("portal_session_id");
 
-      if (hasCheckoutFlag || hasPortalFlag) {
-        const payload = await reconcileBillingNow();
+        if (hasCheckoutFlag || hasPortalFlag) {
+          const payload = await reconcileBillingNow();
 
-        try {
-          const url = new URL(window.location.href);
-          [
-            "success",
-            "canceled",
-            "session_id",
-            "portal_session_id",
-            "return_from",
-          ].forEach((k) => url.searchParams.delete(k));
-          window.history.replaceState({}, document.title, url.toString());
-        } catch {
-          /* ignore */
+          try {
+            const url = new URL(window.location.href);
+            [
+              "success",
+              "canceled",
+              "session_id",
+              "portal_session_id",
+              "return_from",
+            ].forEach((k) => url.searchParams.delete(k));
+            window.history.replaceState({}, document.title, url.toString());
+          } catch {
+            /* ignore */
+          }
+
+          if (payload) {
+            const current = await fetchMe();
+            setAuthUser(current);
+          }
         }
-
-        if (payload) {
-          const current = await fetchMe();
-          setAuthUser(current);
-        }
+      } catch {
+        /* ignore */
       }
-    } catch {
-      /* ignore */
-    }
-  }, [fetchMe, setAuthUser, reconcileBillingNow]);
+    },
+    [fetchMe, setAuthUser, reconcileBillingNow]
+  );
 
   /**
    * Initial bootstrap.
@@ -491,25 +755,35 @@ export function AuthProvider({ children }) {
     function onFocus() {
       reconcileBillingNow();
     }
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
+    if (typeof window !== "undefined") {
+      window.addEventListener("focus", onFocus);
+      return () => window.removeEventListener("focus", onFocus);
+    }
+    return undefined;
   }, [reconcileBillingNow]);
 
   /**
    * Auth actions
+   * - login/register now perform a hard reset of local auth state
+   *   before establishing a new session.
+   * - logout uses the same reset helper, so switching users in the
+   *   same browser window will not leak the previous session.
    */
   const login = useCallback(
     async (email, password) => {
+      // Always clear any previous client-side session first
+      resetAuthState();
+
       let res;
       try {
-        // ✅ primary (confirmed in PS)
+        // Primary (confirmed in PS)
         res = await api.post(
           "/api/auth/login",
           { email, password },
           { withCredentials: true }
         );
       } catch (err) {
-        // fallback ONLY for path issues (404/405), not for bad credentials
+        // Fallback ONLY for path issues (404/405), not for bad credentials
         const status = err?.response?.status;
         if (status === 404 || status === 405) {
           res = await api.post(
@@ -530,7 +804,7 @@ export function AuthProvider({ children }) {
         setAccessTokenState(token);
         attachAccessToken(token);
       }
-      // store refresh token if present (for body-based refresh)
+
       if (refreshToken) {
         try {
           localStorage?.setItem?.("refreshToken", refreshToken);
@@ -538,6 +812,10 @@ export function AuthProvider({ children }) {
           /* ignore */
         }
       }
+
+      // Immediately apply the user from login response as the new identity
+      // so that later /me calls from another session cannot overwrite it.
+      setAuthUser(res?.data, { allowIdentityChange: true });
 
       // Reconcile after login to pull latest premium status (guarded)
       await reconcileBillingNow();
@@ -547,14 +825,18 @@ export function AuthProvider({ children }) {
       setAuthUser(current);
       return current;
     },
-    [fetchMe, setAuthUser, reconcileBillingNow]
+    [fetchMe, setAuthUser, reconcileBillingNow, resetAuthState]
   );
 
   const register = useCallback(
     async (payload) => {
+      // New registration should also start from a clean local state
+      resetAuthState();
+
       const res = await api.post("/api/auth/register", payload, {
         withCredentials: true,
       });
+
       const token = res?.data?.accessToken || res?.data?.token || null;
       const refreshToken =
         res?.data?.refreshToken || res?.data?.refresh_token || null;
@@ -571,30 +853,39 @@ export function AuthProvider({ children }) {
         }
       }
 
+      // Apply newly registered user as the active identity
+      setAuthUser(res?.data, { allowIdentityChange: true });
+
       await reconcileBillingNow();
       const current = await fetchMe();
       setAuthUser(current);
       return current;
     },
-    [fetchMe, setAuthUser, reconcileBillingNow]
+    [fetchMe, setAuthUser, reconcileBillingNow, resetAuthState]
   );
 
-  const logout = useCallback(async () => {
-    try {
-      await api.post("/api/auth/logout", {}, { withCredentials: true });
-    } catch {
-      /* ignore */
-    } finally {
-      setAuthUser(null);
-      setAccessTokenState(null);
-      attachAccessToken(null);
+  const logout = useCallback(
+    async () => {
       try {
-        localStorage?.removeItem?.("refreshToken");
-      } catch {
-        /* ignore */
+        // Tell backend it can clear refresh cookie (if any)
+        await api.post("/api/auth/logout", {}, { withCredentials: true });
+      } catch (err) {
+        try {
+          // eslint-disable-next-line no-console
+          console.warn(
+            "[AuthContext] Logout request failed (ignored):",
+            err?.message || err
+          );
+        } catch {
+          /* ignore */
+        }
+      } finally {
+        // Always perform hard local reset so no stale session leaks through
+        resetAuthState();
       }
-    }
-  }, [setAuthUser]);
+    },
+    [resetAuthState]
+  );
 
   /**
    * Derived flags + normalized entitlements for consumers
@@ -617,16 +908,24 @@ export function AuthProvider({ children }) {
         introsMessaging: false,
         superLikesPerWeek: 0,
       },
+      quotas: {},
     };
-    const incoming = user?.entitlements && typeof user.entitlements === "object"
-      ? user.entitlements
-      : {};
-    const feat = incoming.features && typeof incoming.features === "object"
-      ? incoming.features
-      : {};
+    const incoming =
+      user?.entitlements && typeof user.entitlements === "object"
+        ? user.entitlements
+        : {};
+    const feat =
+      incoming.features && typeof incoming.features === "object"
+        ? incoming.features
+        : {};
+    const quotas =
+      incoming.quotas && typeof incoming.quotas === "object"
+        ? incoming.quotas
+        : {};
     return {
       tier: incoming.tier ?? def.tier,
       features: { ...def.features, ...feat },
+      quotas,
     };
   }, [user, isPremium]);
 
@@ -634,6 +933,41 @@ export function AuthProvider({ children }) {
   const noAds = !!entitlements.features.noAds || isPremium;
   const unlimitedLikes = !!entitlements.features.unlimitedLikes;
   const unlimitedRewinds = !!entitlements.features.unlimitedRewinds;
+
+  // --- super like derived values (for button label/disabled) ---
+  const superLikesPerWeek = useMemo(
+    () => Number(entitlements.features.superLikesPerWeek || 0),
+    [entitlements.features.superLikesPerWeek]
+  );
+
+  const superLikesUsed = useMemo(() => {
+    const raw =
+      user?.entitlements?.quotas?.superLikes?.used ??
+      user?.entitlements?.quotas?.superlikes?.used ??
+      0;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : 0;
+  }, [user]);
+
+  const superLikesRemaining = useMemo(() => {
+    const remaining = superLikesPerWeek - superLikesUsed;
+    return remaining > 0 ? remaining : 0;
+  }, [superLikesPerWeek, superLikesUsed]);
+
+  // --- DEBUG START: log superlike quota snapshot ---
+  useEffect(() => {
+    if (process.env.NODE_ENV === "development") {
+      // eslint-disable-next-line no-console
+      console.log("[AuthContext] superlike quota snapshot", {
+        features: entitlements?.features,
+        quotas: entitlements?.quotas?.superLikes,
+        superLikesPerWeek,
+        superLikesUsed,
+        superLikesRemaining,
+      });
+    }
+  }, [entitlements, superLikesPerWeek, superLikesUsed, superLikesRemaining]);
+  // --- DEBUG END ---
 
   const value = useMemo(
     () => ({
@@ -643,6 +977,14 @@ export function AuthProvider({ children }) {
       noAds,
       unlimitedLikes,
       unlimitedRewinds,
+
+      superLikesPerWeek,
+      superLikesUsed,
+      superLikesRemaining,
+
+      // FREE like quota (daily) for FREE-like UI
+      dailyLikeQuota,
+      updateDailyLikeQuotaFromPayload,
 
       setUser: setAuthUser,
       setAuthUser,
@@ -664,6 +1006,11 @@ export function AuthProvider({ children }) {
       noAds,
       unlimitedLikes,
       unlimitedRewinds,
+      superLikesPerWeek,
+      superLikesUsed,
+      superLikesRemaining,
+      dailyLikeQuota,
+      updateDailyLikeQuotaFromPayload,
       setAuthUser,
       mergeUser,
       applyUserFromApi,
@@ -683,5 +1030,4 @@ export function AuthProvider({ children }) {
 
 export default AuthContext;
 // --- REPLACE END ---
-
 

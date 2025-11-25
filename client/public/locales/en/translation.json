@@ -69,7 +69,10 @@
   "conditions": "Conditions",
   "contact": "Contact",
   "conversationCard": {
-    "avatarAlt": "User avatar"
+    "avatarAlt": "User avatar",
+    "unknownUser": "Unknown user",
+    "noTime": " ",
+    "unreadCount": "Unread messages"
   },
   "cookies": "Cookies",
   "countries": {
@@ -263,6 +266,9 @@
     "superlikeReceived": "{{username}} superliked you"
   },
   "overview": {
+    "title": "Conversations",
+    "loading": "Loading conversations…",
+    "empty": "No conversations yet. When you match and start messaging, your conversations will appear here.",
     "error": "Failed to load conversations"
   },
   "politics": {
@@ -425,3 +431,4 @@
   "tagline": "Match better. Love smarter. 💘",
   "terms": "Terms"
 }
+
