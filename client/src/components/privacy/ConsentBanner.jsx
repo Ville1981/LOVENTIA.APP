@@ -1,6 +1,6 @@
 // File: client/src/components/privacy/ConsentBanner.jsx
 
-// --- REPLACE START: Full, explicit React-based consent banner (with Provider support) ---
+// --- REPLACE START: Full, explicit React-based consent banner (with Provider support + a11y) ---
 /**
  * ConsentBanner integrates with ConsentProvider (via useConsent) and mirrors
  * decisions to localStorage under the canonical key "loventia:consent".
@@ -15,6 +15,13 @@
  *      - data-testid="consent-chk-marketing"
  *  - "consent-manage-save": saves current toggles and hides.
  *  - "consent-manage-reset": resets toggles to {analytics:false, marketing:false}.
+ *
+ * Accessibility:
+ *  - Rendered as a bottom-anchored dialog (`role="dialog"`, `aria-modal="true"`).
+ *  - `h2` with id used as accessible name via aria-labelledby.
+ *  - Description paragraph referenced via aria-describedby.
+ *  - When banner first appears, focus is moved to the primary action button.
+ *  - Escape closes the manage panel (but not the entire banner).
  *
  * Notes:
  *  - Guards window.scrollTo for test environments.
@@ -82,6 +89,10 @@ export default function ConsentBanner() {
   const [marketing, setMarketing] = useState(false);
   const bootstrappedRef = useRef(false);
 
+  // Refs for a11y
+  const bannerRef = useRef(null);
+  const primaryButtonRef = useRef(null);
+
   // Bootstrap from LS once if Provider undecided
   useEffect(() => {
     if (isDecided || bootstrappedRef.current) return;
@@ -116,6 +127,20 @@ export default function ConsentBanner() {
 
   const visible = !isDecided;
 
+  // When banner becomes visible, move focus to primary action (Accept all)
+  useEffect(() => {
+    if (!visible) return;
+    try {
+      if (primaryButtonRef.current && typeof primaryButtonRef.current.focus === "function") {
+        primaryButtonRef.current.focus();
+      } else if (bannerRef.current && typeof bannerRef.current.focus === "function") {
+        bannerRef.current.focus();
+      }
+    } catch {
+      /* ignore focus errors in tests or legacy browsers */
+    }
+  }, [visible]);
+
   const onAcceptAll = () => {
     // Provider normalizes necessary:true + timestamp internally
     setConsent({ analytics: true, marketing: true, necessary: true });
@@ -139,6 +164,17 @@ export default function ConsentBanner() {
     }
   };
 
+  // Handle Escape: close manage panel (if open) but keep the banner itself
+  const handleKeyDown = (event) => {
+    if (event.key === "Escape" || event.key === "Esc") {
+      if (openManage) {
+        event.preventDefault();
+        event.stopPropagation();
+        setOpenManage(false);
+      }
+    }
+  };
+
   const containerStyle = useMemo(
     () =>
       "fixed inset-x-0 bottom-0 z-50 mx-auto max-w-3xl rounded-t-lg border border-gray-200 bg-white/95 p-4 shadow-xl backdrop-blur",
@@ -148,9 +184,22 @@ export default function ConsentBanner() {
   if (!visible) return null;
 
   return (
-    <aside className={containerStyle} data-testid="consent-banner" role="dialog" aria-live="polite">
-      <h2 className="text-base font-semibold">We use cookies</h2>
-      <p className="mt-1 text-sm text-gray-700">
+    <aside
+      ref={bannerRef}
+      className={containerStyle}
+      data-testid="consent-banner"
+      role="dialog"
+      aria-modal="true"
+      aria-live="polite"
+      aria-labelledby="consent-banner-title"
+      aria-describedby="consent-banner-description"
+      tabIndex={-1}
+      onKeyDown={handleKeyDown}
+    >
+      <h2 id="consent-banner-title" className="text-base font-semibold">
+        We use cookies
+      </h2>
+      <p id="consent-banner-description" className="mt-1 text-sm text-gray-700">
         We use necessary cookies to make our site work. With your consent, we also use analytics and
         marketing cookies to understand usage and improve your experience.
       </p>
@@ -183,6 +232,7 @@ export default function ConsentBanner() {
           data-testid="consent-accept"
           onClick={onAcceptAll}
           aria-label="Accept all cookies"
+          ref={primaryButtonRef}
         >
           Accept all
         </button>
@@ -201,7 +251,12 @@ export default function ConsentBanner() {
 
         <div className="mt-2 rounded-md border p-3">
           <Row label="Necessary">
-            <input type="checkbox" checked readOnly aria-label="Necessary cookies (always on)" />
+            <input
+              type="checkbox"
+              checked
+              readOnly
+              aria-label="Necessary cookies (always on)"
+            />
           </Row>
 
           <Row label="Analytics">

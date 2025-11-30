@@ -28,14 +28,13 @@ const SubscriptionSettings = () => {
   const [msg, setMsg] = useState("");
   const [success, setSuccess] = useState("");
 
-  // --- REPLACE START: prefer isPremium; reconcile with entitlements.tier; fallback to legacy premium ---
+  // Prefer isPremium; reconcile with entitlements.tier; fallback to legacy premium
   const isLoggedIn = !!user;
   const isPremium =
     user?.isPremium ??
     (user?.entitlements?.tier === "premium") ??
     user?.premium ??
     false;
-  // --- REPLACE END ---
   const userEmail = user?.email ?? "";
 
   // Optional: refresh user from context after returning from Stripe
@@ -49,7 +48,7 @@ const SubscriptionSettings = () => {
     }
   }, [refreshUser]);
 
-  // --- REPLACE START: helper for retryable syncs ---
+  // Helper for retryable syncs
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   /**
@@ -75,10 +74,9 @@ const SubscriptionSettings = () => {
     },
     []
   );
-  // --- REPLACE END ---
 
   // When we come back from Stripe/Portal, URL may include flags → refresh state
-  // --- REPLACE START: on return, handle both legacy flags and ?status=success|cancel, run sync + show banner ---
+  // Handle both legacy flags and ?status=success|cancel, run sync + show banner
   useEffect(() => {
     const status = searchParams.get("status"); // new style: ?status=success|cancel
     const successFlag = searchParams.get("success"); // legacy: ?success=1|true
@@ -103,8 +101,7 @@ const SubscriptionSettings = () => {
       setMsg("");
       setSuccess("");
 
-      // Debug only – helps when checking logs during support
-      // (safe to leave in dev builds)
+      // Debug only – helps when checking logs during support (safe in dev builds)
       console.debug("[SubscriptionSettings] Returned from billing", {
         status,
         successFlag,
@@ -167,7 +164,6 @@ const SubscriptionSettings = () => {
       ignore = true;
     };
   }, [searchParams, safeRefreshUser]);
-  // --- REPLACE END ---
 
   // Clear banners when premium flips after a refresh
   useEffect(() => {
@@ -271,7 +267,7 @@ const SubscriptionSettings = () => {
     [isLoggedIn, navigate, friendlyError, busy]
   );
 
-  // NEW: explicit Sync handler (calls POST /api/billing/sync and refreshes user)
+  // Explicit Sync handler (calls POST /api/billing/sync and refreshes user)
   const handleSync = useCallback(
     async () => {
       if (!isLoggedIn) {
@@ -309,7 +305,7 @@ const SubscriptionSettings = () => {
     [isLoggedIn, navigate, friendlyError, safeRefreshUser, busy]
   );
 
-  // --- REPLACE START: add 2× retry sync after cancel to handle webhook lag ---
+  // Add 2× retry sync after cancel to handle webhook lag
   const handleCancelNow = useCallback(
     async () => {
       if (!isLoggedIn) {
@@ -386,7 +382,6 @@ const SubscriptionSettings = () => {
     },
     [isLoggedIn, navigate, safeRefreshUser, friendlyError, busy, trySyncWithRetry]
   );
-  // --- REPLACE END ---
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -397,20 +392,35 @@ const SubscriptionSettings = () => {
       </p>
 
       {success && (
-        <div className="mb-4 rounded border border-emerald-300 bg-emerald-50 px-3 py-2 text-emerald-900">
+        <div
+          data-testid="status-alert"
+          className="mb-4 rounded border border-emerald-300 bg-emerald-50 px-3 py-2 text-emerald-900"
+        >
           {success}
         </div>
       )}
       {msg && (
-        <div className="mb-4 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-amber-900">
+        <div
+          data-testid="status-alert"
+          className="mb-4 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-amber-900"
+        >
           {msg}
         </div>
       )}
 
       <Row title="Current Plan">
-        <p>
+        <p className="flex items-center gap-2">
           You are currently on the{" "}
           <strong>{isPremium ? "Premium" : "Free"}</strong> plan.
+          {isPremium && (
+            <span
+              data-testid="premium-badge"
+              className="inline-flex items-center px-2 py-0.5 text-xs rounded-full bg-emerald-100 border border-emerald-300"
+              title="Premium active"
+            >
+              Premium
+            </span>
+          )}
         </p>
       </Row>
 
@@ -423,6 +433,7 @@ const SubscriptionSettings = () => {
         <div className="flex flex-col sm:flex-row gap-3">
           <button
             type="button"
+            data-testid="upgrade-button"
             onClick={handleStartPremium}
             disabled={busy || isPremium}
             className={`px-6 py-2 rounded bg-yellow-500 text-white font-semibold hover:bg-yellow-600 transition ${
@@ -435,6 +446,7 @@ const SubscriptionSettings = () => {
 
           <button
             type="button"
+            data-testid="open-portal-button"
             onClick={handleOpenPortal}
             disabled={busy || !isPremium}
             className={`px-6 py-2 rounded bg-blue-600 text-white font-semibold hover:bg-blue-700 transition ${
@@ -457,7 +469,7 @@ const SubscriptionSettings = () => {
             {busy ? "Canceling…" : "Cancel now"}
           </button>
 
-          {/* NEW: explicit Sync button */}
+          {/* Explicit Sync button */}
           <button
             type="button"
             onClick={handleSync}

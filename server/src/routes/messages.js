@@ -1,4 +1,4 @@
-﻿// File: server/src/routes/messages.js
+﻿// PATH: server/src/routes/messages.js
 
 // --- REPLACE START: switch to ESM imports (express, auth, moderation, model, helpers) ---
 "use strict";
@@ -7,14 +7,15 @@ import express from "express";
 import mongoose from "mongoose";
 import authenticate from "../middleware/authenticate.js";
 import { profanityFilter, moderationRateLimiter } from "../middleware/moderation.js";
+
 // --- REPLACE START: robust Message model import (ESM + CJS interop) ---
 import * as MessageNS from "../models/Message.js";
 const Message = MessageNS.default || MessageNS.Message || MessageNS;
 // --- REPLACE END ---
+
 // --- REPLACE START: import User model to fetch premium flags if req.user is minimal ---
 import User from "../models/User.js";
 // --- REPLACE END ---
-
 // --- REPLACE END ---
 
 const router = express.Router();
@@ -44,10 +45,10 @@ function isPremiumUser(user) {
  * Premium users (or users with `entitlements.features.intros|introsMessaging`) are allowed.
  */
 function canSendIntro(user) {
-  // Dev override (jos haluat pakottaa päälle hetkeksi)
+  // Dev override (if you temporarily want to allow free intros)
   if (String(process.env.ALLOW_FREE_INTROS || "") === "true") return true;
 
-  // SALLI vain aidon premiumin perusteella
+  // Allow only real premium users based on explicit flags/tier
   return !!(
     user?.isPremium === true ||
     user?.premium === true ||
@@ -62,16 +63,239 @@ function isValidObjectId(id) {
   return /^[a-f0-9]{24}$/i.test(id);
 }
 
-/** Fetch a richer user object when req.user lacks entitlement flags. */
+/**
+ * Fetch a richer user object when req.user lacks entitlement flags.
+ * This avoids extra DB calls once we already have a "rich" user in req.user.
+ */
 async function getRichUser(req) {
   const u = req.user || {};
   // If it already looks rich, skip DB
-  if (u?.isPremium === true || u?.premium === true || u?.entitlements?.tier === "premium" || u?.entitlements?.features?.introsMessaging === true || u?.entitlements?.features?.intros === true) return u;
+  if (
+    u?.isPremium === true ||
+    u?.premium === true ||
+    u?.entitlements?.tier === "premium" ||
+    u?.entitlements?.features?.introsMessaging === true ||
+    u?.entitlements?.features?.intros === true
+  ) {
+    return u;
+  }
   try {
     const fromDb = await User.findById(u.id || u._id).lean();
     return fromDb || u;
   } catch {
     return u;
+  }
+}
+// --- REPLACE END ---
+
+// --- REPLACE START: Block model + helpers for overview filtering ---
+let BlockModelCached = null;
+let triedLoadBlockModel = false;
+
+async function getBlockModel() {
+  if (BlockModelCached || triedLoadBlockModel) return BlockModelCached;
+  triedLoadBlockModel = true;
+
+  // Try src layout first (.js then .cjs)
+  try {
+    const modSrcJs = await import("../models/Block.js");
+    BlockModelCached =
+      modSrcJs?.default || modSrcJs?.Block || modSrcJs?.model || modSrcJs || null;
+    if (BlockModelCached) return BlockModelCached;
+  } catch {
+    // ignore
+  }
+
+  try {
+    const modSrcCjs = await import("../models/Block.cjs");
+    BlockModelCached =
+      modSrcCjs?.default || modSrcCjs?.Block || modSrcCjs?.model || modSrcCjs || null;
+    if (BlockModelCached) return BlockModelCached;
+  } catch {
+    // ignore
+  }
+
+  // Fallback to legacy layout (.js then .cjs)
+  try {
+    const modLegacyJs = await import("../../models/Block.js");
+    BlockModelCached =
+      modLegacyJs?.default ||
+      modLegacyJs?.Block ||
+      modLegacyJs?.model ||
+      modLegacyJs ||
+      null;
+    if (BlockModelCached) return BlockModelCached;
+  } catch {
+    // ignore
+  }
+
+  try {
+    const modLegacyCjs = await import("../../models/Block.cjs");
+    BlockModelCached =
+      modLegacyCjs?.default ||
+      modLegacyCjs?.Block ||
+      modLegacyCjs?.model ||
+      modLegacyCjs ||
+      null;
+  } catch {
+    BlockModelCached = null;
+  }
+
+  return BlockModelCached;
+}
+
+/**
+ * Best-effort helper: fetch block relations where current user is involved.
+ */
+async function getBlocksForUserBestEffort(meStr) {
+  if (!meStr) return [];
+
+  try {
+    const BlockModel = await getBlockModel();
+
+    if (BlockModel && typeof BlockModel.find === "function") {
+      const docs = await BlockModel.find({
+        $or: [
+          { blocker: meStr },
+          { blocked: meStr },
+          { blockedUserId: meStr },
+          { user: meStr },
+          { userId: meStr },
+          { target: meStr },
+          { targetUserId: meStr },
+        ],
+      })
+        .select(
+          "blocker blocked blockedUserId user userId target targetUserId"
+        )
+        .lean();
+
+      if (Array.isArray(docs) && docs.length > 0) {
+        return docs;
+      }
+    }
+
+    // Fallback: direct collection, if model is not available
+    const conn = mongoose.connection;
+    if (conn && conn.readyState === 1 && conn.db) {
+      const coll = conn.db.collection("blocks");
+      const cursor = coll.find({
+        $or: [
+          { blocker: meStr },
+          { blocked: meStr },
+          { blockedUserId: meStr },
+          { user: meStr },
+          { userId: meStr },
+          { target: meStr },
+          { targetUserId: meStr },
+        ],
+      });
+      const docs = await cursor
+        .project({
+          blocker: 1,
+          blocked: 1,
+          blockedUserId: 1,
+          user: 1,
+          userId: 1,
+          target: 1,
+          targetUserId: 1,
+        })
+        .toArray();
+
+      return Array.isArray(docs) ? docs : [];
+    }
+  } catch (e) {
+    console.warn(
+      "[messages routes] getBlocksForUserBestEffort warning:",
+      e?.message || e
+    );
+  }
+
+  return [];
+}
+
+/**
+ * Filter message overview list using Block relations:
+ * - hide conversations where current user blocked someone
+ * - hide conversations where current user is blocked by someone
+ */
+async function filterOverviewWithBlocks(req, overviews) {
+  try {
+    if (!Array.isArray(overviews) || overviews.length === 0) {
+      return overviews;
+    }
+
+    const me =
+      req.user?.id ||
+      req.user?._id ||
+      req.userId ||
+      req.auth?.userId ||
+      req.auth?.id ||
+      null;
+
+    const meStr = me ? String(me) : null;
+    if (!meStr) {
+      return overviews;
+    }
+
+    const docs = await getBlocksForUserBestEffort(meStr);
+    if (!Array.isArray(docs) || docs.length === 0) {
+      return overviews;
+    }
+
+    const blockedSet = new Set();
+
+    for (const doc of docs) {
+      const blockerId =
+        doc.blocker ||
+        doc.blockerUserId ||
+        doc.user ||
+        doc.userId ||
+        null;
+      const blockedId =
+        doc.blockedUserId ||
+        doc.blocked ||
+        doc.targetUserId ||
+        doc.target ||
+        null;
+
+      const blockerStr = blockerId ? String(blockerId) : null;
+      const blockedStr = blockedId ? String(blockedId) : null;
+
+      // Primary case: current user blocks someone → hide that user
+      if (blockerStr === meStr && blockedStr) {
+        blockedSet.add(blockedStr);
+      }
+
+      // If current user is the blocked side → hide the other party
+      if (blockedStr === meStr && blockerStr) {
+        blockedSet.add(blockerStr);
+      }
+
+      // If only blockedUserId exists, still hide that one
+      if (!blockerStr && blockedStr) {
+        blockedSet.add(blockedStr);
+      }
+    }
+
+    if (blockedSet.size === 0) {
+      return overviews;
+    }
+
+    // overviews use .userId as the peer id
+    const filtered = overviews.filter((conv) => {
+      const peerId = conv && (conv.userId || conv.peerId);
+      if (!peerId) return true;
+      return !blockedSet.has(String(peerId));
+    });
+
+    return filtered;
+  } catch (e) {
+    console.warn(
+      "[messages routes] filterOverviewWithBlocks warning:",
+      e?.message || e
+    );
+    return overviews;
   }
 }
 // --- REPLACE END ---
@@ -94,10 +318,16 @@ router.get(
       if (typeof Message.getOverviewForUser !== "function") {
         return res.json([]); // graceful fallback
       }
-      const overviews = await Message.getOverviewForUser(req.user.id);
+
+      let overviews = await Message.getOverviewForUser(req.user.id);
       if (!Array.isArray(overviews)) {
-        return res.json([]);
+        overviews = [];
       }
+
+      // --- REPLACE START: filter out blocked peers from overview ---
+      overviews = await filterOverviewWithBlocks(req, overviews);
+      // --- REPLACE END ---
+
       return res.json(
         overviews.map((conv) => ({
           ...conv,

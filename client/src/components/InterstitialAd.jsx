@@ -1,8 +1,10 @@
 // PATH: client/src/components/InterstitialAd.jsx
 
-// --- REPLACE START: gate interstitial with AdGate (Premium/no-ads kill-switch) while preserving modal behavior ---
+// --- REPLACE START: gate interstitial with AdGate (Premium/no-ads kill-switch) + debug info + why-am-I-seeing-this ---
 import React, { useEffect, useRef } from "react";
 import AdGate from "./AdGate"; // centralized gate: hides interstitial for Premium / noAds
+import useAds from "../hooks/useAds";
+import { useAuth } from "../contexts/AuthContext";
 
 /**
  * InterstitialAd
@@ -19,6 +21,21 @@ import AdGate from "./AdGate"; // centralized gate: hides interstitial for Premi
  * - Focus trap inside the dialog
  * - IMPORTANT: Background (page) IS ALLOWED to scroll while this modal is open (no body lock).
  *
+ * Accessibility:
+ * - Uses role="dialog" + aria-modal="true"
+ * - Exposes aria-labelledby="interstitial-title" and aria-describedby="interstitial-description"
+ *   so screen readers get a clear title and description.
+ * - Focus moves into the dialog on mount and is restored on unmount.
+ * - Tab/Shift+Tab are trapped inside the dialog content.
+ *
+ * Debug:
+ * - When window.__ADS_DEBUG === true OR localStorage["ads:debug"] === "1" (dev only),
+ *   a small debug row is rendered at the bottom of the modal showing cap/counters.
+ *
+ * UX:
+ * - For non-premium users (noAdsGlobal === false), a small info line explains:
+ *   “You are seeing this ad because you are using Loventia for free...”
+ *
  * All user-visible strings are in English.
  */
 export default function InterstitialAd({
@@ -29,6 +46,43 @@ export default function InterstitialAd({
 }) {
   const containerRef = useRef(null);
   const prevFocusRef = useRef(null);
+
+  const ads = useAds();
+  const { user } = useAuth() ?? {};
+
+  const userIsPremium = !!(user?.isPremium || user?.premium);
+  const userNoAdsFeature = !!user?.entitlements?.features?.noAds;
+  const noAdsGlobal = userIsPremium || userNoAdsFeature;
+
+  const capPerDay =
+    typeof ads?.capPerDay === "number" && Number.isFinite(ads.capPerDay)
+      ? ads.capPerDay
+      : null;
+
+  // Try to read some kind of interstitial count from ads; fallback to null if not present.
+  let usedToday = null;
+  if (ads?.countsToday && typeof ads.countsToday.interstitial === "number") {
+    usedToday = ads.countsToday.interstitial;
+  } else if (ads?.flags && typeof ads.flags.interstitialShownToday === "number") {
+    usedToday = ads.flags.interstitialShownToday;
+  }
+
+  // Debug flag: dev-only, opt-in via window.__ADS_DEBUG or localStorage["ads:debug"] === "1"
+  let debugEnabled = false;
+  if (import.meta.env.DEV && typeof window !== "undefined") {
+    try {
+      if (window.__ADS_DEBUG === true) {
+        debugEnabled = true;
+      } else if (window.localStorage?.getItem("ads:debug") === "1") {
+        debugEnabled = true;
+      }
+    } catch {
+      // ignore storage access errors in dev
+    }
+  }
+
+  // Whether to show the "Why am I seeing this ad?" info line
+  const showWhyInfo = !noAdsGlobal;
 
   // Focus management: focus panel on mount, restore previous focus on unmount
   useEffect(() => {
@@ -93,11 +147,13 @@ export default function InterstitialAd({
 
   return (
     // AdGate type="interstitial" ensures Premium/no-ads users never see this modal
-    <AdGate type="interstitial" debug={false}>
+    <AdGate type="interstitial" debug={debugEnabled}>
       <div
         role="dialog"
         aria-modal="true"
         aria-label={ariaLabel}
+        aria-labelledby="interstitial-title"
+        aria-describedby="interstitial-description"
         data-testid="interstitial-modal"
         className="fixed inset-0 z-[9999] flex items-center justify-center"
         style={{ pointerEvents: "auto" }}
@@ -120,7 +176,9 @@ export default function InterstitialAd({
         >
           {/* Header with Close (X) */}
           <div className="flex items-center justify-between gap-4 border-b px-4 py-3">
-            <div className="text-base font-semibold">Sponsored interstitial</div>
+            <div id="interstitial-title" className="text-base font-semibold">
+              Sponsored interstitial
+            </div>
             <button
               type="button"
               onClick={onClose}
@@ -135,6 +193,14 @@ export default function InterstitialAd({
 
           {/* Ad content from parent (e.g., image + primary Continue) */}
           <div className="p-4">
+            {/* Short description for screen readers and users */}
+            <p
+              id="interstitial-description"
+              className="mb-2 text-xs text-gray-600"
+            >
+              This is a full-screen sponsored message shown before you continue using Loventia.
+            </p>
+
             {children}
 
             {/* Secondary action row (explicit close path always available) */}
@@ -147,6 +213,33 @@ export default function InterstitialAd({
                 Skip ad
               </button>
             </div>
+
+            {/* Why-am-I-seeing-this info (FREE users only) */}
+            {showWhyInfo && (
+              <p className="mt-3 text-xs text-gray-600">
+                You are seeing this ad because you are using Loventia for free. Premium members do
+                not see ads.
+              </p>
+            )}
+
+            {/* Debug row (visible only when debugEnabled is true) */}
+            {debugEnabled && (
+              <div className="mt-3 border-t pt-2 text-xs text-gray-500 flex flex-col gap-1">
+                <div>
+                  Ad debug: interstitial{" "}
+                  {usedToday !== null && usedToday !== undefined ? usedToday : "n/a"}
+                  {capPerDay !== null && capPerDay !== undefined
+                    ? ` / ${capPerDay} today`
+                    : ""}
+                </div>
+                <div>
+                  capPerDay:{" "}
+                  {capPerDay !== null && capPerDay !== undefined ? capPerDay : "n/a"} | noAdsGlobal:{" "}
+                  {noAdsGlobal ? "true" : "false"} | adsIsPremium:{" "}
+                  {ads?.isPremium ? "true" : "false"}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

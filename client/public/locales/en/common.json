@@ -106,6 +106,28 @@
       "quotaLabel": "You have used {{used}} / {{limit}} likes today.",
       "quotaResetHint": "Resets at midnight (Europe/Helsinki)."
     }
+  },
+  "report": {
+    "title": "Report",
+    "link": "Report",
+    "linkFull": "Report this user",
+    "helpText": "Select a reason and optionally describe what happened. We use reports to improve safety, but we do not contact every reporter.",
+    "reasonLabel": "Reason",
+    "detailsLabel": "Details (optional)",
+    "detailsHint": "Do not include passwords or full payment details here. If you already sent money or card details, contact your bank or card issuer.",
+    "reason": {
+      "spam": "Spam or unwanted ads",
+      "scam": "Scam or asking for money / financial help",
+      "abuse": "Harassment, threats, or hate speech",
+      "fake_profile": "Fake, stolen, or misleading profile",
+      "underage": "I believe this user may be underage",
+      "other": "Something else"
+    },
+    "thanks": "Thank you. Your report has been received. We may review it as part of our safety checks.",
+    "error": "We could not send your report right now. Please try again later.",
+    "submitting": "Sending…",
+    "submit": "Send report"
   }
 }
+
 

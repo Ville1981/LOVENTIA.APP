@@ -3,8 +3,9 @@
 import { formatDistanceToNowStrict, parseISO } from "date-fns";
 import React from "react";
 import { useTranslation } from "react-i18next";
-// --- REPLACE START: import Link for navigation ---
+// --- REPLACE START: imports for navigation and avatar ---
 import { Link } from "react-router-dom";
+import Avatar from "./Avatar";
 // --- REPLACE END ---
 
 // --- REPLACE START: premium helper + badge (for conversations list) ---
@@ -46,7 +47,7 @@ function PremiumBadge() {
  */
 export default function ConversationCard(
   // --- REPLACE START: add safe defaults to avoid undefined property access ---
-  { convo = {}, onClick = undefined }
+  { convo = {}, onClick = undefined, isActive = false }
   // --- REPLACE END ---
 ) {
   const { t } = useTranslation();
@@ -97,13 +98,60 @@ export default function ConversationCard(
   // Resolve last message snippet with safe fallbacks
   const messageSnippet =
     convo.lastMessage ?? convo.lastMessageSnippet ?? convo.snippet ?? "";
+
+  // Optional secondary label (email / username) shown under the main name
+  const secondaryLabel =
+    (convo.partnerEmail &&
+      convo.partnerEmail !== displayName &&
+      convo.partnerEmail) ||
+    (convo.username &&
+      convo.username !== displayName &&
+      convo.username) ||
+    "";
+
+  // Unread state and styling helpers
+  const hasUnread = Number(convo.unreadCount) > 0;
+
+  const baseWrapperClasses =
+    "flex items-center p-4 rounded-lg shadow hover:bg-gray-50 transition-colors";
+
+  // Active conversation highlight takes precedence over unread styling
+  const wrapperBgClass = isActive
+    ? " bg-indigo-50 border border-indigo-400"
+    : hasUnread
+    ? " bg-blue-50 border border-blue-200"
+    : " bg-white border border-transparent";
+
+  const wrapperClasses = `${baseWrapperClasses}${wrapperBgClass}`;
+
+  const nameClassName = hasUnread
+    ? "font-semibold text-gray-900 truncate flex items-center gap-1"
+    : "font-medium text-gray-900 truncate flex items-center gap-1";
+
+  const snippetClassName = hasUnread
+    ? "text-sm text-gray-900 truncate font-semibold"
+    : "text-sm text-gray-600 truncate";
+  // --- REPLACE END ---
+
+  // --- REPLACE START: avatar source + alt text ---
+  const avatarAlt =
+    displayName && displayName !== "Unknown user"
+      ? `${displayName}'s avatar`
+      : t("conversationCard.avatarAlt", "User avatar");
+
+  const avatarSrc =
+    convo.peerAvatarUrl ||
+    convo.avatarUrl ||
+    convo.peerPhotoUrl ||
+    convo.photoUrl ||
+    "/placeholder-avatar.png";
   // --- REPLACE END ---
 
   // --- REPLACE START: determine wrapper element for link vs. click handler ---
   const Wrapper = onClick
     ? ({ children }) => (
         <div
-          className="flex items-center p-4 bg-white rounded-lg shadow hover:bg-gray-50 cursor-pointer"
+          className={wrapperClasses}
           role="button"
           tabIndex={0}
           onClick={onClick}
@@ -111,6 +159,7 @@ export default function ConversationCard(
             if (e.key === "Enter") onClick();
           }}
           data-testid="conversation-card-clickable"
+          aria-current={isActive ? "page" : undefined}
         >
           {children}
         </div>
@@ -118,8 +167,9 @@ export default function ConversationCard(
     : ({ children }) => (
         <Link
           to={`/chat/${targetId}`}
-          className="flex items-center p-4 bg-white rounded-lg shadow hover:bg-gray-50"
+          className={wrapperClasses}
           data-testid="conversation-card-link"
+          aria-current={isActive ? "page" : undefined}
         >
           {children}
         </Link>
@@ -128,26 +178,15 @@ export default function ConversationCard(
 
   return (
     <Wrapper>
-      {/* --- REPLACE START: avatar with meaningful alt text & fallback on error --- */}
-      <img
-        src={convo.peerAvatarUrl || "/default-avatar.png"}
-        alt={
-          displayName && displayName !== "Unknown user"
-            ? `${displayName}'s avatar`
-            : t("conversationCard.avatarAlt", "User avatar")
-        }
-        className="w-12 h-12 rounded-full object-cover mr-4"
-        onError={(e) => {
-          // ensure a stable fallback image even if the provided URL fails
-          e.currentTarget.onerror = null;
-          e.currentTarget.src = "/default-avatar.png";
-        }}
-      />
+      {/* --- REPLACE START: avatar uses shared Avatar component with consistent fallback --- */}
+      <div className="mr-4">
+        <Avatar src={avatarSrc} alt={avatarAlt} size={48} />
+      </div>
       {/* --- REPLACE END --- */}
 
       <div className="flex-1 overflow-hidden">
         <div className="flex justify-between items-center">
-          <h3 className="font-medium text-gray-900 truncate flex items-center gap-1">
+          <h3 className={nameClassName}>
             {/* Keep original display logic; add safe default to avoid empty heading */}
             <span className="truncate">{displayName}</span>
             {premiumPeer && <PremiumBadge />}
@@ -157,13 +196,18 @@ export default function ConversationCard(
             {timeAgo || t("conversationCard.noTime", "")}
           </span>
         </div>
-        <p className="text-sm text-gray-600 truncate">
+
+        {secondaryLabel && (
+          <p className="text-xs text-gray-500 truncate">{secondaryLabel}</p>
+        )}
+
+        <p className={snippetClassName}>
           {/* Preserve original priorities with safe fallback to empty string */}
           {messageSnippet}
         </p>
       </div>
 
-      {Number(convo.unreadCount) > 0 && (
+      {hasUnread && (
         <span
           className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold text-white bg-red-500 rounded-full"
           aria-label={t(

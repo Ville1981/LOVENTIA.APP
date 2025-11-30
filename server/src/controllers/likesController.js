@@ -3,12 +3,13 @@
 // =================================================================================================
 // Likes Controller (ESM)
 // -------------------------------------------------------------------------------------------------
-// Version: 1.2
+// Version: 1.3
 //  - Idempotent like/unlike.
 //  - Daily like quota for FREE users (Premium bypasses).
 //  - ALWAYS push the latest swipe intent to rewind stack (even if like already existed).
 //  - Exposes helper methods used by routes: likeAndPush, recordLikeForRewind, pushRewind.
 //  - Keeps loose coupling to models (uses raw collections) and preserves legacy aliases.
+//  - Block-aware: outgoing/incoming lists are filtered against the Block collection.
 // Notes:
 //  - Timezone boundaries use Europe/Helsinki.
 //  - Responses keep stable shapes for the frontend.
@@ -91,6 +92,9 @@ function usersCollection() {
 function likesCollection() {
   return mongoose.connection.collection("likes");
 }
+function blocksCollection() {
+  return mongoose.connection.collection("blocks");
+}
 
 /** Ensure unique index for idempotent likes (userId+targetId). */
 async function ensureLikesIndex() {
@@ -103,6 +107,82 @@ async function ensureLikesIndex() {
   } catch (e) {
     // Index may already exist or another process created it; non-fatal.
     logLikesDebug("ensureLikesIndex:", e?.message || e);
+  }
+}
+
+/**
+ * Compute a set of peer user ids that should be hidden for a given viewer
+ * based on block relationships.
+ *
+ * We hide any user that is:
+ *  - blocked BY the viewer (viewer is blocker)
+ *  - OR has blocked the viewer (viewer is blocked)
+ */
+async function getBlockedPeerIds(rawAuthId) {
+  const hidden = new Set();
+
+  if (!isValidObjectId(rawAuthId)) return hidden;
+  const viewerObjId = toObjectId(rawAuthId);
+  if (!viewerObjId) return hidden;
+
+  try {
+    const Blocks = blocksCollection();
+    const rows = await Blocks.find({
+      $or: [{ blocker: viewerObjId }, { blocked: viewerObjId }],
+    })
+      .project({ blocker: 1, blocked: 1, _id: 0 })
+      .toArray();
+
+    for (const row of rows) {
+      const blocker = row.blocker;
+      const blocked = row.blocked;
+
+      // If someone else blocked the viewer
+      if (blocker && !blocker.equals(viewerObjId)) {
+        hidden.add(String(blocker));
+      }
+      // If viewer blocked someone else
+      if (blocked && !blocked.equals(viewerObjId)) {
+        hidden.add(String(blocked));
+      }
+    }
+  } catch (e) {
+    logLikesDebug("getBlockedPeerIds:", e?.message || e);
+  }
+
+  return hidden;
+}
+
+/**
+ * Filter a standard likes payload { ok, count, users[] } against blocked peers.
+ * This is used by outgoing/incoming list endpoints. The function is async
+ * because it may need to query the Block collection.
+ */
+async function filterLikesPayloadForBlocks(rawAuthId, payload) {
+  try {
+    if (!payload || typeof payload !== "object") return payload;
+    if (!Array.isArray(payload.users) || payload.users.length === 0) return payload;
+
+    const hidden = await getBlockedPeerIds(rawAuthId);
+    if (!hidden || hidden.size === 0) return payload;
+
+    const filteredUsers = payload.users.filter((u) => {
+      if (!u || u._id == null) return true;
+      const idVal = u._id;
+      const idStr =
+        idVal && typeof idVal.toString === "function"
+          ? idVal.toString()
+          : String(idVal);
+      return !hidden.has(idStr);
+    });
+
+    payload.users = filteredUsers;
+    payload.count = Array.isArray(filteredUsers) ? filteredUsers.length : 0;
+
+    return payload;
+  } catch (e) {
+    logLikesDebug("filterLikesPayloadForBlocks:", e?.message || e);
+    return payload;
   }
 }
 
@@ -178,6 +258,7 @@ export async function recordLikeForRewind(req, payload = {}) {
       req?.params?.targetId ||
       req?.body?.targetUserId ||
       req?.body?.targetId ||
+      req?.body?.id ||
       null;
 
     if (!isValidObjectId(target)) return false;
@@ -462,27 +543,57 @@ async function getRootCtrl() {
   return _rootCtrl;
 }
 
+/**
+ * Legacy-style outgoing likes list.
+ * We keep this as a thin proxy to any legacy controller, and apply block-filtering
+ * in a wrapped res.json when possible. The router prefers getOutgoing(), which
+ * points here to preserve behaviour.
+ */
 export async function listOutgoingLikes(req, res) {
   try {
+    const authUserId = getAuthUserId(req);
+    if (!isValidObjectId(authUserId)) {
+      return res.status(401).json({ ok: false, error: "Unauthorized" });
+    }
+
     const ctrl = await getRootCtrl();
     const impl =
       ctrl?.listOutgoingLikes ||
       ctrl?.getOutgoing ||
       ctrl?.outgoing ||
       ctrl?.listOutgoing;
-    if (typeof impl === "function") return impl(req, res);
+
+    if (typeof impl === "function") {
+      // Wrap res.json to inject block filtering on the payload coming from legacy impl
+      const originalJson = res.json.bind(res);
+      const wrappedRes = Object.create(res);
+      wrappedRes.json = (payload) => {
+        (async () => {
+          const filtered = await filterLikesPayloadForBlocks(authUserId, payload);
+          originalJson(filtered);
+        })().catch((e) => {
+          logLikesDebug("listOutgoingLikes filter error:", e?.message || e);
+          originalJson(payload);
+        });
+        return res;
+      };
+
+      return impl(req, wrappedRes);
+    }
 
     // Light fallback using mirrored ids; avoids heavy hydration
-    const authUserId = getAuthUserId(req);
-    if (!isValidObjectId(authUserId)) {
-      return res.status(401).json({ ok: false, error: "Unauthorized" });
-    }
     const me = await usersCollection().findOne(
       { _id: toObjectId(authUserId) },
       { projection: { likes: 1 } }
     );
     const ids = Array.isArray(me?.likes) ? me.likes : [];
-    return res.status(200).json({ ok: true, count: ids.length, users: [] });
+    const payload = {
+      ok: true,
+      count: ids.length,
+      users: [],
+    };
+    const filtered = await filterLikesPayloadForBlocks(authUserId, payload);
+    return res.status(200).json(filtered);
   } catch (err) {
     logLikesDebug("listOutgoingLikes error:", err?.message || err);
     return res
@@ -491,19 +602,51 @@ export async function listOutgoingLikes(req, res) {
   }
 }
 
+/**
+ * Legacy-style incoming likes list.
+ * Same pattern as listOutgoingLikes: proxy to legacy controller when present,
+ * but always block-filter the final payload.
+ */
 export async function listIncomingLikes(req, res) {
   try {
+    const authUserId = getAuthUserId(req);
+    if (!isValidObjectId(authUserId)) {
+      return res.status(401).json({ ok: false, error: "Unauthorized" });
+    }
+
     const ctrl = await getRootCtrl();
     const impl =
       ctrl?.listIncomingLikes ||
       ctrl?.getIncoming ||
       ctrl?.incoming ||
       ctrl?.listIncoming;
-    if (typeof impl === "function") return impl(req, res);
-    return res.status(501).json({
-      ok: false,
-      error: "likesController.listIncomingLikes not available",
-    });
+
+    if (typeof impl === "function") {
+      // Wrap res.json to inject block filtering on the payload coming from legacy impl
+      const originalJson = res.json.bind(res);
+      const wrappedRes = Object.create(res);
+      wrappedRes.json = (payload) => {
+        (async () => {
+          const filtered = await filterLikesPayloadForBlocks(authUserId, payload);
+          originalJson(filtered);
+        })().catch((e) => {
+          logLikesDebug("listIncomingLikes filter error:", e?.message || e);
+          originalJson(payload);
+        });
+        return res;
+      };
+
+      return impl(req, wrappedRes);
+    }
+
+    // No legacy controller available – return an empty list (still block-filtered for consistency)
+    const payload = {
+      ok: true,
+      count: 0,
+      users: [],
+    };
+    const filtered = await filterLikesPayloadForBlocks(authUserId, payload);
+    return res.status(200).json(filtered);
   } catch (err) {
     logLikesDebug("listIncomingLikes error:", err?.message || err);
     return res
@@ -566,4 +709,5 @@ try {
   // no-op
 }
 // --- REPLACE END ---
+
 

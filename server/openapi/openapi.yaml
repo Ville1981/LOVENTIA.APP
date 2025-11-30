@@ -64,6 +64,8 @@ tags:
     description: Developer diagnostics and route listings
   - name: Admin
     description: Admin-only exports and maintenance
+  - name: Feedback
+    description: Feedback and support endpoints
 
 components:
   securitySchemes:
@@ -256,9 +258,37 @@ components:
             type: string
             example: /uploads/1759343842730-848316731.gif
 
-    # // --- REPLACE START
-    # Removed unused Feedback schema (caused Spectral oas3-unused-component warning)
-    # // --- REPLACE END
+    # // --- REPLACE START: Feedback schema ---
+    Feedback:
+      type: object
+      description: Feedback message sent by a user to the Loventia team.
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Free-form feedback message from the user.
+          example: "I found a small bug on the Discover page."
+        category:
+          type: string
+          description: Optional category for the feedback.
+          enum:
+            - bug
+            - suggestion
+            - abuse
+            - other
+          example: "suggestion"
+        email:
+          type: string
+          format: email
+          description: Optional contact email if the user wants a reply.
+          example: "user@example.com"
+        createdAt:
+          type: string
+          format: date-time
+          description: When the feedback was created on the server.
+          example: "2025-11-28T10:15:00.000Z"
+    # // --- REPLACE END: Feedback schema ---
 
     # --- Added schemas to satisfy unresolved $refs ---
     ProfileCard:
@@ -1266,6 +1296,35 @@ paths:
         '401':
           description: Unauthorized
 
+  # --- REPLACE START: POST /api/feedback ---
+  /api/feedback:
+    post:
+      tags:
+        - Feedback
+      summary: Send feedback
+      description: >
+        Allows an authenticated user to send feedback to the Loventia team.
+        This can be used for bug reports, feature suggestions or abuse reports.
+      operationId: feedback_send
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Feedback'
+      responses:
+        '204':
+          description: Feedback accepted and stored for review.
+        '400':
+          description: Invalid payload.
+        '401':
+          description: Authentication required.
+        '429':
+          description: Too many feedback requests.
+  # --- REPLACE END: POST /api/feedback ---
+
   # ===================================
   # ADMIN CSV EXPORTS
   # ===================================
@@ -1318,8 +1377,7 @@ paths:
       description: >
         Optional filters: from (ISO), to (ISO), limit (1..200000)
       operationId: admin_export_messages_csv
-      security:
-        - bearerAuth: []
+      security: [{ bearerAuth: [] }]
       parameters:
         - in: query
           name: from
@@ -1357,8 +1415,7 @@ paths:
       description: >
         Groups messages by user pair (threadKey). Supports from/to/limit.
       operationId: admin_export_conversations_csv
-      security:
-        - bearerAuth: []
+      security: [{ bearerAuth: [] }]
       parameters:
         - in: query
           name: from
@@ -1396,8 +1453,7 @@ paths:
       description: >
         Export Stripe webhook events that were logged. Requires STRIPE_LOG_EVENTS=1.
       operationId: admin_export_billing_events_csv
-      security:
-        - bearerAuth: []
+      security: [{ bearerAuth: [] }]
       responses:
         '200':
           description: CSV file
@@ -1417,8 +1473,7 @@ paths:
       summary: Export billing subscriptions as CSV
       description: Export all subscriptions as a CSV file.
       operationId: admin_export_billing_subscriptions_csv
-      security:
-        - bearerAuth: []
+      security: [{ bearerAuth: [] }]
       responses:
         '200':
           description: CSV file
@@ -1510,4 +1565,17 @@ paths:
 
 security:
   - bearerAuth: []
+
+
+
+
+
+
+
+
+
+
+
+
+
 

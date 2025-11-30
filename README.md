@@ -12,22 +12,23 @@ A full-stack dating application with both **server** (Node.js/Express, MongoDB) 
 1. [Features](#features)
 2. [Prerequisites](#prerequisites)
 3. [Installation](#installation)
-4. [Environment Variables](#environment-variables)
-5. [Running the App](#running-the-app)
+4. [Quick start for new developers](#quick-start-for-new-developers)
+5. [Environment Variables](#environment-variables)
+6. [Running the App](#running-the-app)
    * [Server](#server)
    * [Client](#client)
-6. [Docker Setup (Optional)](#docker-setup-optional)
-7. [Docker Desktop Auto-Start](#docker-desktop-auto-start)
-8. [API Documentation](#api-documentation)
-9. [Authentication (IMPORTANT)](#authentication-important)
-10. [Documentation & Infrastructure](#documentation--infrastructure)
+7. [Docker Setup (Optional)](#docker-setup-optional)
+8. [Docker Desktop Auto-Start](#docker-desktop-auto-start)
+9. [API Documentation](#api-documentation)
+10. [Authentication (IMPORTANT)](#authentication-important)
+11. [Documentation & Infrastructure](#documentation--infrastructure)
     * [Version Control Workflow](#version-control-workflow)
     * [CI/CD Documentation](#cicd-documentation)
-11. [Image Upload API](#image-upload-api)
-12. [Client API Abstraction](#client-api-abstraction)
-13. [Testing & CI/CD](#testing--cicd)
-14. [Commit Convention & Code Style](#commit-convention--code-style)
-15. [ER Diagram](#er-diagram)
+12. [Image Upload API](#image-upload-api)
+13. [Client API Abstraction](#client-api-abstraction)
+14. [Testing & CI/CD](#testing--cicd)
+15. [Commit Convention & Code Style](#commit-convention--code-style)
+16. [ER Diagram](#er-diagram)
 
 ---
 
@@ -73,6 +74,143 @@ A full-stack dating application with both **server** (Node.js/Express, MongoDB) 
    # Client
    cd ../client && npm install
    ```
+
+---
+
+<!-- --- REPLACE START: Quick start for new developers --- -->
+
+## Quick start for new developers
+
+This section is a **short, practical path** to get Loventia running locally and verify that the core API is healthy.
+
+1. **Prepare environment files**
+
+   From the project root:
+
+   ```bash
+   # Server
+   cp server/.env.example server/.env
+
+   # Client
+   cp client/.env.example client/.env
+   ```
+
+   Then edit:
+
+   * `server/.env` → set at least:
+
+     * `MONGO_URI`
+     * `JWT_SECRET`
+     * `REFRESH_TOKEN_SECRET`
+     * `STRIPE_SECRET_KEY`
+     * `STRIPE_WEBHOOK_SECRET`
+     * `STRIPE_PREMIUM_PRICE_ID`
+     * `CLIENT_URL=http://localhost:5174`
+   * `client/.env` → set:
+
+     * `VITE_API_BASE_URL=http://localhost:5000/api`
+
+2. **Start MongoDB (local or Docker)**
+
+   *Option A – Local MongoDB service* (if installed):
+
+   ```bash
+   # On Windows, Mongo usually runs as a service automatically.
+   # On Linux / macOS you might need:
+   sudo systemctl start mongod
+   ```
+
+   *Option B – Mongo in Docker*:
+
+   From the project root:
+
+   ```bash
+   docker compose up -d mongo
+   ```
+
+   Make sure `MONGO_URI` in `server/.env` points to that instance, e.g.:
+
+   ```ini
+   MONGO_URI=mongodb://127.0.0.1:27017/loventia
+   ```
+
+3. **Start the backend API**
+
+   ```bash
+   cd server
+   npm run dev
+   ```
+
+   The API should now be available at:
+
+   ```text
+   http://localhost:5000
+   ```
+
+4. **Start the frontend client**
+
+   In a second terminal:
+
+   ```bash
+   cd client
+   npm run dev
+   ```
+
+   By default Vite serves the client at:
+
+   ```text
+   http://localhost:5174
+   ```
+
+5. **Smoke-test the API (health + login + /api/auth/me)**
+
+   From **PowerShell** (Windows), after you have a test user created:
+
+   ```powershell
+   $ErrorActionPreference = 'Stop'
+   $BaseUrl = "http://127.0.0.1:5000"
+
+   Write-Host "==> Health-check..." -ForegroundColor Cyan
+   $health = Invoke-RestMethod -Uri "$BaseUrl/health" -Method GET
+   Write-Host "Health OK" -ForegroundColor Green
+
+   # Replace with a real test user (Free or Premium)
+   $email    = "testuser1@example.com"
+   $password = "Test1234!"
+
+   Write-Host "`n==> Login..." -ForegroundColor Cyan
+   $bodyJson = @{ email = $email; password = $password } | ConvertTo-Json
+   $login    = Invoke-RestMethod -Uri "$BaseUrl/api/auth/login" -Method POST -Body $bodyJson -ContentType "application/json"
+
+   $token = $login.accessToken
+   Write-Host "Login OK, token prefix: $($token.Substring(0,24))..." -ForegroundColor Green
+
+   Write-Host "`n==> /api/auth/me..." -ForegroundColor Cyan
+   $me = Invoke-RestMethod -Uri "$BaseUrl/api/auth/me" -Method GET -Headers @{ Authorization = "Bearer $token" }
+   $me | Format-List email,premium,isPremium,@{Name="tier";Expression={$_.entitlements.tier}}
+   ```
+
+   If you see:
+
+   * `Health OK`
+   * `Login OK`
+   * `/api/auth/me` returns `email` and `premium` / `isPremium` / `entitlements`,
+
+   then your local environment is **basically healthy**.
+
+6. **Optional: API docs & Stripe smoke tests**
+
+   * To lint and bundle the OpenAPI spec:
+
+     ```bash
+     cd server
+     powershell -ExecutionPolicy Bypass -File .\openapi\openapi.ps1
+     ```
+
+   * To validate Stripe webhooks in dev, see the section
+     **“Stripe CLI smoke (dev)”** under [Testing & CI/CD](#testing--cicd).
+
+<!-- --- REPLACE END: Quick start for new developers --- -->
 
 ---
 
@@ -577,6 +715,5 @@ erDiagram
 
 ```
 ```
-
 
 

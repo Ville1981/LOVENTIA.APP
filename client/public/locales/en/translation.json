@@ -29,6 +29,7 @@
     "username_placeholder": "Enter your username"
   },
   "blog": "Blog",
+  "blockButtonLabel": "Block",
   "buttons": {
     "back": "Back",
     "cancel": "Cancel",
@@ -431,4 +432,3 @@
   "tagline": "Match better. Love smarter. 💘",
   "terms": "Terms"
 }
-

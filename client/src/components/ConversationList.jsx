@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import React from "react";
 // --- REPLACE START: imports for ConversationList (no bunny demo data) ---
 import { useTranslation } from "react-i18next";
+import { Link, useParams } from "react-router-dom";
 
 import ConversationCard from "./ConversationCard";
 import styles from "./ConversationList.module.css";
@@ -20,6 +21,10 @@ import axios from "../utils/axiosInstance";
  */
 export default function ConversationList() {
   const { t } = useTranslation();
+  const params = useParams();
+
+  // Active conversation id (used when this list is rendered on a route like /chat/:userId)
+  const activeUserId = params?.userId ? String(params.userId) : null;
 
   const {
     data: conversations,
@@ -33,16 +38,72 @@ export default function ConversationList() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Normalisoidaan backendin palauttama data:
-  // - tukee sekä [] että { conversations: [] }
-  // - rikastetaan partnerId / partnerEmail / partnerUsername + premium-metadatalla,
-  //   mutta ei rikota nykyistä muotoa (palautetaan ...item + lisäkentät).
+  // --- REPLACE START: fetch block list to filter blocked peers from conversations ---
+  const {
+    data: blockData,
+    // We intentionally do not surface block loading/error in this UI;
+    // if the block API fails, conversations are simply unfiltered.
+    isLoading: isBlocksLoading, // reserved for future use (e.g. combined loading state)
+    isError: isBlocksError, // reserved for future debug/logging if needed
+  } = useQuery({
+    queryKey: ["blocksOverview"],
+    queryFn: () => axios.get("/api/block").then((res) => res.data),
+    retry: 1,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const blockedIds = React.useMemo(() => {
+    if (!blockData) return [];
+
+    // Support multiple backend shapes:
+    // 1) { items: [...] }
+    // 2) { users: [...] }
+    // 3) [ ... ] (array directly)
+    let items = [];
+
+    if (Array.isArray(blockData.items)) {
+      items = blockData.items;
+    } else if (Array.isArray(blockData.users)) {
+      items = blockData.users;
+    } else if (Array.isArray(blockData)) {
+      items = blockData;
+    }
+
+    if (!items.length) return [];
+
+    const ids = [];
+
+    for (const b of items) {
+      const candidate =
+        b.blockedUserId ??
+        b.targetUserId ??
+        b.targetId ??
+        b.blockedId ??
+        b.userId ??
+        b.id ??
+        b._id ??
+        null;
+
+      if (candidate != null) {
+        ids.push(String(candidate));
+      }
+    }
+
+    // Ensure uniqueness
+    return Array.from(new Set(ids));
+  }, [blockData]);
+  // --- REPLACE END ---
+
+  // Normalize backend response:
+  // - supports both [] and { conversations: [] }
+  // - enriches with partnerId / partnerEmail / partnerUsername + premium metadata,
+  //   but keeps the original shape (returns ...item + extra fields).
   const normalizedConversations = React.useMemo(() => {
     if (!conversations) return [];
 
     let arr = conversations;
 
-    // Tulevaisuutta varten: jos backend joskus palauttaa { conversations: [...] }
+    // Future proofing: if backend ever returns { conversations: [...] }
     if (!Array.isArray(arr) && Array.isArray(conversations?.conversations)) {
       arr = conversations.conversations;
     }
@@ -62,23 +123,47 @@ export default function ConversationList() {
 
       return {
         ...item,
-        // Partneri/id jonka kanssa keskustellaan – fallback järjestys:
+        // Partner id we are talking with – fallback order:
         partnerId: item.partnerId ?? item.userId ?? item._id,
-        // Sähköposti jos löytyy jostain:
+        // Email if available from any known field:
         partnerEmail: item.partnerEmail ?? item.email ?? item.userEmail ?? null,
-        // Nimi/esitys:
+        // Name / display label:
         partnerUsername:
           item.partnerUsername ??
           item.username ??
           item.name ??
           (emailLike ? emailLike.split("@")[0] : ""),
-        // Premium-metat:
+        // Premium metadata:
         premium: item.premium ?? isPremium,
         isPremium,
         entitlements,
       };
     });
   }, [conversations]);
+
+  // --- REPLACE START: filter out conversations with blocked peers (by partnerId/userId/etc.) ---
+  const visibleConversations = React.useMemo(() => {
+    if (!normalizedConversations || normalizedConversations.length === 0) {
+      return [];
+    }
+    if (!blockedIds || blockedIds.length === 0) {
+      return normalizedConversations;
+    }
+
+    return normalizedConversations.filter((item) => {
+      const id =
+        item.partnerId ||
+        item.userId ||
+        item.id ||
+        item._id ||
+        item.peerId ||
+        null;
+
+      if (!id) return true;
+      return !blockedIds.includes(String(id));
+    });
+  }, [normalizedConversations, blockedIds]);
+  // --- REPLACE END ---
 
   if (isLoading) {
     return (
@@ -108,8 +193,8 @@ export default function ConversationList() {
     );
   }
 
-  // --- REPLACE START: neutral empty-state text (no Bunny placeholder card) ---
-  if (!normalizedConversations || normalizedConversations.length === 0) {
+  // --- REPLACE START: neutral empty-state card with CTA (no Bunny placeholder card) ---
+  if (!visibleConversations || visibleConversations.length === 0) {
     return (
       <section
         className={styles.empty}
@@ -117,15 +202,27 @@ export default function ConversationList() {
           defaultValue: "Conversations",
         })}
       >
-        <h2 className="sr-only">
-          {t("chat:overview.title", { defaultValue: "Conversations" })}
+        <h2 className="text-xl font-semibold mb-2 text-center">
+          {t("chat:overview.emptyTitle", {
+            defaultValue: "No conversations yet",
+          })}
         </h2>
-        <p className="text-gray-600 text-sm">
-          {t("chat:overview.empty", {
+        <p className="text-gray-600 text-sm mb-4 text-center max-w-md mx-auto">
+          {t("chat:overview.emptyBody", {
             defaultValue:
-              "No conversations yet. When you match and start messaging, your conversations will appear here.",
+              "When you match and start messaging, your conversations will appear here.",
           })}
         </p>
+        <div className="flex justify-center">
+          <Link
+            to="/discover"
+            className="inline-flex items-center px-4 py-2 rounded-md bg-pink-600 text-white text-sm font-medium hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
+          >
+            {t("chat:overview.emptyCta", {
+              defaultValue: "Discover users",
+            })}
+          </Link>
+        </div>
       </section>
     );
   }
@@ -141,12 +238,19 @@ export default function ConversationList() {
       <h2 className="text-xl font-semibold mb-4">
         {t("chat:overview.title", { defaultValue: "Conversations" })}
       </h2>
-      {normalizedConversations.map((convo) => (
-        <ConversationCard
-          key={convo.partnerId || convo.userId}
-          convo={convo}
-        />
-      ))}
+      {visibleConversations.map((convo) => {
+        const partnerId = convo.partnerId || convo.userId || convo.id || "";
+        const isActive =
+          !!activeUserId && String(partnerId) === String(activeUserId);
+
+        return (
+          <ConversationCard
+            key={partnerId}
+            convo={convo}
+            isActive={isActive}
+          />
+        );
+      })}
     </section>
   );
 }
@@ -154,5 +258,4 @@ export default function ConversationList() {
 // The replacement regions are marked between
 // --- REPLACE START and // --- REPLACE END
 // so you can verify exactly what changed.
-
 

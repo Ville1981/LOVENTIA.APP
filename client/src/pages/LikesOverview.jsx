@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { useAuth } from "../contexts/AuthContext";
 import api from "../services/api/axiosInstance";
 import { BACKEND_BASE_URL } from "../utils/config";
 import WhoLikedMeCard from "../components/WhoLikedMeCard";
@@ -80,8 +79,6 @@ function normalizeLikesUsers(data) {
  *  - Uses WhoLikedMeCard so that Premium badge is consistent.
  */
 const LikesOverview = () => {
-  const { user } = useAuth() || {};
-
   const [outgoing, setOutgoing] = useState([]);
   const [incoming, setIncoming] = useState([]);
   const [matches, setMatches] = useState([]);
@@ -292,3 +289,15 @@ const LikesOverview = () => {
 
 export default LikesOverview;
 // --- REPLACE END ---
+
+
+
+
+
+
+
+
+
+
+
+

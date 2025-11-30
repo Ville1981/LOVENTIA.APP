@@ -7,11 +7,17 @@ const router = Router();
 const BOOT_TIME_MS = Date.now();
 
 /**
- * Liveness / readiness probe.
+ * Liveness probe.
  * - No DB calls
  * - No auth
  * - Lightweight JSON payload
- * Mount at: app.use("/health", healthRouter)
+ *
+ * Recommended mount:
+ *   app.use("/health", healthRouter);
+ *
+ * This complements:
+ *   - GET /health (text "OK") in app.js
+ *   - /ready and /metrics diagnostics in app.js
  */
 router.get("/", (_req, res) => {
   res.setHeader("Cache-Control", "no-store");
@@ -30,5 +36,3 @@ router.options("/", (_req, res) => res.sendStatus(204));
 
 export default router;
 // --- REPLACE END ---
-
-

@@ -27,7 +27,7 @@
 import express from "express";
 import corsConfig from "../config/cors.js";
 
-// --- REPLACE START: add dynamic helpers + real router import ---
+// --- REPLACE START: add dynamic helpers + real router import + rate limiters ---
 /**
  * We still import the original controller here so old code that expected
  * `authController` to exist does not crash, but the actual routes below will
@@ -43,6 +43,13 @@ import bcrypt from "bcryptjs";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
 
+/**
+ * New, unified in-memory rate limiters.
+ * We only use the loginLimiter here; other limiters are mounted closer to
+ * their domains (e.g. billingLimiter in payment routes).
+ */
+import { loginLimiter } from "../middleware/rateLimit.js";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -53,9 +60,9 @@ const __dirname = path.dirname(__filename);
  */
 async function loadUserModel() {
   const candidates = [
-    "../models/User.js",     // typical: server/src/models/User.js
+    "../models/User.js", // typical: server/src/models/User.js
     "../src/models/User.js", // alt layout
-    "../../models/User.js",  // if this file happens to be deeper
+    "../../models/User.js", // if this file happens to be deeper
   ];
   for (const rel of candidates) {
     try {
@@ -66,7 +73,7 @@ async function loadUserModel() {
         return User;
       }
     } catch (e) {
-      // continue
+      // continue searching
     }
   }
   return null;
@@ -97,18 +104,31 @@ const use = (path, r, name) => {
 
 /**
  * ---------------------------------------------------------------------------
- * 1) MOUNT THE REAL ROUTER FIRST
+ * 1) MOUNT THE REAL ROUTER FIRST + attach login-specific rate limiter
  * ---------------------------------------------------------------------------
- * This is the key to removing the duplicate /api/auth/* entries we saw.
  *
- * app.js → app.use("/api", routes)
- * routes/index.js → use("/auth", auth, "auth");
- *                  use("/auth", authRoutes, "authRoutes");
- *
- * Before: both THIS file and the new real router had the same endpoints.
- * Now:    we mount the real router here, so everything goes through it.
+ * We apply loginLimiter to POST /login **before** delegating to the real
+ * router so that all 429 responses from login use the new unified JSON
+ * shape from middleware/rateLimit.js.
  */
+
+// --- REPLACE START: login limiter wiring + real router mount ---
+/**
+ * Apply loginLimiter to POST /login on this router. The middleware simply
+ * forwards non-POST methods to the next handler so OPTIONS/GET etc. are
+ * untouched.
+ */
+router.use("/login", (req, res, next) => {
+  const method = (req.method || "GET").toUpperCase();
+  if (method !== "POST") {
+    return next();
+  }
+  return loginLimiter(req, res, next);
+});
+
+// Now delegate to the real auth router which exposes the actual handlers.
 use("/", realAuthRouter, "real-auth-router");
+// --- REPLACE END ---
 
 /**
  * ---------------------------------------------------------------------------
@@ -136,7 +156,8 @@ router.post("/forgot-password", corsConfig, async (req, res, next) => {
   // If controller does not have it, return 501 (but do NOT 404)
   console.warn("[authRoutes(src)] forgotPassword not implemented in controller");
   return res.status(501).json({
-    error: "forgotPassword not implemented here — handled by main /routes/auth.js",
+    error:
+      "forgotPassword not implemented here — handled by main /routes/auth.js",
   });
 });
 
@@ -158,7 +179,8 @@ router.post("/reset-password", corsConfig, async (req, res, next) => {
 
   console.warn("[authRoutes(src)] resetPassword not implemented in controller");
   return res.status(501).json({
-    error: "resetPassword not implemented here — handled by main /routes/auth.js",
+    error:
+      "resetPassword not implemented here — handled by main /routes/auth.js",
   });
 });
 
@@ -218,5 +240,6 @@ router.post("/verify-email", corsConfig, (req, res, next) => {
  */
 
 export default router;
+
 
 

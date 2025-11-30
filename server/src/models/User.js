@@ -130,7 +130,7 @@ if (!LoadedUser) {
         stripeCustomerId: { type: String, default: null },
       },
 
-      // Entitlements (fallback provides full structure)
+      // Entitlements
       entitlements: { type: EntitlementsSchema, default: {} },
 
       // Media

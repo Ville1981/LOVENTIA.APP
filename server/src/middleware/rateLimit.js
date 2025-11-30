@@ -6,7 +6,8 @@
  * - No external dependencies (safe fallback for dev/CI; consider Redis in prod).
  * - Fixed-window counters per key (IP by default, can include route/method via env).
  * - Skips limiting when NODE_ENV=test or RATE_DISABLE=1 (to avoid CI flakiness).
- * - Emits best-effort X-RateLimit-* headers.
+ * - Emits best-effort X-RateLimit-* headers and a consistent JSON 429 body.
+ * - On 429, logs a structured JSON entry via logger with scope="rate-limit".
  *
  * Environment variables (all optional):
  *   RATE_DISABLE=1                   → disable all limiters (useful for CI)
@@ -21,18 +22,26 @@
  *   RATE_SWEEP_THRESHOLD=10000       → when bucket count exceeds this, sweep expired entries
  */
 
+import logger from "../utils/logger.js";
+
 const DISABLED =
   process.env.RATE_DISABLE === "1" || process.env.NODE_ENV === "test";
+
+/** Safe numeric parse with default. */
+function toNumber(val, def) {
+  const n = Number(val);
+  return Number.isFinite(n) ? n : def;
+}
 
 const WINDOW_MS = toNumber(process.env.RATE_WINDOW_MS, 60_000);
 
 // Per-endpoint defaults (can be overridden via env)
-const API_BURST_LIMIT     = toNumber(process.env.RATE_API_BURST_LIMIT, 300);
-const AUTH_LIMIT          = toNumber(process.env.RATE_AUTH_LIMIT, 60); // legacy fallback
-const AUTH_LOGIN_LIMIT    = toNumber(process.env.RATE_AUTH_LOGIN_LIMIT, 10);
+const API_BURST_LIMIT = toNumber(process.env.RATE_API_BURST_LIMIT, 300);
+const AUTH_LIMIT = toNumber(process.env.RATE_AUTH_LIMIT, 60); // legacy fallback
+const AUTH_LOGIN_LIMIT = toNumber(process.env.RATE_AUTH_LOGIN_LIMIT, 10);
 const AUTH_REGISTER_LIMIT = toNumber(process.env.RATE_AUTH_REGISTER_LIMIT, 5);
-const BILLING_LIMIT       = toNumber(process.env.RATE_BILLING_LIMIT, 20);
-const MESSAGES_LIMIT      = toNumber(process.env.RATE_MESSAGES_LIMIT, 60);
+const BILLING_LIMIT = toNumber(process.env.RATE_BILLING_LIMIT, 20);
+const MESSAGES_LIMIT = toNumber(process.env.RATE_MESSAGES_LIMIT, 60);
 
 const KEY_INCLUDE_ROUTE =
   (process.env.RATE_KEY_INCLUDE_ROUTE || "0").trim() === "1";
@@ -42,10 +51,17 @@ const SWEEP_THRESHOLD = Math.max(
   toNumber(process.env.RATE_SWEEP_THRESHOLD, 10_000)
 );
 
-/** Safe numeric parse with default. */
-function toNumber(val, def) {
-  const n = Number(val);
-  return Number.isFinite(n) ? n : def;
+/**
+ * Returns the best-effort client IP.
+ */
+function getClientIp(req) {
+  return (
+    req.ip ||
+    req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() ||
+    req.socket?.remoteAddress ||
+    req.connection?.remoteAddress ||
+    "unknown"
+  );
 }
 
 /**
@@ -53,12 +69,7 @@ function toNumber(val, def) {
  * By default uses IP only; optionally includes METHOD + (baseUrl + path).
  */
 function defaultKeyFn(req) {
-  const ip =
-    req.ip ||
-    req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() ||
-    req.socket?.remoteAddress ||
-    req.connection?.remoteAddress ||
-    "unknown";
+  const ip = getClientIp(req);
 
   if (!KEY_INCLUDE_ROUTE) return ip;
 
@@ -110,21 +121,65 @@ function createFixedWindowLimiter(
       const remaining = Math.max(0, limit - bucket.count);
       res.setHeader("X-RateLimit-Limit", String(limit));
       res.setHeader("X-RateLimit-Remaining", String(remaining));
-      res.setHeader("X-RateLimit-Reset", String(Math.floor(bucket.reset / 1000)));
+      res.setHeader(
+        "X-RateLimit-Reset",
+        String(Math.floor(bucket.reset / 1000))
+      );
       res.setHeader("X-RateLimit-Scope", name);
+      res.setHeader("X-RateLimit-Impl", "src-fixed-window-v1");
 
       if (bucket.count > limit) {
         // RFC-esque Retry-After (seconds)
-        const retryAfterSec = Math.max(0, Math.ceil((bucket.reset - now) / 1000));
+        const retryAfterSec = Math.max(
+          0,
+          Math.ceil((bucket.reset - now) / 1000)
+        );
         res.setHeader("Retry-After", String(retryAfterSec));
 
-        return res.status(429).json({
+        const payload = {
           error: "Too Many Requests",
+          code: "RATE_LIMITED",
+          message: "Too many requests, please slow down.",
           limit,
           remaining: 0,
-          reset: bucket.reset,
+          reset: bucket.reset, // unix ms timestamp (ms)
           scope: name,
-        });
+        };
+
+        // Structured logging for rate limits
+        try {
+          const ip = getClientIp(req);
+          const requestId = req.requestId || res.locals?.requestId;
+          const user = req.user || {};
+          const auth = req.auth || {};
+          logger.warn({
+            scope: "rate-limit",
+            limiter: name,
+            method: (req.method || "GET").toUpperCase(),
+            path: req.originalUrl || req.url || "",
+            ip,
+            requestId,
+            userId:
+              req.userId ||
+              user.id ||
+              user._id ||
+              auth.userId ||
+              auth.id ||
+              auth.sub ||
+              null,
+            limit,
+            remaining: 0,
+            reset: bucket.reset,
+          });
+        } catch {
+          // Never break the response because of logging failures
+        }
+
+        // Unified JSON 429 body so clients (and PS smoketests) always see a
+        // consistent structure instead of an empty body or plain "429".
+        res.status(429);
+        res.setHeader("Content-Type", "application/json; charset=utf-8");
+        return res.end(JSON.stringify(payload));
       }
 
       return next();
@@ -136,15 +191,44 @@ function createFixedWindowLimiter(
 }
 
 /**
- * Named limiters exported for targeted mounting in app.js
+ * Named limiters exported for targeted mounting.
  * Keep legacy `authLimiter` for backward compatibility (generic auth surface).
  */
-export const apiBurstLimiter  = createFixedWindowLimiter(API_BURST_LIMIT, WINDOW_MS, "api");
-export const authLimiter      = createFixedWindowLimiter(AUTH_LIMIT, WINDOW_MS, "auth-legacy");
-export const loginLimiter     = createFixedWindowLimiter(AUTH_LOGIN_LIMIT, WINDOW_MS, "auth-login");
-export const registerLimiter  = createFixedWindowLimiter(AUTH_REGISTER_LIMIT, WINDOW_MS, "auth-register");
-export const billingLimiter   = createFixedWindowLimiter(BILLING_LIMIT, WINDOW_MS, "billing");
-export const messagesLimiter  = createFixedWindowLimiter(MESSAGES_LIMIT, WINDOW_MS, "messages");
+export const apiBurstLimiter = createFixedWindowLimiter(
+  API_BURST_LIMIT,
+  WINDOW_MS,
+  "api"
+);
+
+export const authLimiter = createFixedWindowLimiter(
+  AUTH_LIMIT,
+  WINDOW_MS,
+  "auth-legacy"
+);
+
+export const loginLimiter = createFixedWindowLimiter(
+  AUTH_LOGIN_LIMIT,
+  WINDOW_MS,
+  "auth-login"
+);
+
+export const registerLimiter = createFixedWindowLimiter(
+  AUTH_REGISTER_LIMIT,
+  WINDOW_MS,
+  "auth-register"
+);
+
+export const billingLimiter = createFixedWindowLimiter(
+  BILLING_LIMIT,
+  WINDOW_MS,
+  "billing"
+);
+
+export const messagesLimiter = createFixedWindowLimiter(
+  MESSAGES_LIMIT,
+  WINDOW_MS,
+  "messages"
+);
 
 /** Default export (bundle style). */
 export default {
@@ -156,5 +240,18 @@ export default {
   messagesLimiter,
 };
 // --- REPLACE END ---
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

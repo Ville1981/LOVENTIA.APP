@@ -4,19 +4,9 @@
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 // NOTE: avoid importing axiosInstance at top-level in tests to prevent side effects
+import Avatar from "../components/Avatar";
+import absolutizeImage from "../utils/absolutizeImage";
 // --- REPLACE END ---
-
-/**
- * Placeholder conversation when none exist
- */
-const bunnyUser = {
-  userId: "bunny",
-  name: "Bunny",
-  avatarUrl: "/assets/bunny1.jpg",
-  lastMessageTime: Date.now(),
-  snippet: "Hi there! Let's start our chat.",
-  unreadCount: 0,
-};
 
 /**
  * Returns a short relative time string like "5m", "2h", "3d".
@@ -32,11 +22,37 @@ function formatDistanceToNow(date) {
   return `${days}d`;
 }
 
+// --- REPLACE START: shared avatar resolver (unified with other messaging UIs) ---
+/**
+ * Resolve a safe avatar URL for a conversation item.
+ * Tries multiple possible properties and normalizes with absolutizeImage.
+ */
+function resolveAvatarSrc(conversation) {
+  if (!conversation) return undefined;
+
+  const raw =
+    conversation.avatarUrl ||
+    conversation.peerAvatarUrl ||
+    conversation.photoUrl ||
+    conversation.peerPhotoUrl ||
+    conversation.profilePicture ||
+    "";
+
+  if (!raw) return undefined;
+
+  try {
+    return absolutizeImage(raw);
+  } catch {
+    // If normalization fails, fall back to the raw string
+    return raw;
+  }
+}
+// --- REPLACE END ---
+
 /**
  * ConversationsOverview page
  *
- * Fetches the list of conversations, handles loading, error, and empty states,
- * and falls back to a Bunny placeholder if the list is empty.
+ * Fetches the list of conversations, handles loading, error, and empty states.
  */
 export default function ConversationsOverview() {
   const { t } = useTranslation();
@@ -48,13 +64,16 @@ export default function ConversationsOverview() {
   useEffect(() => {
     let isMounted = true;
     const isTest =
-      (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.MODE === "test") ||
+      (typeof import.meta !== "undefined" &&
+        import.meta.env &&
+        import.meta.env.MODE === "test") ||
       typeof globalThis.__VITEST__ !== "undefined";
 
     // In test mode, skip network entirely to avoid jsdom/web-runner timeouts
+    // and let the component render a stable "no conversations" empty state.
     if (isTest) {
       if (isMounted) {
-        setConversations([]); // let UI render Bunny placeholder (stable for tests)
+        setConversations([]);
         setLoading(false);
       }
       return () => {
@@ -109,46 +128,157 @@ export default function ConversationsOverview() {
     );
   }
 
-  // If no conversations, show Bunny placeholder
-  const list = conversations.length > 0 ? conversations : [bunnyUser];
+  // --- REPLACE START: explicit empty state (no more bunny placeholder/demo images) ---
+  if (!conversations || conversations.length === 0) {
+    return (
+      <section
+        className="p-6 flex flex-col items-center justify-center text-center"
+        aria-label={t("chat:overview.title", "Conversations")}
+      >
+        <div className="mb-4">
+          <Avatar
+            // Let Avatar use its internal default image; no bunny/demo assets
+            src={undefined}
+            alt={t(
+              "chat:overview.emptyAvatarAlt",
+              "Placeholder avatar for empty conversations"
+            )}
+            size={56}
+          />
+        </div>
+        <h2 className="text-lg font-semibold text-gray-900 mb-1">
+          {t("chat:overview.emptyTitle", "No conversations yet")}
+        </h2>
+        <p className="text-sm text-gray-600 max-w-md">
+          {t(
+            "chat:overview.emptyDescription",
+            "When you like someone and they like you back, your conversations will appear here."
+          )}
+        </p>
+      </section>
+    );
+  }
+  // --- REPLACE END ---
 
+  // --- REPLACE START: main conversations list – semantics & keyboard accessibility ---
   return (
     <section
       className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 p-4"
       aria-label={t("chat:overview.title", "Conversations")}
+      role="list"
+      aria-live="polite"
     >
-      {list.map((conv) => (
-        <div
-          key={conv.userId}
-          className="flex items-center p-4 bg-white rounded-2xl shadow hover:shadow-lg transition-shadow cursor-pointer"
-          onClick={() => (window.location.href = `/chat/${conv.userId}`)}
-        >
-          <img
-            src={conv.avatarUrl}
-            alt={`${conv.name} avatar`}
-            className="w-12 h-12 rounded-full mr-4 object-cover"
-            onError={(e) => {
-              e.currentTarget.src = "/assets/bunny1.jpg";
-            }}
-          />
-          <div className="flex-1">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold truncate">{conv.name}</h3>
-              <span className="text-sm text-gray-400">
-                {formatDistanceToNow(new Date(conv.lastMessageTime))}
-              </span>
+      {/* Visually hidden heading for screen readers */}
+      <h2 className="sr-only">
+        {t("chat:overview.title", "Conversations")}
+      </h2>
+
+      {conversations.map((conv) => {
+        const id = conv.userId || conv.partnerId || conv.peerId || conv.id;
+
+        const name =
+          conv.name ||
+          conv.peerName ||
+          conv.partnerUsername ||
+          conv.partnerEmail ||
+          conv.username ||
+          t("conversationCard.unknownUser", "Unknown user");
+
+        const avatarAlt = t("chat:overview.avatarAlt", {
+          defaultValue: "{{name}}'s avatar",
+          name,
+        });
+
+        const avatarSrc = resolveAvatarSrc(conv);
+
+        const lastTime =
+          conv.lastMessageTime ||
+          conv.lastMessageTimestamp ||
+          conv.lastTimestamp ||
+          conv.timestamp ||
+          Date.now();
+
+        const lastDate =
+          lastTime instanceof Date ? lastTime : new Date(lastTime);
+
+        const relativeTime = formatDistanceToNow(lastDate);
+
+        const snippet =
+          conv.snippet ||
+          conv.lastMessage ||
+          conv.lastMessageSnippet ||
+          "";
+
+        const snippetId = id ? `conversation-${id}-snippet` : undefined;
+
+        const ariaLabel = t("chat:overview.conversationItemAriaLabel", {
+          defaultValue:
+            "Conversation with {{name}}, last active {{relativeTime}} ago.",
+          name,
+          relativeTime,
+        });
+
+        const handleActivate = () => {
+          if (id) {
+            window.location.href = `/chat/${id}`;
+          }
+        };
+
+        const handleKeyDown = (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleActivate();
+          }
+        };
+
+        return (
+          <div
+            key={id || name}
+            className="flex items-center p-4 bg-white rounded-2xl shadow hover:shadow-lg transition-shadow cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white"
+            role="listitem"
+            tabIndex={0}
+            aria-label={ariaLabel}
+            aria-describedby={snippet && snippetId ? snippetId : undefined}
+            onClick={handleActivate}
+            onKeyDown={handleKeyDown}
+          >
+            {/* --- REPLACE START: unified Avatar usage instead of bunny <img> --- */}
+            <div className="mr-4">
+              <Avatar src={avatarSrc} alt={avatarAlt} size={48} />
             </div>
-            <p className="text-sm text-gray-500 truncate">{conv.snippet}</p>
+            {/* --- REPLACE END --- */}
+
+            <div className="flex-1 overflow-hidden">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold truncate">{name}</h3>
+                <span className="text-sm text-gray-400">
+                  {relativeTime}
+                </span>
+              </div>
+              <p
+                className="text-sm text-gray-500 truncate"
+                id={snippetId}
+              >
+                {snippet}
+              </p>
+            </div>
+
+            {Number(conv.unreadCount) > 0 && (
+              <div className="ml-4">
+                <span className="inline-block text-xs font-medium bg-red-500 text-white rounded-full px-2 py-1">
+                  {conv.unreadCount}
+                </span>
+              </div>
+            )}
           </div>
-          {conv.unreadCount > 0 && (
-            <div className="ml-4">
-              <span className="inline-block text-xs font-medium bg-red-500 text-white rounded-full px-2 py-1">
-                {conv.unreadCount}
-              </span>
-            </div>
-          )}
-        </div>
-      ))}
+        );
+      })}
     </section>
   );
+  // --- REPLACE END ---
 }
+
+// The replacement regions are marked between
+// --- REPLACE START and // --- REPLACE END
+// so you can verify exactly what changed.
+

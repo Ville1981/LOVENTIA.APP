@@ -15,7 +15,6 @@ import DealbreakersPanel from "../components/DealbreakersPanel";
 import AdGate from "../components/AdGate";
 import AdBanner from "../components/AdBanner";
 
-
 export default function SettingsPage() {
   const { logout, user, setUser, refreshUser, refreshMe } = useAuth() || {};
   const { t } = useTranslation();
@@ -34,6 +33,25 @@ export default function SettingsPage() {
   const [loadingUnhide, setLoadingUnhide] = useState(false);
   const [info, setInfo] = useState("");
   const [error, setError] = useState("");
+
+    // Derive visibility from user object with safe fallbacks
+  const visibility = user?.visibility || {};
+  const isHidden =
+    visibility.isHidden ??
+    user?.isHidden ??
+    user?.hidden ??
+    false;
+
+  // Keep local resumeOnLogin in sync with server state when user changes
+  useEffect(() => {
+    if (visibility && typeof visibility.resumeOnLogin === "boolean") {
+      setResumeOnLogin(visibility.resumeOnLogin);
+      return;
+    }
+    if (typeof user?.resumeOnLogin === "boolean") {
+      setResumeOnLogin(user.resumeOnLogin);
+    }
+  }, [user, visibility]);
 
   const durationOptions = useMemo(
     () => [
@@ -59,22 +77,33 @@ export default function SettingsPage() {
         await refresh();
         return;
       } catch {
-        /* fall through to optimistic update */
+        // fall through to optimistic update
       }
     }
     if (typeof setUser === "function") {
       try {
-        setUser((prev) => (prev ? { ...prev, hidden: nextHidden } : prev));
+        setUser((prev) => {
+          if (!prev) return prev;
+          const nextVisibility = {
+            ...(prev.visibility || {}),
+            isHidden: !!nextHidden,
+          };
+          return {
+            ...prev,
+            hidden: !!nextHidden,
+            isHidden: !!nextHidden,
+            visibility: nextVisibility,
+          };
+        });
       } catch {
-        /* noop */
+        // noop
       }
     }
   };
 
-  // Handlers (with explicit diagnostics)
+  // Handlers
   const handleHide = async () => {
-    console.log("[SETTINGS] hide clicked");
-    alert("Hide clicked"); // Diagnostic: must show if click reaches handler
+    if (loadingHide || loadingUnhide) return;
     setError("");
     setInfo("");
     setLoadingHide(true);
@@ -85,7 +114,7 @@ export default function SettingsPage() {
         resumeOnLogin: Boolean(resumeOnLogin),
       });
       await tryRefreshUser(true);
-      setInfo(t("settings.hideSuccess")); // ✅ ensure success banner appears
+      setInfo(t("settings.hideSuccess"));
     } catch (e) {
       console.error("Hide error:", e);
       setError(t("settings.hideError"));
@@ -95,15 +124,14 @@ export default function SettingsPage() {
   };
 
   const handleUnhide = async () => {
-    console.log("[SETTINGS] unhide clicked");
-    alert("Unhide clicked"); // Diagnostic: must show if click reaches handler
+    if (loadingUnhide || loadingHide) return;
     setError("");
     setInfo("");
     setLoadingUnhide(true);
     try {
       await api.patch("/users/me/unhide");
       await tryRefreshUser(false);
-      setInfo(t("settings.unhideSuccess")); // ✅ ensure success banner appears
+      setInfo(t("settings.unhideSuccess"));
     } catch (e) {
       console.error("Unhide error:", e);
       setError(t("settings.unhideError"));
@@ -123,8 +151,12 @@ export default function SettingsPage() {
         localStorage.removeItem("refreshToken");
         sessionStorage.removeItem("accessToken");
         sessionStorage.removeItem("refreshToken");
-      } catch {}
-      if (typeof logout === "function") logout();
+      } catch {
+        // ignore storage errors
+      }
+      if (typeof logout === "function") {
+        logout();
+      }
       navigate("/login");
     } catch (err) {
       console.error(t("settings.deleteErrorConsole"), err);
@@ -134,7 +166,6 @@ export default function SettingsPage() {
     }
   };
 
-  const isHidden = !!user?.hidden;
   const isPremium = !!(user?.isPremium || user?.premium);
 
   return (
@@ -193,17 +224,16 @@ export default function SettingsPage() {
           <span className="text-sm">{t("settings.resumeOnLoginLabel")}</span>
         </label>
 
-        {/* Action buttons – use native buttons so onClick cannot be swallowed */}
+        {/* Action buttons */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button
             id="hideBtn"
             type="button"
             aria-label="Hide now"
             data-testid="hide-now"
-            onMouseDown={() => console.log("[SETTINGS] mousedown hide")}
             onClick={handleHide}
             disabled={loadingHide || loadingUnhide}
-            className="relative z-50 inline-flex items-center justify-center rounded-md px-4 py-2 border border-gray-300 bg-gray-100 hover:bg-gray-200 disabled:opacity-60"
+            className="inline-flex items-center justify-center rounded-md px-4 py-2 border border-gray-300 bg-gray-100 hover:bg-gray-200 disabled:opacity-60"
           >
             {loadingHide ? t("settings.hidingNow") : t("settings.hideNowButton")}
           </button>
@@ -213,16 +243,15 @@ export default function SettingsPage() {
             type="button"
             aria-label="Unhide"
             data-testid="unhide-now"
-            onMouseDown={() => console.log("[SETTINGS] mousedown unhide")}
             onClick={handleUnhide}
             disabled={loadingUnhide || loadingHide}
-            className="relative z-50 inline-flex items-center justify-center rounded-md px-4 py-2 border border-green-600 bg-green-600 text-white hover:bg-green-700 disabled:opacity-60"
+            className="inline-flex items-center justify-center rounded-md px-4 py-2 border border-green-600 bg-green-600 text-white hover:bg-green-700 disabled:opacity-60"
           >
             {loadingUnhide ? t("settings.unhiding") : t("settings.unhideButton")}
           </button>
         </div>
 
-        {/* Info / Error banners (render when either has content) */}
+        {/* Info / Error banners */}
         {(info || error) && (
           <div className="space-y-2">
             {info && (
@@ -256,7 +285,7 @@ export default function SettingsPage() {
           Manage your Premium plan from here. You can start, manage, or cancel from the dedicated page.
         </p>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <span
             className={`inline-block text-xs px-2 py-1 rounded ${
               isPremium ? "bg-indigo-100 text-indigo-800" : "bg-gray-100 text-gray-800"
@@ -268,7 +297,6 @@ export default function SettingsPage() {
 
           <Button
             onClick={() => {
-              console.log("[SETTINGS] Manage Subscription clicked");
               navigate("/settings/subscriptions");
             }}
             variant="yellow"
@@ -279,21 +307,20 @@ export default function SettingsPage() {
         </div>
 
         <p className="text-xs text-gray-500">
-          The next page uses our secure billing backend (Stripe/PayPal). We never store your card details.
+          The next page uses our secure billing backend (Stripe). We never store your card details.
         </p>
-      
-{/* // --- REPLACE START: standard content ad slot (inline) --- */}
-<AdGate type="inline" debug={false}>
-  <div className="max-w-3xl mx-auto mt-6">
-    <AdBanner
-      imageSrc="/ads/ad-right1.png"
-      headline="Sponsored"
-      body="Upgrade to Premium to remove all ads."
-    />
-  </div>
-</AdGate>
-{/* // --- REPLACE END --- */}
-</section>
+
+        {/* Inline ad slot (hidden for Premium users via AdGate) */}
+        <AdGate type="inline" debug={false}>
+          <div className="max-w-3xl mx-auto mt-6">
+            <AdBanner
+              imageSrc="/ads/ad-right1.png"
+              headline="Sponsored"
+              body="Upgrade to Premium to remove all ads."
+            />
+          </div>
+        </AdGate>
+      </section>
 
       {/* ===================== DANGER ZONE ===================== */}
       <div className="border-t pt-6">
@@ -310,4 +337,4 @@ export default function SettingsPage() {
 }
 // --- REPLACE END ---
 
-  
+

@@ -1,3 +1,4 @@
+// PATH: src/pages/MapPage.jsx
 // File: src/pages/MapPage.jsx
 import L from "leaflet";
 import PropTypes from "prop-types";
@@ -13,10 +14,9 @@ import {
 } from "react-leaflet";
 
 import api from "../utils/axiosInstance";
-import 'leaflet/dist/leaflet.css';
+import "leaflet/dist/leaflet.css";
 import AdGate from "../components/AdGate";
 import AdBanner from "../components/AdBanner";
-
 
 // --- REPLACE START: configure default Leaflet icon URLs ---
 delete L.Icon.Default.prototype._getIconUrl;
@@ -38,9 +38,7 @@ function getDistance([lat1, lon1], [lat2, lon2]) {
   const dLon = toRad(lon2 - lon1);
   const a =
     Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) *
-      Math.cos(toRad(lat2)) *
-      Math.sin(dLon / 2) ** 2;
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
@@ -74,6 +72,7 @@ function HomeButton({ home }) {
   const handleClick = () => map.setView(home, map.getZoom());
   return (
     <button
+      type="button"
       onClick={handleClick}
       style={{
         position: "absolute",
@@ -94,9 +93,11 @@ HomeButton.propTypes = { home: PropTypes.arrayOf(PropTypes.number).isRequired };
 
 /** Captures map clicks and calls onMapClick with [lat, lng]. */
 function ClickHandler({ onMapClick }) {
-  useMapEvents({ click(e) {
+  useMapEvents({
+    click(e) {
       onMapClick([e.latlng.lat, e.latlng.lng]);
-    } });
+    },
+  });
   return null;
 }
 ClickHandler.propTypes = { onMapClick: PropTypes.func.isRequired };
@@ -107,6 +108,67 @@ const MapPage = ({ onLocationSelect }) => {
   const [marker, setMarker] = useState(null);
   const [users, setUsers] = useState([]);
   const [error, setError] = useState("");
+
+  // --- REPLACE START: initialize map center from logged-in user's saved coordinates ---
+  /**
+   * On mount, try to center the map on the logged-in user's saved location
+   * (home location from profile). We support both:
+   *  - flat fields: latitude / longitude
+   *  - GeoJSON-style: location.coordinates = [lng, lat]
+   *
+   * If no usable coordinates are found, we silently fall back to the
+   * existing browser geolocation / default center.
+   */
+  useEffect(() => {
+    let cancelled = false;
+
+    api
+      .get("/auth/me")
+      .then((res) => {
+        const me = res.data || {};
+
+        let lat = me.latitude;
+        let lng = me.longitude;
+
+        // Support GeoJSON-style coordinates: [lng, lat]
+        if (
+          (lat == null || lng == null) &&
+          me.location &&
+          Array.isArray(me.location.coordinates) &&
+          me.location.coordinates.length >= 2
+        ) {
+          const [coordLng, coordLat] = me.location.coordinates;
+          lat = coordLat;
+          lng = coordLng;
+        }
+
+        if (lat != null && lng != null) {
+          const latNum = Number(lat);
+          const lngNum = Number(lng);
+
+          if (
+            !cancelled &&
+            Number.isFinite(latNum) &&
+            Number.isFinite(lngNum)
+          ) {
+            const coords = [latNum, lngNum];
+            setHome(coords);
+            setMarker(coords);
+            if (onLocationSelect) {
+              onLocationSelect(coords);
+            }
+          }
+        }
+      })
+      .catch(() => {
+        // Ignore errors here; LocateControl + default center will still work.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [onLocationSelect]);
+  // --- REPLACE END: initialize map center from logged-in user's saved coordinates ---
 
   // When locate fires, set home & marker
   const handleLocate = (coords) => {
@@ -123,13 +185,18 @@ const MapPage = ({ onLocationSelect }) => {
     )
       .then((res) => res.json())
       .then((data) => {
-        const city = data.address.city || data.address.town || data.address.village;
+        const city =
+          data.address.city ||
+          data.address.town ||
+          data.address.village;
         if (!city) throw new Error(t("map.cityNotFound"));
         return api.get(`/users/nearby?city=${encodeURIComponent(city)}`);
       })
       .then((res) => {
         setUsers(
-          res.data.filter((u) => u.latitude != null && u.longitude != null)
+          res.data.filter(
+            (u) => u.latitude != null && u.longitude != null
+          )
         );
       })
       .catch((err) => setError(err.message));
@@ -158,7 +225,8 @@ const MapPage = ({ onLocationSelect }) => {
         {marker && (
           <Marker position={marker}>
             <Popup>
-              🧍 {t("map.youAreHere")}<br />
+              🧍 {t("map.youAreHere")}
+              <br />
               <small>
                 {marker[0].toFixed(5)}, {marker[1].toFixed(5)}
               </small>
@@ -172,9 +240,12 @@ const MapPage = ({ onLocationSelect }) => {
           return (
             <Marker key={u._id} position={pos}>
               <Popup>
-                <strong>{u.name}</strong><br />
-                {u.age} {t("profile:age")}<br />
-                {u.interests?.join(", ")}<br />
+                <strong>{u.name}</strong>
+                <br />
+                {u.age} {t("profile:age")}
+                <br />
+                {u.interests?.join(", ")}
+                <br />
                 <small>
                   {t("map.distance")} {dist} km
                 </small>
@@ -183,19 +254,19 @@ const MapPage = ({ onLocationSelect }) => {
           );
         })}
       </MapContainer>
-    
-{/* // --- REPLACE START: standard content ad slot (inline) --- */}
-<AdGate type="inline" debug={false}>
-  <div className="max-w-3xl mx-auto mt-6">
-    <AdBanner
-      imageSrc="/ads/ad-right1.png"
-      headline="Sponsored"
-      body="Upgrade to Premium to remove all ads."
-    />
-  </div>
-</AdGate>
-{/* // --- REPLACE END --- */}
-</div>
+
+      {/* // --- REPLACE START: standard content ad slot (inline) --- */}
+      <AdGate type="inline" debug={false}>
+        <div className="max-w-3xl mx-auto mt-6">
+          <AdBanner
+            imageSrc="/ads/ad-right1.png"
+            headline="Sponsored"
+            body="Upgrade to Premium to remove all ads."
+          />
+        </div>
+      </AdGate>
+      {/* // --- REPLACE END --- */}
+    </div>
   );
 };
 

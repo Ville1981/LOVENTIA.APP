@@ -21,13 +21,12 @@ function photoUrl(user) {
   const raw =
     user?.profilePicture ||
     user?.avatar ||
-    (typeof firstPhoto === "string"
-      ? firstPhoto
-      : firstPhoto?.url || "");
+    (typeof firstPhoto === "string" ? firstPhoto : firstPhoto?.url || "");
 
   if (!raw) return "/default.jpg";
   if (typeof raw !== "string") return "/default.jpg";
   if (raw.startsWith("http")) return raw;
+
   const path = raw.startsWith("/") ? raw : `/${raw}`;
   return `${BACKEND_BASE_URL}${path}`;
 }
@@ -104,7 +103,9 @@ const MatchPage = () => {
       const meId = me?._id || me?.id;
 
       const filtered = list.filter((u) => {
-        const uBlocked = Array.isArray(u?.blockedUsers) ? u.blockedUsers : [];
+        const uBlocked = Array.isArray(u?.blockedUsers)
+          ? u.blockedUsers
+          : [];
         const uid = u?._id || u?.id;
         return !blockedByMe.includes(uid) && !uBlocked.includes(meId);
       });
@@ -113,7 +114,9 @@ const MatchPage = () => {
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error("Failed to fetch matches:", err?.response?.data || err);
-      if (err?.response?.status === 401) navigate("/login");
+      if (err?.response?.status === 401) {
+        navigate("/login");
+      }
     }
   };
 
@@ -158,7 +161,7 @@ const MatchPage = () => {
 
   return (
     <div className="container mx-auto p-4">
-      <h2 className="text-2xl font-semibold mb-6 text-center">
+      <h2 className="mb-6 text-center text-2xl font-semibold">
         💘 {t("matches.title", "Matches")}
       </h2>
 
@@ -167,7 +170,7 @@ const MatchPage = () => {
           {t("matches.noMatches", "No matches yet.")}
         </p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
           {matches.map((user) => {
             const id = user?._id || user?.id;
             const img = photoUrl(user);
@@ -179,14 +182,14 @@ const MatchPage = () => {
             return (
               <div
                 key={id}
-                className="bg-white p-4 rounded shadow-md text-center"
+                className="rounded bg-white p-4 text-center shadow-md"
               >
                 <img
                   src={img}
                   alt={name}
-                  className="w-full h-48 object-cover rounded mb-3"
+                  className="mb-3 h-48 w-full rounded object-cover"
                 />
-                <h3 className="text-lg font-bold flex items-center justify-center gap-1">
+                <h3 className="flex items-center justify-center gap-1 text-lg font-bold">
                   <span>{name}</span>
                   {premiumTarget && <PremiumBadge />}
                 </h3>
@@ -198,13 +201,13 @@ const MatchPage = () => {
                   <p className="text-sm italic text-gray-500">{goal}</p>
                 )}
 
-                <p className="text-sm mt-2 text-green-600 font-medium">
+                <p className="mt-2 text-sm font-medium text-green-600">
                   💯 {t("matches.score", "Match score")}: {matchScore}%
                 </p>
 
                 <Link
                   to={`/chat/${id}`}
-                  className="text-blue-500 underline mt-2 inline-block"
+                  className="mt-2 inline-block text-blue-500 underline"
                 >
                   💬 {t("matches.openChat", "Open chat")}
                 </Link>
@@ -216,7 +219,7 @@ const MatchPage = () => {
 
       {/* // --- REPLACE START: standard content ad slot (inline) --- */}
       <AdGate type="inline" debug={false}>
-        <div className="max-w-3xl mx-auto mt-6">
+        <div className="mx-auto mt-6 max-w-3xl">
           <AdBanner
             imageSrc="/ads/ad-right1.png"
             headline="Sponsored"

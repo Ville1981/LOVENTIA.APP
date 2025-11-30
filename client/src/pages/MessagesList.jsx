@@ -6,7 +6,6 @@ import axios from "../utils/axiosInstance";
 import AdGate from "../components/AdGate";
 import AdBanner from "../components/AdBanner";
 
-
 // Placeholder conversation when none exist
 const bunnyUser = {
   userId: "bunny",
@@ -77,6 +76,9 @@ export default function ConversationsOverview() {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // --- REPLACE START: local state for block integration ---
+  const [blockedIds, setBlockedIds] = useState([]);
+  // --- REPLACE END ---
 
   useEffect(() => {
     let isMounted = true;
@@ -99,6 +101,52 @@ export default function ConversationsOverview() {
     };
   }, []);
 
+  // --- REPLACE START: load block list and compute blocked user ids ---
+  useEffect(() => {
+    let isMounted = true;
+
+    axios
+      .get("/api/block")
+      .then((res) => {
+        if (!isMounted) return;
+
+        const data = res.data || {};
+        const items = Array.isArray(data.items) ? data.items : [];
+        const ids = [];
+
+        for (const b of items) {
+          if (!b) continue;
+          if (b.blockedUserId) {
+            ids.push(String(b.blockedUserId));
+          } else if (b.blocked) {
+            ids.push(String(b.blocked));
+          } else if (b.targetUserId) {
+            ids.push(String(b.targetUserId));
+          } else if (b.target) {
+            ids.push(String(b.target));
+          }
+        }
+
+        const uniqueIds = Array.from(
+          new Set(ids.filter((v) => typeof v === "string" && v.length > 0))
+        );
+        setBlockedIds(uniqueIds);
+      })
+      .catch((err) => {
+        // Do not break UI if /api/block fails; just log for debugging.
+        // eslint-disable-next-line no-console
+        console.warn(
+          "Failed to load block list for ThreadView:",
+          err?.message || err
+        );
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+  // --- REPLACE END ---
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-full">
@@ -115,15 +163,34 @@ export default function ConversationsOverview() {
     );
   }
 
-  // If no real conversations, show placeholder
-  const list = conversations.length > 0 ? conversations : [bunnyUser];
+  // --- REPLACE START: filter out blocked peers and then apply placeholder ---
+  const filteredConversations = Array.isArray(conversations)
+    ? conversations.filter((conv) => {
+        if (!blockedIds || blockedIds.length === 0) return true;
+        const peerId =
+          (conv &&
+            (conv.userId ||
+              conv.peerId ||
+              conv.partnerId ||
+              conv.id ||
+              conv._id)) ||
+          null;
+        if (!peerId) return true;
+        return !blockedIds.includes(String(peerId));
+      })
+    : [];
+
+  // If no real conversations after block filter, show placeholder
+  const list =
+    filteredConversations.length > 0 ? filteredConversations : [bunnyUser];
+  // --- REPLACE END ---
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 p-4">
       {list.map((conv) => {
         // --- REPLACE START: support both backend shapes + normalize avatar/time ---
-        const id = conv.userId ?? conv.peerId;
-        const name = conv.name ?? conv.peerName;
+        const id = conv.userId ?? conv.peerId ?? conv.partnerId ?? conv.id;
+        const name = conv.name ?? conv.peerName ?? conv.partnerUsername;
         const rawAvatar = conv.avatarUrl ?? conv.avatar;
         const avatar = normalizeImageSrc(rawAvatar);
         const rawTime = conv.lastMessageTime ?? conv.lastTimestamp;
@@ -169,21 +236,24 @@ export default function ConversationsOverview() {
           </div>
         );
       })}
-    
-{/* // --- REPLACE START: standard content ad slot (inline) --- */}
-<AdGate type="inline" debug={false}>
-  <div className="max-w-3xl mx-auto mt-6">
-    <AdBanner
-      imageSrc="/ads/ad-right1.png"
-      headline="Sponsored"
-      body="Upgrade to Premium to remove all ads."
-    />
-  </div>
-</AdGate>
-{/* // --- REPLACE END --- */}
-</div>
+
+      {/* // --- REPLACE START: standard content ad slot (inline) --- */}
+      <AdGate type="inline" debug={false}>
+        <div className="max-w-3xl mx-auto mt-6">
+          <AdBanner
+            imageSrc="/ads/ad-right1.png"
+            headline="Sponsored"
+            body="Upgrade to Premium to remove all ads."
+          />
+        </div>
+      </AdGate>
+      {/* // --- REPLACE END --- */}
+    </div>
   );
 }
 
-// The replacement region is marked between // --- REPLACE START and // --- REPLACE END
+// The replacement region is marked between
+// --- REPLACE START and // --- REPLACE END
 // so you can verify exactly what changed.
+
+

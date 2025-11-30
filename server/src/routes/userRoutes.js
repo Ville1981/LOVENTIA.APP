@@ -609,9 +609,6 @@ router.delete("/me", authenticateToken, async (req, res) => {
 });
 // --- REPLACE END ---
 
-
-
-
 /* =============================================================================
    VISIBILITY (hide / unhide)
 ============================================================================= */
@@ -1620,6 +1617,81 @@ router.get("/all", authenticateToken, async (_req, res) => {
   }
 });
 
+// --- REPLACE START: nearby users endpoint for MapPage (city-based) ---
+function escapeRegex(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * GET /api/users/nearby?city=Kouvola[&limit=100]
+ * - Authenticated
+ * - Returns an array of users in the same city with coordinates set.
+ * - Excludes the current user.
+ */
+router.get("/nearby", authenticateToken, async (req, res) => {
+  try {
+    const User = await getUserModel();
+    if (!User) return res.status(500).json({ error: "User model not available" });
+
+    const rawCity = (req.query.city || "").toString().trim();
+    if (!rawCity) {
+      return res.status(400).json({ error: "City is required" });
+    }
+
+    const cityRegex = new RegExp("^" + escapeRegex(rawCity) + "$", "i");
+
+    const limitRaw = Number(req.query.limit || 100);
+    const limit =
+      Number.isFinite(limitRaw) && limitRaw > 0 && limitRaw <= 500 ? limitRaw : 100;
+
+    const query = {
+      _id: { $ne: req.userId },
+      latitude: { $ne: null },
+      longitude: { $ne: null },
+      $or: [
+        { "location.city": cityRegex },
+        { city: cityRegex },
+      ],
+      $or: [
+        { isHidden: { $exists: false } },
+        { isHidden: false },
+      ],
+    };
+
+    // Because we have two $or keys above, we should merge them correctly.
+    // To keep behaviour clear, rebuild with $and so Mongo does not overwrite keys:
+    const finalQuery = {
+      $and: [
+        { _id: { $ne: req.userId } },
+        { latitude: { $ne: null } },
+        { longitude: { $ne: null } },
+        {
+          $or: [
+            { "location.city": cityRegex },
+            { city: cityRegex },
+          ],
+        },
+        {
+          $or: [
+            { isHidden: { $exists: false } },
+            { isHidden: false },
+          ],
+        },
+      ],
+    };
+
+    const list = await User.find(finalQuery)
+      .select("-password")
+      .limit(limit);
+
+    return res.json(normalizeUsersOut(list));
+  } catch (err) {
+    console.error("GET /nearby error:", err?.message || err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+// --- REPLACE END ---
+
 // --- REPLACE START: add legacy-compatible path /users/all (from old user.js) ---
 // NOTE: since THIS router is mounted at `/api/users`, this will become `/api/users/users/all`.
 // We KEEP it for backward compatibility, but it's better to hit `/api/users/all` above.
@@ -1690,6 +1762,7 @@ try {
      The dedicated auth router (server/src/routes/auth.js) exposes the login at `/api/auth/login`.
    - Superlike is now DELEGATED to controllers/superlikeController.js to ensure the same weekly quota logic
      is used across both /api/superlike/:id and this legacy /api/users/superlike/:id endpoint.
+   - New: /api/users/nearby?city=Kouvola returns an ARRAY of users with latitude/longitude,
+     excluding the current user and hidden profiles. This is what MapPage.jsx uses.
 ============================================================================= */
-
 
