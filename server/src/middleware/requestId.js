@@ -1,19 +1,27 @@
-// server/src/middleware/requestId.js
+// PATH: server/src/middleware/requestId.js
+
 // --- REPLACE START ---
-import { randomUUID } from 'node:crypto';
+import requestLogger from "./requestLogger.js";
 
+/**
+ * Backward-compatible shim for legacy requestId middleware.
+ *
+ * Historically this middleware was responsible for:
+ *  - generating a requestId
+ *  - attaching it to req.requestId / res.locals.requestId
+ *  - setting the X-Request-Id response header
+ *
+ * We now delegate this responsibility to the unified requestLogger middleware,
+ * which also measures latency and logs a structured JSON line via logger.js.
+ *
+ * Any existing imports that still call `requestId()` will now receive the
+ * requestLogger middleware instead. This keeps behavior aligned while avoiding
+ * duplicate implementations of requestId logic.
+ */
 export default function requestId() {
-  return function(req, res, next) {
-    const headerId = req.headers['x-request-id'];
-    const amzn = req.headers['x-amzn-trace-id']; // "Root=1-...."
-    const rid = (typeof headerId === 'string' && headerId.trim()) ? headerId.trim()
-              : (typeof amzn === 'string' && amzn.trim()) ? amzn.trim()
-              : randomUUID();
-
-    req.requestId = rid;
-    res.locals.requestId = rid;
-    res.setHeader('x-request-id', rid);
-    next();
-  };
+  // Delegate directly to the new requestLogger middleware.
+  // NOTE: If both requestId() and requestLogger() are mounted in app.js,
+  // the request will be logged twice. Prefer mounting only one of them.
+  return requestLogger();
 }
 // --- REPLACE END ---

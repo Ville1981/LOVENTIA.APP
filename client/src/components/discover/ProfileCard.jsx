@@ -1,7 +1,7 @@
 // PATH: client/src/components/discover/ProfileCard.jsx
 
 // --- REPLACE START: ProfileCard – normalize location (string → object), robust image URLs,
-// add RewindButton (premium-gated), likes quota passthrough, and Premium badge support ---
+// add RewindButton (premium-gated), likes quota passthrough, Premium badge support, and a11y (label + keyboard shortcuts) ---
 import PropTypes from "prop-types";
 import React, { memo, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -14,6 +14,7 @@ import StatsPanel from "./StatsPanel";
 import SummaryAccordion from "./SummaryAccordion";
 import { BACKEND_BASE_URL } from "../../utils/config";
 import RewindButton from "../RewindButton"; // Premium-gated rewind button
+import ReportButton from "./ReportButton"; // Passive safety report button
 
 // Demo-only fallback photos (used when user.photos is empty).
 // Bunny images are only used for demo/prototype purposes.
@@ -23,6 +24,31 @@ const DEMO_FALLBACK_PHOTOS = [
   "/assets/bunny3.jpg",
 ];
 
+/**
+ * ProfileCard
+ *
+ * Responsibilities:
+ * - Renders a single Discover profile card with:
+ *   • photo carousel
+ *   • name, age, compatibility, premium badge
+ *   • location text
+ *   • actions (Pass / Like / SuperLike / Rewind)
+ *   • summary, stats, details
+ * - Normalizes image URLs so both /uploads/* and bare filenames work.
+ * - Normalizes location (string or object) into a consistent object.
+ *
+ * Accessibility:
+ * - Root wrapper uses <article> with an aria-label including name, age and location (if known).
+ * - Root wrapper is focusable (tabIndex=0) and exposes keyboard shortcuts:
+ *   • Enter / Space → open INTRO (send intro message)
+ *   • ArrowLeft → Pass
+ *   • ArrowRight → Like
+ *   • ArrowUp → Super Like
+ *   (Rewind remains on its own RewindButton for now.)
+ * - INTRO button has an explicit aria-label: “Send intro message to [Name]”.
+ * - Other controls (ActionButtons, ReportButton, RewindButton) are expected to use native <button>
+ *   elements and provide their own labels; we do not change their props here to avoid regressions.
+ */
 const ProfileCard = ({
   user,
   onPass,
@@ -42,7 +68,7 @@ const ProfileCard = ({
    * Rules:
    *  - Absolute http(s) → return as-is
    *  - /uploads/... or bare filename → prefix with BACKEND_BASE_URL
-   *  - /assets/... → keep relative (served by client)
+   *  - /assets/... → prefix with window.location.origin (served by client)
    *  - Any other leading-slash path → prefix with window.location.origin
    */
   const normalize = (raw) => {
@@ -55,7 +81,11 @@ const ProfileCard = ({
 
     // Client-side static assets (keep relative to client origin)
     if (s0.startsWith("/assets/")) {
-      return `${window.location.origin}${s0}`;
+      try {
+        return `${window.location.origin}${s0}`;
+      } catch {
+        return s0;
+      }
     }
 
     // Server-side uploaded images
@@ -69,7 +99,11 @@ const ProfileCard = ({
     }
 
     // Any other rooted path (rare): assume client origin
-    return `${window.location.origin}${s0}`;
+    try {
+      return `${window.location.origin}${s0}`;
+    } catch {
+      return s0;
+    }
   };
 
   // Normalize photos from various shapes to URL strings
@@ -154,10 +188,67 @@ const ProfileCard = ({
     return tier === "premium";
   }, [user]);
 
+  // Accessible label for the whole profile card
+  const ageLabel =
+    user?.age !== null && user?.age !== undefined ? `${user.age}` : "unknown age";
+  const locationParts = [
+    normalizedLocation.city,
+    normalizedLocation.region,
+    normalizedLocation.country,
+  ].filter(Boolean);
+  const locationLabel =
+    locationParts.length > 0 ? ` from ${locationParts.join(", ")}` : "";
+  const profileAriaLabel = `${displayName}, ${ageLabel}${locationLabel}`;
+
   // INTRO click handler: navigate to ChatPage (intro-gate is handled there)
   const handleIntroClick = () => {
     if (!id) return;
     navigate(`/chat/${id}`, { state: { viaIntro: true } });
+  };
+
+  /**
+   * Keyboard handler for the whole card when focused.
+   * - Enter / Space: open INTRO
+   * - ArrowLeft: Pass
+   * - ArrowRight: Like
+   * - ArrowUp: Super Like
+   * (ArrowDown is intentionally left to the dedicated RewindButton for now.)
+   */
+  const handleKeyDown = (event) => {
+    const { key } = event;
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+
+    // Normalize space key name across browsers
+    const isSpace = key === " " || key === "Spacebar";
+
+    if (key === "Enter" || isSpace) {
+      event.preventDefault();
+      handleIntroClick();
+      return;
+    }
+
+    if (key === "ArrowLeft") {
+      if (onPass && id) {
+        event.preventDefault();
+        onPass(id);
+      }
+      return;
+    }
+
+    if (key === "ArrowRight") {
+      if (onLike && id) {
+        event.preventDefault();
+        onLike(id);
+      }
+      return;
+    }
+
+    if (key === "ArrowUp") {
+      if (onSuperlike && id) {
+        event.preventDefault();
+        onSuperlike(id);
+      }
+    }
   };
 
   if (loading) {
@@ -169,7 +260,14 @@ const ProfileCard = ({
   }
 
   return (
-    <div className="relative bg-white border border-gray-200 rounded-lg shadow-md overflow-hidden w-full">
+    <article
+      className="relative bg-white border border-gray-200 rounded-lg shadow-md overflow-hidden w-full"
+      aria-label={profileAriaLabel}
+      aria-roledescription="Profile card"
+      aria-keyshortcuts="Enter Space ArrowLeft ArrowRight ArrowUp"
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+    >
       {/* Photo carousel */}
       <PhotoCarousel photos={photos} />
 
@@ -178,6 +276,7 @@ const ProfileCard = ({
         type="button"
         className="absolute bottom-2 right-2 bg-white text-blue-600 text-xs font-semibold py-1 px-2 rounded shadow-sm"
         onClick={handleIntroClick}
+        aria-label={`Send intro message to ${displayName}`}
       >
         INTRO
       </button>
@@ -218,9 +317,12 @@ const ProfileCard = ({
           likesRemainingToday={likesRemainingToday}
         />
 
-        {/* Rewind control (premium-gated via internal FeatureGate in the component) */}
-        <div className="flex justify-end">
-          <RewindButton compact className="mt-2" />
+        {/* Safety & rewind controls (premium-gated rewind + passive report link) */}
+        <div className="flex items-center justify-between mt-2">
+          <ReportButton targetUserId={id} compact />
+          <div className="flex justify-end flex-1">
+            <RewindButton compact className="mt-2" />
+          </div>
         </div>
 
         {/* Summary */}
@@ -232,7 +334,7 @@ const ProfileCard = ({
         {/* Details */}
         <DetailsSection details={user?.details} />
       </div>
-    </div>
+    </article>
   );
 };
 
@@ -288,5 +390,4 @@ ProfileCard.propTypes = {
 
 export default memo(ProfileCard);
 // --- REPLACE END ---
-
 

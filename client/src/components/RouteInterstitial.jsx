@@ -12,6 +12,9 @@ const log = createLogger("RouteInterstitial");
 // Persistent counter key in localStorage
 const LS_ROUTE_COUNT_KEY = "ads:routeCount";
 
+// Routes where we NEVER want to show route interstitials
+const DENY_PATHS = ["/upgrade", "/settings/subscriptions"];
+
 /**
  * Read route-change count from localStorage.
  */
@@ -44,6 +47,15 @@ function bumpRouteCount() {
   const next = cur + 1;
   writeRouteCount(next);
   return next;
+}
+
+/**
+ * Check if a given pathname is in deny list.
+ * We treat an exact match or a sub-path (e.g. /settings/subscriptions/details) as denied.
+ */
+function isDeniedPath(pathname) {
+  if (!pathname) return false;
+  return DENY_PATHS.some((base) => pathname === base || pathname.startsWith(base + "/"));
 }
 
 /**
@@ -85,9 +97,6 @@ export default function RouteInterstitial({
 
   // Avoid intercepting our own programmatic navigate()
   const programmaticNavRef = useRef(false);
-
-  // Ensure exact-once impression call while open
-  const notedOnceRef = useRef(false);
 
   // DEV: force show if ads:forceInterstitial === "1"
   const devForced = !!(
@@ -178,6 +187,27 @@ export default function RouteInterstitial({
       if (isModifiedClick(e)) return;
       if (anchor.getAttribute("target") === "_blank") return;
 
+      // Resolve the target pathname for denyPaths check
+      let targetPathname = href;
+      try {
+        const u = new URL(href, window.location.href);
+        targetPathname = u.pathname || href;
+      } catch {
+        // keep href as-is for simple "/path" cases
+      }
+
+      // If either the current path OR the target path is in deny list, never gate this navigation
+      const currentPath = window.location?.pathname || "";
+      if (isDeniedPath(targetPathname) || isDeniedPath(currentPath)) {
+        if (debug) {
+          console.info("[RouteInterstitial] denyPaths skip for pre-nav", {
+            currentPath,
+            targetPathname,
+          });
+        }
+        return;
+      }
+
       const allowNow = shouldOpenNextChange();
       if (!allowNow) return;
 
@@ -195,7 +225,6 @@ export default function RouteInterstitial({
             devForced,
           });
         }
-        notedOnceRef.current = false;
         setOpen(true);
       };
       delayMs > 0 ? setTimeout(openNow, delayMs) : openNow();
@@ -211,15 +240,32 @@ export default function RouteInterstitial({
     const changed = location.pathname !== prevPathRef.current;
     if (!changed) return;
 
-    // Update previous path
-    prevPathRef.current = location.pathname;
+    const prevPath = prevPathRef.current;
+    const newPath = location.pathname;
+
+    // Update previous path to the new one
+    prevPathRef.current = newPath;
+
+    // Never open interstitial on deny paths (and do not bump the counter for them)
+    // If either the previous OR the new path is in deny list, we skip completely.
+    if (isDeniedPath(newPath) || isDeniedPath(prevPath)) {
+      if (debug) {
+        console.info("[RouteInterstitial] denyPaths skip for post-nav", {
+          prevPath,
+          newPath,
+        });
+      }
+      return;
+    }
 
     // If a modal is already open OR we have a pre-nav pending path, never open via fallback.
     if (openRef.current || pendingPath) {
-      if (debug) console.info("[RouteInterstitial] skip post-nav (open or pendingPath present)", {
-        open: openRef.current,
-        pendingPath,
-      });
+      if (debug) {
+        console.info("[RouteInterstitial] skip post-nav (open or pendingPath present)", {
+          open: openRef.current,
+          pendingPath,
+        });
+      }
       return;
     }
 
@@ -238,12 +284,11 @@ export default function RouteInterstitial({
     const tryOpen = () => {
       if (shouldOpenThisChange()) {
         if (debug) {
-          console.info("[RouteInterstitial] post-nav opening for path:", location.pathname, {
+          console.info("[RouteInterstitial] post-nav opening for path:", newPath, {
             count: readRouteCount(),
             devForced,
           });
         }
-        notedOnceRef.current = false;
         setOpen(true);
       } else if (debug) {
         console.info("[RouteInterstitial] post-nav not opening (gate/counter)");
@@ -254,19 +299,6 @@ export default function RouteInterstitial({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, ads?.canShow?.interstitial, delayMs, debug, devForced, pendingPath]);
 
-  // --- record impression once per open ---
-  useEffect(() => {
-    if (open && !notedOnceRef.current) {
-      try {
-        ads?.noteImpression?.("interstitial");
-        notedOnceRef.current = true;
-        if (debug) console.info("[AdGate] impression noted (interstitial)");
-      } catch {
-        /* ignore */
-      }
-    }
-  }, [open, ads, debug]);
-
   // --- close handler: continue pending navigation if any ---
   const onClose = () => {
     if (debug) console.info("[RouteInterstitial] closed");
@@ -275,7 +307,12 @@ export default function RouteInterstitial({
     if (pendingPath) {
       // This navigation counts as a route change: bump BEFORE navigate().
       const newCount = bumpRouteCount();
-      if (debug) console.info("[RouteInterstitial] pre-nav path navigate(): bumped route count ->", newCount);
+      if (debug) {
+        console.info(
+          "[RouteInterstitial] pre-nav path navigate(): bumped route count ->",
+          newCount
+        );
+      }
 
       suppressNextPathOpenRef.current = true; // do not reopen after navigate()
       programmaticNavRef.current = true;
@@ -323,4 +360,5 @@ export default function RouteInterstitial({
   return createPortal(modal, portalRef.current);
 }
 // --- REPLACE END ---
+
 

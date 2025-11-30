@@ -1,6 +1,4 @@
-﻿// PATH: client/src/pages/Discover.jsx
-
-// --- REPLACE START: add rewindBuffer + 'rewind:done' listener + like→buffer + superlike quota-aware handler + likes quota state wiring + premium flag on cards ---
+﻿// --- REPLACE START: add rewindBuffer + 'rewind:done' listener + like→buffer + superlike quota-aware handler + likes quota state wiring + premium flag on cards ---
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -36,17 +34,36 @@ const bunnyUser = {
 
 /**
  * Normalize and absolutize image URLs for Discover cards.
+ *
+ * The backend can return:
+ *  - absolute URLs (https://…)
+ *  - relative paths with or without /uploads/
+ *  - Windows-style paths with backslashes
+ *
+ * This helper makes sure every card photo ends up as an absolute,
+ * browser-safe URL that points to BACKEND_BASE_URL.
  */
 function absolutizeImage(pathOrUrl) {
   if (!pathOrUrl || typeof pathOrUrl !== "string") return null;
+
   let s = pathOrUrl.trim();
   if (s === "") return null;
+
+  // Already an absolute http/https URL → return as-is.
   if (/^https?:\/\//i.test(s)) return s;
-  // Normalize slashes and leading dot segments
+
+  // Normalize slashes and leading dot segments.
   s = s.replace(/\\/g, "/").replace(/^\.\//, "").replace(/\/+/g, "/");
-  if (s.startsWith("/uploads/")) s = s.replace(/^\/uploads\/uploads\//, "/uploads/");
-  else if (s.startsWith("uploads/")) s = "/" + s;
-  else if (!s.startsWith("/")) s = "/uploads/" + s;
+
+  // Common /uploads variations from legacy code.
+  if (s.startsWith("/uploads/")) {
+    s = s.replace(/^\/uploads\/uploads\//, "/uploads/");
+  } else if (s.startsWith("uploads/")) {
+    s = "/" + s;
+  } else if (!s.startsWith("/")) {
+    s = "/uploads/" + s;
+  }
+
   return `${BACKEND_BASE_URL}${s}`;
 }
 
@@ -80,16 +97,20 @@ const Discover = () => {
     superLikesRemaining,
   } = useAuth();
 
+  // Cards currently in the Discover deck (including bunny + possibly self).
   const [users, setUsers] = useState([]);
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Used as React key for ProfileCardList to force remount when deck changes radically.
   const [filterKey, setFilterKey] = useState("initial");
 
-  // (NEW) Daily likes quota (for free users UI)
+  // (NEW) Daily likes quota (for free users UI: X/Y likes today).
   const [likesLimitPerDay, setLikesLimitPerDay] = useState(null);
   const [likesRemainingToday, setLikesRemainingToday] = useState(null);
 
-  // local filter states
+  // Local filter states – passed down into DiscoverFilters as controlled values.
   const [username, setUsername] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
@@ -115,7 +136,7 @@ const Discover = () => {
   const [minAge, setMinAge] = useState(18);
   const [maxAge, setMaxAge] = useState(120);
 
-  // Premium detection (kept for future UI toggles; underscore silences no-unused-vars)
+  // Premium detection (kept for future UI toggles; underscore silences no-unused-vars).
   const _isPremium = useMemo(() => {
     return (
       authUser?.entitlements?.tier === "premium" ||
@@ -124,9 +145,13 @@ const Discover = () => {
     );
   }, [authUser]);
 
+  // Upsell modal for LIKE_QUOTA_EXCEEDED.
   const [showUpsell, setShowUpsell] = useState(false);
 
-  // --- Focus pause + cleanup ---
+  // ---------------------------------------------------------------------------
+  // Focus handling for select-elements inside filters
+  // ---------------------------------------------------------------------------
+
   const [selectHasFocus, setSelectHasFocus] = useState(false);
   const blurTimerRef = useRef(null);
 
@@ -153,6 +178,7 @@ const Discover = () => {
     };
   }, []);
 
+  // Global listeners to catch focus changes on selects even inside nested components.
   useEffect(() => {
     function onFocusIn(e) {
       if (e?.target?.tagName === "SELECT") onAnySelectFocus();
@@ -168,10 +194,15 @@ const Discover = () => {
     };
   }, [onAnySelectFocus, onAnySelectBlur]);
 
+  // Props for any select element that wants local focus detection as well.
   const probeFocusProps = { onFocus: onAnySelectFocus, onBlur: onAnySelectBlur };
 
-  // pending queries
+  // ---------------------------------------------------------------------------
+  // Deferred query handling: do not refetch while user is actively editing selects
+  // ---------------------------------------------------------------------------
+
   const pendingQueryRef = useRef(null);
+
   const flushPendingAfterBlur = useCallback(() => {
     if (!selectHasFocus && pendingQueryRef.current) {
       const params = pendingQueryRef.current;
@@ -184,48 +215,86 @@ const Discover = () => {
     flushPendingAfterBlur();
   }, [selectHasFocus, flushPendingAfterBlur]);
 
+  // Initial load once auth/user context is ready.
   useEffect(() => {
     if ("scrollRestoration" in window.history) {
       window.history.scrollRestoration = "manual";
     }
     if (!bootstrapped) return;
+
     const initialParams = { includeSelf: 1 };
+
     if (selectHasFocus) {
+      // Save for later if user currently focuses dropdowns.
       pendingQueryRef.current = initialParams;
     } else {
       loadUsers(initialParams);
     }
   }, [bootstrapped, selectHasFocus]);
 
+  // Seed age range from dealbreakers so Discover and dealbreakers stay in sync.
   useEffect(() => {
     let mounted = true;
+
     const seedFromDealbreakers = async () => {
       try {
         if (!bootstrapped || selectHasFocus) return;
         const db = await getDealbreakers();
         if (!mounted || !db) return;
-        if (typeof db.ageMin === "number" && Number.isFinite(db.ageMin)) setMinAge(db.ageMin);
-        if (typeof db.ageMax === "number" && Number.isFinite(db.ageMax)) setMaxAge(db.ageMax);
+
+        if (typeof db.ageMin === "number" && Number.isFinite(db.ageMin)) {
+          setMinAge(db.ageMin);
+        }
+        if (typeof db.ageMax === "number" && Number.isFinite(db.ageMax)) {
+          setMaxAge(db.ageMax);
+        }
       } catch {
-        /* silent */
+        // Non-fatal; just keep default age range.
       }
     };
+
     seedFromDealbreakers();
     return () => {
       mounted = false;
     };
   }, [bootstrapped, selectHasFocus]);
 
+  // ---------------------------------------------------------------------------
+  // Fetching profiles for Discover
+  // ---------------------------------------------------------------------------
+
   const loadUsers = async (params = {}) => {
+    // If a select is focused, we postpone network calls until blur.
     if (selectHasFocus) {
       pendingQueryRef.current = params;
       return;
     }
+
     setIsLoading(true);
     setError("");
+
     try {
       const res = await api.get("/discover", { params });
-      const data = res?.data?.users ?? res?.data ?? [];
+
+      /**
+       * Backend response compatibility layer:
+       *  - legacy:  [ ...users ]
+       *  - legacy2: { users: [ ... ] }
+       *  - current: { data:  [ ... ], meta: { ... } }
+       */
+      const payload = res?.data;
+      let data = [];
+
+      if (Array.isArray(payload)) {
+        data = payload;
+      } else if (Array.isArray(payload?.users)) {
+        data = payload.users;
+      } else if (Array.isArray(payload?.data)) {
+        data = payload.data;
+      } else {
+        data = [];
+      }
+
       const normalized = Array.isArray(data)
         ? data.map((u) => {
             const photos = Array.isArray(u.photos)
@@ -249,11 +318,14 @@ const Discover = () => {
           })
         : [];
 
+      // Put current user first (if present), then bunny, then others.
       const selfId =
         authUser?._id?.toString?.() || authUser?.id?.toString?.() || null;
+
       const selfUser = selfId
         ? normalized.find((u) => (u.id || u._id)?.toString() === selfId)
         : null;
+
       const others = selfId
         ? normalized.filter((u) => (u.id || u._id)?.toString() !== selfId)
         : normalized;
@@ -267,8 +339,10 @@ const Discover = () => {
       setFilterKey(Date.now().toString());
     } catch (err) {
       console.error("Error loading users:", err);
+
       // Avoid i18next object/translation errors here; always ensure a plain string.
-      let fallbackMessage = "Failed to load profiles. Please log in again and try once more.";
+      let fallbackMessage =
+        "Failed to load profiles. Please log in again and try once more.";
       try {
         const maybe = t("discover:error");
         if (typeof maybe === "string") {
@@ -279,6 +353,7 @@ const Discover = () => {
       } catch {
         // ignore and keep fallbackMessage
       }
+
       setError(fallbackMessage);
       setUsers([bunnyUser]);
       setFilterKey(Date.now().toString());
@@ -287,10 +362,15 @@ const Discover = () => {
     }
   };
 
+  // ---------------------------------------------------------------------------
+  // Scroll preservation around card removal / rewind
+  // ---------------------------------------------------------------------------
+
   const scrollTimerRef = useRef(null);
 
   /**
    * Keep scroll position stable while removing or restoring a card.
+   * This prevents "jumping" of the page when the top card disappears.
    */
   const preserveScrollAfter = useCallback(() => {
     const currentScroll = window.scrollY;
@@ -312,16 +392,21 @@ const Discover = () => {
   // ---------------------------------------------------------------------------
   // REWIND BUFFER (A-option): capture liked cards locally and restore on 'rewind:done'
   // ---------------------------------------------------------------------------
+
+  // Local buffer that mirrors backend rewind stack just for UI restoration.
   const [rewindBuffer, setRewindBuffer] = useState([]);
 
   const pushToRewindBuffer = useCallback((card) => {
     if (!card) return;
     const cardId = (card.id || card._id || "").toString();
     if (!cardId) return;
+
     setRewindBuffer((prev) => {
+      // Do not store duplicates.
       if (prev.some((c) => (c.id || c._id || "").toString() === cardId)) return prev;
+
       const next = [...prev, card];
-      // keep a sane cap; mirrors backend default max=50
+      // Keep sane cap; mirrors backend default max=50.
       return next.length > 50 ? next.slice(next.length - 50) : next;
     });
   }, []);
@@ -386,13 +471,15 @@ const Discover = () => {
   }, [preserveScrollAfter]);
 
   // ---------------------------------------------------------------------------
-  // Like/Pass/Superlike handlers
-  // NOTE ABOUT LINE COUNT (padding comments, no runtime effect):
-  // We keep a few explanatory comments here to maintain near-parity with the
-  // previous file length for easier future diffing. Functional changes are minimal.
+  // Like / Pass / Super Like handlers
   // ---------------------------------------------------------------------------
 
-  // --- Like behavior – always use /likes so rewind has history + push card into local buffer ---
+  /**
+   * Central handler for all swipe actions:
+   *  - "pass"      → /discover/:id/pass (no rewind history)
+   *  - "like"      → /likes (rewind-enabled + like quota)
+   *  - "superlike" → /superlike (weekly Super Like quota)
+   */
   const handleAction = async (userId, actionType) => {
     const currentUserId =
       authUser?._id?.toString?.() || authUser?.id?.toString?.() || null;
@@ -401,37 +488,46 @@ const Discover = () => {
 
     setError("");
 
-    // Remove a given card id from UI list, preserving scroll
+    // Remove a given card id from UI list, preserving scroll.
     const removeCard = () => {
       setUsers((prev) =>
-        prev.filter(
-          (u) => (u.id || u._id)?.toString() !== String(userId)
-        )
+        prev.filter((u) => (u.id || u._id)?.toString() !== String(userId))
       );
       preserveScrollAfter();
     };
 
+    // ---------------- PASS ----------------
     if (actionType === "pass") {
-      // PASS: unchanged server logic; we do not buffer passes (backend rewind focuses on likes)
+      // PASS: unchanged server logic; we do not buffer passes (backend rewind focuses on likes).
       removeCard();
+
       if (!isBunny && !isSelf) {
         api.post(`/discover/${userId}/pass`).catch((err) => {
           console.error("Error executing pass:", err);
         });
       } else {
-        console.warn(`[Discover] Skipping API call for ${isBunny ? "bunny" : "self"} pass`);
+        console.warn(
+          `[Discover] Skipping API call for ${
+            isBunny ? "bunny" : "self"
+          } pass`
+        );
       }
       return;
     }
 
+    // ---------------- LIKE ----------------
     if (actionType === "like") {
       if (isBunny || isSelf) {
-        console.warn(`[Discover] Skipping API call for ${isBunny ? "bunny" : "self"} like`);
+        console.warn(
+          `[Discover] Skipping API call for ${
+            isBunny ? "bunny" : "self"
+          } like`
+        );
         removeCard();
         return;
       }
 
-      // Capture a snapshot of the card before removal (so we can restore on rewind)
+      // Capture a snapshot of the card before removal (so we can restore on rewind).
       const snapshot = users.find(
         (u) => (u.id || u._id)?.toString() === String(userId)
       );
@@ -447,8 +543,7 @@ const Discover = () => {
         try {
           const payload = res?.data || {};
           const rawLimit =
-            payload?.limit ??
-            (payload?.quota && payload.quota.limit);
+            payload?.limit ?? (payload?.quota && payload.quota.limit);
           const rawRemaining =
             payload?.remaining ??
             (payload?.quota && payload.quota.remaining);
@@ -474,12 +569,20 @@ const Discover = () => {
             setLikesRemainingToday(null);
           }
         } catch (quotaErr) {
-          console.warn("[Discover] Failed to parse likes quota from response:", quotaErr);
+          console.warn(
+            "[Discover] Failed to parse likes quota from response:",
+            quotaErr
+          );
         }
 
         // Accept success (200/201) and idempotent "already liked" (409),
         // also accept truthy default (ok !== false).
-        if (status === 200 || status === 201 || status === 409 || res?.data?.ok !== false) {
+        if (
+          status === 200 ||
+          status === 201 ||
+          status === 409 ||
+          res?.data?.ok !== false
+        ) {
           removeCard();
           return;
         }
@@ -514,25 +617,32 @@ const Discover = () => {
             setLikesRemainingToday(remainingErrNum);
           }
         } catch (quotaErr2) {
-          console.warn("[Discover] Failed to parse likes quota from error response:", quotaErr2);
+          console.warn(
+            "[Discover] Failed to parse likes quota from error response:",
+            quotaErr2
+          );
         }
 
         if (status === 429 || codeVal === "LIKE_QUOTA_EXCEEDED") {
-          // Show upgrade prompt for free like quota exceeded
+          // Show upgrade prompt for free like quota exceeded.
           setShowUpsell(true);
           return;
         }
+
         console.error("Like failed:", err);
         setError("Failed to like this profile. Please try again.");
       }
       return;
     }
 
+    // ---------------- SUPER LIKE ----------------
     // --- REPLACE START: superlike handler uses /superlike + quota-aware error handling + refreshMe() ---
     if (actionType === "superlike") {
       if (isBunny || isSelf) {
         console.warn(
-          `[Discover] Skipping API call for ${isBunny ? "bunny" : "self"} superlike`
+          `[Discover] Skipping API call for ${
+            isBunny ? "bunny" : "self"
+          } superlike`
         );
         // For bunny/self we just advance the deck locally without touching quotas.
         removeCard();
@@ -564,13 +674,16 @@ const Discover = () => {
               void refreshMe();
             }
           } catch (refreshErr) {
-            console.warn("[Discover] refreshMe() after superlike failed:", refreshErr);
+            console.warn(
+              "[Discover] refreshMe() after superlike failed:",
+              refreshErr
+            );
           }
 
           return;
         }
 
-        // Unexpected non-error response (no exception thrown but also not marked ok)
+        // Unexpected non-error response (no exception thrown but also not marked ok).
         setError("Failed to Super Like this profile. Please try again.");
       } catch (err) {
         const status = err?.response?.status;
@@ -607,9 +720,14 @@ const Discover = () => {
     }
     // --- REPLACE END: superlike handler uses /superlike + quota-aware error handling + refreshMe() ---
 
+    // Fallback if an unknown actionType is passed.
     console.warn(`[Discover] Unknown actionType "${actionType}"`);
   };
   // --- end handlers ---
+
+  // ---------------------------------------------------------------------------
+  // Filter submit handler – builds query params + persists to dealbreakers
+  // ---------------------------------------------------------------------------
 
   const handleFilter = async (formValues) => {
     const query = {
@@ -620,21 +738,28 @@ const Discover = () => {
       includeSelf: 1,
     };
 
+    // Persist age range to dealbreakers (so it is reused later).
     try {
       const patch = {};
       const parsedMin = Number(formValues.minAge);
       const parsedMax = Number(formValues.maxAge);
+
       if (Number.isFinite(parsedMin)) patch.ageMin = parsedMin;
       if (Number.isFinite(parsedMax)) patch.ageMax = parsedMax;
-      if (Object.keys(patch).length > 0) await updateDealbreakers(patch);
+
+      if (Object.keys(patch).length > 0) {
+        await updateDealbreakers(patch);
+      }
     } catch (e) {
       console.warn("updateDealbreakers failed (non-fatal):", e?.message || e);
     }
 
+    // Remove empty strings / nulls to keep query compact.
     Object.keys(query).forEach((k) => {
       if (query[k] === "" || query[k] == null) delete query[k];
     });
 
+    // Normalize age range: only send minAge/maxAge when they differ from defaults.
     const parsedMin = Number(formValues.minAge);
     const parsedMax = Number(formValues.maxAge);
     const minIsValid = Number.isFinite(parsedMin);
@@ -643,6 +768,7 @@ const Discover = () => {
     if (minIsValid || maxIsValid) {
       const effMin = minIsValid ? parsedMin : 18;
       const effMax = maxIsValid ? parsedMax : 120;
+
       if (effMin !== 18 || effMax !== 120) {
         query.minAge = effMin;
         query.maxAge = effMax;
@@ -659,9 +785,11 @@ const Discover = () => {
       pendingQueryRef.current = query;
       return;
     }
+
     loadUsers(query);
   };
 
+  // Collect values and setters into simple objects for DiscoverFilters.
   const values = {
     username,
     age,
@@ -716,6 +844,7 @@ const Discover = () => {
     setMaxAge,
   };
 
+  // Callback when HiddenStatusBanner detects the profile was unhidden.
   const handleUnhiddenRefresh = () => {
     const params = { includeSelf: 1 };
     if (selectHasFocus) {
@@ -725,12 +854,17 @@ const Discover = () => {
     loadUsers(params);
   };
 
+  // ---------------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------------
+
   return (
     <div
       className="w-full flex flex-col items-center bg-gray-100 min-h-screen"
       style={{ overflowAnchor: "none" }}
     >
       <div className="w-full max-w-[1400px] flex flex-col lg:flex-row justify-between px-4 mt-6">
+        {/* Left ad column (currently empty placeholder, ready for future ads) */}
         <aside className="hidden lg:block w-[200px] sticky top-[160px] space-y-6" />
 
         <main className="flex-1">
@@ -738,23 +872,28 @@ const Discover = () => {
 
           {/* Filters card */}
           <div className="bg-white border rounded-lg shadow-md p-6 max-w-3xl mx-auto mt-4">
+            {/* Top row: premium feature chips */}
             <div className="mb-4 flex flex-wrap items-center gap-2">
               <FeatureGate
                 feature="seeLikedYou"
                 fallback={
                   <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-600">
-                    <span role="img" aria-label="eyes">👀</span>
+                    <span role="img" aria-label="eyes">
+                      👀
+                    </span>
                     <span>See who liked you</span>
                     <span className="ml-1 text-[10px] text-amber-700">Premium</span>
                   </span>
                 }
               >
                 <a
-                  href="/who-liked-me"
+                  href="/likes"
                   className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-emerald-600 text-white"
                   title="Open 'Who liked me'"
                 >
-                  <span role="img" aria-label="eyes">👀</span>
+                  <span role="img" aria-label="eyes">
+                    👀
+                  </span>
                   <span>Who liked you</span>
                 </a>
               </FeatureGate>
@@ -764,14 +903,20 @@ const Discover = () => {
                 invert={false}
                 fallback={
                   <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-600">
-                    <span role="img" aria-label="ad">🪧</span>
+                    <span role="img" aria-label="ad">
+                      🪧
+                    </span>
                     <span>Ads</span>
-                    <span className="ml-1 text-[10px] text-amber-700">Premium removes</span>
+                    <span className="ml-1 text-[10px] text-amber-700">
+                      Premium removes
+                    </span>
                   </span>
                 }
               >
                 <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-indigo-600 text-white">
-                  <span role="img" aria-label="no-ads">🚫</span>
+                  <span role="img" aria-label="no-ads">
+                    🚫
+                  </span>
                   <span>No ads</span>
                 </span>
               </FeatureGate>
@@ -780,19 +925,24 @@ const Discover = () => {
                 feature="dealbreakers"
                 fallback={
                   <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-600">
-                    <span role="img" aria-label="filter">🧩</span>
+                    <span role="img" aria-label="filter">
+                      🧩
+                    </span>
                     <span>Dealbreakers</span>
                     <span className="ml-1 text-[10px] text-amber-700">Premium</span>
                   </span>
                 }
               >
                 <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-pink-600 text-white">
-                  <span role="img" aria-label="filter">🧩</span>
+                  <span role="img" aria-label="filter">
+                    🧩
+                  </span>
                   <span>Dealbreakers</span>
                 </span>
               </FeatureGate>
             </div>
 
+            {/* Main filters form */}
             <DiscoverFilters
               values={values}
               handleFilter={handleFilter}
@@ -801,7 +951,7 @@ const Discover = () => {
             />
           </div>
 
-          {/* Ad slot (hidden for Premium/no-ads via AdGate) */}
+          {/* Inline ad slot (hidden for Premium/no-ads via AdGate) */}
           <div className="max-w-3xl mx-auto w-full">
             <AdGate type="inline">
               <AdBanner
@@ -812,12 +962,18 @@ const Discover = () => {
             </AdGate>
           </div>
 
+          {/* Cards grid / skeleton / error */}
           <div className="mt-6 flex justify-center w-full">
             <div className="w-full max-w-3xl">
               {isLoading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 py-4">
                   {Array.from({ length: 6 }).map((_, i) => (
-                    <SkeletonCard key={i} width="w-full" height="h-60" lines={4} />
+                    <SkeletonCard
+                      key={i}
+                      width="w-full"
+                      height="h-60"
+                      lines={4}
+                    />
                   ))}
                 </div>
               ) : error ? (
@@ -828,7 +984,7 @@ const Discover = () => {
                     key={filterKey}
                     users={users}
                     onAction={handleAction}
-                    // (NEW) Forward likes quota to ProfileCardList → ProfileCard → ActionButtons
+                    // (NEW) Forward likes quota to ProfileCardList → ProfileCard → ActionButtons.
                     likesLimitPerDay={likesLimitPerDay}
                     likesRemainingToday={likesRemainingToday}
                   />
@@ -843,9 +999,11 @@ const Discover = () => {
           </div>
         </main>
 
+        {/* Right ad column (placeholder, symmetrical with left) */}
         <aside className="hidden lg:block w-[200px] sticky top-[160px] space-y-6" />
       </div>
 
+      {/* Upsell modal when like quota is exceeded for free users */}
       {showUpsell && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4">
           <div className="w-full sm:max-w-xl">
@@ -872,5 +1030,4 @@ const Discover = () => {
 
 export default Discover;
 // --- REPLACE END ---
-
 

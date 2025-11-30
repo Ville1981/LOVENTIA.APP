@@ -94,13 +94,32 @@ messageSchema.pre('validate', function preValidate(next) {
 
   // Basic validations after mirroring (keep error messages explicit)
   if (!this.sender) {
-    return next(new mongoose.Error.ValidationError(Object.assign(new Error('Sender is required'), { path: 'sender' })));
+    return next(
+      new mongoose.Error.ValidationError(
+        Object.assign(new Error('Sender is required'), { path: 'sender' })
+      )
+    );
   }
   if (!this.receiver && !this.recipient) {
-    return next(new mongoose.Error.ValidationError(Object.assign(new Error('Receiver/recipient is required'), { path: 'receiver' })));
+    return next(
+      new mongoose.Error.ValidationError(
+        Object.assign(new Error('Receiver/recipient is required'), {
+          path: 'receiver',
+        })
+      )
+    );
   }
-  if (!(this.text && String(this.text).trim()) && !(this.content && String(this.content).trim())) {
-    return next(new mongoose.Error.ValidationError(Object.assign(new Error('Message text/content is required'), { path: 'text' })));
+  if (
+    !(this.text && String(this.text).trim()) &&
+    !(this.content && String(this.content).trim())
+  ) {
+    return next(
+      new mongoose.Error.ValidationError(
+        Object.assign(new Error('Message text/content is required'), {
+          path: 'text',
+        })
+      )
+    );
   }
 
   next();
@@ -109,25 +128,32 @@ messageSchema.pre('validate', function preValidate(next) {
 /**
  * Static: getOverviewForUser(userId)
  * Returns lightweight conversation rows:
- *   [{ userId, lastMessageTime, snippet }]
+ *   [{
+ *      userId,
+ *      lastMessageTime,
+ *      snippet,
+ *      unreadCount,
+ *      displayName,
+ *      avatarUrl,
+ *      isPremium,
+ *      premiumTier
+ *   }]
  *
  * - Matches messages where (sender==user) OR (receiver==user) OR (recipient==user)
  * - Normalizes peer id: other = (sender==user) ? (receiver||recipient) : sender
  * - Uses max of createdAt|timestamp as time
  * - Uses text||content as snippet
+ * - Enriches with partner user data from `users` collection
  * - Sorted by lastMessageTime DESC
  */
+// --- REPLACE START: overview pipeline with user enrichment ---
 messageSchema.statics.getOverviewForUser = async function getOverviewForUser(userId) {
   const uid = typeof userId === 'string' ? new Types.ObjectId(userId) : userId;
 
   const pipeline = [
     {
       $match: {
-        $or: [
-          { sender: uid },
-          { receiver: uid },
-          { recipient: uid },
-        ],
+        $or: [{ sender: uid }, { receiver: uid }, { recipient: uid }],
       },
     },
     {
@@ -157,20 +183,92 @@ messageSchema.statics.getOverviewForUser = async function getOverviewForUser(use
     },
     // Sort final rows by recency
     { $sort: { lastMessageTime: -1 } },
+    // Enrich with partner User document (collection name is "users" by default in Mongoose)
+    {
+      $lookup: {
+        from: 'users',
+        localField: '_id',
+        foreignField: '_id',
+        as: 'partner',
+      },
+    },
+    {
+      $unwind: {
+        path: '$partner',
+        preserveNullAndEmptyArrays: true,
+      },
+    },
     {
       $project: {
         _id: 0,
         userId: '$_id',
         lastMessageTime: 1,
         snippet: 1,
-        // Placeholder for unreadCount; computing accurate unread requires read receipts
+        // Placeholder for unreadCount; accurate unread requires read receipts
         unreadCount: { $literal: 0 },
+
+        // Best effort display name:
+        // displayName > name > firstName > email > "Unknown user"
+        displayName: {
+          $ifNull: [
+            '$partner.displayName',
+            {
+              $ifNull: [
+                '$partner.name',
+                {
+                  $ifNull: [
+                    '$partner.firstName',
+                    {
+                      $ifNull: ['$partner.email', 'Unknown user'],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+
+        // Best effort avatar URL:
+        // profilePicture > avatar > profilePhoto > photos[0] > null
+        avatarUrl: {
+          $ifNull: [
+            '$partner.profilePicture',
+            {
+              $ifNull: [
+                '$partner.avatar',
+                {
+                  $ifNull: [
+                    '$partner.profilePhoto',
+                    { $arrayElemAt: ['$partner.photos', 0] },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+
+        // Premium flags for UI badges (conversation list)
+        isPremium: {
+          $cond: [
+            {
+              $or: [
+                { $eq: ['$partner.isPremium', true] },
+                { $eq: ['$partner.premium', true] },
+                { $eq: ['$partner.entitlements.tier', 'premium'] },
+              ],
+            },
+            true,
+            false,
+          ],
+        },
+        premiumTier: '$partner.entitlements.tier',
       },
     },
   ];
 
   return this.aggregate(pipeline).exec();
 };
+// --- REPLACE END ---
 
 /**
  * Helpful indexes for common queries and aggregation performance.
@@ -191,3 +289,5 @@ try {
 
 module.exports = MessageModel;
 // --- REPLACE END ---
+
+

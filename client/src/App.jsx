@@ -2,7 +2,7 @@
 
 // --- REPLACE START: use AuthContext.user instead of authUser field ---
 import React, { Suspense, useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import "slick-carousel/slick/slick.css";
@@ -15,6 +15,7 @@ import ResetPassword from "./components/ResetPassword.jsx";
 import MainLayout from "./components/MainLayout";
 import ConsentBanner from "./components/privacy/ConsentBanner";
 import { useAuth } from "./contexts/AuthContext";
+import { trackPageView } from "./utils/analytics";
 
 import Etusivu from "./pages/Etusivu";
 import Discover from "./pages/Discover";
@@ -83,6 +84,22 @@ function AdminRoute({ children }) {
   return authUser.role === "admin" ? children : <Navigate to="/" replace />;
 }
 
+// Route-level analytics: track page views on navigation.
+// Respect consent via analytics.js gating (no direct provider calls here).
+function RouteAnalytics() {
+  const location = useLocation();
+
+  useEffect(() => {
+    try {
+      trackPageView(location.pathname + location.search);
+    } catch {
+      // Swallow analytics errors to avoid breaking navigation
+    }
+  }, [location.pathname, location.search]);
+
+  return null;
+}
+
 // MSW in dev only
 if (
   typeof window !== "undefined" &&
@@ -120,6 +137,9 @@ export default function App() {
               v7_relativeSplatPath: true,
             }}
           >
+            {/* Route-level analytics hook (consent-aware via analytics.js) */}
+            <RouteAnalytics />
+
             {/* Global consent banner */}
             <ConsentBanner />
 
@@ -174,14 +194,24 @@ export default function App() {
                     </PrivateRoute>
                   }
                 />
+                {/* --- REPLACE START: wire /likes to WhoLikedMe and /who-liked-me to LikesOverview --- */}
                 <Route
                   path="likes"
+                  element={
+                    <PrivateRoute>
+                      <WhoLikedMe />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="who-liked-me"
                   element={
                     <PrivateRoute>
                       <LikesOverview />
                     </PrivateRoute>
                   }
                 />
+                {/* --- REPLACE END --- */}
                 <Route
                   path="messages"
                   element={
@@ -213,14 +243,6 @@ export default function App() {
                   element={
                     <PrivateRoute>
                       <Upgrade />
-                    </PrivateRoute>
-                  }
-                />
-                <Route
-                  path="who-liked-me"
-                  element={
-                    <PrivateRoute>
-                      <WhoLikedMe />
                     </PrivateRoute>
                   }
                 />
@@ -279,5 +301,4 @@ export default function App() {
   );
 }
 // --- REPLACE END ---
-
 

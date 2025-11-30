@@ -26,18 +26,26 @@ export default function MessagesOverview() {
   });
 
   return (
-    <main className="p-6">
+    <main
+      className="p-6"
+      aria-labelledby="messages-overview-title"
+    >
       {/* SEO / document head */}
       <Helmet>
         <title>{title} - MyApp</title>
         <meta name="description" content={description} />
       </Helmet>
 
-      <header className="mb-4">
-        <h1 className="text-2xl font-bold">{title}</h1>
-      </header>
+      <div className="max-w-5xl mx-auto">
+        <header className="mb-4">
+          <h1 id="messages-overview-title" className="text-2xl font-bold">
+            {title}
+          </h1>
+          <p className="mt-1 text-sm text-gray-600">{description}</p>
+        </header>
 
-      <ConversationList />
+        <ConversationList />
+      </div>
 
       {/* // --- REPLACE START: standard content ad slot (inline) --- */}
       <AdGate type="inline" debug={false}>
@@ -53,6 +61,10 @@ export default function MessagesOverview() {
     </main>
   );
 }
+
+// The replacement region is marked between
+// --- REPLACE START and // --- REPLACE END
+// so you can verify exactly what changed.
 
 
 

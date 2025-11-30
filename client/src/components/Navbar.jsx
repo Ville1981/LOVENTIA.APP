@@ -75,7 +75,8 @@ const Navbar = () => {
     { path: "/profile", key: "common:nav.profile" },
     { path: "/matches", key: "common:nav.matches" },
     { path: "/messages", key: "common:nav.messages" },
-    { path: "/who-liked-me", key: "common:nav.likes" },
+    // Likes overview (outgoing, incoming, matches)
+    { path: "/likes", key: "common:nav.likes" },
     { path: "/map", key: "common:nav.map" },
     { path: "/upgrade", key: "common:nav.premium" },
     { path: "/settings", key: "common:nav.settings" },
@@ -205,4 +206,5 @@ const Navbar = () => {
 
 export default Navbar;
 // --- REPLACE END ---
+
 

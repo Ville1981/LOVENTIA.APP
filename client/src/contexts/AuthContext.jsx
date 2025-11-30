@@ -308,6 +308,8 @@ export function AuthProvider({ children }) {
   // Prevent overlapping calls
   const refreshInFlightRef = useRef(null);
   const billingSyncInFlightRef = useRef(null);
+  // Cooldown to avoid hammering /api/billing/sync and hitting 429
+  const lastBillingSyncRef = useRef(0);
 
   // Update FREE like quota from /api/likes response
   const updateDailyLikeQuotaFromPayload = useCallback((payload) => {
@@ -518,7 +520,11 @@ export function AuthProvider({ children }) {
   /**
    * Reconcile billing with the server (Stripe as source of truth),
    * then update user premium flag + entitlements locally.
-   * Guard: do nothing if there is no access token to avoid spam.
+   *
+   * Guards:
+   * - do nothing if there is no access token
+   * - de-duplicate in-flight calls in this tab
+   * - apply a small cooldown window to avoid hitting 429 from rapid-fire triggers
    */
   const reconcileBillingNow = useCallback(async () => {
     const hasToken = !!getAccessToken();
@@ -532,8 +538,33 @@ export function AuthProvider({ children }) {
       return null;
     }
 
-    // De-duplicate in-flight
-    if (billingSyncInFlightRef.current) return billingSyncInFlightRef.current;
+    // If we already have an in-flight sync, reuse that Promise
+    if (billingSyncInFlightRef.current) {
+      return billingSyncInFlightRef.current;
+    }
+
+    // Cooldown: avoid hammering /api/billing/sync when multiple triggers fire
+    const now = Date.now();
+    const last = lastBillingSyncRef.current || 0;
+    const MIN_INTERVAL_MS = 10000; // 10s is enough to avoid burst 429s
+
+    if (now - last < MIN_INTERVAL_MS) {
+      if (import.meta?.env?.DEV) {
+        try {
+          // eslint-disable-next-line no-console
+          console.info("[AuthContext] Billing sync skipped (cooldown)", {
+            elapsedMs: now - last,
+            minMs: MIN_INTERVAL_MS,
+          });
+        } catch {
+          /* ignore */
+        }
+      }
+      return Promise.resolve(null);
+    }
+
+    // Mark the moment we decided to start a sync
+    lastBillingSyncRef.current = now;
 
     const task = (async () => {
       try {
@@ -585,8 +616,20 @@ export function AuthProvider({ children }) {
         return payload;
       } catch (e) {
         try {
-          // eslint-disable-next-line no-console
-          console.warn("[AuthContext] Billing sync failed:", e?.message || e);
+          // If backend rate limiter returns 429, do not treat as hard failure
+          const status = e?.response?.status;
+          if (status === 429) {
+            // eslint-disable-next-line no-console
+            console.warn(
+              "[AuthContext] Billing sync hit 429 (rate limited), will rely on last known entitlements."
+            );
+          } else {
+            // eslint-disable-next-line no-console
+            console.warn(
+              "[AuthContext] Billing sync failed:",
+              e?.message || e
+            );
+          }
         } catch {
           /* ignore */
         }

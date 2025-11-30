@@ -9,6 +9,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { setAnalyticsEnabled } from "../utils/analytics";
 
 /**
  * IMPORTANT:
@@ -122,12 +123,12 @@ export const ConsentProvider = ({ children }) => {
     [consent, setConsent, isDecided]
   );
 
-  // Optional place for bootstrapping analytics loaders (kept as no-op)
+  // Keep analytics facade in sync with consent.
+  // This does NOT load any external scripts; it only toggles our internal
+  // analytics layer on/off based on the stored decision.
   useEffect(() => {
     if (!isDecided) return;
-    // Example (disabled by default):
-    // if (consent.analytics) initAnalyticsOnce();
-    // else disableAnalytics();
+    setAnalyticsEnabled(!!consent.analytics);
   }, [isDecided, consent.analytics]);
 
   return <ConsentContext.Provider value={value}>{children}</ConsentContext.Provider>;
@@ -135,4 +136,6 @@ export const ConsentProvider = ({ children }) => {
 
 export const useConsent = () => useContext(ConsentContext);
 // --- REPLACE END ---
+
+
 

@@ -67,7 +67,11 @@ if (typeof window !== "undefined") {
       try {
         const winOriginal =
           typeof window.setTimeout === "function" ? window.setTimeout : null;
-        if (winOriginal && (winOriginal === original || winOriginal.toString() === original.toString())) {
+        if (
+          winOriginal &&
+          (winOriginal === original ||
+            winOriginal.toString() === original.toString())
+        ) {
           window.setTimeout = patched;
         }
       } catch {
@@ -106,7 +110,11 @@ function useTimeoutGuard() {
 ============================================================================= */
 const RELIGION_OPTIONS = [
   { value: "", key: "common:all", label: "" },
-  { value: "christianity", key: "profile:religion.christianity", label: "Christianity" },
+  {
+    value: "christianity",
+    key: "profile:religion.christianity",
+    label: "Christianity",
+  },
   { value: "islam", key: "profile:religion.islam", label: "Islam" },
   { value: "hinduism", key: "profile:religion.hinduism", label: "Hinduism" },
   { value: "buddhism", key: "profile:religion.buddhism", label: "Buddhism" },
@@ -118,30 +126,110 @@ const RELIGION_OPTIONS = [
 
 const RELIGION_IMPORTANCE_OPTIONS = [
   { value: "", key: "common:all", label: "" },
-  { value: "Not at all important", key: "profile:religionImportance.notImportant", label: "Not at all important" },
-  { value: "Somewhat important", key: "profile:religionImportance.somewhatImportant", label: "Somewhat important" },
-  { value: "Very important", key: "profile:religionImportance.veryImportant", label: "Very important" },
-  { value: "Essential", key: "profile:religionImportance.essential", label: "Essential" },
+  {
+    value: "Not at all important",
+    key: "profile:religionImportance.notImportant",
+    label: "Not at all important",
+  },
+  {
+    value: "Somewhat important",
+    key: "profile:religionImportance.somewhatImportant",
+    label: "Somewhat important",
+  },
+  {
+    value: "Very important",
+    key: "profile:religionImportance.veryImportant",
+    label: "Very important",
+  },
+  {
+    value: "Essential",
+    key: "profile:religionImportance.essential",
+    label: "Essential",
+  },
 ];
 
 const POLITICAL_IDEOLOGY_OPTIONS = [
   { value: "", key: "common:all", label: "" },
-  { value: "Left", key: "profile:options.politicalIdeology.left", label: "Left" },
-  { value: "Centre", key: "profile:options.politicalIdeology.centre", label: "Centre" },
-  { value: "Right", key: "profile:options.politicalIdeology.right", label: "Right" },
-  { value: "Conservatism", key: "profile:options.politicalIdeology.conservatism", label: "Conservatism" },
-  { value: "Liberalism", key: "profile:options.politicalIdeology.liberalism", label: "Liberalism" },
-  { value: "Socialism", key: "profile:options.politicalIdeology.socialism", label: "Socialism" },
-  { value: "Communism", key: "profile:options.politicalIdeology.communism", label: "Communism" },
-  { value: "Fascism", key: "profile:options.politicalIdeology.fascism", label: "Fascism" },
-  { value: "Environmentalism", key: "profile:options.politicalIdeology.environmentalism", label: "Environmentalism" },
-  { value: "Anarchism", key: "profile:options.politicalIdeology.anarchism", label: "Anarchism" },
-  { value: "Nationalism", key: "profile:options.politicalIdeology.nationalism", label: "Nationalism" },
-  { value: "Populism", key: "profile:options.politicalIdeology.populism", label: "Populism" },
-  { value: "Progressivism", key: "profile:options.politicalIdeology.progressivism", label: "Progressivism" },
-  { value: "Libertarianism", key: "profile:options.politicalIdeology.libertarianism", label: "Libertarianism" },
-  { value: "Democracy", key: "profile:options.politicalIdeology.democracy", label: "Democracy" },
-  { value: "other", key: "profile:options.politicalIdeology.other", label: "Other" },
+  {
+    value: "Left",
+    key: "profile:options.politicalIdeology.left",
+    label: "Left",
+  },
+  {
+    value: "Centre",
+    key: "profile:options.politicalIdeology.centre",
+    label: "Centre",
+  },
+  {
+    value: "Right",
+    key: "profile:options.politicalIdeology.right",
+    label: "Right",
+  },
+  {
+    value: "Conservatism",
+    key: "profile:options.politicalIdeology.conservatism",
+    label: "Conservatism",
+  },
+  {
+    value: "Liberalism",
+    key: "profile:options.politicalIdeology.liberalism",
+    label: "Liberalism",
+  },
+  {
+    value: "Socialism",
+    key: "profile:options.politicalIdeology.socialism",
+    label: "Socialism",
+  },
+  {
+    value: "Communism",
+    key: "profile:options.politicalIdeology.communism",
+    label: "Communism",
+  },
+  {
+    value: "Fascism",
+    key: "profile:options.politicalIdeology.fascism",
+    label: "Fascism",
+  },
+  {
+    value: "Environmentalism",
+    key: "profile:options.politicalIdeology.environmentalism",
+    label: "Environmentalism",
+  },
+  {
+    value: "Anarchism",
+    key: "profile:options.politicalIdeology.anarchism",
+    label: "Anarchism",
+  },
+  {
+    value: "Nationalism",
+    key: "profile:options.politicalIdeology.nationalism",
+    label: "Nationalism",
+  },
+  {
+    value: "Populism",
+    key: "profile:options.politicalIdeology.populism",
+    label: "Populism",
+  },
+  {
+    value: "Progressivism",
+    key: "profile:options.politicalIdeology.progressivism",
+    label: "Progressivism",
+  },
+  {
+    value: "Libertarianism",
+    key: "profile:options.politicalIdeology.libertarianism",
+    label: "Libertarianism",
+  },
+  {
+    value: "Democracy",
+    key: "profile:options.politicalIdeology.democracy",
+    label: "Democracy",
+  },
+  {
+    value: "other",
+    key: "profile:options.politicalIdeology.other",
+    label: "Other",
+  },
 ];
 
 const GENDER_OPTIONS = [
@@ -153,18 +241,42 @@ const GENDER_OPTIONS = [
 
 const ORIENTATION_OPTIONS = [
   { value: "", key: "common:all", label: "" },
-  { value: "straight", key: "profile:options.orientation.straight", label: "Straight" },
+  {
+    value: "straight",
+    key: "profile:options.orientation.straight",
+    label: "Straight",
+  },
   { value: "gay", key: "profile:options.orientation.gay", label: "Gay" },
-  { value: "bi", key: "profile:options.orientation.bisexual", label: "Bi" },
+  {
+    value: "bi",
+    key: "profile:options.orientation.bisexual",
+    label: "Bi",
+  },
   { value: "other", key: "profile:options.orientation.other", label: "Other" },
 ];
 
 const EDUCATION_OPTIONS = [
   { value: "", key: "common:all", label: "" },
-  { value: "highschool", key: "profile:education.highschool", label: "High school" },
-  { value: "vocational", key: "profile:education.vocational", label: "Vocational" },
-  { value: "bachelor", key: "profile:education.bachelor", label: "Bachelor" },
-  { value: "master", key: "profile:education.master", label: "Master" },
+  {
+    value: "highschool",
+    key: "profile:education.highschool",
+    label: "High school",
+  },
+  {
+    value: "vocational",
+    key: "profile:education.vocational",
+    label: "Vocational",
+  },
+  {
+    value: "bachelor",
+    key: "profile:education.bachelor",
+    label: "Bachelor",
+  },
+  {
+    value: "master",
+    key: "profile:education.master",
+    label: "Master",
+  },
   { value: "phd", key: "profile:education.phd", label: "PhD" },
   { value: "other", key: "profile:education.other", label: "Other" },
 ];
@@ -211,27 +323,51 @@ const DiscoverFilters = ({ values, setters, handleFilter, onApply }) => {
   const { handleSubmit, register, getValues } = methods;
 
   const mappedReligionOptions = useMemo(
-    () => RELIGION_OPTIONS.map((o) => ({ ...o, text: t(o.key) || o.label || t("common:select") })),
+    () =>
+      RELIGION_OPTIONS.map((o) => ({
+        ...o,
+        text: t(o.key) || o.label || t("common:select"),
+      })),
     [t]
   );
   const mappedReligionImportanceOptions = useMemo(
-    () => RELIGION_IMPORTANCE_OPTIONS.map((o) => ({ ...o, text: t(o.key) || o.label || t("common:select") })),
+    () =>
+      RELIGION_IMPORTANCE_OPTIONS.map((o) => ({
+        ...o,
+        text: t(o.key) || o.label || t("common:select"),
+      })),
     [t]
   );
   const mappedPoliticalOptions = useMemo(
-    () => POLITICAL_IDEOLOGY_OPTIONS.map((o) => ({ ...o, text: t(o.key) || o.label || t("common:select") })),
+    () =>
+      POLITICAL_IDEOLOGY_OPTIONS.map((o) => ({
+        ...o,
+        text: t(o.key) || o.label || t("common:select"),
+      })),
     [t]
   );
   const mappedGenderOptions = useMemo(
-    () => GENDER_OPTIONS.map((o) => ({ ...o, text: t(o.key) || o.label || t("common:select") })),
+    () =>
+      GENDER_OPTIONS.map((o) => ({
+        ...o,
+        text: t(o.key) || o.label || t("common:select"),
+      })),
     [t]
   );
   const mappedOrientationOptions = useMemo(
-    () => ORIENTATION_OPTIONS.map((o) => ({ ...o, text: t(o.key) || o.label || t("common:select") })),
+    () =>
+      ORIENTATION_OPTIONS.map((o) => ({
+        ...o,
+        text: t(o.key) || o.label || t("common:select"),
+      })),
     [t]
   );
   const mappedEducationOptions = useMemo(
-    () => EDUCATION_OPTIONS.map((o) => ({ ...o, text: t(o.key) || o.label || t("common:select") })),
+    () =>
+      EDUCATION_OPTIONS.map((o) => ({
+        ...o,
+        text: t(o.key) || o.label || t("common:select"),
+      })),
     [t]
   );
 
@@ -321,7 +457,10 @@ const DiscoverFilters = ({ values, setters, handleFilter, onApply }) => {
             <h2 data-cy="DiscoverFilters__title" className="text-3xl font-bold mb-2">
               {t("discover:title")}
             </h2>
-            <p data-cy="DiscoverFilters__instructions" className="text-gray-600">
+            <p
+              data-cy="DiscoverFilters__instructions"
+              className="text-gray-600"
+            >
               {t("discover:instructions")}
             </p>
           </div>
@@ -373,7 +512,10 @@ const DiscoverFilters = ({ values, setters, handleFilter, onApply }) => {
               type="text"
               {...register("username")}
               className="w-full p-2 border rounded"
-              placeholder={t("discover:username.placeholder", "Search by username")}
+              placeholder={t(
+                "discover:username.placeholder",
+                "Search by username"
+              )}
               autoComplete="off"
             />
           </div>
@@ -383,7 +525,11 @@ const DiscoverFilters = ({ values, setters, handleFilter, onApply }) => {
             <label className="block font-medium mb-1" htmlFor="gender">
               {t("discover:gender.label")}
             </label>
-            <select id="gender" {...register("gender")} className="w-full p-2 border rounded">
+            <select
+              id="gender"
+              {...register("gender")}
+              className="w-full p-2 border rounded"
+            >
               {mappedGenderOptions.map((o) => (
                 <option key={`${o.value || "all"}`} value={o.value}>
                   {o.text}
@@ -397,7 +543,11 @@ const DiscoverFilters = ({ values, setters, handleFilter, onApply }) => {
             <label className="block font-medium mb-1" htmlFor="orientation">
               {t("discover:orientation.label")}
             </label>
-            <select id="orientation" {...register("orientation")} className="w-full p-2 border rounded">
+            <select
+              id="orientation"
+              {...register("orientation")}
+              className="w-full p-2 border rounded"
+            >
               {mappedOrientationOptions.map((o) => (
                 <option key={`${o.value || "all"}`} value={o.value}>
                   {o.text}
@@ -444,7 +594,11 @@ const DiscoverFilters = ({ values, setters, handleFilter, onApply }) => {
             <label className="block font-medium mb-1" htmlFor="profession">
               {t("discover:profession")}
             </label>
-            <select id="profession" {...register("profession")} className="w-full p-2 border rounded">
+            <select
+              id="profession"
+              {...register("profession")}
+              className="w-full p-2 border rounded"
+            >
               <option value="">{t("common:all")}</option>
             </select>
           </div>
@@ -454,7 +608,11 @@ const DiscoverFilters = ({ values, setters, handleFilter, onApply }) => {
             <label className="block font-medium mb-1" htmlFor="religion">
               🛐 {t("discover:religion.label")}
             </label>
-            <select id="religion" {...register("religion")} className="w-full p-2 border rounded">
+            <select
+              id="religion"
+              {...register("religion")}
+              className="w-full p-2 border rounded"
+            >
               {mappedReligionOptions.map((o) => (
                 <option key={`${o.value || "all"}`} value={o.value}>
                   {o.text}
@@ -463,7 +621,10 @@ const DiscoverFilters = ({ values, setters, handleFilter, onApply }) => {
             </select>
           </div>
           <div>
-            <label className="block font-medium mb-1" htmlFor="religionImportance">
+            <label
+              className="block font-medium mb-1"
+              htmlFor="religionImportance"
+            >
               {t("discover:religionImportance")}
             </label>
             <select
@@ -481,7 +642,10 @@ const DiscoverFilters = ({ values, setters, handleFilter, onApply }) => {
 
           {/* Political ideology */}
           <div>
-            <label className="block font-medium mb-1" htmlFor="politicalIdeology">
+            <label
+              className="block font-medium mb-1"
+              htmlFor="politicalIdeology"
+            >
               🗳️ {t("discover:politicalIdeology")}
             </label>
             <select
@@ -512,12 +676,17 @@ const DiscoverFilters = ({ values, setters, handleFilter, onApply }) => {
           {/* --- Dealbreakers (premium-gated) -------------------------------------------------- */}
           <div className="mt-4 border-t pt-4">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xl font-semibold" data-cy="DiscoverFilters__dealbreakersTitle">
+              <h3
+                className="text-xl font-semibold"
+                data-cy="DiscoverFilters__dealbreakersTitle"
+              >
                 {t("discover:dealbreakers.title", "Dealbreakers")}
               </h3>
               {!isPremium && (
                 <Badge>
-                  <span role="img" aria-label="locked">🔒</span>
+                  <span role="img" aria-label="locked">
+                    🔒
+                  </span>
                   <span className="whitespace-nowrap">
                     {t("discover:premiumOnly", "Premium only")}
                   </span>
@@ -557,7 +726,10 @@ const DiscoverFilters = ({ values, setters, handleFilter, onApply }) => {
                   className="h-4 w-4"
                 />
                 <label htmlFor="mustHavePhoto" className="font-medium">
-                  {t("discover:dealbreakers.mustHavePhoto", "Must have photo")}
+                  {t(
+                    "discover:dealbreakers.mustHavePhoto",
+                    "Must have photo"
+                  )}
                 </label>
               </div>
 
@@ -571,7 +743,10 @@ const DiscoverFilters = ({ values, setters, handleFilter, onApply }) => {
                   className="h-4 w-4"
                 />
                 <label htmlFor="nonSmokerOnly" className="font-medium">
-                  {t("discover:dealbreakers.nonSmokerOnly", "Non-smoker only")}
+                  {t(
+                    "discover:dealbreakers.nonSmokerOnly",
+                    "Non-smoker only"
+                  )}
                 </label>
               </div>
 
@@ -593,7 +768,11 @@ const DiscoverFilters = ({ values, setters, handleFilter, onApply }) => {
                 <label className="block font-medium mb-1" htmlFor="petsOk">
                   {t("discover:dealbreakers.petsOk", "Pets OK")}
                 </label>
-                <select id="petsOk" {...register("petsOk")} className="w-full p-2 border rounded">
+                <select
+                  id="petsOk"
+                  {...register("petsOk")}
+                  className="w-full p-2 border rounded"
+                >
                   <option value="">{t("common:all")}</option>
                   <option value="true">{t("common:yes", "Yes")}</option>
                   <option value="false">{t("common:no", "No")}</option>
@@ -602,7 +781,10 @@ const DiscoverFilters = ({ values, setters, handleFilter, onApply }) => {
 
               <div className="mb-3">
                 <label className="block font-medium mb-1" htmlFor="religionList">
-                  {t("discover:dealbreakers.religion", "Religion (required)")}
+                  {t(
+                    "discover:dealbreakers.religion",
+                    "Religion (required)"
+                  )}
                 </label>
                 <select
                   id="religionList"
@@ -619,13 +801,22 @@ const DiscoverFilters = ({ values, setters, handleFilter, onApply }) => {
                     ))}
                 </select>
                 <p className="text-xs text-gray-500 mt-1">
-                  {t("discover:dealbreakers.religionHelp", "Hold Ctrl/Cmd to select multiple.")}
+                  {t(
+                    "discover:dealbreakers.religionHelp",
+                    "Hold Ctrl/Cmd to select multiple."
+                  )}
                 </p>
               </div>
 
               <div className="mb-2">
-                <label className="block font-medium mb-1" htmlFor="educationList">
-                  {t("discover:dealbreakers.education", "Education (required)")}
+                <label
+                  className="block font-medium mb-1"
+                  htmlFor="educationList"
+                >
+                  {t(
+                    "discover:dealbreakers.education",
+                    "Education (required)"
+                  )}
                 </label>
                 <select
                   id="educationList"
@@ -642,7 +833,10 @@ const DiscoverFilters = ({ values, setters, handleFilter, onApply }) => {
                     ))}
                 </select>
                 <p className="text-xs text-gray-500 mt-1">
-                  {t("discover:dealbreakers.educationHelp", "Hold Ctrl/Cmd to select multiple.")}
+                  {t(
+                    "discover:dealbreakers.educationHelp",
+                    "Hold Ctrl/Cmd to select multiple."
+                  )}
                 </p>
               </div>
             </fieldset>

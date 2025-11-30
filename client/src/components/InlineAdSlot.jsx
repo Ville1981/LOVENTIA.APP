@@ -1,3 +1,4 @@
+// PATH: client/src/components/InlineAdSlot.jsx
 // --- REPLACE START: Inline ad slot (remove broken adsData import, keep 1200×300 header, safe fallbacks) ---
 import React, { useMemo } from "react";
 import AdGate from "./AdGate";
@@ -34,7 +35,7 @@ export default function InlineAdSlot({
    * Header source selection:
    * 1) Explicit env -> VITE_HEADER_AD_SRC (or VITE_INTERSTITIAL_AD_SRC).
    * 2) Built-in list -> /ads/header{1,2,3}.png (matches your existing files).
-   * 3) Final fallback -> /ads/sample-banner.jpg (keeps layout visible).
+   * 3) Final fallback -> /ads/header1.png (keeps layout visible even if env is missing).
    *
    * This removes the hard dependency on ../api/adsData.js which failed to resolve in Vite.
    * If you later want to re-use adsData.js, replace HEADER_LIST below with your import.
@@ -48,7 +49,8 @@ export default function InlineAdSlot({
     // Matches your existing files:
     const HEADER_LIST = ["/ads/header1.png", "/ads/header2.png", "/ads/header3.png"];
 
-    return envVal || HEADER_LIST[0] || "/ads/sample-banner.jpg";
+    // NOTE: We no longer reference /ads/sample-banner.jpg here.
+    return envVal || HEADER_LIST[0] || "/ads/header1.png";
   }, []);
 
   // ---------------- HEADER PLACEMENT ----------------

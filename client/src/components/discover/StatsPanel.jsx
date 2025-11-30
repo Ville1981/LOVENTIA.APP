@@ -1,4 +1,4 @@
-﻿// File: client/src/components/discover/StatsPanel.jsx
+﻿// File: client/src/components/profile/StatsPanel.jsx
 
 // --- REPLACE START: StatsPanel – neutral placeholders + robust URL normalization (no Bunny fallback) ---
 import PropTypes from "prop-types";

@@ -4,6 +4,7 @@
 import { useMemo, useEffect } from "react";
 import useEntitlements from "./useEntitlements";
 import { createLogger } from "../utils/debugLog";
+
 const log = createLogger("useAds");
 
 /** Helpers **/
@@ -21,7 +22,7 @@ const CAP_LS_KEY = (d = todayKey()) => `ads:cap:${d}`;
 function readMarketingConsent() {
   // Canonical first
   try {
-    const raw = localStorage.getItem("loventia:consent");
+    const raw = typeof window !== "undefined" ? window.localStorage.getItem("loventia:consent") : null;
     if (raw) {
       const obj = JSON.parse(raw);
       if (typeof obj?.marketing === "boolean") return obj.marketing;
@@ -35,7 +36,8 @@ function readMarketingConsent() {
   const keys = ["cookie-consent", "cookieConsent", "consent"];
   for (const k of keys) {
     try {
-      const raw = localStorage.getItem(k);
+      const raw =
+        typeof window !== "undefined" ? window.localStorage.getItem(k) : null;
       if (!raw) continue;
       const obj = JSON.parse(raw);
       if (typeof obj?.marketing === "boolean") return obj.marketing;
@@ -56,14 +58,20 @@ function readMarketingConsent() {
 // Frequency-cap helpers
 function getCounts(day = todayKey()) {
   try {
-    return JSON.parse(localStorage.getItem(CAP_LS_KEY(day)) || "{}");
+    const raw =
+      typeof window !== "undefined"
+        ? window.localStorage.getItem(CAP_LS_KEY(day))
+        : null;
+    return JSON.parse(raw || "{}");
   } catch {
     return {};
   }
 }
 function setCounts(obj, day = todayKey()) {
   try {
-    localStorage.setItem(CAP_LS_KEY(day), JSON.stringify(obj || {}));
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(CAP_LS_KEY(day), JSON.stringify(obj || {}));
+    }
   } catch {
     /* quota ignore */
   }
@@ -101,13 +109,20 @@ export default function useAds() {
 
   // Dev override knobs (no effect in production builds)
   const devOverride =
-    !!import.meta.env.DEV && localStorage.getItem("ads:forceInterstitial") === "1";
+    !!import.meta.env.DEV &&
+    typeof window !== "undefined" &&
+    window.localStorage.getItem("ads:forceInterstitial") === "1";
+
   const devForceCount =
-    !!import.meta.env.DEV && localStorage.getItem("ads:forceCount") === "1";
+    !!import.meta.env.DEV &&
+    typeof window !== "undefined" &&
+    window.localStorage.getItem("ads:forceCount") === "1";
 
   // Entitlements (source of truth for isPremium)
   // Note: we assume the hook exposes a loading flag; default false for safety.
-  const { isPremium, loading: entitlementsLoading = false } = useEntitlements({ enabled: true });
+  const { isPremium, loading: entitlementsLoading = false } = useEntitlements({
+    enabled: true,
+  });
   const ready = !entitlementsLoading;
 
   // Consent
@@ -132,9 +147,8 @@ export default function useAds() {
   // Record impression unless we are in devOverride mode for interstitial and counting is not explicitly forced.
   const noteImpression = (type) => {
     if (devOverride && type === "interstitial" && !devForceCount) {
-      if (import.meta.env.DEV && window.__ADS_DEBUG) {
-        // eslint-disable-next-line no-console
-        console.info("[useAds] devOverride active → NOT incrementing interstitial cap");
+      if (import.meta.env.DEV && typeof window !== "undefined" && window.__ADS_DEBUG) {
+        log("[useAds] devOverride active → NOT incrementing interstitial cap");
       }
       return;
     }
@@ -144,6 +158,8 @@ export default function useAds() {
   // Dev-time diagnostics (safe no-ops in prod)
   useEffect(() => {
     if (!import.meta.env?.DEV) return;
+    if (typeof window === "undefined") return;
+
     try {
       // Expose snapshot for quick inspection
       const snapshot = {
@@ -161,11 +177,11 @@ export default function useAds() {
       window.__adsDebug = snapshot;
 
       if (window.__ADS_DEBUG) {
-        // eslint-disable-next-line no-console
-        console.info("[useAds]", snapshot);
+        log("[useAds]", snapshot);
         if (devOverride) {
-          // eslint-disable-next-line no-console
-          console.info("[useAds] DEV OVERRIDE: interstitial will open regardless of gate conditions");
+          log(
+            "[useAds] DEV OVERRIDE: interstitial will open regardless of gate conditions"
+          );
         }
       }
     } catch {
@@ -197,4 +213,5 @@ export default function useAds() {
   };
 }
 // --- REPLACE END ---
+
 

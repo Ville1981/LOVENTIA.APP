@@ -1,12 +1,10 @@
-export const notFound = (req, res, next) => {
-  res.status(404).json({ error: 'Not Found' });
-};
+// PATH: server/__openapi_phase_pack/src/middleware/error.js
 
-export const errorHandler = (err, req, res, next) => {
-  const code = err.status || err.statusCode || 500;
-  const payload = { error: err.message || 'Server Error' };
-  if (process.env.NODE_ENV !== 'production' && err.stack) {
-    payload.stack = err.stack;
-  }
-  res.status(code).json(payload);
-};
+// --- REPLACE START ---
+// Shim: reuse the real middleware implementation from server/src/middleware/error.js
+// This keeps the OpenAPI phase pack in sync without duplicating logic.
+
+import { notFound, errorHandler } from "../../../src/middleware/error.js";
+
+export { notFound, errorHandler };
+// --- REPLACE END ---

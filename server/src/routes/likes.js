@@ -4,6 +4,7 @@
 
 import express from 'express';
 import authenticate from '../middleware/authenticate.js';
+import mongoose from 'mongoose';
 
 const router = express.Router();
 
@@ -75,7 +76,7 @@ async function getRewindCtrl() {
 
 // ──────────────────────────────────────────────────────────────────────────────
 /**
- * Lightweight ObjectId check (avoid importing mongoose in the router).
+ * Lightweight ObjectId check (avoid importing mongoose in the router where possible).
  */
 function isValidObjectId(id) {
   return typeof id === 'string' && /^[a-fA-F0-9]{24}$/.test(id);
@@ -92,7 +93,7 @@ async function getUserModel() {
   triedLoadUserModel = true;
 
   try {
-    // Legacy location: server/models/User.js
+    // Legacy location: server/models/User.js or .cjs
     const modLegacy = await import('../../models/User.js');
     UserModelCached = modLegacy?.default || modLegacy?.User || modLegacy || null;
     if (UserModelCached) return UserModelCached;
@@ -101,9 +102,25 @@ async function getUserModel() {
   }
 
   try {
-    // Current location: server/src/models/User.js
+    const modLegacyCjs = await import('../../models/User.cjs');
+    UserModelCached = modLegacyCjs?.default || modLegacyCjs?.User || modLegacyCjs || null;
+    if (UserModelCached) return UserModelCached;
+  } catch {
+    // ignore and try src layout
+  }
+
+  try {
+    // Current location: server/src/models/User.js or .cjs
     const mod = await import('../models/User.js');
     UserModelCached = mod?.default || mod?.User || mod || null;
+    if (UserModelCached) return UserModelCached;
+  } catch {
+    // ignore
+  }
+
+  try {
+    const modCjs = await import('../models/User.cjs');
+    UserModelCached = modCjs?.default || modCjs?.User || modCjs || null;
   } catch {
     UserModelCached = null;
   }
@@ -119,6 +136,56 @@ async function validateTargetUserExists(targetId) {
   if (!UserModel || typeof UserModel.findById !== 'function') return true; // skip if unavailable
   const exists = await UserModel.findById(targetId).select('_id').lean();
   return !!exists;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Lazy Block model resolver (used by matches filtering)
+// ──────────────────────────────────────────────────────────────────────────────
+let BlockModelCached = null;
+let triedLoadBlockModel = false;
+
+async function getBlockModel() {
+  if (BlockModelCached || triedLoadBlockModel) return BlockModelCached;
+  triedLoadBlockModel = true;
+
+  // Try src layout first (.js then .cjs)
+  try {
+    const modSrcJs = await import('../models/Block.js');
+    BlockModelCached =
+      modSrcJs?.default || modSrcJs?.Block || modSrcJs?.model || modSrcJs || null;
+    if (BlockModelCached) return BlockModelCached;
+  } catch {
+    // ignore
+  }
+
+  try {
+    const modSrcCjs = await import('../models/Block.cjs');
+    BlockModelCached =
+      modSrcCjs?.default || modSrcCjs?.Block || modSrcCjs?.model || modSrcCjs || null;
+    if (BlockModelCached) return BlockModelCached;
+  } catch {
+    // ignore
+  }
+
+  // Fallback to legacy layout (.js then .cjs)
+  try {
+    const modLegacyJs = await import('../../models/Block.js');
+    BlockModelCached =
+      modLegacyJs?.default || modLegacyJs?.Block || modLegacyJs?.model || modLegacyJs || null;
+    if (BlockModelCached) return BlockModelCached;
+  } catch {
+    // ignore
+  }
+
+  try {
+    const modLegacyCjs = await import('../../models/Block.cjs');
+    BlockModelCached =
+      modLegacyCjs?.default || modLegacyCjs?.Block || modLegacyCjs?.model || modLegacyCjs || null;
+  } catch {
+    BlockModelCached = null;
+  }
+
+  return BlockModelCached;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -177,8 +244,6 @@ async function pushRewindBestEffort(req, resultPayload) {
 
     // ──────────────────────────────────────────────────────────────────────────
     // HARD FALLBACK: write directly to User.rewind.stack
-    // This guarantees that /api/likes will always push something the
-    // /api/rewind endpoint can see, even if controllers do nothing.
     // ──────────────────────────────────────────────────────────────────────────
     const UserModel = await getUserModel();
     const userId =
@@ -234,6 +299,159 @@ async function pushRewindBestEffort(req, resultPayload) {
     console.warn('[likes routes] pushRewindBestEffort warning:', e?.message || e);
   }
   return false;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Helper: get block documents for the current user using Block model or fallback
+// ──────────────────────────────────────────────────────────────────────────────
+async function getBlocksForUserBestEffort(meStr) {
+  if (!meStr) return [];
+
+  try {
+    const BlockModel = await getBlockModel();
+
+    if (BlockModel && typeof BlockModel.find === 'function') {
+      // First attempt: query via model, restrict to rows where me is involved
+      const docs = await BlockModel.find({
+        $or: [
+          { blocker: meStr },
+          { blocked: meStr },
+          { blockedUserId: meStr },
+          { user: meStr },
+          { userId: meStr },
+          { target: meStr },
+          { targetUserId: meStr },
+        ],
+      })
+        .select(
+          'blocker blocked blockedUserId user userId target targetUserId'
+        )
+        .lean();
+
+      if (Array.isArray(docs) && docs.length > 0) {
+        return docs;
+      }
+    }
+
+    // Fallback: use raw Mongo collection "blocks" if available
+    const conn = mongoose.connection;
+    if (conn && conn.readyState === 1 && conn.db) {
+      const coll = conn.db.collection('blocks');
+      const cursor = coll.find({
+        $or: [
+          { blocker: meStr },
+          { blocked: meStr },
+          { blockedUserId: meStr },
+          { user: meStr },
+          { userId: meStr },
+          { target: meStr },
+          { targetUserId: meStr },
+        ],
+      });
+      const docs = await cursor
+        .project({
+          blocker: 1,
+          blocked: 1,
+          blockedUserId: 1,
+          user: 1,
+          userId: 1,
+          target: 1,
+          targetUserId: 1,
+        })
+        .toArray();
+
+      return Array.isArray(docs) ? docs : [];
+    }
+  } catch (e) {
+    console.warn('[likes routes] getBlocksForUserBestEffort warning:', e?.message || e);
+  }
+
+  return [];
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Helper: filter matches/likes response payload using Block relations
+// Expects payload like { ok, count, users: [ { _id, ... }, ... ] }
+// Used for matches, incoming and outgoing lists.
+// ──────────────────────────────────────────────────────────────────────────────
+async function filterMatchesWithBlocks(req, payload) {
+  try {
+    if (!payload || !Array.isArray(payload.users) || payload.users.length === 0) {
+      return payload;
+    }
+
+    const me =
+      req.userId ||
+      req.user?.id ||
+      req.user?._id ||
+      req.auth?.userId ||
+      req.auth?.id ||
+      null;
+
+    const meStr = me ? String(me) : null;
+    if (!meStr) {
+      return payload;
+    }
+
+    const docs = await getBlocksForUserBestEffort(meStr);
+    if (!Array.isArray(docs) || docs.length === 0) {
+      return payload;
+    }
+
+    const blockedSet = new Set();
+
+    for (const doc of docs) {
+      const blockerId =
+        doc.blocker ||
+        doc.blockerUserId ||
+        doc.user ||
+        doc.userId ||
+        null;
+      const blockedId =
+        doc.blockedUserId ||
+        doc.blocked ||
+        doc.targetUserId ||
+        doc.target ||
+        null;
+
+      const blockerStr = blockerId ? String(blockerId) : null;
+      const blockedStr = blockedId ? String(blockedId) : null;
+
+      // Primary case: current user blocks someone → hide blocked user
+      if (blockerStr === meStr && blockedStr) {
+        blockedSet.add(blockedStr);
+      }
+
+      // If current user is the blocked user and we know the other side, hide the other side as well
+      if (blockedStr === meStr && blockerStr) {
+        blockedSet.add(blockerStr);
+      }
+
+      // If only blockedUserId known (no blocker), still hide that user
+      if (!blockerStr && blockedStr) {
+        blockedSet.add(blockedStr);
+      }
+    }
+
+    if (blockedSet.size === 0) {
+      return payload;
+    }
+
+    const filteredUsers = payload.users.filter((u) => {
+      const id = u && (u._id || u.id);
+      if (!id) return true;
+      return !blockedSet.has(String(id));
+    });
+
+    return {
+      ...payload,
+      users: filteredUsers,
+      count: typeof payload.count === 'number' ? filteredUsers.length : payload.count,
+    };
+  } catch (e) {
+    console.warn('[likes routes] filterMatchesWithBlocks warning:', e?.message || e);
+    return payload;
+  }
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -372,29 +590,175 @@ router.delete('/:targetId', authenticate, async (req, res) => {
 
 // ──────────────────────────────────────────────────────────────────────────────
 // GET /outgoing | /incoming | /matches — lists (keep legacy function names)
+//  - All three responses are filtered using Block-relations so that blocked
+//    users do not appear in incoming/outgoing/matches for the current user.
 // ──────────────────────────────────────────────────────────────────────────────
 router.get('/outgoing', authenticate, async (req, res) => {
   const c = await getLikesCtrl();
   const fn = c.getOutgoing || c.listOutgoingLikes;
-  return typeof fn === 'function'
-    ? fn(req, res)
-    : res.status(501).json({ error: 'likesController.getOutgoing not available' });
+
+  if (typeof fn !== 'function') {
+    return res
+      .status(501)
+      .json({ error: 'likesController.getOutgoing not available' });
+  }
+
+  // Wrap res.json so we can filter outgoing likes using Block-relations
+  const originalJson = res.json.bind(res);
+
+  res.json = (body) => {
+    Promise.resolve(filterMatchesWithBlocks(req, body))
+      .then((filtered) => {
+        try {
+          originalJson(filtered);
+        } catch (e) {
+          console.warn(
+            '[likes routes] outgoing originalJson error:',
+            e?.message || e
+          );
+        }
+      })
+      .catch((e) => {
+        console.warn(
+          '[likes routes] outgoing filter wrapper error:',
+          e?.message || e
+        );
+        try {
+          originalJson(body);
+        } catch (e2) {
+          console.warn(
+            '[likes routes] outgoing fallback originalJson error:',
+            e2?.message || e2
+          );
+        }
+      });
+
+    return res;
+  };
+
+  const maybePromise = fn(req, res);
+  if (maybePromise && typeof maybePromise.then === 'function') {
+    try {
+      await maybePromise;
+    } catch (e) {
+      console.warn(
+        '[likes routes] /outgoing controller promise rejected:',
+        e?.message || e
+      );
+    }
+  }
 });
 
 router.get('/incoming', authenticate, async (req, res) => {
   const c = await getLikesCtrl();
   const fn = c.getIncoming || c.listIncomingLikes;
-  return typeof fn === 'function'
-    ? fn(req, res)
-    : res.status(501).json({ error: 'likesController.getIncoming not available' });
+
+  if (typeof fn !== 'function') {
+    return res
+      .status(501)
+      .json({ error: 'likesController.getIncoming not available' });
+  }
+
+  // Wrap res.json so we can filter incoming likes using Block-relations
+  const originalJson = res.json.bind(res);
+
+  res.json = (body) => {
+    Promise.resolve(filterMatchesWithBlocks(req, body))
+      .then((filtered) => {
+        try {
+          originalJson(filtered);
+        } catch (e) {
+          console.warn(
+            '[likes routes] incoming originalJson error:',
+            e?.message || e
+          );
+        }
+      })
+      .catch((e) => {
+        console.warn(
+          '[likes routes] incoming filter wrapper error:',
+          e?.message || e
+        );
+        try {
+          originalJson(body);
+        } catch (e2) {
+          console.warn(
+            '[likes routes] incoming fallback originalJson error:',
+            e2?.message || e2
+          );
+        }
+      });
+
+    return res;
+  };
+
+  const maybePromise = fn(req, res);
+  if (maybePromise && typeof maybePromise.then === 'function') {
+    try {
+      await maybePromise;
+    } catch (e) {
+      console.warn(
+        '[likes routes] /incoming controller promise rejected:',
+        e?.message || e
+      );
+    }
+  }
 });
 
 router.get('/matches', authenticate, async (req, res) => {
   const c = await getLikesCtrl();
   const fn = c.getMatches || c.listMatches;
-  return typeof fn === 'function'
-    ? fn(req, res)
-    : res.status(501).json({ error: 'likesController.getMatches not available' });
+
+  if (typeof fn !== 'function') {
+    return res
+      .status(501)
+      .json({ error: 'likesController.getMatches not available' });
+  }
+
+  // Wrap res.json so we can filter matches using Block-relations
+  const originalJson = res.json.bind(res);
+
+  res.json = (body) => {
+    Promise.resolve(filterMatchesWithBlocks(req, body))
+      .then((filtered) => {
+        try {
+          originalJson(filtered);
+        } catch (e) {
+          console.warn(
+            '[likes routes] matches originalJson error:',
+            e?.message || e
+          );
+        }
+      })
+      .catch((e) => {
+        console.warn(
+          '[likes routes] matches filter wrapper error:',
+          e?.message || e
+        );
+        try {
+          originalJson(body);
+        } catch (e2) {
+          console.warn(
+            '[likes routes] matches fallback originalJson error:',
+            e2?.message || e2
+          );
+        }
+      });
+
+    return res;
+  };
+
+  const maybePromise = fn(req, res);
+  if (maybePromise && typeof maybePromise.then === 'function') {
+    try {
+      await maybePromise;
+    } catch (e) {
+      console.warn(
+        '[likes routes] /matches controller promise rejected:',
+        e?.message || e
+      );
+    }
+  }
 });
 
 // The replacement region is marked between // --- REPLACE START and // --- REPLACE END
