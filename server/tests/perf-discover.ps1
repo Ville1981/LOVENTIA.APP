@@ -1,14 +1,41 @@
+# PATH: server/tests/perf-discover.ps1
+
 Param(
     [int]$Iterations = 50,
     [string]$BaseUrl = "http://127.0.0.1:5000",
     [string]$Email = "villehermaala1981@gmail.com",
-    [string]$Password = "Paavali1981"
+    [SecureString]$Password
 )
 
 Write-Host "=== Loventia Discover Performance Smoketest ==="
 Write-Host "BaseUrl   : $BaseUrl"
 Write-Host "Iterations: $Iterations"
 Write-Host ""
+
+# --- REPLACE START: resolve password without hard-coded secrets ---
+# Preferred order:
+#  1) SecureString parameter (-Password)
+#  2) Environment variable LOVENTIA_PERF_TEST_PASSWORD
+#  3) Interactive prompt (as a last resort)
+[string]$plainPassword = $null
+
+if ($Password) {
+    # Convert provided SecureString to plain text for the HTTP request body
+    $plainPassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
+        [Runtime.InteropServices.Marshal]::SecureStringToCoTaskMemUnicode($Password)
+    )
+} elseif ($env:LOVENTIA_PERF_TEST_PASSWORD) {
+    # Use env var for automation (no prompt, no hard-coded value in Git)
+    $plainPassword = $env:LOVENTIA_PERF_TEST_PASSWORD
+} else {
+    # Fallback: ask once from console, still as SecureString
+    Write-Host "No password parameter and LOVENTIA_PERF_TEST_PASSWORD not set." -ForegroundColor Yellow
+    $secureInput = Read-Host "Enter password for $Email" -AsSecureString
+    $plainPassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
+        [Runtime.InteropServices.Marshal]::SecureStringToCoTaskMemUnicode($secureInput)
+    )
+}
+# --- REPLACE END ---
 
 # 0) Health & Ready
 Write-Host "0) Health-check..."
@@ -29,11 +56,12 @@ try {
 
 Write-Host ""
 
-# 1) Login (EI SecureString, EI password-kyselyä)
+# 1) Login
 Write-Host "1) Login as $Email ..."
+
 $loginBody = @{
     email    = $Email
-    password = $Password
+    password = $plainPassword
 } | ConvertTo-Json
 
 Write-Host "   Login body: $loginBody"
@@ -45,7 +73,7 @@ try {
     return
 }
 
-# Token-kenttä voi olla accessToken TAI token
+# Token field can be accessToken OR token
 $token = $null
 if ($login.accessToken) {
     $token = $login.accessToken
@@ -54,7 +82,7 @@ if ($login.accessToken) {
 }
 
 if (-not $token) {
-    Write-Error "Login OK mutta token-kenttää ei löytynyt (accessToken/token)."
+    Write-Error "Login OK but token field not found (accessToken/token)."
     return
 }
 
@@ -62,7 +90,7 @@ $headers = @{
     Authorization = "Bearer $token"
 }
 
-Write-Host "   Login OK, token hankittu."
+Write-Host "   Login OK, token acquired."
 Write-Host ""
 
 # 2) /api/me sanity-check
@@ -134,11 +162,11 @@ Write-Host ("Fail       : {0}" -f $fail)
 Write-Host ("Latency ms : min={0:N1}  avg={1:N1}  max={2:N1}" -f $minMs, $avgMs, $maxMs)
 Write-Host ""
 
-# 4) /metrics (valinnainen kurkkaus)
-Write-Host "4) /metrics (valinnainen kurkkaus)..."
+# 4) /metrics (optional peek)
+Write-Host "4) /metrics (optional peek)..."
 try {
     $metrics = Invoke-WebRequest -Uri "$BaseUrl/metrics" -Method Get -TimeoutSec 5
-    Write-Host "   /metrics OK, ensimmäiset rivit:"
+    Write-Host "   /metrics OK, first lines:"
     $lines = $metrics.Content -split "`n"
     $maxLines = [Math]::Min($lines.Length - 1, 9)
     for ($j = 0; $j -le $maxLines; $j++) {
@@ -149,4 +177,5 @@ try {
 }
 
 Write-Host ""
-Write-Host "=== Smoketest valmis ==="
+Write-Host "=== Smoketest finished ==="
+

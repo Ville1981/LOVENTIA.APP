@@ -1,9 +1,13 @@
 # PATH: server/tests/security-headers-smoketest.ps1
 
 Param(
-    [string]$BaseUrl  = "http://127.0.0.1:5000",
-    [string]$Email    = "villehermaala1981@gmail.com",
-    [SecureString]$Password = (ConvertTo-SecureString -String "Paavali1981" -AsPlainText -Force)
+    [string]$BaseUrl = "http://127.0.0.1:5000",
+    [string]$Email   = "villehermaala1981@gmail.com",
+    [SecureString]$Password = $(if ($env:LOVENTIA_ADMIN_PASSWORD) {
+        ConvertTo-SecureString $env:LOVENTIA_ADMIN_PASSWORD -AsPlainText -Force
+    } else {
+        Read-Host "Enter admin password" -AsSecureString
+    })
 )
 
 Write-Host "=== Security headers smoketest ==="

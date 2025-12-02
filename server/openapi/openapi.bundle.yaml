@@ -533,7 +533,7 @@ paths:
                   example: villehermaala1981@gmail.com
                 password:
                   type: string
-                  example: Paavali1981
+                  example: ExamplePassword123!
       responses:
         '200':
           description: Login successful

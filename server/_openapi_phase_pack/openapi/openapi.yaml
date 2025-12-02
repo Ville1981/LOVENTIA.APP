@@ -57,7 +57,7 @@ components:
           example: villehermaala1981@gmail.com
         password:
           type: string
-          example: Paavali1981
+          example: ExamplePassword123!
     AuthLoginResponse:
       type: object
       properties:

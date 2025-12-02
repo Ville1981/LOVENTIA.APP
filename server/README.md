@@ -175,7 +175,7 @@ This way the next person sees **why** there are two logins and **why** photo end
 **Request body (login):**
 
 ```json
-{ "email": "villehermaala1981@gmail.com", "password": "Paavali1981" }
+{ "email": "villehermaala1981@gmail.com", "password": "ExamplePassword123!" }
 ```
 
 ### “/me” variants (same normalized shape)

@@ -1,7 +1,13 @@
 Param(
-    [string]$BaseUrl  = "http://127.0.0.1:5000",
-    [string]$Email    = "villehermaala1981@gmail.com",
-    [SecureString]$Password = (ConvertTo-SecureString "Paavali1981" -AsPlainText -Force)
+    [string]$BaseUrl = "http://127.0.0.1:5000",
+    [string]$Email   = "villehermaala1981@gmail.com",
+    [SecureString]$Password = $(if ($env:LOVENTIA_ADMIN_PASSWORD) {
+        # Preferred: read admin password from env var for automated runs
+        ConvertTo-SecureString $env:LOVENTIA_ADMIN_PASSWORD -AsPlainText -Force
+    } else {
+        # Fallback: ask interactively (no hard-coded value in Git)
+        Read-Host "Enter admin password" -AsSecureString
+    })
 )
 
 Write-Host "=== Security CSP-Enforce smoketest ==="
