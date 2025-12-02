@@ -39,6 +39,7 @@ import Upgrade from "./pages/Upgrade";
 import WhoLikedMe from "./pages/WhoLikedMe";
 import PremiumCancel from "./pages/PremiumCancel";
 import LikesOverview from "./pages/LikesOverview";
+import PremiumHub from "./pages/PremiumHub";
 
 import AdminPanel from "./pages/AdminPanel";
 
@@ -194,12 +195,12 @@ export default function App() {
                     </PrivateRoute>
                   }
                 />
-                {/* --- REPLACE START: wire /likes to WhoLikedMe and /who-liked-me to LikesOverview --- */}
+                {/* --- REPLACE START: wire /likes to LikesOverview and /who-liked-me to WhoLikedMe --- */}
                 <Route
                   path="likes"
                   element={
                     <PrivateRoute>
-                      <WhoLikedMe />
+                      <LikesOverview />
                     </PrivateRoute>
                   }
                 />
@@ -207,7 +208,7 @@ export default function App() {
                   path="who-liked-me"
                   element={
                     <PrivateRoute>
-                      <LikesOverview />
+                      <WhoLikedMe />
                     </PrivateRoute>
                   }
                 />
@@ -229,7 +230,7 @@ export default function App() {
                   }
                 />
 
-                {/* Billing / upgrade */}
+                {/* Billing / upgrade / premium */}
                 <Route
                   path="cancel"
                   element={
@@ -243,6 +244,14 @@ export default function App() {
                   element={
                     <PrivateRoute>
                       <Upgrade />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="premium"
+                  element={
+                    <PrivateRoute>
+                      <PremiumHub />
                     </PrivateRoute>
                   }
                 />

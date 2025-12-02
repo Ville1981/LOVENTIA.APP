@@ -14,13 +14,14 @@ import api from "../utils/axiosInstance";
 import DealbreakersPanel from "../components/DealbreakersPanel";
 import AdGate from "../components/AdGate";
 import AdBanner from "../components/AdBanner";
+import DeleteAccountSection from "../components/settings/DeleteAccountSection";
 
 export default function SettingsPage() {
-  const { logout, user, setUser, refreshUser, refreshMe } = useAuth() || {};
+  const { user, setUser, refreshUser, refreshMe } = useAuth() || {};
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleting] = useState(false); // kept for potential future use / to avoid breaking shape
 
   useEffect(() => {
     document.title = t("settings.title");
@@ -34,7 +35,7 @@ export default function SettingsPage() {
   const [info, setInfo] = useState("");
   const [error, setError] = useState("");
 
-    // Derive visibility from user object with safe fallbacks
+  // Derive visibility from user object with safe fallbacks
   const visibility = user?.visibility || {};
   const isHidden =
     visibility.isHidden ??
@@ -140,32 +141,6 @@ export default function SettingsPage() {
     }
   };
 
-  const handleDelete = async () => {
-    if (isDeleting) return;
-    if (!window.confirm(t("settings.deleteConfirm"))) return;
-    setIsDeleting(true);
-    try {
-      await api.delete("/users/me");
-      try {
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
-        sessionStorage.removeItem("accessToken");
-        sessionStorage.removeItem("refreshToken");
-      } catch {
-        // ignore storage errors
-      }
-      if (typeof logout === "function") {
-        logout();
-      }
-      navigate("/login");
-    } catch (err) {
-      console.error(t("settings.deleteErrorConsole"), err);
-      alert(t("settings.deleteErrorAlert"));
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
   const isPremium = !!(user?.isPremium || user?.premium);
 
   return (
@@ -184,14 +159,20 @@ export default function SettingsPage() {
         <div className="text-sm">
           <span
             className={`inline-block px-2 py-1 rounded ${
-              isHidden ? "bg-yellow-100 text-yellow-800" : "bg-green-100 text-green-800"
+              isHidden
+                ? "bg-yellow-100 text-yellow-800"
+                : "bg-green-100 text-green-800"
             }`}
           >
-            {isHidden ? t("settings.currentlyHidden") : t("settings.currentlyVisible")}
+            {isHidden
+              ? t("settings.currentlyHidden")
+              : t("settings.currentlyVisible")}
           </span>
         </div>
 
-        <p className="text-sm text-gray-700">{t("settings.hideDescription")}</p>
+        <p className="text-sm text-gray-700">
+          {t("settings.hideDescription")}
+        </p>
 
         {/* Duration */}
         <div>
@@ -221,7 +202,9 @@ export default function SettingsPage() {
             checked={resumeOnLogin}
             onChange={(e) => setResumeOnLogin(e.target.checked)}
           />
-          <span className="text-sm">{t("settings.resumeOnLoginLabel")}</span>
+          <span className="text-sm">
+            {t("settings.resumeOnLoginLabel")}
+          </span>
         </label>
 
         {/* Action buttons */}
@@ -235,7 +218,9 @@ export default function SettingsPage() {
             disabled={loadingHide || loadingUnhide}
             className="inline-flex items-center justify-center rounded-md px-4 py-2 border border-gray-300 bg-gray-100 hover:bg-gray-200 disabled:opacity-60"
           >
-            {loadingHide ? t("settings.hidingNow") : t("settings.hideNowButton")}
+            {loadingHide
+              ? t("settings.hidingNow")
+              : t("settings.hideNowButton")}
           </button>
 
           <button
@@ -247,7 +232,9 @@ export default function SettingsPage() {
             disabled={loadingUnhide || loadingHide}
             className="inline-flex items-center justify-center rounded-md px-4 py-2 border border-green-600 bg-green-600 text-white hover:bg-green-700 disabled:opacity-60"
           >
-            {loadingUnhide ? t("settings.unhiding") : t("settings.unhideButton")}
+            {loadingUnhide
+              ? t("settings.unhiding")
+              : t("settings.unhideButton")}
           </button>
         </div>
 
@@ -272,7 +259,8 @@ export default function SettingsPage() {
       <section className="border rounded-md p-4 space-y-3">
         <h2 className="text-lg font-semibold">Discover dealbreakers</h2>
         <p className="text-sm text-gray-700">
-          Configure hard filters for matches. This is a Premium feature and will apply to Discover.
+          Configure hard filters for matches. This is a Premium feature and
+          will apply to Discover.
         </p>
         {/* Uses internal FeatureGate to show CTA for non-premium users */}
         <DealbreakersPanel user={user} />
@@ -282,17 +270,21 @@ export default function SettingsPage() {
       <section className="border rounded-md p-4 space-y-3">
         <h2 className="text-lg font-semibold">Subscription Settings</h2>
         <p className="text-sm text-gray-700">
-          Manage your Premium plan from here. You can start, manage, or cancel from the dedicated page.
+          Manage your Premium plan from here. You can start, manage, or
+          cancel from the dedicated page.
         </p>
 
         <div className="flex flex-wrap items-center gap-3">
           <span
             className={`inline-block text-xs px-2 py-1 rounded ${
-              isPremium ? "bg-indigo-100 text-indigo-800" : "bg-gray-100 text-gray-800"
+              isPremium
+                ? "bg-indigo-100 text-indigo-800"
+                : "bg-gray-100 text-gray-800"
             }`}
             title="Current plan indicator"
           >
-            Current plan: <strong>{isPremium ? "Premium" : "Free"}</strong>
+            Current plan:{" "}
+            <strong>{isPremium ? "Premium" : "Free"}</strong>
           </span>
 
           <Button
@@ -304,10 +296,22 @@ export default function SettingsPage() {
           >
             Manage Subscription
           </Button>
+
+          {/* Small helper button to open the Premium Hub with all benefits */}
+          <Button
+            onClick={() => {
+              navigate("/premium");
+            }}
+            variant="gray"
+            title="View all Premium benefits"
+          >
+            View Premium benefits
+          </Button>
         </div>
 
         <p className="text-xs text-gray-500">
-          The next page uses our secure billing backend (Stripe). We never store your card details.
+          The next page uses our secure billing backend (Stripe). We never
+          store your card details.
         </p>
 
         {/* Inline ad slot (hidden for Premium users via AdGate) */}
@@ -323,18 +327,19 @@ export default function SettingsPage() {
       </section>
 
       {/* ===================== DANGER ZONE ===================== */}
-      <div className="border-t pt-6">
+      <section className="border-t pt-6 mt-4 space-y-3">
         <h2 className="text-xl font-semibold text-red-600">
           {t("settings.dangerTitle")}
         </h2>
-        <p className="text-sm text-red-600">{t("settings.dangerDescription")}</p>
-        <Button onClick={handleDelete} disabled={isDeleting} variant="red">
-          {isDeleting ? t("messages.loading") : t("settings.deleteButton")}
-        </Button>
-      </div>
+        <p className="text-sm text-red-600">
+          {t("settings.dangerDescription")}
+        </p>
+
+        {/* Re-usable, password-based self-delete section */}
+        <DeleteAccountSection />
+      </section>
     </div>
   );
 }
 // --- REPLACE END ---
-
 

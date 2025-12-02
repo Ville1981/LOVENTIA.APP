@@ -527,122 +527,117 @@ export function AuthProvider({ children }) {
    * - apply a small cooldown window to avoid hitting 429 from rapid-fire triggers
    */
   const reconcileBillingNow = useCallback(async () => {
-    const hasToken = !!getAccessToken();
-    if (!hasToken) {
+  const hasToken = !!getAccessToken();
+  if (!hasToken) {
+    // Ei accessTokenia (ei olla kirjautuneena / token ei ole vielä muistissa):
+    // ei yritetä /api/billing/sync -kutsua eikä spammata konsolia.
+    return null;
+  }
+
+  // If we already have an in-flight sync, reuse that Promise
+  if (billingSyncInFlightRef.current) {
+    return billingSyncInFlightRef.current;
+  }
+
+  // Cooldown: avoid hammering /api/billing/sync when multiple triggers fire
+  const now = Date.now();
+  const last = lastBillingSyncRef.current || 0;
+  const MIN_INTERVAL_MS = 10000; // 10s is enough to avoid burst 429s
+
+  if (now - last < MIN_INTERVAL_MS) {
+    if (import.meta?.env?.DEV) {
       try {
         // eslint-disable-next-line no-console
-        console.warn("[AuthContext] Billing sync skipped: no access token.");
+        console.info("[AuthContext] Billing sync skipped (cooldown)", {
+          elapsedMs: now - last,
+          minMs: MIN_INTERVAL_MS,
+        });
+      } catch {
+        /* ignore */
+      }
+    }
+    return Promise.resolve(null);
+  }
+
+  // Mark the moment we decided to start a sync
+  lastBillingSyncRef.current = now;
+
+  const task = (async () => {
+    try {
+      const payload = await syncBilling();
+      // payload may contain: { isPremium, entitlements: { tier, features {...}, quotas {...} } }
+      if (payload && typeof payload === "object") {
+        const update = {};
+        if (typeof payload.isPremium === "boolean") {
+          update.isPremium = payload.isPremium;
+        }
+        if (payload.entitlements && typeof payload.entitlements === "object") {
+          // merge features with defaults to avoid missing keys
+          const def = {
+            noAds: false,
+            unlimitedLikes: false,
+            unlimitedRewinds: false,
+            seeLikedYou: false,
+            dealbreakers: false,
+            qaVisibilityAll: false,
+            introsMessaging: false,
+            superLikesPerWeek: 0,
+          };
+          const ent = payload.entitlements || {};
+          const feat = ent.features || {};
+          const quotas = ent.quotas || {};
+          const defaultSuperLikesQuota = {
+            used: 0,
+            weekKey: null,
+            window: "weekly",
+          };
+          const mergedSuperLikes =
+            quotas.superLikes && typeof quotas.superLikes === "object"
+              ? { ...defaultSuperLikesQuota, ...quotas.superLikes }
+              : defaultSuperLikesQuota;
+
+          update.entitlements = {
+            tier: ent.tier ?? (update.isPremium ? "premium" : "free"),
+            features: { ...def, ...feat },
+            quotas: {
+              ...quotas,
+              superLikes: mergedSuperLikes,
+            },
+          };
+        }
+        if (Object.keys(update).length) {
+          setUserState((prev) => mergeDefined(prev, update));
+        }
+      }
+      return payload;
+    } catch (e) {
+      try {
+        // If backend rate limiter returns 429, do not treat as hard failure
+        const status = e?.response?.status;
+        if (status === 429) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            "[AuthContext] Billing sync hit 429 (rate limited), will rely on last known entitlements."
+          );
+        } else {
+          // eslint-disable-next-line no-console
+          console.warn(
+            "[AuthContext] Billing sync failed:",
+            e?.message || e
+          );
+        }
       } catch {
         /* ignore */
       }
       return null;
+    } finally {
+      billingSyncInFlightRef.current = null;
     }
+  })();
 
-    // If we already have an in-flight sync, reuse that Promise
-    if (billingSyncInFlightRef.current) {
-      return billingSyncInFlightRef.current;
-    }
-
-    // Cooldown: avoid hammering /api/billing/sync when multiple triggers fire
-    const now = Date.now();
-    const last = lastBillingSyncRef.current || 0;
-    const MIN_INTERVAL_MS = 10000; // 10s is enough to avoid burst 429s
-
-    if (now - last < MIN_INTERVAL_MS) {
-      if (import.meta?.env?.DEV) {
-        try {
-          // eslint-disable-next-line no-console
-          console.info("[AuthContext] Billing sync skipped (cooldown)", {
-            elapsedMs: now - last,
-            minMs: MIN_INTERVAL_MS,
-          });
-        } catch {
-          /* ignore */
-        }
-      }
-      return Promise.resolve(null);
-    }
-
-    // Mark the moment we decided to start a sync
-    lastBillingSyncRef.current = now;
-
-    const task = (async () => {
-      try {
-        const payload = await syncBilling();
-        // payload may contain: { isPremium, entitlements: { tier, features {...}, quotas {...} } }
-        if (payload && typeof payload === "object") {
-          const update = {};
-          if (typeof payload.isPremium === "boolean") {
-            update.isPremium = payload.isPremium;
-          }
-          if (payload.entitlements && typeof payload.entitlements === "object") {
-            // merge features with defaults to avoid missing keys
-            const def = {
-              noAds: false,
-              unlimitedLikes: false,
-              unlimitedRewinds: false,
-              seeLikedYou: false,
-              dealbreakers: false,
-              qaVisibilityAll: false,
-              introsMessaging: false,
-              superLikesPerWeek: 0,
-            };
-            const ent = payload.entitlements || {};
-            const feat = ent.features || {};
-            const quotas = ent.quotas || {};
-            const defaultSuperLikesQuota = {
-              used: 0,
-              weekKey: null,
-              window: "weekly",
-            };
-            const mergedSuperLikes =
-              quotas.superLikes && typeof quotas.superLikes === "object"
-                ? { ...defaultSuperLikesQuota, ...quotas.superLikes }
-                : defaultSuperLikesQuota;
-
-            update.entitlements = {
-              tier: ent.tier ?? (update.isPremium ? "premium" : "free"),
-              features: { ...def, ...feat },
-              quotas: {
-                ...quotas,
-                superLikes: mergedSuperLikes,
-              },
-            };
-          }
-          if (Object.keys(update).length) {
-            setUserState((prev) => mergeDefined(prev, update));
-          }
-        }
-        return payload;
-      } catch (e) {
-        try {
-          // If backend rate limiter returns 429, do not treat as hard failure
-          const status = e?.response?.status;
-          if (status === 429) {
-            // eslint-disable-next-line no-console
-            console.warn(
-              "[AuthContext] Billing sync hit 429 (rate limited), will rely on last known entitlements."
-            );
-          } else {
-            // eslint-disable-next-line no-console
-            console.warn(
-              "[AuthContext] Billing sync failed:",
-              e?.message || e
-            );
-          }
-        } catch {
-          /* ignore */
-        }
-        return null;
-      } finally {
-        billingSyncInFlightRef.current = null;
-      }
-    })();
-
-    billingSyncInFlightRef.current = task;
-    return task;
-  }, []);
-
+  billingSyncInFlightRef.current = task;
+  return task;
+}, []);
   /**
    * Refresh access token and then load /me.
    * Supports BOTH:

@@ -32,6 +32,7 @@ import {
 } from "./middleware/rateLimit.js";
 import securityMiddleware from "./middleware/security.js";
 import requestLogger from "./middleware/requestLogger.js";
+import securityHeaders from "./utils/securityHeaders.js";
 
 // Central API router aggregator
 import authRouter from "./routes/auth.js";
@@ -41,6 +42,8 @@ import routes from "./routes/index.js";
 // Routers
 import likesRouter from "./routes/likes.js";
 import paymentRouter from "./routes/payment.js";
+// muualla app.js:n import-osassa
+import debugEmailRoutes from "./routes/debugEmailRoutes.js";
 
 // ✅ NEW: Rewind router import
 import rewindRoutes from "./routes/rewind.js";
@@ -50,7 +53,6 @@ import blockRoutes from "./routes/blockRoutes.js";
 
 // ✅ NEW: Report router import
 import reportRoutes from "./routes/reportRoutes.js";
-// --- REPLACE END ---
 
 // --- REPLACE START: Swagger + Superlike router imports (dev-friendly) ---
 /**
@@ -96,11 +98,11 @@ let httpRequests5xx = 0;
 
 /**
  * Mount order matters:
- * 1) Webhooks first (Stripe/PayPal) → raw body
- * 2) Security middlewares (helmet, cors, sanitizers, rate limits)
- * 3) API routes
- * 4) Diagnostics (dev)
- * 5) 404 + error handler last
+ * 1. Webhooks first (Stripe/PayPal) → raw body
+ * 2. Security middlewares (helmet, cors, sanitizers, rate limits)
+ * 3. API routes
+ * 4. Diagnostics (dev)
+ * 5. 404 + error handler last
  */
 
 // ────────────────────────────────────────────────────────────────────────────────
@@ -120,9 +122,19 @@ app.post(
 // --- REPLACE START: security middlewares (helmet + CORS + JSON errors) ---
 /**
  * helmet(): secure headers (with permissive CORP for images/static/CDN)
- * cors():   restricts origins via ./config/cors.js
+ * CORS:    restricts origins via env-driven config (dev vs prod).
+ *
+ * Env knobs for CORS:
+ *   CORS_DEV_ORIGINS  = http://localhost:5174,http://127.0.0.1:5174
+ *   CORS_PROD_ORIGINS = https://loventia.app,https://www.loventia.app
+ *   CORS_ALLOW_CREDENTIALS = true|false  (default: true)
+ *   CORS_ALLOW_ALL_TEST    = 1          (test only; allows all origins)
+ *
  * NOTE: Avoid deprecated options (e.g., xssFilter) with Helmet v7+.
  */
+
+const NODE_ENV = process.env.NODE_ENV || "development";
+
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
@@ -130,18 +142,98 @@ app.use(
     frameguard: { action: "sameorigin" },
     // HSTS only in production under HTTPS
     hsts:
-      process.env.NODE_ENV === "production"
+      NODE_ENV === "production"
         ? { maxAge: 31536000, includeSubDomains: true, preload: false }
         : false,
     // In development keep CSP disabled to not break Swagger/Vite/etc.
-    contentSecurityPolicy:
-      process.env.NODE_ENV === "production" ? undefined : false,
+    contentSecurityPolicy: NODE_ENV === "production" ? undefined : false,
     crossOriginEmbedderPolicy: false,
   })
 );
 
-// Primary CORS
-app.use(cors(corsOptions));
+/**
+ * Helper to parse comma-separated origin lists from env.
+ */
+function parseOriginsEnv(value, fallback = []) {
+  if (!value || typeof value !== "string") return fallback;
+  return value
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Build env-driven CORS options.
+ * In dev: default to localhost/127.0.0.1:5174 if env is missing.
+ * In prod: require explicit CORS_PROD_ORIGINS, otherwise block browsers and log.
+ * In test: optionally allow all origins when CORS_ALLOW_ALL_TEST=1 for convenience.
+ */
+const devOriginsDefault = [
+  "http://localhost:5174",
+  "http://127.0.0.1:5174",
+];
+
+const devOrigins = parseOriginsEnv(
+  process.env.CORS_DEV_ORIGINS,
+  devOriginsDefault
+);
+const prodOrigins = parseOriginsEnv(process.env.CORS_PROD_ORIGINS, []);
+const allowAllInTest =
+  NODE_ENV === "test" && process.env.CORS_ALLOW_ALL_TEST === "1";
+
+const corsAllowedOrigins =
+  allowAllInTest || NODE_ENV === "test"
+    ? "*"
+    : NODE_ENV === "production"
+    ? prodOrigins
+    : devOrigins;
+
+const corsAllowCredentials =
+  process.env.CORS_ALLOW_CREDENTIALS === "false" ? false : true;
+
+if (NODE_ENV === "production" && !allowAllInTest && prodOrigins.length === 0) {
+  // eslint-disable-next-line no-console
+  console.warn(
+    "[CORS] NODE_ENV=production but CORS_PROD_ORIGINS is empty. " +
+      "Browser requests will be rejected by CORS origin check."
+  );
+}
+
+const corsOptionsFromEnv = {
+  origin: (origin, callback) => {
+    // Non-browser clients (curl, Postman without Origin) should be allowed.
+    if (!origin) return callback(null, true);
+
+    if (corsAllowedOrigins === "*") {
+      return callback(null, true);
+    }
+
+    if (Array.isArray(corsAllowedOrigins)) {
+      if (corsAllowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      const msg = `CORS origin not allowed: ${origin}`;
+      return callback(new Error(msg), false);
+    }
+
+    // Fallback: no explicit allowed origins configured.
+    const msg = `CORS origin not allowed (no allowed list configured): ${origin}`;
+    return callback(new Error(msg), false);
+  },
+  credentials: corsAllowCredentials,
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
+  allowedHeaders: [
+    "Origin",
+    "Content-Type",
+    "Accept",
+    "Authorization",
+    "X-Requested-With",
+  ],
+};
+
+// Primary CORS for all routes
+app.use(cors(corsOptionsFromEnv));
 
 /**
  * CORS preflight override: return consistent 204 on allowed origins
@@ -149,13 +241,15 @@ app.use(cors(corsOptions));
  * NOTE: Express v5-style matcher does not accept "*", use RegExp.
  */
 app.options(/.*/, (req, res) => {
-  cors(corsOptions)(req, res, (err) => {
+  cors(corsOptionsFromEnv)(req, res, (err) => {
     if (err) return res.status(403).json({ error: "CORS origin not allowed" });
     return res.sendStatus(204);
   });
 });
 
-// Friendly JSON for blocked CORS
+/**
+ * Friendly JSON formatter for blocked CORS errors.
+ */
 app.use((err, _req, res, next) => {
   const msg = (err && (err.message || String(err))) || "";
   const isCorsError =
@@ -170,19 +264,48 @@ app.use((err, _req, res, next) => {
 });
 // --- REPLACE END ---
 
+// --- REPLACE START: CSP report-only header ---
+/**
+ * Content Security Policy (report-only):
+ * * Applied to all responses via Content-Security-Policy-Report-Only.
+ * * Defaults are intentionally strict but use 'self' and data: where needed.
+ * * For production, you can override the entire policy via CSP_REPORT_ONLY env var.
+ * Example:
+ * CSP_REPORT_ONLY="default-src 'self'; img-src 'self' https://images.cdn.example; connect-src 'self' https://api.stripe.com"
+ */
+const CSP_REPORT_ONLY =
+  process.env.CSP_REPORT_ONLY ||
+  [
+    "default-src 'none'",
+    "base-uri 'none'",
+    "frame-ancestors 'none'",
+    "img-src 'self' data:",
+    "font-src 'self' data:",
+    "style-src 'self' 'unsafe-inline'",
+    "script-src 'self'",
+    "connect-src 'self'",
+  ].join("; ");
+
+app.use((req, res, next) => {
+  // Report-only: will not block, only report policy violations in supporting UAs.
+  res.setHeader("Content-Security-Policy-Report-Only", CSP_REPORT_ONLY);
+  next();
+});
+// --- REPLACE END ---
+
 // Keep your existing security bundle (xss-clean, hpp, compression, sanitizers, etc.)
 app.use(securityMiddleware);
-
+app.use(securityHeaders);
 // Baseline rate limit for all /api + fine-grained for hot endpoints
 // --- REPLACE START: rate limits ---
 /**
  * Rate limits:
- * - Fine-grained per hot endpoint (auth/login, auth/register, auth/refresh, billing, messages).
- * - Generic /api burst limiter applied last as a safety net.
+ * * Fine-grained per hot endpoint (auth/login, auth/register, auth/refresh, billing, messages).
+ * * Generic /api burst limiter applied last as a safety net.
  *
  * NOTE:
- * - Limits are configured in environment variables (RATE_*), see server/src/middleware/rateLimit.js.
- * - In test mode or when RATE_DISABLE=1, limiters are effectively no-ops.
+ * * Limits are configured in environment variables (RATE_*), see server/src/middleware/rateLimit.js.
+ * * In test mode or when RATE_DISABLE=1, limiters are effectively no-ops.
  */
 app.use("/api/auth/login", loginLimiter);
 app.use("/api/auth/register", registerLimiter);
@@ -191,6 +314,8 @@ app.use("/api/billing", billingLimiter);
 app.use("/api/messages", messagesLimiter);
 app.use("/api", apiBurstLimiter);
 // --- REPLACE END ---
+app.use("/api/debug", debugEmailRoutes);
+
 
 // ────────────────────────────────────────────────────────────────────────────────
 /** 2.5) HTTP request logging (JSON) */
@@ -198,9 +323,9 @@ app.use("/api", apiBurstLimiter);
 // --- REPLACE START: HTTP request logging middleware (delegates to requestLogger) ---
 /**
  * HTTP request logging:
- * - Delegates to ./middleware/requestLogger.js
- * - Adds req.requestId and X-Request-Id
- * - Logs a single structured JSON line via logger (scope: "http") on every response.
+ * * Delegates to ./middleware/requestLogger.js
+ * * Adds req.requestId and X-Request-Id
+ * * Logs a single structured JSON line via logger (scope: "http") on every response.
  *
  * Keeping this as a dedicated middleware keeps app.js slim and allows future
  * changes (e.g. Winston transports, external log shipping) without touching
@@ -212,8 +337,8 @@ app.use(requestLogger);
 // --- REPLACE START: lightweight HTTP metrics middleware ---
 /**
  * Lightweight metrics middleware:
- * - Increments total HTTP request counter.
- * - Counts 5xx responses for basic error rate visibility.
+ * * Increments total HTTP request counter.
+ * * Counts 5xx responses for basic error rate visibility.
  * This is intentionally simple and in-memory only.
  */
 app.use((req, res, next) => {
@@ -274,15 +399,41 @@ if (process.env.NODE_ENV === "test") {
 /** 3) API routers — Central aggregator first, then explicit mounts that must not be shadowed */
 // ────────────────────────────────────────────────────────────────────────────────
 // --- REPLACE START: API routers (order-sensitive) ---
-
 /**
  * ✅ BLOCK
- * - All block routes require authentication (enforced in blockRoutes).
- * - Mounted BEFORE the central /api aggregator to avoid any legacy shadowing.
+ * * All block routes require authentication (enforced in blockRoutes).
+ * * Mounted BEFORE the central /api aggregator to avoid any legacy shadowing.
  */
 app.options("/api/block", (_req, res) => res.sendStatus(204));
 app.options("/api/block/:id", (_req, res) => res.sendStatus(204));
 app.use("/api/block", blockRoutes);
+
+/**
+ * ✅ Metrics guard (dev: open, prod: admin-only)
+ * * This guard runs BEFORE the central /api router so it applies regardless of
+ * where /api/metrics and /api/metrics/json are mounted (metricsRoutes.js).
+ * * In development / test: no extra auth → convenient local debugging.
+ * * In production: requires Bearer token AND admin-like role.
+ */
+if (process.env.NODE_ENV === "production") {
+  app.use("/api/metrics", authenticate, (req, res, next) => {
+    const user = req.user || {};
+    const authPayload = req.auth || {};
+    const role = user.role || authPayload.role || "user";
+
+    if (
+      role === "admin" ||
+      role === "owner" ||
+      role === "superadmin"
+    ) {
+      return next();
+    }
+
+    return res
+      .status(403)
+      .json({ error: "Admin privileges required to access metrics." });
+  });
+}
 
 /**
  * Central API router aggregator
@@ -301,32 +452,32 @@ app.use("/api/auth", authRouter);
 
 /**
  * Discover
- * - Protect with Bearer authenticate
- * - Mount EXACTLY once under /api/discover
+ * * Protect with Bearer authenticate
+ * * Mount EXACTLY once under /api/discover
  */
 app.use("/api/discover", authenticate, discoverRouter);
 
 /**
  * Likes
- * - Ensure POST /api/likes (and related) are available.
- * - Protected by Bearer authenticate.
+ * * Ensure POST /api/likes (and related) are available.
+ * * Protected by Bearer authenticate.
  */
 app.options("/api/likes", (_req, res) => res.sendStatus(204)); // explicit preflight
 app.use("/api/likes", authenticate, likesRouter);
 
 /**
  * ✅ NEW: Rewind
- * - Premium-gated in the router.
- * - MUST be mounted after parsers and with authenticate.
+ * * Premium-gated in the router.
+ * * MUST be mounted after parsers and with authenticate.
  */
 app.options("/api/rewind", (_req, res) => res.sendStatus(204)); // explicit preflight
 app.use("/api/rewind", authenticate, rewindRoutes);
 
 /**
  * ✅ NEW: Reports (passive safety reports)
- * - Protected by Bearer authenticate.
- * - Passive model: only logs to DB, no emails or auto-bans.
- * - Mount both singular and plural paths for compatibility.
+ * * Protected by Bearer authenticate.
+ * * Passive model: only logs to DB, no emails or auto-bans.
+ * * Mount both singular and plural paths for compatibility.
  */
 app.options("/api/report", (_req, res) => res.sendStatus(204));
 app.options("/api/report/mine", (_req, res) => res.sendStatus(204));
@@ -337,16 +488,16 @@ app.use("/api/reports", authenticate, reportRoutes);
 
 /**
  * Billing/Payment
- * - Modern:  /api/billing/*
- * - Legacy:  /api/payment/*  (kept for backward compatibility)
+ * * Modern:  /api/billing/*
+ * * Legacy:  /api/payment/*  (kept for backward compatibility)
  */
 app.use("/api/billing", paymentRouter);
 app.use("/api/payment", paymentRouter);
 
 /**
  * Superlike
- * - Path variant: POST /api/superlike/:id
- * - Body alias:   POST /api/superlikes  { id | userId | targetUserId }
+ * * Path variant: POST /api/superlike/:id
+ * * Body alias:   POST /api/superlikes  { id | userId | targetUserId }
  */
 app.options("/api/superlike/:id", (_req, res) => res.sendStatus(204)); // explicit preflight
 app.use("/api/superlike", authenticate, superlikeRouter);
@@ -407,10 +558,10 @@ if (enableDocs) {
 // ────────────────────────────────────────────────────────────────────────────────
 /**
  * Health & whoami diagnostics
- * - /health (GET, HEAD) returns "OK"
- * - /ready returns JSON with DB readiness
- * - /metrics exposes very small in-memory metrics in Prometheus text format
- * - /__whoami (GET) returns decoded JWT using authenticate (no DB hit)
+ * * /health (GET, HEAD) returns "OK"
+ * * /ready returns JSON with DB readiness
+ * * /metrics exposes very small in-memory metrics in Prometheus text format
+ * * /__whoami (GET) returns decoded JWT using authenticate (no DB hit)
  */
 // ────────────────────────────────────────────────────────────────────────────────
 // --- REPLACE START: /health endpoint + HEAD + /ready + /metrics + whoami ---
@@ -419,8 +570,8 @@ app.head("/health", (_req, res) => res.status(200).end());
 
 /**
  * Readiness probe:
- * - Checks Mongo connection state via mongoose.
- * - 200 when db is connected (readyState === 1), otherwise 503.
+ * * Checks Mongo connection state via mongoose.
+ * * 200 when db is connected (readyState === 1), otherwise 503.
  */
 app.get("/ready", (_req, res) => {
   const state = mongoose.connection?.readyState;
@@ -437,8 +588,8 @@ app.get("/ready", (_req, res) => {
 
 /**
  * Lightweight /metrics endpoint:
- * - Exposes a few internal counters in Prometheus text format.
- * - Intended primarily for local/dev diagnostics; not a full monitoring stack.
+ * * Exposes a few internal counters in Prometheus text format.
+ * * Intended primarily for local/dev diagnostics; not a full monitoring stack.
  */
 app.get("/metrics", (_req, res) => {
   const uptimeSeconds = process.uptime();
@@ -489,10 +640,10 @@ function getMountPathFromLayer(layer) {
   try {
     const src = (layer && layer.regexp && layer.regexp.source) || "";
     if (!src) return "";
-    let s = src.replace(/^\^/, ""); // strip leading ^
-    s = s.replace(/\\\/\?\(\?=\\\/\|\$\)\$$/i, ""); // strip trailing '\/?(?=\/|$)$$'
-    s = s.replace(/\\\//g, "/"); // unescape '\/' → '/'
-    s = s.replace(/\$$/, ""); // strip trailing $
+    let s = src.replace(/^^/, ""); // strip leading ^
+    s = s.replace(/\/?(?=\/|$)$$/i, ""); // strip trailing '/?(?=/|$)$$'
+    s = s.replace(/\//g, "/"); // unescape '/' → '/'
+    s = s.replace(/$$/, ""); // strip trailing $
     if (!s.startsWith("/")) s = "/" + s;
     return s;
   } catch {

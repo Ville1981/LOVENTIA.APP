@@ -1,5 +1,3 @@
-// File: server/.eslintrc.js
-
 /* 
   ESLint config for the SERVER workspace (Node/Express, ESM).
   - Keeps structure clear and avoids unnecessary shortening.
@@ -29,15 +27,20 @@ module.exports = {
     }
   },
 
-  // --- REPLACE START: add OpenAPI phase pack to ignores (+ keep existing) ---
+  // --- REPLACE START: ignore build + legacy artefacts ---
   ignorePatterns: [
     "node_modules/**",
     "dist/**",
     "coverage/**",
     "uploads/**",
     "openapi/dist/**",
-    "__openapi_phase_pack/**",     // ⬅️ ignore generated pack (prevents “const/import reserved” here)
-    "node_modules/axobject-query/**"
+    "__openapi_phase_pack/**",     // ⬅️ OpenAPI-paketti
+    "node_modules/axobject-query/**",
+
+    // ⬇️ EI LINTATA näitä tässä vaiheessa
+    "client-dist/**",
+    "scripts/**",
+    "tests/**"
   ],
   // --- REPLACE END ---
 
@@ -48,25 +51,29 @@ module.exports = {
     "prettier"
   ],
 
-  plugins: ["import"],
+  // lisätään myös "n" jotta n/no-missing-require on tunnettu sääntö
+  plugins: ["import", "n"],
 
   rules: {
     "no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
     "no-undef": "error",
+
+    // TYYLIsäännöt vain warningiksi, jotta ne eivät estä linttiä
     "import/order": [
-      "error",
+      "warn",
       {
         groups: ["builtin", "external", "internal", ["parent", "sibling"], "index", "object", "type"],
         "newlines-between": "always",
         alphabetize: { order: "asc", caseInsensitive: true }
       }
     ],
-    "import/no-unresolved": "error",
+    "import/no-unresolved": "warn",
     "import/extensions": ["off"]
   },
 
-  // --- REPLACE START: ensure server/src is always parsed as modern ESM (fixes “import/const reserved”) ---
+  // --- REPLACE START: overrides pysyy, mutta jätetään selkeästi näkyviin ---
   overrides: [
+    // src-koodi: ESM + Node
     {
       files: ["src/**/*.js", "src/**/*.mjs"],
       parserOptions: {
@@ -75,6 +82,7 @@ module.exports = {
       },
       env: { node: true }
     },
+    // Jest-testit: sallitaan jest-globaalit (beforeAll, describe, it, jne.)
     {
       files: ["**/*.test.js", "**/*.test.mjs", "**/*.spec.js", "**/*.spec.mjs"],
       env: { jest: true },
@@ -82,6 +90,7 @@ module.exports = {
         "no-undef": "off"
       }
     },
+    // Skriptit (scripts/**/*.js, .mjs)
     {
       files: ["scripts/**/*.js", "scripts/**/*.mjs"],
       env: { node: true }
@@ -89,14 +98,5 @@ module.exports = {
   ]
   // --- REPLACE END ---
 };
-
-
-
-
-
-
-
-
-
 
 

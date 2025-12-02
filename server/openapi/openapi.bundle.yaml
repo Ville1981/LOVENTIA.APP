@@ -171,6 +171,7 @@ paths:
                               example: 24.9384
                   meta:
                     type: object
+                    description: Standard pagination metadata wrapper used in list endpoints.
                     properties: &ref_1
                       page:
                         type: integer
@@ -252,6 +253,7 @@ paths:
                       properties: *ref_0
                   meta:
                     type: object
+                    description: Standard pagination metadata wrapper used in list endpoints.
                     properties: *ref_1
         '400':
           description: Invalid body
@@ -442,6 +444,7 @@ paths:
           application/json:
             schema:
               type: object
+              description: Request body used when sending a message in a conversation.
               required: &ref_19
                 - text
               properties: &ref_20
@@ -519,6 +522,7 @@ paths:
           application/json:
             schema:
               type: object
+              description: Login payload containing user email and password.
               required: &ref_2
                 - email
                 - password
@@ -537,6 +541,7 @@ paths:
             application/json:
               schema:
                 type: object
+                description: Response returned after a successful login request.
                 properties: &ref_4
                   message:
                     type: string
@@ -641,6 +646,7 @@ paths:
           application/json:
             schema:
               type: object
+              description: Login payload containing user email and password.
               required: *ref_2
               properties: *ref_3
       responses:
@@ -650,6 +656,7 @@ paths:
             application/json:
               schema:
                 type: object
+                description: Response returned after a successful login request.
                 properties: *ref_4
         '404':
           description: This legacy route is not mounted in this environment
@@ -667,6 +674,7 @@ paths:
           application/json:
             schema:
               type: object
+              description: Request body for refreshing an expired or expiring access token.
               required: &ref_7
                 - refreshToken
               properties: &ref_8
@@ -679,6 +687,7 @@ paths:
             application/json:
               schema:
                 type: object
+                description: Response returned after a successful refresh request.
                 properties: &ref_9
                   accessToken:
                     type: string
@@ -790,6 +799,7 @@ paths:
           application/json:
             schema:
               type: object
+              description: Request body for starting the password reset flow.
               required: &ref_10
                 - email
               properties: &ref_11
@@ -816,6 +826,7 @@ paths:
           application/json:
             schema:
               type: object
+              description: Request body for completing the password reset with a token.
               required: &ref_12
                 - token
                 - password
@@ -1020,6 +1031,7 @@ paths:
           application/json:
             schema:
               type: object
+              description: Request body used to reorder a user photo collection.
               required: &ref_14
                 - order
               properties: &ref_15
@@ -1115,6 +1127,7 @@ paths:
             application/json:
               schema:
                 type: object
+                description: Generic image resource owned by a user.
                 properties: &ref_6
                   id:
                     type: string
@@ -1161,6 +1174,7 @@ paths:
                 type: array
                 items:
                   type: object
+                  description: Generic image resource owned by a user.
                   properties: *ref_6
         '401':
           description: Unauthorized
@@ -1221,6 +1235,7 @@ paths:
             application/json:
               schema:
                 type: object
+                description: Generic image resource owned by a user.
                 properties: *ref_6
         '401':
           description: Unauthorized
@@ -1593,24 +1608,30 @@ components:
   schemas:
     AuthLoginRequest:
       type: object
+      description: Login payload containing user email and password.
       required: *ref_2
       properties: *ref_3
     AuthLoginResponse:
       type: object
+      description: Response returned after a successful login request.
       properties: *ref_4
     AuthRefreshRequest:
       type: object
+      description: Request body for refreshing an expired or expiring access token.
       required: *ref_7
       properties: *ref_8
     AuthRefreshResponse:
       type: object
+      description: Response returned after a successful refresh request.
       properties: *ref_9
     ForgotPasswordRequest:
       type: object
+      description: Request body for starting the password reset flow.
       required: *ref_10
       properties: *ref_11
     ResetPasswordRequest:
       type: object
+      description: Request body for completing the password reset with a token.
       required: *ref_12
       properties: *ref_13
     UserSelf:
@@ -1620,9 +1641,11 @@ components:
       properties: *ref_5
     Image:
       type: object
+      description: Generic image resource owned by a user.
       properties: *ref_6
     UserPhotosReorderRequest:
       type: object
+      description: Request body used to reorder a user photo collection.
       required: *ref_14
       properties: *ref_15
     Feedback:
@@ -1636,6 +1659,7 @@ components:
       properties: *ref_0
     Pagination:
       type: object
+      description: Standard pagination metadata wrapper used in list endpoints.
       properties: *ref_1
     DiscoverQuery:
       type: object
@@ -1643,5 +1667,6 @@ components:
       properties: *ref_18
     SendMessageBody:
       type: object
+      description: Request body used when sending a message in a conversation.
       required: *ref_19
       properties: *ref_20

@@ -3,23 +3,53 @@
 // --- REPLACE START: unified, dependency-free rate limiters (ESM) ---
 /**
  * Lightweight in-memory rate limiters for auth, billing, messages and generic API burst.
- * - No external dependencies (safe fallback for dev/CI; consider Redis in prod).
+ *
+ * Key properties:
+ * - No external dependencies (safe fallback for dev/CI; consider Redis in real prod).
  * - Fixed-window counters per key (IP by default, can include route/method via env).
  * - Skips limiting when NODE_ENV=test or RATE_DISABLE=1 (to avoid CI flakiness).
  * - Emits best-effort X-RateLimit-* headers and a consistent JSON 429 body.
  * - On 429, logs a structured JSON entry via logger with scope="rate-limit".
  *
- * Environment variables (all optional):
- *   RATE_DISABLE=1                   → disable all limiters (useful for CI)
- *   RATE_WINDOW_MS=60000             → window size in ms
- *   RATE_API_BURST_LIMIT=300         → /api/* generic limiter
- *   RATE_AUTH_LIMIT=60               → legacy auth limiter (kept for compatibility)
- *   RATE_AUTH_LOGIN_LIMIT=10         → POST /api/auth/login
- *   RATE_AUTH_REGISTER_LIMIT=5       → POST /api/auth/register
- *   RATE_BILLING_LIMIT=20            → /api/billing/*
- *   RATE_MESSAGES_LIMIT=60           → /api/messages/*
- *   RATE_KEY_INCLUDE_ROUTE=0|1       → include method + route (baseUrl+path) in key (default 0)
- *   RATE_SWEEP_THRESHOLD=10000       → when bucket count exceeds this, sweep expired entries
+ * Environment variables (all optional, with defaults in parentheses):
+ *
+ *   RATE_DISABLE=1                      → disable all limiters (useful for CI)
+ *   RATE_WINDOW_MS=60000               → window size in ms (default 60000 = 60s)
+ *
+ *   RATE_API_BURST_LIMIT=300           → /api/* generic limiter
+ *       - scope name: "api"
+ *       - default: 300 requests / 60s per key
+ *
+ *   RATE_AUTH_LIMIT=60                 → legacy auth limiter (kept for compatibility)
+ *       - scope name: "auth-legacy"
+ *       - mounted on more generic auth surface if needed
+ *
+ *   RATE_AUTH_LOGIN_LIMIT=10           → POST /api/auth/login
+ *       - scope name: "auth-login"
+ *       - default: 10 login attempts / 60s per key
+ *
+ *   RATE_AUTH_REGISTER_LIMIT=5         → POST /api/auth/register
+ *       - scope name: "auth-register"
+ *       - default: 5 registrations / 60s per key
+ *
+ *   RATE_BILLING_LIMIT=20              → /api/billing/*
+ *       - scope name: "billing"
+ *       - default: 20 billing-related calls / 60s per key
+ *
+ *   RATE_MESSAGES_LIMIT=60             → /api/messages/*
+ *       - scope name: "messages"
+ *       - default: 60 messaging calls / 60s per key
+ *
+ *   RATE_KEY_INCLUDE_ROUTE=0|1         → include method + route (baseUrl+path) in key (default 0 = IP only)
+ *   RATE_SWEEP_THRESHOLD=10000         → when bucket count exceeds this, sweep expired entries
+ *
+ * Mapping in app.js (for reference):
+ *   app.use("/api/auth/login",   loginLimiter);     // "auth-login"
+ *   app.use("/api/auth/register", registerLimiter); // "auth-register"
+ *   app.use("/api/auth/refresh", authLimiter);      // "auth-legacy"
+ *   app.use("/api/billing",      billingLimiter);   // "billing"
+ *   app.use("/api/messages",     messagesLimiter);  // "messages"
+ *   app.use("/api",              apiBurstLimiter);  // "api"
  */
 
 import logger from "../utils/logger.js";
@@ -240,18 +270,4 @@ export default {
   messagesLimiter,
 };
 // --- REPLACE END ---
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

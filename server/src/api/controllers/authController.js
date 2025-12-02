@@ -460,7 +460,7 @@ export async function login(req, res) {
  */
 export async function refresh(req, res) {
   try {
-    // --- REPLACE START: unified token extraction (body → Bearer → cookies) ---
+    // --- REPLACE START: unified token extraction (body → Bearer → cookies + raw header fallback) ---
     const bodyToken =
       req?.body && typeof req.body.refreshToken === "string"
         ? req.body.refreshToken
@@ -471,13 +471,42 @@ export async function refresh(req, res) {
         ? req.headers.authorization.replace(/Bearer\s+/i, "").trim()
         : "";
 
-    const cookieTokenRaw =
+    // First try parsed cookies (if cookie-parser is in use)
+    let cookieTokenRaw =
       req?.cookies &&
       (req.cookies.refreshToken ||
         req.cookies.refresh_token ||
         req.cookies.jwt ||
         req.cookies.jid ||
         req.cookies.token);
+
+    // If cookie-parser did not populate req.cookies, fall back to raw Cookie header parsing.
+    if (!cookieTokenRaw && req?.headers?.cookie) {
+      try {
+        const rawCookieHeader = String(req.headers.cookie);
+        const parts = rawCookieHeader.split(";").map((p) => p.trim());
+        const cookieNames = [
+          "refreshToken",
+          "refresh_token",
+          "jwt",
+          "jid",
+          "token",
+        ];
+        for (const name of cookieNames) {
+          const prefix = `${name}=`;
+          const found = parts.find((p) => p.startsWith(prefix));
+          if (found) {
+            cookieTokenRaw = found.slice(prefix.length);
+            break;
+          }
+        }
+      } catch (parseErr) {
+        console.warn(
+          "[auth/refresh] failed to parse raw Cookie header:",
+          parseErr?.message || parseErr
+        );
+      }
+    }
 
     const cookieToken =
       typeof cookieTokenRaw === "string"
@@ -492,7 +521,9 @@ export async function refresh(req, res) {
 
     if (!token) {
       // No token anywhere → treat as unauthenticated
-      return res.status(401).json({ error: "Refresh token is required." });
+      return res
+        .status(401)
+        .json({ error: "Refresh token is required." });
     }
 
     // 2) verify token (util first)
@@ -779,7 +810,40 @@ export async function forgotPassword(req, res) {
  *
  * We keep logs in English and return generic-ish messages.
  */
-// --- REPLACE START: resetPassword handler (tolerant match + hard $unset) ---
+/**
+ * POST /api/auth/reset-password
+ * Body:
+ * {
+ *   "token": "...",
+ *   "id": "...",       // user id (from link) – optional if token is unique
+ *   "password": "newPasswordHere"
+ * }
+ *
+ * We keep logs in English and return generic-ish messages.
+ */
+/**
+ * POST /api/auth/reset-password
+ * Body:
+ * {
+ *   "token": "...",
+ *   "id": "...",       // user id (from link) – optional, used only as a safety check
+ *   "password": "newPasswordHere"
+ * }
+ *
+ * We keep logs in English and return generic-ish messages.
+ */
+/**
+ * POST /api/auth/reset-password
+ * Body:
+ * {
+ *   "token": "...",
+ *   "id": "...",       // user id (from link) – optional, used only as a safety check
+ *   "password": "newPasswordHere"
+ * }
+ *
+ * We keep logs in English and return generic-ish messages.
+ */
+// --- REPLACE START: resetPassword handler (tolerant match + hard $mark-used) ---
 export async function resetPassword(req, res) {
   try {
     const tokenFromReq =
@@ -787,7 +851,11 @@ export async function resetPassword(req, res) {
     const idFromReq = (req?.body?.id || req?.query?.id || "").trim();
     const newPassword = (req?.body?.password || "").trim();
 
-    console.log("[auth] reset-password called for id:", idFromReq || "(no id)");
+    console.log(
+      "[auth] reset-password called for id:",
+      idFromReq || "(no id), token:",
+      tokenFromReq ? tokenFromReq.slice(0, 8) + "…" : "(no token)"
+    );
 
     if (!tokenFromReq || !newPassword) {
       return res.status(400).json({
@@ -797,61 +865,35 @@ export async function resetPassword(req, res) {
 
     const User = await getUserModel();
 
-    // 1) Try to find user by id first
-    let userDoc = null;
-    if (idFromReq) {
-      userDoc = await User.findById(idFromReq);
-    }
+    // 1) ALWAYS look up user by token (primary key for reset)
+    //    and explicitly select the reset fields (they are likely select: false).
+    let userDoc = await User.findOne({
+      passwordResetToken: tokenFromReq,
+    }).select("+passwordResetToken +passwordResetExpires +passwordResetUsedAt");
 
-    // 2) If not found by id, fall back to token
     if (!userDoc) {
-      console.log("[resetPassword] user not found by id, trying by token…");
-      userDoc = await User.findOne({
-        passwordResetToken: tokenFromReq,
-      });
-    }
-
-    // 3) If still nothing → invalid
-    if (!userDoc) {
-      console.warn("[resetPassword] user not found for token");
+      console.warn(
+        "[resetPassword] no user found for token (invalid/expired/used)."
+      );
       return res.status(400).json({
         error: "Invalid or expired reset token.",
       });
     }
 
-    const dbToken = userDoc.passwordResetToken
-      ? String(userDoc.passwordResetToken)
-      : "";
-    const reqToken = String(tokenFromReq);
-
-    if (!dbToken || dbToken !== reqToken) {
+    // 2) Optional safety check: if link contains id, ensure it matches the token owner
+    if (idFromReq && String(userDoc._id) !== idFromReq) {
       console.warn(
-        "[resetPassword] token mismatch for user",
-        String(userDoc._id),
-        "db:",
-        dbToken,
-        "req:",
-        reqToken
-      );
-
-      const userByToken = await User.findOne({
-        passwordResetToken: reqToken,
-      });
-
-      if (!userByToken) {
-        return res.status(400).json({
-          error: "Invalid or expired reset token.",
-        });
-      }
-
-      userDoc = userByToken;
-      console.log(
-        "[resetPassword] switched to user found by token:",
+        "[resetPassword] id from link does not match token owner. linkId=",
+        idFromReq,
+        "userId=",
         String(userDoc._id)
       );
+      return res.status(400).json({
+        error: "Invalid or expired reset token.",
+      });
     }
 
-    // 5) Check expiry
+    // 3) Check expiry
     if (
       userDoc.passwordResetExpires &&
       new Date(userDoc.passwordResetExpires).getTime() < Date.now()
@@ -865,40 +907,67 @@ export async function resetPassword(req, res) {
       });
     }
 
-    // 6) Update password
+    // 3b) Guard against re-use via a "used" marker if it already exists
+    if (userDoc.passwordResetUsedAt) {
+      console.warn(
+        "[resetPassword] token already marked used for user",
+        String(userDoc._id),
+        "at",
+        userDoc.passwordResetUsedAt
+      );
+      return res.status(400).json({
+        error:
+          "Reset token has already been used. Please request a new password reset.",
+      });
+    }
+
+    // 4) Update password
     userDoc.password = newPassword;
 
-    // 7) Clear token fields
-    userDoc.passwordResetToken = undefined;
-    userDoc.passwordResetExpires = undefined;
-    userDoc.passwordResetUsedAt = new Date();
+    // 5) Mark token as USED so the same token can never be matched again.
+    //    We deliberately keep the field but change its value and expiry.
+    const usedAt = new Date();
+    const usedMarker = `used:${usedAt.getTime()}`;
+
+    userDoc.passwordResetToken = usedMarker;
+    userDoc.passwordResetExpires = new Date(0);
+    userDoc.passwordResetUsedAt = usedAt;
 
     await userDoc.save();
 
-    // 8) Extra hard delete
-    // --- REPLACE START: extra $unset for reset fields ---
+    // 6) Extra hard overwrite at collection level (handles strict schemas / legacy models)
     try {
-      const User = await getUserModel();
-      await User.updateOne(
-        { _id: userDoc._id },
-        {
-          $unset: {
-            passwordResetToken: "",
-            passwordResetExpires: "",
-            passwordResetUsedAt: "",
-          },
-        }
-      );
-    } catch (unsetErr) {
+      const Model =
+        userDoc?.constructor &&
+        typeof userDoc.constructor.updateOne === "function"
+          ? userDoc.constructor
+          : await getUserModel();
+
+      if (Model && typeof Model.updateOne === "function") {
+        await Model.updateOne(
+          { _id: userDoc._id },
+          {
+            $set: {
+              passwordResetToken: usedMarker,
+              passwordResetExpires: new Date(0),
+              passwordResetUsedAt: usedAt,
+            },
+          }
+        );
+      } else {
+        console.warn(
+          "[resetPassword] could not resolve model for 'used' mark (non-fatal)."
+        );
+      }
+    } catch (markErr) {
       console.warn(
-        "[resetPassword] $unset of reset fields failed (non-fatal):",
-        unsetErr?.message || unsetErr
+        "[resetPassword] marking reset token as used failed (non-fatal):",
+        markErr?.message || markErr
       );
     }
-    // --- REPLACE END ---
 
     console.log(
-      "[resetPassword] password changed for user",
+      "[resetPassword] password changed and token marked used for user",
       String(userDoc._id)
     );
 
@@ -913,6 +982,8 @@ export async function resetPassword(req, res) {
   }
 }
 // --- REPLACE END ---
+
+
 
 // --- REPLACE START: register handler (lightweight, compatible) ---
 /**
@@ -1125,4 +1196,6 @@ const controller = {
 };
 
 export default controller;
+
+
 

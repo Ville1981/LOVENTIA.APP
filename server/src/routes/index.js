@@ -38,6 +38,9 @@ import * as superlikeNS from "./superlike.js";
 import * as superlikesNS from "./superlikes.js";
 import * as userRoutesNS from "./userRoutes.js";
 import * as usersNS from "./users.js";
+// --- REPLACE START: adminPing import ---
+import * as adminPingNS from "./adminPing.js";
+// --- REPLACE END: adminPing import ---
 import authenticate from "../middleware/authenticate.js";
 
 function pickRouter(ns) {
@@ -75,6 +78,9 @@ const superlike = pickRouter(superlikeNS);
 const superlikes = pickRouter(superlikesNS);
 const userRoutes = pickRouter(userRoutesNS);
 const users = pickRouter(usersNS);
+// --- REPLACE START: adminPing router pick ---
+const adminPing = pickRouter(adminPingNS);
+// --- REPLACE END: adminPing router pick ---
 // --- REPLACE END ---
 
 const router = express.Router();
@@ -100,6 +106,54 @@ const useAuth = (path, r, name) => {
   console.log(`[routes] mounted (auth) ${name || path} at ${path}`);
 };
 
+// Helper: admin-only mount (authenticate + role check).
+// Intended for /admin/* style routes and other sensitive admin APIs.
+const useAdmin = (path, r, name) => {
+  if (!r || (typeof r !== "function" && typeof r.use !== "function")) {
+    console.warn(`[routes] skipped (admin) ${name || path} (no valid router)`);
+    return;
+  }
+
+  router.use(
+    path,
+    authenticate,
+    (req, res, next) => {
+      try {
+        const authPayload = req.auth || {};
+        const user = req.user || {};
+
+        const roleFromPayload = authPayload.role;
+        const roleFromUser = user.role;
+        const roleFromArray =
+          Array.isArray(user.roles) && user.roles.length > 0
+            ? user.roles[0]
+            : undefined;
+
+        const role =
+          roleFromPayload || roleFromUser || roleFromArray || "user";
+
+        const isAdmin =
+          role === "admin" || role === "owner" || role === "superadmin";
+
+        if (!isAdmin) {
+          return res
+            .status(403)
+            .json({ error: "Admin privileges required to access this resource" });
+        }
+
+        return next();
+      } catch {
+        return res
+          .status(403)
+          .json({ error: "Admin privileges required to access this resource" });
+      }
+    },
+    r
+  );
+
+  console.log(`[routes] mounted (admin) ${name || path} at ${path}`);
+};
+
 /**
  * NOTE on mount bases:
  * app.js uses `app.use('/api', routes)` → mounting at '/' here means they show under /api/*.
@@ -112,16 +166,87 @@ const useAuth = (path, r, name) => {
 
 // Health + metrics at root of /api
 use("/", healthRoutes, "healthRoutes");
-use("/", metricsRoutes, "metricsRoutes");
 
-// Admin (mount base /admin so /api/admin/* resolves correctly)
-use("/admin", admin, "admin");
-use("/admin", adminRoutes, "adminRoutes");
-// Metrics endpoints under /api/admin/metrics (if router itself exposes /metrics)
-if (adminMetrics) {
-  // If adminMetrics defines `/metrics`, mounting at /admin yields /api/admin/metrics
-  use("/admin", adminMetrics, "adminMetrics");
+// --- REPLACE START: metricsRoutes mount with env-aware access control ---
+/**
+ * Metrics router:
+ * - In dev/test: mounted openly so /api/metrics & /api/metrics/json are easy to smoke-test.
+ * - In production: guarded by authenticate + basic admin-role check.
+ *
+ * NOTE:
+ * - We do NOT touch root /metrics (lightweight app-level metrics in app.js).
+ * - This guard only affects the router-provided /api/metrics endpoints.
+ */
+if (metricsRoutes) {
+  const basePath = "/";
+
+  if (process.env.NODE_ENV === "production") {
+    console.log("[routes] mounting metricsRoutes with admin guard (production)");
+
+    router.use(
+      basePath,
+      authenticate,
+      (req, res, next) => {
+        try {
+          const authPayload = req.auth || {};
+          const user = req.user || {};
+
+          const roleFromPayload = authPayload.role;
+          const roleFromUser = user.role;
+          const roleFromArray =
+            Array.isArray(user.roles) && user.roles.length > 0
+              ? user.roles[0]
+              : undefined;
+
+          const role =
+            roleFromPayload || roleFromUser || roleFromArray || "user";
+
+          const isAdmin =
+            role === "admin" || role === "owner" || role === "superadmin";
+
+          if (!isAdmin) {
+            return res
+              .status(403)
+              .json({ error: "Admin privileges required to access metrics" });
+          }
+
+          return next();
+        } catch {
+          return res
+            .status(403)
+            .json({ error: "Admin privileges required to access metrics" });
+        }
+      },
+      metricsRoutes
+    );
+  } else {
+    // Development / test: keep metrics fully open for easy smoketests.
+    use(basePath, metricsRoutes, "metricsRoutes");
+  }
+} else {
+  console.warn("[routes] skipped metricsRoutes (no valid router)");
 }
+// --- REPLACE END ---
+
+// --- REPLACE START: admin mounts with admin-only guard ---
+// Admin (mount base /admin so /api/admin/* resolves correctly)
+// All admin routes are protected by JWT + admin-role check.
+if (admin) {
+  useAdmin("/admin", admin, "admin");
+}
+if (adminRoutes) {
+  useAdmin("/admin", adminRoutes, "adminRoutes");
+}
+// Metrics endpoints under /api/admin/metrics (if router itself exposes /metrics)
+// Kept behind the same admin guard automatically by useAdmin.
+if (adminMetrics) {
+  useAdmin("/admin", adminMetrics, "adminMetrics");
+}
+// Admin ping endpoint (simple admin-only health-check).
+if (adminPing) {
+  useAdmin("/admin", adminPing, "adminPing");
+}
+// --- REPLACE END ---
 
 // --- REPLACE START: auth mount order — NEW ESM AUTH FIRST, THEN ALWAYS PRIVATE, THEN OPTIONAL LEGACY ---
 // 1) New main auth router (the big one with /me, reset, forgot, register, refresh, logout)

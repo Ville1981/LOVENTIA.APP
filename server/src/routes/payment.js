@@ -134,6 +134,17 @@ function assertStripeKey() {
   }
 }
 
+// --- REPLACE START: Super Like weekly quota baseline for downgrade/upgrade ---
+/**
+ * Default weekly quota for Super Likes when the user is Premium.
+ * This mirrors billingController so behaviour stays consistent across
+ * /api/billing/sync and /api/billing/cancel-now.
+ */
+const SUPERLIKES_PER_WEEK_DEFAULT = Number(
+  process.env.SUPERLIKES_PER_WEEK || 3,
+);
+// --- REPLACE END ---
+
 /**
  * cancelStripeSubscriptionById(subId)
  * Cancels a subscription immediately. Compatible with older/newer SDKs.
@@ -198,14 +209,22 @@ async function ensureStripeCustomerForUser(user) {
   return customer.id;
 }
 
+// --- REPLACE START: reconcilePremiumForCustomer keeps entitlements.features.superLikesPerWeek in sync ---
 /**
  * reconcilePremiumForCustomer(customerId, userId?)
  * Reads subscriptions from Stripe (authoritative) and updates the User record:
  *   - premium/isPremium = true if any subscription is active or trialing
- *   - subscriptionId = newest active/trialing subscription id (or unset if none)
+ *   - subscriptionId    = newest active/trialing subscription id (or unset if none)
  *   - keep stripeCustomerId on the user document
+ *   - keep entitlements.features.superLikesPerWeek numeric and aligned with tier:
+ *       PREMIUM → SUPERLIKES_PER_WEEK_DEFAULT (env or 3)
+ *       FREE    → 1
  *
  * Returns { isPremium, subscriptionId } for the caller to surface in responses.
+ *
+ * NOTE:
+ *   We do NOT touch entitlements.quotas.superLikes.* here.
+ *   Quota window/usage is handled by the Super Like controller.
  */
 async function reconcilePremiumForCustomer(customerId, userId = null) {
   if (!customerId) {
@@ -214,7 +233,13 @@ async function reconcilePremiumForCustomer(customerId, userId = null) {
       if (_User?.findByIdAndUpdate) {
         await _User.findByIdAndUpdate(
           userId,
-          { isPremium: false, premium: false, $unset: { subscriptionId: '' } },
+          {
+            isPremium: false,
+            premium: false,
+            $unset: { subscriptionId: '' },
+            // Keep FREE baseline for features when no customer/subscriptions
+            'entitlements.features.superLikesPerWeek': 1,
+          },
           { new: true },
         ).exec();
       }
@@ -259,6 +284,10 @@ async function reconcilePremiumForCustomer(customerId, userId = null) {
         ...(effectiveSubId
           ? { subscriptionId: effectiveSubId }
           : { $unset: { subscriptionId: '' } }),
+        // Align weekly Super Like feature quota numerically with premium state
+        'entitlements.features.superLikesPerWeek': effectiveIsPremium
+          ? SUPERLIKES_PER_WEEK_DEFAULT
+          : 1,
       },
       { new: true },
     ).exec();
@@ -278,6 +307,7 @@ async function reconcilePremiumForCustomer(customerId, userId = null) {
 
   return { isPremium: effectiveIsPremium, subscriptionId: effectiveSubId };
 }
+// --- REPLACE END ---
 
 /* **********************************************************************
  * DEV DIAGNOSTICS (optional):

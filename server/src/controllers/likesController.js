@@ -521,33 +521,14 @@ export async function unlikeUser(req, res) {
 }
 
 // -------------------------------------------------------------------------------------------------
-// Optional list endpoints (proxy to root controller if available)
+// List endpoints implemented directly (no recursive root proxy)
 // -------------------------------------------------------------------------------------------------
-let _rootCtrl = null;
-
-async function getRootCtrl() {
-  if (_rootCtrl) return _rootCtrl;
-  try {
-    const mod = await import("../../controllers/likesController.js");
-    _rootCtrl = mod?.default ? mod.default : mod;
-  } catch (e) {
-    try {
-      // eslint-disable-next-line n/no-missing-require, import/no-commonjs, global-require
-      // @ts-ignore
-      const cjs = require("../../controllers/likesController.js");
-      _rootCtrl = cjs?.default ? cjs.default : cjs;
-    } catch {
-      _rootCtrl = null;
-    }
-  }
-  return _rootCtrl;
-}
 
 /**
- * Legacy-style outgoing likes list.
- * We keep this as a thin proxy to any legacy controller, and apply block-filtering
- * in a wrapped res.json when possible. The router prefers getOutgoing(), which
- * points here to preserve behaviour.
+ * Legacy-style outgoing likes list:
+ *  - Finds all like-documents where current user is the liker.
+ *  - Hydrates target users.
+ *  - Applies block-filtering on the final payload.
  */
 export async function listOutgoingLikes(req, res) {
   try {
@@ -556,42 +537,49 @@ export async function listOutgoingLikes(req, res) {
       return res.status(401).json({ ok: false, error: "Unauthorized" });
     }
 
-    const ctrl = await getRootCtrl();
-    const impl =
-      ctrl?.listOutgoingLikes ||
-      ctrl?.getOutgoing ||
-      ctrl?.outgoing ||
-      ctrl?.listOutgoing;
-
-    if (typeof impl === "function") {
-      // Wrap res.json to inject block filtering on the payload coming from legacy impl
-      const originalJson = res.json.bind(res);
-      const wrappedRes = Object.create(res);
-      wrappedRes.json = (payload) => {
-        (async () => {
-          const filtered = await filterLikesPayloadForBlocks(authUserId, payload);
-          originalJson(filtered);
-        })().catch((e) => {
-          logLikesDebug("listOutgoingLikes filter error:", e?.message || e);
-          originalJson(payload);
-        });
-        return res;
-      };
-
-      return impl(req, wrappedRes);
+    const userObjId = toObjectId(authUserId);
+    if (!userObjId) {
+      return res.status(400).json({ ok: false, error: "Invalid user id format" });
     }
 
-    // Light fallback using mirrored ids; avoids heavy hydration
-    const me = await usersCollection().findOne(
-      { _id: toObjectId(authUserId) },
-      { projection: { likes: 1 } }
-    );
-    const ids = Array.isArray(me?.likes) ? me.likes : [];
+    const Likes = likesCollection();
+    const Users = usersCollection();
+
+    // Find outgoing likes (limit helps avoid huge payloads; adjust if needed)
+    const likeDocs = await Likes.find({ userId: userObjId })
+      .project({ targetId: 1 })
+      .limit(500)
+      .toArray();
+
+    const targetIds = likeDocs
+      .map((d) => d?.targetId)
+      .filter((id) => id && typeof id.equals === "function");
+
+    if (targetIds.length === 0) {
+      const emptyPayload = { ok: true, count: 0, users: [] };
+      const filtered = await filterLikesPayloadForBlocks(authUserId, emptyPayload);
+      return res.status(200).json(filtered);
+    }
+
+    const users = await Users.find({ _id: { $in: targetIds } })
+      .project({
+        _id: 1,
+        username: 1,
+        email: 1,
+        age: 1,
+        gender: 1,
+        city: 1,
+        country: 1,
+        photos: 1,
+      })
+      .toArray();
+
     const payload = {
       ok: true,
-      count: ids.length,
-      users: [],
+      count: users.length,
+      users,
     };
+
     const filtered = await filterLikesPayloadForBlocks(authUserId, payload);
     return res.status(200).json(filtered);
   } catch (err) {
@@ -603,9 +591,10 @@ export async function listOutgoingLikes(req, res) {
 }
 
 /**
- * Legacy-style incoming likes list.
- * Same pattern as listOutgoingLikes: proxy to legacy controller when present,
- * but always block-filter the final payload.
+ * Legacy-style incoming likes list:
+ *  - Finds likes where current user is the target.
+ *  - Hydrates liker users.
+ *  - Applies block-filtering.
  */
 export async function listIncomingLikes(req, res) {
   try {
@@ -614,37 +603,48 @@ export async function listIncomingLikes(req, res) {
       return res.status(401).json({ ok: false, error: "Unauthorized" });
     }
 
-    const ctrl = await getRootCtrl();
-    const impl =
-      ctrl?.listIncomingLikes ||
-      ctrl?.getIncoming ||
-      ctrl?.incoming ||
-      ctrl?.listIncoming;
-
-    if (typeof impl === "function") {
-      // Wrap res.json to inject block filtering on the payload coming from legacy impl
-      const originalJson = res.json.bind(res);
-      const wrappedRes = Object.create(res);
-      wrappedRes.json = (payload) => {
-        (async () => {
-          const filtered = await filterLikesPayloadForBlocks(authUserId, payload);
-          originalJson(filtered);
-        })().catch((e) => {
-          logLikesDebug("listIncomingLikes filter error:", e?.message || e);
-          originalJson(payload);
-        });
-        return res;
-      };
-
-      return impl(req, wrappedRes);
+    const userObjId = toObjectId(authUserId);
+    if (!userObjId) {
+      return res.status(400).json({ ok: false, error: "Invalid user id format" });
     }
 
-    // No legacy controller available – return an empty list (still block-filtered for consistency)
+    const Likes = likesCollection();
+    const Users = usersCollection();
+
+    const likeDocs = await Likes.find({ targetId: userObjId })
+      .project({ userId: 1 })
+      .limit(500)
+      .toArray();
+
+    const likerIds = likeDocs
+      .map((d) => d?.userId)
+      .filter((id) => id && typeof id.equals === "function");
+
+    if (likerIds.length === 0) {
+      const emptyPayload = { ok: true, count: 0, users: [] };
+      const filtered = await filterLikesPayloadForBlocks(authUserId, emptyPayload);
+      return res.status(200).json(filtered);
+    }
+
+    const users = await Users.find({ _id: { $in: likerIds } })
+      .project({
+        _id: 1,
+        username: 1,
+        email: 1,
+        age: 1,
+        gender: 1,
+        city: 1,
+        country: 1,
+        photos: 1,
+      })
+      .toArray();
+
     const payload = {
       ok: true,
-      count: 0,
-      users: [],
+      count: users.length,
+      users,
     };
+
     const filtered = await filterLikesPayloadForBlocks(authUserId, payload);
     return res.status(200).json(filtered);
   } catch (err) {
@@ -655,15 +655,94 @@ export async function listIncomingLikes(req, res) {
   }
 }
 
+/**
+ * listMatches:
+ *  - A match = both users have liked each other.
+ *  - We compute:
+ *      outgoing targets (userId -> targetId),
+ *      incoming likers (userId <- targetId),
+ *    then intersect on peer user id.
+ *  - Finally, hydrate matched peer user docs and apply block-filtering.
+ */
 export async function listMatches(req, res) {
   try {
-    const ctrl = await getRootCtrl();
-    const impl = ctrl?.listMatches || ctrl?.getMatches || ctrl?.matches;
-    if (typeof impl === "function") return impl(req, res);
-    return res.status(501).json({
-      ok: false,
-      error: "likesController.listMatches not available",
-    });
+    const authUserId = getAuthUserId(req);
+    if (!isValidObjectId(authUserId)) {
+      return res.status(401).json({ ok: false, error: "Unauthorized" });
+    }
+
+    const userObjId = toObjectId(authUserId);
+    if (!userObjId) {
+      return res.status(400).json({ ok: false, error: "Invalid user id format" });
+    }
+
+    const Likes = likesCollection();
+    const Users = usersCollection();
+
+    // Outgoing: users current user has liked
+    const outgoingDocs = await Likes.find({ userId: userObjId })
+      .project({ targetId: 1 })
+      .limit(1000)
+      .toArray();
+    const outgoingSet = new Set(
+      outgoingDocs
+        .map((d) => d?.targetId)
+        .filter((id) => id && typeof id.equals === "function")
+        .map((id) => id.toString())
+    );
+
+    if (outgoingSet.size === 0) {
+      const emptyPayload = { ok: true, count: 0, users: [] };
+      const filtered = await filterLikesPayloadForBlocks(authUserId, emptyPayload);
+      return res.status(200).json(filtered);
+    }
+
+    // Incoming: users who liked current user
+    const incomingDocs = await Likes.find({ targetId: userObjId })
+      .project({ userId: 1 })
+      .limit(1000)
+      .toArray();
+    const incomingSet = new Set(
+      incomingDocs
+        .map((d) => d?.userId)
+        .filter((id) => id && typeof id.equals === "function")
+        .map((id) => id.toString())
+    );
+
+    const matchIds = [];
+    for (const idStr of outgoingSet) {
+      if (incomingSet.has(idStr)) {
+        matchIds.push(toObjectId(idStr));
+      }
+    }
+
+    if (matchIds.length === 0) {
+      const emptyPayload = { ok: true, count: 0, users: [] };
+      const filtered = await filterLikesPayloadForBlocks(authUserId, emptyPayload);
+      return res.status(200).json(filtered);
+    }
+
+    const users = await Users.find({ _id: { $in: matchIds } })
+      .project({
+        _id: 1,
+        username: 1,
+        email: 1,
+        age: 1,
+        gender: 1,
+        city: 1,
+        country: 1,
+        photos: 1,
+      })
+      .toArray();
+
+    const payload = {
+      ok: true,
+      count: users.length,
+      users,
+    };
+
+    const filtered = await filterLikesPayloadForBlocks(authUserId, payload);
+    return res.status(200).json(filtered);
   } catch (err) {
     logLikesDebug("listMatches error:", err?.message || err);
     return res
@@ -709,5 +788,6 @@ try {
   // no-op
 }
 // --- REPLACE END ---
+
 
 

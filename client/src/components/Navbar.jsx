@@ -1,7 +1,5 @@
-﻿// PATH: client/src/components/Navbar.jsx
-
-// --- REPLACE START: add reactive Premium badge + keep header ad under navbar ---
-import React from "react";
+﻿// --- REPLACE START: add reactive Premium badge + Premium Hub link + wrapped nav row ---
+import React, { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
@@ -19,7 +17,9 @@ import { useAuth } from "../contexts/AuthContext";
  *   Keep only {path,key} and call t(key) at render time so language changes re-render correctly.
  * - Provides defaultValue fallbacks so raw keys never leak to UI.
  * - Shows guest links until bootstrapping finishes, then user/admin links.
- * - NEW: Shows a reactive “Premium” badge the moment the status flips (isPremium/premium).
+ * - Shows a reactive “Premium” badge the moment the status flips (isPremium/premium).
+ * - Premium users also get a direct “Premium Hub” link (/premium).
+ * - NEW: Nav buttons wrap to 2 rows if needed instead of overflowing.
  */
 const Navbar = () => {
   const { t } = useTranslation();
@@ -32,10 +32,10 @@ const Navbar = () => {
 
   // Shared classes for consistency
   const linkClass =
-    "bg-white/10 text-white font-semibold px-4 py-2 rounded hover:bg-blue-500 transition text-sm text-center shadow backdrop-blur";
+    "bg-white/10 text-white font-semibold px-4 py-2 rounded hover:bg-blue-500 transition text-sm text-center shadow backdrop-blur inline-flex items-center justify-center min-w-[110px]";
 
   /**
-   * Default English labels for safety (used only as defaultValue fallbacks).
+   * Default English labels for safety (used only as fallbacks).
    */
   const defaults = {
     "common:nav.home": "Home",
@@ -49,12 +49,34 @@ const Navbar = () => {
     "common:nav.likes": "Likes",
     "common:nav.map": "Map",
     "common:nav.premium": "Premium",
+    "common:nav.premiumHub": "Premium Hub",
     "common:nav.settings": "Settings",
     "common:nav.admin": "Admin",
     "common:nav.logout": "Logout",
     // Badge fallback
     "common:badge.premium": "Premium",
+    // Misc labels
+    "common:site.title": "Loventia",
+    "common:select_language_label": "Language",
   };
+
+  /**
+   * Helper: keep translation safe.
+   * If i18n returns the key itself, fall back to an English default label.
+   */
+  const translateNav = useCallback(
+    (key) => {
+      const raw = t(key);
+      const bareKey = key.includes(":") ? key.split(":").slice(-1)[0] : key;
+
+      if (!raw || raw === key || raw === bareKey) {
+        return defaults[key] || bareKey;
+      }
+
+      return raw;
+    },
+    [t]
+  );
 
   // NOTE: keep only keys here, no t(...) calls inside arrays so language switches live-update
   // Always visible
@@ -69,7 +91,7 @@ const Navbar = () => {
     { path: "/register", key: "common:nav.register" },
   ];
 
-  // Authenticated user
+  // Authenticated user base links
   const userLinks = [
     { path: "/discover", key: "common:nav.discover" },
     { path: "/profile", key: "common:nav.profile" },
@@ -78,10 +100,16 @@ const Navbar = () => {
     // Likes overview (outgoing, incoming, matches)
     { path: "/likes", key: "common:nav.likes" },
     { path: "/map", key: "common:nav.map" },
+    // Upgrade/landing for Premium (works also for Premium users as a CTA/redirect)
     { path: "/upgrade", key: "common:nav.premium" },
     { path: "/settings", key: "common:nav.settings" },
     { path: "/admin", key: "common:nav.admin" },
   ];
+
+  // Extra link only for Premium users – points to the Premium Hub
+  const premiumHubLinks = isPremium
+    ? [{ path: "/premium", key: "common:nav.premiumHub" }]
+    : [];
 
   // Only allow admin if role matches
   const filteredUserLinks = userLinks.filter(
@@ -90,15 +118,15 @@ const Navbar = () => {
 
   /**
    * Behavior:
-   * - While bootstrapping, show public+guest so navbar is never empty
+   * - While bootstrapping, show public+guest so navbar is never empty.
    * - After bootstrap:
-   *   - logged in → user links
+   *   - logged in → user links (+ Premium Hub if applicable)
    *   - logged out → guest links
    */
   const linksToRender = !bootstrapped
     ? [...commonLinks, ...guestLinks]
     : isLoggedIn
-    ? [...commonLinks, ...filteredUserLinks]
+    ? [...commonLinks, ...filteredUserLinks, ...premiumHubLinks]
     : [...commonLinks, ...guestLinks];
 
   // Hook for immediate client-side logout (clears tokens, cache, and navigates)
@@ -124,26 +152,19 @@ const Navbar = () => {
         <div className="flex items-center justify-center w-full max-w-6xl">
           <h1 className="text-3xl font-bold text-white drop-shadow flex items-center">
             {/* Site title */}
-            💗 {t("common:site.title", { defaultValue: "Loventia" })}
+            💗 {translateNav("common:site.title")}
 
-            {/* --- REPLACE START: reactive Premium badge next to title --- */}
+            {/* Reactive Premium badge next to title */}
             {isLoggedIn && isPremium && (
               <span
                 className="ml-3 inline-flex items-center gap-1 rounded-full bg-yellow-400/95 text-black text-xs font-extrabold px-3 py-1 shadow ring-1 ring-black/10"
-                aria-label={t("common:badge.premium", {
-                  defaultValue: defaults["common:badge.premium"],
-                })}
-                title={t("common:badge.premium", {
-                  defaultValue: defaults["common:badge.premium"],
-                })}
+                aria-label={translateNav("common:badge.premium")}
+                title={translateNav("common:badge.premium")}
               >
                 <span aria-hidden="true">👑</span>
-                {t("common:badge.premium", {
-                  defaultValue: defaults["common:badge.premium"],
-                })}
+                {translateNav("common:badge.premium")}
               </span>
             )}
-            {/* --- REPLACE END: reactive Premium badge next to title --- */}
           </h1>
         </div>
 
@@ -153,47 +174,34 @@ const Navbar = () => {
             htmlFor="language-switcher"
             className="text-white font-medium mr-2 text-sm"
           >
-            {t("common:select_language_label", { defaultValue: "Language" })}
+            {translateNav("common:select_language_label")}
           </label>
           {/* The switcher manages its own state; id for a11y association */}
           <LanguageSwitcher id="language-switcher" />
         </div>
 
-        {/* Links row */}
-        <div
-          className="w-full max-w-6xl mt-4"
-          style={{
-            display: "grid",
-            gridTemplateColumns: `repeat(${
-              linksToRender.length + (isLoggedIn && bootstrapped ? 1 : 0)
-            }, minmax(80px, 1fr))`,
-            gap: "8px",
-          }}
-        >
-          {linksToRender.map((link) => (
-            <Link key={link.path} to={link.path} className={linkClass}>
-              {t(link.key, { defaultValue: defaults[link.key] || link.key })}
-            </Link>
-          ))}
+        {/* Links row – wraps to 2 rows if needed, centered */}
+        <div className="w-full max-w-6xl mt-4">
+          <div className="flex flex-wrap justify-center gap-2">
+            {linksToRender.map((link) => (
+              <Link key={link.path} to={link.path} className={linkClass}>
+                {translateNav(link.key)}
+              </Link>
+            ))}
 
-          {/* Logout visible only if logged in and bootstrapped */}
-          {isLoggedIn && bootstrapped && (
-            <button
-              type="button"
-              onClick={logout}
-              className={linkClass}
-              aria-label={t("common:nav.logout", {
-                defaultValue: defaults["common:nav.logout"],
-              })}
-              title={t("common:nav.logout", {
-                defaultValue: defaults["common:nav.logout"],
-              })}
-            >
-              {t("common:nav.logout", {
-                defaultValue: defaults["common:nav.logout"],
-              })}
-            </button>
-          )}
+            {/* Logout visible only if logged in and bootstrapped */}
+            {isLoggedIn && bootstrapped && (
+              <button
+                type="button"
+                onClick={logout}
+                className={linkClass}
+                aria-label={translateNav("common:nav.logout")}
+                title={translateNav("common:nav.logout")}
+              >
+                {translateNav("common:nav.logout")}
+              </button>
+            )}
+          </div>
         </div>
       </nav>
 

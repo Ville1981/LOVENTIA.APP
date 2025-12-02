@@ -210,6 +210,23 @@ This section is a **short, practical path** to get Loventia running locally and 
    * To validate Stripe webhooks in dev, see the section
      **“Stripe CLI smoke (dev)”** under [Testing & CI/CD](#testing--cicd).
 
+7. **Quick reference: core backend endpoints & OpenAPI commands**
+
+   This table is a **cheat sheet** for the most important backend endpoints and dev commands you will need as a new contributor.
+
+   | Category            | Endpoint / Command                                                                  | Description                                                                                     |
+   | ------------------- | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+   | Login               | `POST /api/auth/login`                                                              | Primary login endpoint. Returns access & refresh tokens and normalized user payload.            |
+   | Me (primary)        | `GET /api/auth/me`                                                                  | Main `me` endpoint. Returns email, premium / isPremium, entitlements, stripeCustomerId, etc.    |
+   | Me (alias)          | `GET /api/me`                                                                       | Convenience alias to the authenticated user info (`/api/auth/me`).                              |
+   | Me (legacy)         | `GET /api/users/me`                                                                 | Legacy users route, still normalized. Kept for backward compatibility with older clients/tools. |
+   | Health              | `GET /health`                                                                       | Liveness check. No auth required.                                                               |
+   | Ready               | `GET /ready`                                                                        | Readiness check + Mongo status. No auth required.                                               |
+   | Metrics (root)      | `GET /metrics`                                                                      | Prometheus-style app metrics. No auth in dev.                                                   |
+   | Metrics (API)       | `GET /api/metrics`                                                                  | Extended HTTP metrics (text). Dev: open. Prod: admin-only via guard.                            |
+   | Metrics (API JSON)  | `GET /api/metrics/json`                                                             | Same metrics as above but JSON-formatted.                                                       |
+   | OpenAPI lint+bundle | `powershell -ExecutionPolicy Bypass -File .\openapi\openapi.ps1` (run in `server/`) | Runs Spectral lint and bundles OpenAPI spec with Redocly into `openapi/openapi.bundle.yaml`.    |
+
 <!-- --- REPLACE END: Quick start for new developers --- -->
 
 ---
@@ -396,15 +413,15 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 // --- REPLACE END ---
 ```
 
-> **Note:** Jos käytössä on erillinen `server/src/routes/index.js` joka mountataan `app.use('/api', routes);`, niin Swagger kannattaa mountata **suoraan appiin** kuten yllä, ei routesin sisään.
+> **Note:** If you use a separate `server/src/routes/index.js` that is mounted with `app.use('/api', routes);`, Swagger should still be mounted **directly on the app** as above, not inside the routes index.
 
 ---
 
 ## Authentication (IMPORTANT)
 
-Tämä on se osuus, jonka juuri testattiin PowerShellillä ja joka pitää **dokumentoituna** tässä repossa, jotta myöhemmin ei tule “miksi /api/users/login toimii joskus ja joskus ei” -kysymyksiä.
+This is the part that has been validated via PowerShell and should stay **documented** here to avoid future “why does /api/users/login sometimes work and sometimes not” questions.
 
-### 1. Primary endpoint (uusi, ESM, täysi)
+### 1. Primary endpoint (new ESM-based, full)
 
 ```http
 POST /api/auth/login
@@ -420,7 +437,7 @@ Content-Type: application/json
 }
 ```
 
-**Response (lyhennetty):**
+**Response (shortened):**
 
 ```json
 {
@@ -438,59 +455,59 @@ Content-Type: application/json
 }
 ```
 
-**Miksi tämä on ensisijainen?**
-Koska se tulee suoraan tiedostosta `server/routes/auth.js` (ESM), jossa on nyt:
+**Why this is primary**
+
+Because it comes from the new ESM router `server/routes/auth.js` which exposes:
 
 * `/api/auth/login`
 * `/api/auth/refresh`
 * `/api/auth/logout`
 * `/api/auth/forgot-password`
 * `/api/auth/reset-password`
-* `/api/auth/me` (premium-tieto, entitlements, stripeCustomerId, jne)
+* `/api/auth/me` (premium data, entitlements, stripeCustomerId, etc.)
 
-### 2. Secondary / legacy endpoint (vain fallback)
+### 2. Secondary / legacy endpoint (fallback only)
 
 ```http
 POST /api/users/login
 ```
 
-Tämä pidetään vain sitä varten, että **vanhat clientit** tai **vanha frontend** tai **postman-sarjat** eivät hajoa. Uusi frontend tekee:
+This is kept only so **older clients** or **old frontend code** or **Postman collections** do not break.
+The new frontend logic is:
 
 ```text
 try /api/auth/login → if 404/405 → try /api/users/login
 ```
 
-### 3. Me-endpoint
+### 3. Me endpoint
 
 ```http
 GET /api/auth/me
 Authorization: Bearer <accessToken>
 ```
 
-Tämä on nyt **ainoa** “oikea” me, koska:
+This is the **canonical** `me` endpoint, because:
 
-* se palauttaa samat premium-tiedot kuin `/api/users/me`
-* se käyttää samaa normalisoijaa kuin userRoutes
-* se ei vuoda salasanaa
-* se osaa luoda entitlements-olion vaikka kannassa ei vielä ole kaikkea
+* it returns the same premium data as `/api/users/me`
+* it uses the same normalizer as `userRoutes`
+* it never leaks `password`
+* it constructs `entitlements` correctly even if older DB documents are missing fields
 
-### 4. Private router (ei varjosta me:tä)
+### 4. Private router (does not shadow `me`)
 
 ```http
 GET /api/auth/private/ping
 GET /api/auth/private/no-me
 ```
 
-Nämä ovat vain diagnostiikkaa varten ja olemme erikseen tehneet:
-
-* ei uutta `/me`:tä tänne
-* tämä router vain todistaa, että `authenticate` toimii
+These are only for diagnostics. There is **no** separate `/api/auth/private/me`.
+This ensures there is only one real “user info” endpoint: `/api/auth/me`.
 
 ### 5. Refresh
 
-Tukee **kahta** tapaa (molemmat testattiin PS:llä):
+Supports **two** ways (both tested via PowerShell):
 
-1. **Bodyllä:**
+1. **Refresh token in the body:**
 
    ```http
    POST /api/auth/refresh
@@ -501,14 +518,14 @@ Tukee **kahta** tapaa (molemmat testattiin PS:llä):
    }
    ```
 
-2. **Authorization-headerissa** (legacy):
+2. **Refresh token in the Authorization header (legacy):**
 
    ```http
    POST /api/auth/refresh
    Authorization: Bearer <refresh_jwt>
    ```
 
-Molemmissa tapauksissa saat uuden access-tokenin.
+Both yield a new access token (and optionally a rotated refresh token, depending on configuration).
 
 ### 6. Forgot / reset
 
@@ -519,7 +536,7 @@ POST /api/auth/forgot-password
 }
 ```
 
-→ luo tokenin, tallentaa kannassa `passwordResetToken` ja `passwordResetExpires`, yrittää lähettää mailin (loggaa silti vaikka ei pysty lähettämään).
+→ Creates a token, stores `passwordResetToken` and `passwordResetExpires` in DB, and attempts to send an email (logging activity even when email cannot be sent in dev).
 
 ```http
 POST /api/auth/reset-password
@@ -530,7 +547,7 @@ POST /api/auth/reset-password
 }
 ```
 
-→ hyväksyy sekä raakan että sha256-version, juuri sen takia että aiemmin oli se “hash vs raw” -ero.
+→ Accepts **either** the raw token or its `sha256` hash, fixing the prior “hash vs raw” discrepancy.
 
 ---
 

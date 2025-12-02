@@ -1,3 +1,5 @@
+// PATH: server/src/controllers/billingController.js
+
 // File: server/src/controllers/billingController.js
 
 // --- REPLACE START: Stripe billing controller (Checkout, Portal, Webhook with signature verification + durable premium sync) ---
@@ -20,13 +22,16 @@
  *  - User model is provided by server/src/models/User.js (ESM/CJS bridge).
  */
 
-import crypto from 'node:crypto';
+import crypto from "node:crypto";
 
-import * as UserModule from '../models/User.js';
+import * as UserModule from "../models/User.js";
 const User = UserModule.default || UserModule;
 
-import normalizeUserOut from '../utils/normalizeUserOut.js';
-import stripe, { billingUrls } from '../../config/stripe.js';
+import normalizeUserOut from "../utils/normalizeUserOut.js";
+import stripe, { billingUrls } from "../../config/stripe.js";
+
+// ✅ NEW: high-level transactional email service (logs via /api/debug/email-log)
+import { sendTransactionalEmail } from "../utils/emailService.js";
 
 /* -------------------------------------------------------------------------- */
 /* Constants                                                                  */
@@ -36,13 +41,20 @@ import stripe, { billingUrls } from '../../config/stripe.js';
  * Default weekly quota for Super Likes when the user is Premium.
  * You can override this via process.env.SUPERLIKES_PER_WEEK if desired.
  */
-const SUPERLIKES_PER_WEEK_DEFAULT = Number(process.env.SUPERLIKES_PER_WEEK || 3);
+const SUPERLIKES_PER_WEEK_DEFAULT = Number(
+  process.env.SUPERLIKES_PER_WEEK || 3,
+);
 
 /**
  * Subscription statuses that we consider as "active" for premium purposes.
  * Adjust if your policy differs.
  */
-const ACTIVE_SUB_STATUSES = new Set(['active', 'trialing', 'past_due', 'unpaid']);
+const ACTIVE_SUB_STATUSES = new Set([
+  "active",
+  "trialing",
+  "past_due",
+  "unpaid",
+]);
 
 /* -------------------------------------------------------------------------- */
 /* Utilities                                                                  */
@@ -55,7 +67,7 @@ const ACTIVE_SUB_STATUSES = new Set(['active', 'trialing', 'past_due', 'unpaid']
 async function resolveUserFromRequest(req) {
   if (req?.user && req.user._id) {
     // If the middleware already populated a full Mongoose document, return it.
-    if (typeof req.user.save === 'function') return req.user;
+    if (typeof req.user.save === "function") return req.user;
     // Otherwise, fetch the document by id.
     return await User.findById(req.user._id);
   }
@@ -71,9 +83,13 @@ async function resolveUserFromRequest(req) {
  * Uses email and stores appUserId in Stripe metadata for easier reconciliation.
  */
 async function getOrCreateStripeCustomer(userDoc) {
-  if (!userDoc) throw Object.assign(new Error('Unauthorized'), { status: 401 });
+  if (!userDoc)
+    throw Object.assign(new Error("Unauthorized"), { status: 401 });
 
-  if (userDoc.stripeCustomerId && typeof userDoc.stripeCustomerId === 'string') {
+  if (
+    userDoc.stripeCustomerId &&
+    typeof userDoc.stripeCustomerId === "string"
+  ) {
     return userDoc.stripeCustomerId;
   }
 
@@ -89,8 +105,9 @@ async function getOrCreateStripeCustomer(userDoc) {
 
 /**
  * Build entitlements.features block based on premium flag.
+ *
  * NOTE:
- *  - For PREMIUM we *explicitly* set superLikesPerWeek to a numeric quota (default 3).
+ *  - For PREMIUM we explicitly set superLikesPerWeek to a numeric quota (default 3).
  *  - For FREE we keep it numeric 1 to make client logic simple and consistent.
  *  - Keep qaVisibilityAll true for both tiers (matches current product decision).
  */
@@ -98,7 +115,7 @@ function buildEntitlementFeatures(isPremium) {
   if (isPremium) {
     return {
       seeLikedYou: true,
-      superLikesPerWeek: SUPERLIKES_PER_WEEK_DEFAULT, // ⭐ premium = 3 by default
+      superLikesPerWeek: SUPERLIKES_PER_WEEK_DEFAULT, // numeric
       unlimitedLikes: true,
       unlimitedRewinds: true,
       dealbreakers: true,
@@ -109,7 +126,7 @@ function buildEntitlementFeatures(isPremium) {
   }
   return {
     seeLikedYou: false,
-    superLikesPerWeek: 1, // free baseline (numeric for consistency)
+    superLikesPerWeek: 1, // numeric baseline for FREE
     unlimitedLikes: false,
     unlimitedRewinds: false,
     dealbreakers: false,
@@ -125,16 +142,27 @@ function buildEntitlementFeatures(isPremium) {
  */
 function derivePremiumStateFromSubscription(subscription) {
   if (!subscription) {
-    return { isPremium: false, subscriptionId: null, tier: 'free', since: null, until: null };
+    return {
+      isPremium: false,
+      subscriptionId: null,
+      tier: "free",
+      since: null,
+      until: null,
+    };
   }
+
   const isActive = ACTIVE_SUB_STATUSES.has(subscription.status);
-  const since = subscription.current_period_start ? new Date(subscription.current_period_start * 1000) : null;
-  const until = subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : null;
+  const since = subscription.current_period_start
+    ? new Date(subscription.current_period_start * 1000)
+    : null;
+  const until = subscription.current_period_end
+    ? new Date(subscription.current_period_end * 1000)
+    : null;
 
   return {
     isPremium: !!isActive,
     subscriptionId: subscription.id || null,
-    tier: isActive ? 'premium' : 'free',
+    tier: isActive ? "premium" : "free",
     since: isActive ? since : null,
     until: isActive ? until : null,
   };
@@ -149,7 +177,6 @@ function derivePremiumStateFromSubscription(subscription) {
  *  - Always set user.subscriptionId
  *  - Always set entitlements.tier
  *  - Keep quotas.superLikes sane defaults
- *  - ✅ Ensure premium superLikesPerWeek = 3 (or env override)
  *
  * IMPORTANT:
  *  - We do NOT reset entitlements.quotas.superLikes.used here.
@@ -170,22 +197,23 @@ async function writeUserPremiumState(userId, premiumState) {
     subscriptionId: subscriptionId ?? null,
 
     // Entitlements tier + timing
-    'entitlements.tier': tier || (isPremium ? 'premium' : 'free'),
-    'entitlements.since': since ?? null,
-    'entitlements.until': until ?? null,
+    "entitlements.tier": tier || (isPremium ? "premium" : "free"),
+    "entitlements.since": since ?? null,
+    "entitlements.until": until ?? null,
 
     // Feature flags (explicit, non-destructive at object level)
-    'entitlements.features.seeLikedYou': !!computed.seeLikedYou,
-    'entitlements.features.dealbreakers': !!computed.dealbreakers,
-    'entitlements.features.qaVisibilityAll': !!computed.qaVisibilityAll,
-    'entitlements.features.introsMessaging': !!computed.introsMessaging,
-    'entitlements.features.noAds': !!computed.noAds,
-    'entitlements.features.unlimitedLikes': !!computed.unlimitedLikes,
-    'entitlements.features.unlimitedRewinds': !!computed.unlimitedRewinds,
+    "entitlements.features.seeLikedYou": !!computed.seeLikedYou,
+    "entitlements.features.dealbreakers": !!computed.dealbreakers,
+    "entitlements.features.qaVisibilityAll": !!computed.qaVisibilityAll,
+    "entitlements.features.introsMessaging": !!computed.introsMessaging,
+    "entitlements.features.noAds": !!computed.noAds,
+    "entitlements.features.unlimitedLikes": !!computed.unlimitedLikes,
+    "entitlements.features.unlimitedRewinds": !!computed.unlimitedRewinds,
 
     // ⭐ Numeric weekly quota (premium → 3 by default; coerced to Number)
-    'entitlements.features.superLikesPerWeek':
-      Number(computed.superLikesPerWeek) || (isPremium ? SUPERLIKES_PER_WEEK_DEFAULT : 1),
+    "entitlements.features.superLikesPerWeek":
+      Number(computed.superLikesPerWeek) ||
+      (isPremium ? SUPERLIKES_PER_WEEK_DEFAULT : 1),
 
     // NOTE:
     //  - We deliberately do NOT touch entitlements.quotas.superLikes.used / weekKey / window here.
@@ -195,7 +223,7 @@ async function writeUserPremiumState(userId, premiumState) {
   const updated = await User.findByIdAndUpdate(
     userId,
     { $set },
-    { new: true, runValidators: true }
+    { new: true, runValidators: true },
   );
 
   return updated;
@@ -208,10 +236,15 @@ async function writeUserPremiumState(userId, premiumState) {
 async function upsertPremiumByCustomer(customerId, isPremium, subscription) {
   if (!customerId) return;
 
-  const fromSub = derivePremiumStateFromSubscription(isPremium ? subscription : null);
+  const fromSub = derivePremiumStateFromSubscription(
+    isPremium ? subscription : null,
+  );
 
   // First: try direct lookup by stripeCustomerId
-  let userDoc = await User.findOne({ stripeCustomerId: customerId }, { _id: 1 });
+  let userDoc = await User.findOne(
+    { stripeCustomerId: customerId },
+    { _id: 1 },
+  );
   if (!userDoc) {
     // Metadata backfill (best-effort)
     try {
@@ -241,11 +274,11 @@ async function upsertPremiumByCustomer(customerId, isPremium, subscription) {
 export async function createCheckout(req, res) {
   const priceId = process.env.STRIPE_PRICE_ID;
   if (!priceId) {
-    return res.status(500).json({ error: 'Missing STRIPE_PRICE_ID' });
+    return res.status(500).json({ error: "Missing STRIPE_PRICE_ID" });
   }
 
   const user = await resolveUserFromRequest(req);
-  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  if (!user) return res.status(401).json({ error: "Unauthorized" });
 
   const customerId = await getOrCreateStripeCustomer(user);
 
@@ -257,17 +290,17 @@ export async function createCheckout(req, res) {
 
   const session = await stripe.checkout.sessions.create(
     {
-      mode: 'subscription',
+      mode: "subscription",
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: successUrl,
       cancel_url: cancelUrl,
       allow_promotion_codes: true,
-      billing_address_collection: 'auto',
+      billing_address_collection: "auto",
       automatic_tax: { enabled: true },
       metadata: { appUserId: String(user._id) },
     },
-    { idempotencyKey: idemKey }
+    { idempotencyKey: idemKey },
   );
 
   return res.json({ id: session.id, url: session.url });
@@ -279,7 +312,7 @@ export async function createCheckout(req, res) {
  */
 export async function createPortal(req, res) {
   const user = await resolveUserFromRequest(req);
-  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  if (!user) return res.status(401).json({ error: "Unauthorized" });
 
   const customerId = await getOrCreateStripeCustomer(user);
   const returnUrl = process.env.STRIPE_SUCCESS_URL || billingUrls.returnUrl;
@@ -300,18 +333,26 @@ export async function createPortal(req, res) {
  * IMPORTANT:
  *  - This endpoint manages premium flags, subscriptionId, tier and feature toggles.
  *  - It intentionally does NOT reset Super Like quotas; those are updated by /api/superlike.
+ *  - We also log a transactional email event (via emailService) when premium state changes
+ *    or stays the same (billing.sync).
  */
 export async function sync(req, res) {
   const user = await resolveUserFromRequest(req);
-  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  if (!user) return res.status(401).json({ error: "Unauthorized" });
 
   const customerId = await getOrCreateStripeCustomer(user);
+
+  // Track previous premium state so we can detect transitions
+  const wasPremiumBefore =
+    !!user.isPremium ||
+    !!user.premium ||
+    user?.entitlements?.tier === "premium";
 
   // Fetch the latest subscription for this customer
   const subs = await stripe.subscriptions.list({
     customer: customerId,
-    status: 'all',
-    expand: ['data.default_payment_method', 'data.latest_invoice.payment_intent'],
+    status: "all",
+    expand: ["data.default_payment_method", "data.latest_invoice.payment_intent"],
     limit: 5,
   });
 
@@ -323,6 +364,67 @@ export async function sync(req, res) {
 
   const premiumState = derivePremiumStateFromSubscription(preferred);
   const updated = await writeUserPremiumState(user._id, premiumState);
+
+  const becamePremium = !wasPremiumBefore && !!premiumState.isPremium;
+  const downgraded = wasPremiumBefore && !premiumState.isPremium;
+
+    // Best-effort transactional email logging:
+  // ⬇️ Lähetetään SÄHKÖPOSTI vain jos tila oikeasti muuttuu
+  try {
+    const requestId = req.id || req.headers["x-request-id"] || undefined;
+    const to = updated?.email;
+
+    let changeType = null;
+    if (becamePremium) {
+      changeType = "billing.purchase";
+    } else if (downgraded) {
+      changeType = "billing.cancel";
+    }
+
+    // Jos ei ole ostettu Premiumia eikä menetetty Premiumia,
+    // EI lähetetä mitään sähköpostia (mutta /sync vastaa silti 200).
+    if (changeType) {
+      const subjectMap = {
+        "billing.purchase": "Welcome to Loventia Premium",
+        "billing.cancel": "Your Loventia Premium has ended",
+      };
+
+      const textMap = {
+        "billing.purchase":
+          "Thank you for upgrading to Loventia Premium. Your premium benefits are now active.",
+        "billing.cancel":
+          "Your Loventia Premium subscription is no longer active. You can upgrade again anytime from Settings → Subscriptions.",
+      };
+
+      // We still require an email address for real send; if missing, emailService
+      // will simply log a skipped entry.
+      await sendTransactionalEmail({
+        type: changeType,
+        to,
+        subject: subjectMap[changeType],
+        text: textMap[changeType],
+        html: undefined,
+        payload: {
+          userId: String(updated._id),
+          subscriptionId: premiumState.subscriptionId,
+          tier: premiumState.tier,
+          wasPremiumBefore,
+          isPremiumNow: premiumState.isPremium,
+        },
+        meta: {
+          source: "billing.sync",
+          event: changeType,
+          requestId,
+        },
+      });
+    }
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(
+      "Transactional email (billing) failed or was skipped:",
+      e?.message || e,
+    );
+  }
 
   // IMPORTANT: return the updated, normalized user so FE can update immediately
   return res.json({
@@ -339,9 +441,9 @@ export async function sync(req, res) {
  * Validates signature and reacts to key subscription events.
  */
 export async function handleWebhook(req, res) {
-  const sig = req.headers['stripe-signature'];
+  const sig = req.headers["stripe-signature"];
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
-  if (!secret) return res.status(500).send('Webhook secret missing');
+  if (!secret) return res.status(500).send("Webhook secret missing");
 
   let event;
   try {
@@ -350,28 +452,33 @@ export async function handleWebhook(req, res) {
   } catch (err) {
     // Signature failed → 400 so Stripe can retry
     // eslint-disable-next-line no-console
-    console.error('❌ Stripe webhook signature verification failed:', err?.message || err);
+    console.error(
+      "❌ Stripe webhook signature verification failed:",
+      err?.message || err,
+    );
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
   try {
     switch (event.type) {
       // Successful checkout → subscription created/activated
-      case 'checkout.session.completed': {
+      case "checkout.session.completed": {
         const session = event.data.object;
         const customerId = session.customer;
         // Fetch the attached subscription to set proper dates/features
         let subscription = null;
         if (session.subscription) {
-          subscription = await stripe.subscriptions.retrieve(session.subscription);
+          subscription = await stripe.subscriptions.retrieve(
+            session.subscription,
+          );
         }
         await upsertPremiumByCustomer(customerId, true, subscription);
         break;
       }
 
       // Subscription canceled or deleted → premium off
-      case 'customer.subscription.deleted':
-      case 'customer.subscription.canceled': {
+      case "customer.subscription.deleted":
+      case "customer.subscription.canceled": {
         const sub = event.data.object;
         const customerId = sub.customer;
         await upsertPremiumByCustomer(customerId, false, null);
@@ -379,7 +486,7 @@ export async function handleWebhook(req, res) {
       }
 
       // Keep premium ON while active; OFF when status transitions to canceled/incomplete_expired etc.
-      case 'customer.subscription.updated': {
+      case "customer.subscription.updated": {
         const sub = event.data.object;
         const customerId = sub.customer;
         const isActive = ACTIVE_SUB_STATUSES.has(sub.status);
@@ -388,7 +495,7 @@ export async function handleWebhook(req, res) {
       }
 
       // Optional: failed payment may be handled separately if you want to downgrade earlier/later.
-      case 'invoice.payment_failed': {
+      case "invoice.payment_failed": {
         // No immediate action; rely on subscription.updated events to toggle premium.
         break;
       }
@@ -399,12 +506,13 @@ export async function handleWebhook(req, res) {
     }
   } catch (e) {
     // eslint-disable-next-line no-console
-    console.error('⚠️ Error while handling Stripe event:', event?.type, e);
+    console.error("⚠️ Error while handling Stripe event:", event?.type, e);
     // Return 200 to avoid aggressive retries unless you specifically want Stripe to retry.
     // If you prefer retries for transient DB outages, you may return 500 here.
   }
 
-  return res.status(200).send('ok');
+  return res.status(200).send("ok");
 }
 // --- REPLACE END ---
+
 

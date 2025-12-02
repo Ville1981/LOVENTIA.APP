@@ -138,9 +138,37 @@ function resolveFromHeader() {
  * IMPORTANT:
  * - We ALWAYS write the mail-*.log before sending.
  * - Even if transporter fails, you will still see intent in logs/.
- * - This matches the controller wrapper you just updated (userController forgot-password).
+ * - Works with:
+ *     sendEmail("to@example.com", "Subject", "text", "<html>")
+ *   ja
+ *     sendEmail({ to, subject, text, html, template, context })
  */
-export default async function sendEmail(to, subject, text, html) {
+// --- REPLACE START: support both positional args and options-object ---
+export default async function sendEmail(arg1, arg2, arg3, arg4) {
+  // Normalized fields
+  let to;
+  let subject;
+  let text;
+  let html;
+  let template = null;
+  let context = null;
+
+  if (arg1 && typeof arg1 === "object" && !Array.isArray(arg1)) {
+    // Called as: sendEmail({ to, subject, text, html, template, context })
+    to = arg1.to;
+    subject = arg1.subject;
+    text = arg1.text;
+    html = arg1.html;
+    template = arg1.template || null;
+    context = arg1.context || null;
+  } else {
+    // Called as: sendEmail(to, subject, text, html)
+    to = arg1;
+    subject = arg2;
+    text = arg3;
+    html = arg4;
+  }
+
   const { transporter, smtpConfigured } = createTransporter();
   const from = resolveFromHeader();
 
@@ -153,6 +181,8 @@ export default async function sendEmail(to, subject, text, html) {
     subject,
     text: text || null,
     html: html || null,
+    template,
+    context,
     env: {
       EMAIL_HOST: process.env.EMAIL_HOST || null,
       SMTP_HOST: process.env.SMTP_HOST || null,
@@ -191,5 +221,6 @@ export default async function sendEmail(to, subject, text, html) {
 
   return info;
 }
+// --- REPLACE END ---
 
 

@@ -8,6 +8,9 @@ import mongoose from 'mongoose';
 
 const router = express.Router();
 
+// Hard safety cap for block queries to avoid loading unbounded data into memory
+const BLOCK_QUERY_LIMIT = 1000;
+
 /**
  * Mount examples (in app.js):
  *   import likesRouter from './routes/likes.js';
@@ -43,7 +46,7 @@ async function getLikesCtrl() {
         '[likes routes] Failed to load likesController.js:',
         e1?.message || e1,
         '| fallback:',
-        e2?.message || e2
+        e2?.message || e2,
       );
       LikesCtrl = {};
       return LikesCtrl;
@@ -95,7 +98,8 @@ async function getUserModel() {
   try {
     // Legacy location: server/models/User.js or .cjs
     const modLegacy = await import('../../models/User.js');
-    UserModelCached = modLegacy?.default || modLegacy?.User || modLegacy || null;
+    UserModelCached =
+      modLegacy?.default || modLegacy?.User || modLegacy || null;
     if (UserModelCached) return UserModelCached;
   } catch {
     // ignore and try src layout
@@ -103,7 +107,8 @@ async function getUserModel() {
 
   try {
     const modLegacyCjs = await import('../../models/User.cjs');
-    UserModelCached = modLegacyCjs?.default || modLegacyCjs?.User || modLegacyCjs || null;
+    UserModelCached =
+      modLegacyCjs?.default || modLegacyCjs?.User || modLegacyCjs || null;
     if (UserModelCached) return UserModelCached;
   } catch {
     // ignore and try src layout
@@ -283,7 +288,7 @@ async function pushRewindBestEffort(req, resultPayload) {
         { _id: userId },
         {
           $push: { 'rewind.stack': actionDoc },
-        }
+        },
       );
 
       if (typeof query.exec === 'function') {
@@ -296,7 +301,10 @@ async function pushRewindBestEffort(req, resultPayload) {
     }
   } catch (e) {
     // Never block on rewind push; just log as debug.
-    console.warn('[likes routes] pushRewindBestEffort warning:', e?.message || e);
+    console.warn(
+      '[likes routes] pushRewindBestEffort warning:',
+      e?.message || e,
+    );
   }
   return false;
 }
@@ -324,8 +332,9 @@ async function getBlocksForUserBestEffort(meStr) {
         ],
       })
         .select(
-          'blocker blocked blockedUserId user userId target targetUserId'
+          'blocker blocked blockedUserId user userId target targetUserId',
         )
+        .limit(BLOCK_QUERY_LIMIT)
         .lean();
 
       if (Array.isArray(docs) && docs.length > 0) {
@@ -337,17 +346,20 @@ async function getBlocksForUserBestEffort(meStr) {
     const conn = mongoose.connection;
     if (conn && conn.readyState === 1 && conn.db) {
       const coll = conn.db.collection('blocks');
-      const cursor = coll.find({
-        $or: [
-          { blocker: meStr },
-          { blocked: meStr },
-          { blockedUserId: meStr },
-          { user: meStr },
-          { userId: meStr },
-          { target: meStr },
-          { targetUserId: meStr },
-        ],
-      });
+      const cursor = coll
+        .find({
+          $or: [
+            { blocker: meStr },
+            { blocked: meStr },
+            { blockedUserId: meStr },
+            { user: meStr },
+            { userId: meStr },
+            { target: meStr },
+            { targetUserId: meStr },
+          ],
+        })
+        .limit(BLOCK_QUERY_LIMIT);
+
       const docs = await cursor
         .project({
           blocker: 1,
@@ -363,7 +375,10 @@ async function getBlocksForUserBestEffort(meStr) {
       return Array.isArray(docs) ? docs : [];
     }
   } catch (e) {
-    console.warn('[likes routes] getBlocksForUserBestEffort warning:', e?.message || e);
+    console.warn(
+      '[likes routes] getBlocksForUserBestEffort warning:',
+      e?.message || e,
+    );
   }
 
   return [];
@@ -446,10 +461,16 @@ async function filterMatchesWithBlocks(req, payload) {
     return {
       ...payload,
       users: filteredUsers,
-      count: typeof payload.count === 'number' ? filteredUsers.length : payload.count,
+      count:
+        typeof payload.count === 'number'
+          ? filteredUsers.length
+          : payload.count,
     };
   } catch (e) {
-    console.warn('[likes routes] filterMatchesWithBlocks warning:', e?.message || e);
+    console.warn(
+      '[likes routes] filterMatchesWithBlocks warning:',
+      e?.message || e,
+    );
     return payload;
   }
 }
@@ -468,9 +489,9 @@ router.post('/', authenticate, express.json(), async (req, res) => {
       return res.status(400).json({ error: 'targetUserId is required' });
     }
     if (!isValidObjectId(targetId)) {
-      return res
-        .status(400)
-        .json({ error: 'Invalid targetUserId format (expected 24-hex ObjectId)' });
+      return res.status(400).json({
+        error: 'Invalid targetUserId format (expected 24-hex ObjectId)',
+      });
     }
 
     // Optional existence check (best-effort)
@@ -517,7 +538,9 @@ router.post('/', authenticate, express.json(), async (req, res) => {
     }
 
     // As a last resort: explicit 501 if controller is missing
-    return res.status(501).json({ error: 'likesController.likeUser not available' });
+    return res
+      .status(501)
+      .json({ error: 'likesController.likeUser not available' });
   } catch (err) {
     console.error('[likes routes] POST / error:', err?.message || err);
     return res.status(500).json({ error: 'Internal server error' });
@@ -529,11 +552,13 @@ router.post('/', authenticate, express.json(), async (req, res) => {
 // ──────────────────────────────────────────────────────────────────────────────
 router.post('/:targetId', authenticate, async (req, res) => {
   const targetId = req.params?.targetId;
-  if (!targetId) return res.status(400).json({ error: 'targetId is required' });
+  if (!targetId) {
+    return res.status(400).json({ error: 'targetId is required' });
+  }
   if (!isValidObjectId(targetId)) {
-    return res
-      .status(400)
-      .json({ error: 'Invalid targetId format (expected 24-hex ObjectId)' });
+    return res.status(400).json({
+      error: 'Invalid targetId format (expected 24-hex ObjectId)',
+    });
   }
 
   // Optional existence check (best-effort)
@@ -575,7 +600,9 @@ router.post('/:targetId', authenticate, async (req, res) => {
     return;
   }
 
-  return res.status(501).json({ error: 'likesController.likeUser not available' });
+  return res
+    .status(501)
+    .json({ error: 'likesController.likeUser not available' });
 });
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -585,7 +612,9 @@ router.delete('/:targetId', authenticate, async (req, res) => {
   const c = await getLikesCtrl();
   return typeof c?.unlikeUser === 'function'
     ? c.unlikeUser(req, res)
-    : res.status(501).json({ error: 'likesController.unlikeUser not available' });
+    : res
+        .status(501)
+        .json({ error: 'likesController.unlikeUser not available' });
 });
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -614,21 +643,21 @@ router.get('/outgoing', authenticate, async (req, res) => {
         } catch (e) {
           console.warn(
             '[likes routes] outgoing originalJson error:',
-            e?.message || e
+            e?.message || e,
           );
         }
       })
       .catch((e) => {
         console.warn(
           '[likes routes] outgoing filter wrapper error:',
-          e?.message || e
+          e?.message || e,
         );
         try {
           originalJson(body);
         } catch (e2) {
           console.warn(
             '[likes routes] outgoing fallback originalJson error:',
-            e2?.message || e2
+            e2?.message || e2,
           );
         }
       });
@@ -643,7 +672,7 @@ router.get('/outgoing', authenticate, async (req, res) => {
     } catch (e) {
       console.warn(
         '[likes routes] /outgoing controller promise rejected:',
-        e?.message || e
+        e?.message || e,
       );
     }
   }
@@ -670,21 +699,21 @@ router.get('/incoming', authenticate, async (req, res) => {
         } catch (e) {
           console.warn(
             '[likes routes] incoming originalJson error:',
-            e?.message || e
+            e?.message || e,
           );
         }
       })
       .catch((e) => {
         console.warn(
           '[likes routes] incoming filter wrapper error:',
-          e?.message || e
+          e?.message || e,
         );
         try {
           originalJson(body);
         } catch (e2) {
           console.warn(
             '[likes routes] incoming fallback originalJson error:',
-            e2?.message || e2
+            e2?.message || e2,
           );
         }
       });
@@ -699,7 +728,7 @@ router.get('/incoming', authenticate, async (req, res) => {
     } catch (e) {
       console.warn(
         '[likes routes] /incoming controller promise rejected:',
-        e?.message || e
+        e?.message || e,
       );
     }
   }
@@ -726,21 +755,21 @@ router.get('/matches', authenticate, async (req, res) => {
         } catch (e) {
           console.warn(
             '[likes routes] matches originalJson error:',
-            e?.message || e
+            e?.message || e,
           );
         }
       })
       .catch((e) => {
         console.warn(
           '[likes routes] matches filter wrapper error:',
-          e?.message || e
+          e?.message || e,
         );
         try {
           originalJson(body);
         } catch (e2) {
           console.warn(
             '[likes routes] matches fallback originalJson error:',
-            e2?.message || e2
+            e2?.message || e2,
           );
         }
       });
@@ -755,7 +784,7 @@ router.get('/matches', authenticate, async (req, res) => {
     } catch (e) {
       console.warn(
         '[likes routes] /matches controller promise rejected:',
-        e?.message || e
+        e?.message || e,
       );
     }
   }
@@ -766,5 +795,6 @@ router.get('/matches', authenticate, async (req, res) => {
 // --- REPLACE END ---
 
 export default router;
+
 
 

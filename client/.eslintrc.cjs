@@ -1,10 +1,9 @@
-// File: client/.eslintrc.cjs
-
 /* 
   ESLint config for CLIENT (React/Vite).
-  Goal: Fix "Parsing error: Unexpected token <" in .jsx by ensuring JSX parsing,
-  and keep rules modest to avoid churn. This config is self-contained and marked
-  so you can diff changes precisely.
+  Goals:
+  - JSX files are parsed correctly (no "Unexpected token <").
+  - React 18 / Vite: no need for `import React from 'react'` in every file.
+  - React Hooks and import rules are known so disable-comments do not break lint.
 */
 
 // --- REPLACE START ---
@@ -18,7 +17,6 @@ module.exports = {
     es2022: true
   },
 
-  // Base parser options (JSX feature flag here is harmless; real parser comes via overrides)
   parserOptions: {
     ecmaVersion: 2022,
     sourceType: "module",
@@ -29,7 +27,6 @@ module.exports = {
     react: { version: "detect" }
   },
 
-  // Keep base minimal; React specifics come via overrides
   extends: [
     "eslint:recommended",
     "prettier"
@@ -38,16 +35,12 @@ module.exports = {
   plugins: [],
 
   rules: {
-    // Helpful but not noisy
     "no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
     "no-undef": "error"
   },
 
-  /**
-   * CRITICAL: Enable JSX parsing for .jsx/.js using @typescript-eslint/parser
-   * (Option A). We DO NOT require a tsconfig for plain JS/JSX files.
-   */
   overrides: [
+    // JS / JSX
     {
       files: ["**/*.jsx", "**/*.js"],
       parser: "@typescript-eslint/parser",
@@ -55,18 +48,27 @@ module.exports = {
         ecmaVersion: "latest",
         sourceType: "module",
         ecmaFeatures: { jsx: true },
-        project: null // do NOT force tsconfig.json for plain JS/JSX
+        project: null
       },
       env: { browser: true, es2021: true },
-      plugins: ["react"],
-      extends: ["plugin:react/recommended", "prettier"],
+      plugins: ["react", "react-hooks", "import"],
+      extends: [
+        "plugin:react/recommended",
+        "plugin:import/recommended",
+        "prettier"
+      ],
       settings: { react: { version: "detect" } },
       rules: {
-        "react/prop-types": "off"
+        "react/prop-types": "off",
+        // React 18 + Vite: React does not need to be in scope for JSX
+        "react/react-in-jsx-scope": "off",
+        // React Hooks rules (manual instead of plugin:react-hooks/recommended to avoid circular config)
+        "react-hooks/rules-of-hooks": "error",
+        "react-hooks/exhaustive-deps": "warn"
       }
     },
 
-    // If you also have TS/TSX files in client, keep this mild and non-breaking.
+    // TS / TSX
     {
       files: ["**/*.ts", "**/*.tsx"],
       parser: "@typescript-eslint/parser",
@@ -76,20 +78,33 @@ module.exports = {
         ecmaFeatures: { jsx: true },
         project: null
       },
-      plugins: ["react", "@typescript-eslint"],
+      plugins: ["react", "react-hooks", "import", "@typescript-eslint"],
       extends: [
         "plugin:react/recommended",
         "plugin:@typescript-eslint/recommended",
+        "plugin:import/recommended",
         "prettier"
       ],
       settings: { react: { version: "detect" } },
       rules: {
-        "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }]
+        "@typescript-eslint/no-unused-vars": [
+          "warn",
+          { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }
+        ],
+        // React Hooks rules for TS/TSX as well
+        "react-hooks/rules-of-hooks": "error",
+        "react-hooks/exhaustive-deps": "warn"
       }
+    },
+
+    // Node-style scripts in client (for example, monitoring utilities)
+    {
+      files: ["src/monitoring/**/*.js"],
+      env: { node: true }
     }
   ],
 
-  // Ignore build artefacts
+  // Ignore build artifacts
   ignorePatterns: [
     "node_modules/**",
     "dist/**",
@@ -97,3 +112,5 @@ module.exports = {
   ]
 };
 // --- REPLACE END ---
+
+

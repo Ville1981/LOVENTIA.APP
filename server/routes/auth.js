@@ -81,7 +81,7 @@ async function tryLoad(relOrAbs) {
   }
 }
 
-/** Lazily resolve project modules only when needed to avoid import-time crashes */
+/** Lazily resolve project modules only when needed to avoid boot-time crashes */
 async function getUserModel() {
   const candidates = [
     "../src/models/User.js", // server/src/models/User.js
@@ -239,7 +239,9 @@ async function getUploadMiddleware() {
   };
 }
 
-/** Try to resolve an auth controller with typical names/paths */
+/** Try to resolve an auth controller with typical names/paths
+ * NOTE: currently used for register/login only – /refresh is handled locally.
+ */
 async function getAuthController() {
   const candidates = [
     "../src/api/controllers/authController.js",
@@ -331,16 +333,51 @@ function tokenFromAuthHeader(req) {
   const m = h.match(/^Bearer\s+(.+)$/i);
   return m ? m[1] : null;
 }
+
+// --- REPLACE START: make cookie token resolver robust (parsed cookies + raw header) ---
 function tokenFromCookies(req) {
   const c = req?.cookies || {};
-  return (
-    c.accessToken ||
-    c.jwt ||
-    c.token ||
+
+  // First try parsed cookies from cookie-parser
+  const fromParsed =
     c.refreshToken ||
-    null
-  );
+    c.refresh_token ||
+    c.jwt ||
+    c.jid ||
+    c.accessToken ||
+    c.token ||
+    null;
+
+  if (fromParsed) return fromParsed;
+
+  // Fallback: parse raw Cookie header manually (works even if cookie-parser did not run)
+  const raw = req?.headers?.cookie;
+  if (!raw || typeof raw !== "string") return null;
+
+  const pairs = raw.split(";");
+  for (const pair of pairs) {
+    const [k, ...rest] = pair.split("=");
+    if (!k || rest.length === 0) continue;
+    const key = k.trim();
+    const value = rest.join("=").trim();
+    if (!value) continue;
+
+    if (
+      key === "refreshToken" ||
+      key === "refresh_token" ||
+      key === "jwt" ||
+      key === "jid" ||
+      key === "accessToken" ||
+      key === "token"
+    ) {
+      return value;
+    }
+  }
+
+  return null;
 }
+// --- REPLACE END ---
+
 function tokenFromQuery(req) {
   const q = req?.query || {};
   const v = q.token || q.access_token || q.accessToken;
@@ -368,18 +405,37 @@ router.post(
     return cors(req, res, next);
   },
   asyncHandler(async (req, res) => {
-    // --- REPLACE START: robust refresh payload normalizer (aligns with authController.js) ---
+    // --- REPLACE START: Robust refresh (body + header + cookie) ---
+
+    // 1) Kerätään mahdolliset lähteet
     const bodyToken =
       (req.body && (req.body.refreshToken || req.body.token)) || null;
+
     const headerToken = tokenFromAuthHeader(req);
+
     const cookieToken =
-      (req.cookies && (req.cookies.refreshToken || req.cookies.token)) || null;
-    const token = (bodyToken || headerToken || cookieToken || "").trim();
+      (req.cookies &&
+        (req.cookies.refreshToken ||
+          req.cookies.refresh_token ||
+          req.cookies.jwt ||
+          req.cookies.jid ||
+          req.cookies.token)) ||
+      null;
+
+    const token = (
+      bodyToken ||
+      headerToken ||
+      cookieToken ||
+      ""
+    ).trim();
 
     if (!token) {
-      return res.status(401).json({ error: "No refresh token provided" });
+      return res
+        .status(401)
+        .json({ error: "No refresh token provided (refresh route)" });
     }
 
+    // 2) Tarkistetaan refresh-token
     const secret =
       process.env.JWT_REFRESH_SECRET ||
       process.env.REFRESH_TOKEN_SECRET ||
@@ -389,7 +445,10 @@ router.post(
     try {
       payload = jwt.verify(token, secret);
     } catch (err) {
-      console.error("Refresh token error:", err?.message || err);
+      console.error(
+        "[auth/routes] Refresh token error (local):",
+        err?.message || err
+      );
       return res
         .status(403)
         .json({ error: "Invalid or expired refresh token" });
@@ -407,6 +466,7 @@ router.post(
       return res.status(401).json({ error: "Invalid token payload" });
     }
 
+    // 3) Luodaan uusi accessToken
     const accessSecret =
       process.env.JWT_SECRET ||
       process.env.ACCESS_TOKEN_SECRET ||
@@ -429,6 +489,7 @@ router.post(
         "15m",
     });
 
+    // 4) Palautetaan uusi access-token ja kevyt user-objekti
     return res.json({
       accessToken,
       user: {
@@ -439,9 +500,12 @@ router.post(
         isPremium: !!(payload.isPremium || payload.premium),
       },
     });
+
     // --- REPLACE END ---
   })
 );
+
+
 
 /* 2) Logout User */
 router.options("/logout", async (req, res) => {
@@ -569,8 +633,13 @@ router.post(
 
       const resetToken = crypto.randomBytes(24).toString("hex");
 
+      // UUSI TOKEN KÄYTTÖÖN
       user.passwordResetToken = resetToken;
       user.passwordResetExpires = Date.now() + 60 * 60 * 1000;
+
+      // FIX: nollataan mahdollinen aiempi käyttö, jotta uusi linkki ei ole heti "already used"
+      user.passwordResetUsedAt = undefined;
+
       await user.save();
       writeMailLog(
         `[info] /forgot-password: raw token generated and stored for ${normalizedEmail}`
@@ -614,15 +683,20 @@ router.post(
       return res.json(generic);
     } catch (err) {
       console.error("Forgot password error:", err?.message || err);
-      writeMailLog(`[error] /forgot-password exception: ${err?.message || err}`);
-      return res.status(500).json({ error: "Failed to process forgot password" });
+      writeMailLog(
+        `[error] /forgot-password exception: ${err?.message || err}`
+      );
+      return res
+        .status(500)
+        .json({ error: "Failed to process forgot password" });
     }
   })
 );
 // --- REPLACE END ---
 
+
 /* 6) Reset Password */
-// --- REPLACE START: tolerant reset that accepts RAW token OR SHA256(token) and newPassword OR password ---
+// --- REPLACE START: tolerant reset that accepts RAW token OR SHA256(token) and marks token as used ---
 router.options("/reset-password", async (req, res) => {
   const cors = await getCors();
   return cors(req, res, () => res.sendStatus(204));
@@ -656,6 +730,7 @@ router.post(
 
     let user = null;
 
+    // 1) Try by id first, but only keep it if token matches (RAW or HASHED)
     if (id) {
       user = await User.findById(id);
       if (!user) {
@@ -671,9 +746,16 @@ router.post(
           );
           user = null;
         }
+      } else {
+        // no reset token stored for this id → force token-based lookup
+        console.warn(
+          "[reset-password] user found by id but no reset token present, will try token-based lookup…"
+        );
+        user = null;
       }
     }
 
+    // 2) Try RAW token
     if (!user) {
       user = await User.findOne({ passwordResetToken: tokenFromReq });
       if (user) {
@@ -681,6 +763,7 @@ router.post(
       }
     }
 
+    // 3) Try HASHED token
     if (!user) {
       const hashed = crypto.createHash("sha256").update(tokenFromReq).digest("hex");
       user = await User.findOne({ passwordResetToken: hashed });
@@ -689,53 +772,95 @@ router.post(
       }
     }
 
+    // 4) No match → invalid / expired
     if (!user) {
       console.warn("[reset-password] no user matched by id/token");
-      return res.status(400).json({ error: "Invalid or expired reset token" });
+      return res
+        .status(400)
+        .json({ error: "Invalid or expired reset token." });
     }
 
+    // Optional safety: if link contains id, ensure it matches the token owner
+    if (id && String(user._id) !== id) {
+      console.warn(
+        "[reset-password] link id does not match token owner. linkId=",
+        id,
+        "userId=",
+        String(user._id)
+      );
+      return res
+        .status(400)
+        .json({ error: "Invalid or expired reset token." });
+    }
+
+    // 5) Check expiry
     if (
       user.passwordResetExpires &&
       new Date(user.passwordResetExpires).getTime() < Date.now()
     ) {
       console.warn("[reset-password] token expired for user", String(user._id));
-      return res
-        .status(400)
-        .json({ error: "Reset token has expired. Please request a new one." });
+      return res.status(400).json({
+        error: "Reset token has expired. Please request a new one.",
+      });
     }
 
-    const hashedPass = await bcrypt.hash(plainPassword, 10);
+    // 5b) Guard against re-use
+    if (user.passwordResetUsedAt) {
+      console.warn(
+        "[reset-password] token already marked used for user",
+        String(user._id),
+        "at",
+        user.passwordResetUsedAt
+      );
+      return res.status(400).json({
+        error:
+          "Reset token has already been used. Please request a new password reset.",
+      });
+    }
 
+    // 6) Update password
+    const hashedPass = await bcrypt.hash(plainPassword, 10);
     user.password = hashedPass;
-    user.passwordResetToken = undefined;
-    user.passwordResetExpires = undefined;
-    user.passwordResetUsedAt = new Date();
+
+    // 7) Mark token as USED so the same token (RAW or HASHED) never matches again
+    const usedAt = new Date();
+    const usedMarker = `used:${usedAt.getTime()}`;
+
+    user.passwordResetToken = usedMarker;
+    user.passwordResetExpires = new Date(0);
+    user.passwordResetUsedAt = usedAt;
+
     await user.save();
 
+    // 8) Extra hard overwrite at collection level (handles strict schemas / legacy models)
     try {
       await User.updateOne(
         { _id: user._id },
         {
-          $unset: {
-            passwordResetToken: "",
-            passwordResetExpires: "",
-            passwordResetUsedAt: "",
+          $set: {
+            passwordResetToken: usedMarker,
+            passwordResetExpires: new Date(0),
+            passwordResetUsedAt: usedAt,
           },
         }
       );
     } catch (unsetErr) {
       console.warn(
-        "[reset-password] extra $unset failed (non-fatal):",
+        "[reset-password] marking reset token as used failed (non-fatal):",
         unsetErr?.message || unsetErr
       );
     }
 
-    console.log("[reset-password] password changed for user", String(user._id));
+    console.log(
+      "[reset-password] password changed and token marked used for user",
+      String(user._id)
+    );
 
     return res.json({ message: "Password has been reset successfully." });
   })
 );
 // --- REPLACE END ---
+
 
 /* 7) Get Current User Profile (ROBUST) — unified with /api/me and /api/users/me */
 // --- REPLACE START: unified /api/auth/me response shape ---
@@ -958,6 +1083,4 @@ router.delete(
 
 // Final ESM export only (no CommonJS)
 export default router;
-
-
 
