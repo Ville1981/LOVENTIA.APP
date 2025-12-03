@@ -20,10 +20,13 @@ Write-Host ""
 [string]$plainPassword = $null
 
 if ($Password) {
-    # Convert provided SecureString to plain text for the HTTP request body
-    $plainPassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
-        [Runtime.InteropServices.Marshal]::SecureStringToCoTaskMemUnicode($Password)
-    )
+    try {
+        # Convert provided SecureString to plain text for the HTTP request body
+        $plainPassword = ([System.Net.NetworkCredential]::new("", $Password)).Password
+    } catch {
+        Write-Error "Could not convert SecureString password: $($_.Exception.Message)"
+        return
+    }
 } elseif ($env:LOVENTIA_PERF_TEST_PASSWORD) {
     # Use env var for automation (no prompt, no hard-coded value in Git)
     $plainPassword = $env:LOVENTIA_PERF_TEST_PASSWORD
@@ -31,11 +34,20 @@ if ($Password) {
     # Fallback: ask once from console, still as SecureString
     Write-Host "No password parameter and LOVENTIA_PERF_TEST_PASSWORD not set." -ForegroundColor Yellow
     $secureInput = Read-Host "Enter password for $Email" -AsSecureString
-    $plainPassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
-        [Runtime.InteropServices.Marshal]::SecureStringToCoTaskMemUnicode($secureInput)
-    )
+    try {
+        $plainPassword = ([System.Net.NetworkCredential]::new("", $secureInput)).Password
+    } catch {
+        Write-Error "Could not convert interactive SecureString password: $($_.Exception.Message)"
+        return
+    }
+}
+
+if (-not $plainPassword) {
+    Write-Error "Password was empty - aborting login."
+    return
 }
 # --- REPLACE END ---
+
 
 # 0) Health & Ready
 Write-Host "0) Health-check..."
@@ -64,10 +76,15 @@ $loginBody = @{
     password = $plainPassword
 } | ConvertTo-Json
 
-Write-Host "   Login body: $loginBody"
+# IMPORTANT: do NOT print loginBody to avoid leaking password into console/logs
 
 try {
-    $login = Invoke-RestMethod -Uri "$BaseUrl/api/auth/login" -Method Post -ContentType "application/json" -Body $loginBody -TimeoutSec 10
+    $login = Invoke-RestMethod `
+        -Uri "$BaseUrl/api/auth/login" `
+        -Method Post `
+        -ContentType "application/json" `
+        -Body $loginBody `
+        -TimeoutSec 10
 } catch {
     Write-Error "Login FAILED: $($_.Exception.Message)"
     return
@@ -97,8 +114,8 @@ Write-Host ""
 Write-Host "2) /api/me sanity-check..."
 try {
     $me = Invoke-RestMethod -Uri "$BaseUrl/api/me" -Method Get -Headers $headers -TimeoutSec 10
-    $username = $me.user
-    $premium  = $me.premium
+    $username  = $me.user
+    $premium   = $me.premium
     $isPremium = $me.isPremium
 
     Write-Host "   /api/me OK -> user=$username premium=$premium isPremium=$isPremium"
