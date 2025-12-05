@@ -15,7 +15,7 @@ import * as authPrivateRoutesNS from "./authPrivateRoutes.js";
 import * as authRoutesNS from "./authRoutes.js";
 import * as billingNS from "./billing.js";
 import * as dealbreakersNS from "./dealbreakers.js";
-// ⚠️ Discover mounts are centralized in app.js to avoid duplicates/shadowing.
+// ⚠ Discover mounts are centralized in app.js to avoid duplicates/shadowing.
 // import * as discoverLikesAliasNS from "./discoverLikesAlias.js";
 // import * as discoverRoutesNS from "./discoverRoutes.js";
 import * as healthRoutesNS from "./healthRoutes.js";
@@ -51,8 +51,8 @@ function pickRouter(ns) {
 const admin = pickRouter(adminNS);
 const adminMetrics = pickRouter(adminMetricsNS);
 const adminRoutes = pickRouter(adminRoutesNS);
-const auth = pickRouter(authNS); // ⬅️ our new full ESM auth router (HAS /me, /login, /register, /refresh, /reset)
-const authPrivateRoutes = pickRouter(authPrivateRoutesNS); // ⬅️ safe, only /private/*
+const auth = pickRouter(authNS); // ⬅ our new full ESM auth router (HAS /me, /login, /register, /refresh, /reset)
+const authPrivateRoutes = pickRouter(authPrivateRoutesNS); // ⬅ safe, only /private/*
 const authRoutes = pickRouter(authRoutesNS);
 const billing = pickRouter(billingNS);
 const dealbreakers = pickRouter(dealbreakersNS);
@@ -323,7 +323,7 @@ use("/moderation", moderation, "moderation");
 use("/qa", qa, "qa");
 
 // Discover
-// ⚠️ IMPORTANT: Discover is mounted ONCE in app.js as `/api/discover`.
+// ⚠ IMPORTANT: Discover is mounted ONCE in app.js as `/api/discover`.
 // If we mounted it here too, you'd again get 2× discover and shadowing.
 // use('/discover', discoverRoutes, 'discoverRoutes');
 // use('/discover', discoverLikesAlias, 'discoverLikesAlias');
@@ -347,5 +347,4 @@ use("/social", socialRoutes, "socialRoutes");
 use("/billing", billing, "billing");
 
 export default router;
-
 
