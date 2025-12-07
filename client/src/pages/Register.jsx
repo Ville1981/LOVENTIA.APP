@@ -1,14 +1,13 @@
 // File: client/src/pages/Register.jsx
 
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
-// --- REPLACE START: fix context import path (plural 'contexts') ---
+// --- REPLACE START: context + services + api imports ---
 import { useAuth } from "../contexts/AuthContext";
-// --- REPLACE END ---
-
-// --- REPLACE START: prefer service layer only for register (avoid double login calls) ---
 import authService from "../services/authService";
+import api from "../utils/axiosInstance";
 // --- REPLACE END ---
 
 const USERNAME_REGEX = /^[a-z0-9._-]{3,30}$/i;
@@ -34,21 +33,21 @@ function makeUsernameSuggestion(email = "") {
 }
 
 const Register = () => {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { login } = useAuth();
+
   const [username, setUsername] = useState("");
   const [usernameTouched, setUsernameTouched] = useState(false); // do not overwrite if user edits
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // --- REPLACE START: add loading + message state in English ---
+  // --- REPLACE START: loading, message and mode state ---
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  // --- REPLACE END ---
-
-  const navigate = useNavigate();
-
-  // --- REPLACE START: get login from context; we will NOT call authService.login to avoid duplication ---
-  const { login } = useAuth();
+  // "form" = normal register form, "checkEmail" = show check-email screen
+  const [mode, setMode] = useState("form");
   // --- REPLACE END ---
 
   // --- REPLACE START: auto-suggest username from email until user edits username manually ---
@@ -85,13 +84,30 @@ const Register = () => {
     try {
       setLoading(true);
 
-      // --- REPLACE START: register via service, then login via context (single source of truth) ---
+      // --- REPLACE START: register → login → send verification email → show check-email screen ---
+      // 1) Register user via backend service
       await authService.register({ username, email, password });
-      await login(email, password); // context takes care of token + /auth/me
-      // --- REPLACE END ---
 
-      setMessage("Account created and login successful!");
-      navigate("/profile");
+      // 2) Login via AuthContext (single source of truth for tokens and /auth/me)
+      await login(email, password);
+
+      // 3) Best-effort: send verification email for the newly registered user.
+      //    IMPORTANT: send email in the request body, same as our PowerShell test.
+      try {
+        await api.post("/auth/send-verification-email", { email });
+      } catch (sendErr) {
+        // Do not block the user if email sending fails; this is logged for debugging only.
+        // eslint-disable-next-line no-console
+        console.error(
+          "Failed to send verification email after register:",
+          sendErr
+        );
+      }
+
+      // 4) Switch UI into "check your email" mode
+      setMode("checkEmail");
+      setMessage("");
+      // --- REPLACE END ---
     } catch (err) {
       // --- REPLACE START: show specific backend errors where possible ---
       const status = err?.response?.status;
@@ -115,15 +131,86 @@ const Register = () => {
     }
   };
 
+  const goToDiscover = () => {
+    navigate("/discover");
+  };
+
+  const goToHome = () => {
+    navigate("/");
+  };
+
+  // If we are in "check email" mode, show the verification instructions screen.
+  if (mode === "checkEmail") {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center px-4 py-10 bg-slate-50">
+        <div className="w-full max-w-lg bg-white rounded-2xl shadow-md border border-slate-100 p-6 md:p-8">
+          <div className="flex flex-col items-center text-center gap-4">
+            <div className="w-12 h-12 flex items-center justify-center rounded-full border border-slate-200">
+              <span className="text-xl" aria-hidden="true">
+                ✉️
+              </span>
+            </div>
+
+            <h1 className="text-xl md:text-2xl font-semibold text-slate-900">
+              {t("auth.register.checkEmailTitle", "Check your email")}
+            </h1>
+
+            <p className="text-sm md:text-base text-slate-600">
+              {t(
+                "auth.register.checkEmailBody",
+                "We have sent a verification link to your email. Please open it to verify your address before you continue."
+              )}
+            </p>
+
+            <p className="text-xs md:text-sm text-slate-500">
+              {t(
+                "auth.register.sentTo",
+                "We tried to send the email to {{email}}.",
+                { email }
+              )}
+            </p>
+
+            <div className="mt-4 flex flex-col sm:flex-row gap-3 w-full justify-center">
+              <button
+                type="button"
+                onClick={goToDiscover}
+                className="inline-flex justify-center px-4 py-2 rounded-full text-sm font-medium border border-slate-300 bg-slate-900 text-white hover:bg-slate-800 transition"
+              >
+                {t("auth.register.goToDiscover", "Go to Discover")}
+              </button>
+              <button
+                type="button"
+                onClick={goToHome}
+                className="inline-flex justify-center px-4 py-2 rounded-full text-sm font-medium border border-slate-200 bg-white text-slate-800 hover:bg-slate-50 transition"
+              >
+                {t("auth.register.goToHome", "Back to Home")}
+              </button>
+            </div>
+
+            <p className="mt-4 text-xs text-slate-400">
+              {t(
+                "auth.register.checkEmailHint",
+                "If you do not see the email, check your spam folder or try again later from Settings → Email verification."
+              )}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Default: registration form
   return (
     <form
       onSubmit={handleSubmit}
       className="max-w-md mx-auto mt-10 space-y-4 bg-white p-6 rounded shadow"
       noValidate
     >
-      <h2 className="text-xl font-bold">Create Account</h2>
+      <h2 className="text-xl font-bold">
+        {t("auth.register.title", "Create account")}
+      </h2>
 
-      {/* --- REPLACE START: username field with touch tracking and English placeholder --- */}
+      {/* --- REPLACE START: username field with touch tracking and English/i18n placeholder --- */}
       <input
         type="text"
         value={username}
@@ -132,10 +219,10 @@ const Register = () => {
           setUsernameTouched(true);
         }}
         onFocus={() => setUsernameTouched(true)}
-        placeholder="Username"
+        placeholder={t("auth.register.usernamePlaceholder", "Username")}
         className="w-full border p-2 rounded"
         required
-        aria-label="Username"
+        aria-label={t("auth.register.usernameAria", "Username")}
         autoComplete="username"
         pattern="[A-Za-z0-9._-]{3,30}"
         title="3–30 characters: letters, numbers, dot, underscore, or hyphen."
@@ -146,10 +233,10 @@ const Register = () => {
         type="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        placeholder="Email"
+        placeholder={t("auth.register.emailPlaceholder", "Email")}
         className="w-full border p-2 rounded"
         required
-        aria-label="Email"
+        aria-label={t("auth.register.emailAria", "Email")}
         autoComplete="email"
       />
 
@@ -157,10 +244,10 @@ const Register = () => {
         type="password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        placeholder="Password"
+        placeholder={t("auth.register.passwordPlaceholder", "Password")}
         className="w-full border p-2 rounded"
         required
-        aria-label="Password"
+        aria-label={t("auth.register.passwordAria", "Password")}
         autoComplete="new-password"
       />
 
@@ -168,10 +255,13 @@ const Register = () => {
         type="password"
         value={confirmPassword}
         onChange={(e) => setConfirmPassword(e.target.value)}
-        placeholder="Confirm password"
+        placeholder={t(
+          "auth.register.confirmPasswordPlaceholder",
+          "Confirm password"
+        )}
         className="w-full border p-2 rounded"
         required
-        aria-label="Confirm password"
+        aria-label={t("auth.register.confirmPasswordAria", "Confirm password")}
         autoComplete="new-password"
       />
 
@@ -187,7 +277,9 @@ const Register = () => {
           !USERNAME_REGEX.test(username)
         }
       >
-        {loading ? "Creating..." : "Create account"}
+        {loading
+          ? t("auth.register.creating", "Creating…")
+          : t("auth.register.submit", "Create account")}
       </button>
 
       {message && <p className="text-sm text-red-600">{message}</p>}
@@ -204,3 +296,4 @@ const Register = () => {
 export default Register;
 
 // The replacement region is marked between // --- REPLACE START and // --- REPLACE END
+

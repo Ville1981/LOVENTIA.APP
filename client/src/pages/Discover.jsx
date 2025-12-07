@@ -2,7 +2,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { getDealbreakers, updateDealbreakers } from "../api/dealbreakers";
+import {
+  getDealbreakers,
+  updateDealbreakers,
+  // --- REPLACE START: use shared client helper for POST /api/search with dealbreakers ---
+  discoverWithDealbreakers,
+  // --- REPLACE END ---
+} from "../api/dealbreakers";
 import AdBanner from "../components/AdBanner";
 import AdGate from "../components/AdGate";
 import ProfileCardList from "../components/discover/ProfileCardList";
@@ -136,8 +142,9 @@ const Discover = () => {
   const [minAge, setMinAge] = useState(18);
   const [maxAge, setMaxAge] = useState(120);
 
-  // Premium detection (kept for future UI toggles; underscore silences no-unused-vars).
-  const _isPremium = useMemo(() => {
+  // Premium detection used both for UI hints and deciding whether to send
+  // dealbreakers to /api/search.
+  const isPremiumForDiscover = useMemo(() => {
     return (
       authUser?.entitlements?.tier === "premium" ||
       authUser?.isPremium === true ||
@@ -207,6 +214,8 @@ const Discover = () => {
     if (!selectHasFocus && pendingQueryRef.current) {
       const params = pendingQueryRef.current;
       pendingQueryRef.current = null;
+      // For now we only defer simple /discover loads here; Discover search via
+      // /api/search is handled directly via runSearchWithDealbreakers.
       loadUsers(params);
     }
   }, [selectHasFocus]);
@@ -263,6 +272,55 @@ const Discover = () => {
   // Fetching profiles for Discover
   // ---------------------------------------------------------------------------
 
+  // --- REPLACE START: shared normalization helper for /discover and /api/search results ---
+  const buildDiscoverDeck = useCallback(
+    (rawData) => {
+      const data = Array.isArray(rawData) ? rawData : [];
+
+      const normalized = data.map((u) => {
+        const photos = Array.isArray(u.photos)
+          ? u.photos.map((p) => {
+              const raw = typeof p === "string" ? p : p?.url;
+              return { url: absolutizeImage(raw) };
+            })
+          : [];
+        const profilePicture =
+          absolutizeImage(u.profilePicture) || photos?.[0]?.url || null;
+
+        const isPremiumUser = isPremiumDiscoverUser(u);
+
+        return {
+          ...u,
+          id: u._id || u.id,
+          profilePicture,
+          photos,
+          isPremiumUser,
+        };
+      });
+
+      // Put current user first (if present), then bunny, then others.
+      const selfId =
+        authUser?._id?.toString?.() || authUser?.id?.toString?.() || null;
+
+      const selfUser = selfId
+        ? normalized.find((u) => (u.id || u._id)?.toString() === selfId)
+        : null;
+
+      const others = selfId
+        ? normalized.filter((u) => (u.id || u._id)?.toString() !== selfId)
+        : normalized;
+
+      const ordered = [];
+      if (selfUser) ordered.push(selfUser);
+      ordered.push(bunnyUser);
+      ordered.push(...others);
+
+      return ordered.length ? ordered : [bunnyUser];
+    },
+    [authUser]
+  );
+  // --- REPLACE END ---
+
   const loadUsers = async (params = {}) => {
     // If a select is focused, we postpone network calls until blur.
     if (selectHasFocus) {
@@ -295,47 +353,8 @@ const Discover = () => {
         data = [];
       }
 
-      const normalized = Array.isArray(data)
-        ? data.map((u) => {
-            const photos = Array.isArray(u.photos)
-              ? u.photos.map((p) => {
-                  const raw = typeof p === "string" ? p : p?.url;
-                  return { url: absolutizeImage(raw) };
-                })
-              : [];
-            const profilePicture =
-              absolutizeImage(u.profilePicture) || photos?.[0]?.url || null;
-
-            const isPremiumUser = isPremiumDiscoverUser(u);
-
-            return {
-              ...u,
-              id: u._id || u.id,
-              profilePicture,
-              photos,
-              isPremiumUser,
-            };
-          })
-        : [];
-
-      // Put current user first (if present), then bunny, then others.
-      const selfId =
-        authUser?._id?.toString?.() || authUser?.id?.toString?.() || null;
-
-      const selfUser = selfId
-        ? normalized.find((u) => (u.id || u._id)?.toString() === selfId)
-        : null;
-
-      const others = selfId
-        ? normalized.filter((u) => (u.id || u._id)?.toString() !== selfId)
-        : normalized;
-
-      const ordered = [];
-      if (selfUser) ordered.push(selfUser);
-      ordered.push(bunnyUser);
-      ordered.push(...others);
-
-      setUsers(ordered.length ? ordered : [bunnyUser]);
+      const deck = buildDiscoverDeck(data);
+      setUsers(deck);
       setFilterKey(Date.now().toString());
     } catch (err) {
       console.error("Error loading users:", err);
@@ -361,6 +380,43 @@ const Discover = () => {
       setIsLoading(false);
     }
   };
+
+  // --- REPLACE START: dedicated helper for POST /api/search with dealbreakers support ---
+  const runSearchWithDealbreakers = async (searchBody) => {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const resp = (await discoverWithDealbreakers(searchBody)) || {};
+      const results = Array.isArray(resp.results) ? resp.results : [];
+
+      const deck = buildDiscoverDeck(results);
+      setUsers(deck);
+      setFilterKey(Date.now().toString());
+    } catch (err) {
+      console.error("Error searching users (dealbreakers):", err);
+
+      let fallbackMessage =
+        "Failed to search profiles. Please log in again and try once more.";
+      try {
+        const maybe = t("discover:error");
+        if (typeof maybe === "string") {
+          fallbackMessage = maybe;
+        } else if (maybe && typeof maybe === "object" && typeof maybe.en === "string") {
+          fallbackMessage = maybe.en;
+        }
+      } catch {
+        // ignore
+      }
+
+      setError(fallbackMessage);
+      setUsers([bunnyUser]);
+      setFilterKey(Date.now().toString());
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  // --- REPLACE END: dedicated helper for POST /api/search with dealbreakers support ---
 
   // ---------------------------------------------------------------------------
   // Scroll preservation around card removal / rewind
@@ -729,7 +785,9 @@ const Discover = () => {
   // Filter submit handler – builds query params + persists to dealbreakers
   // ---------------------------------------------------------------------------
 
+  // --- REPLACE START: use /api/search + dealbreakers for Premium users ---
   const handleFilter = async (formValues) => {
+    // Base query (kept for future /discover compatibility and dealbreakers patch seeding).
     const query = {
       ...formValues,
       country: formValues.customCountry || formValues.country,
@@ -738,14 +796,14 @@ const Discover = () => {
       includeSelf: 1,
     };
 
-    // Persist age range to dealbreakers (so it is reused later).
+    // Persist age range to dealbreakers (so it is reused later in other parts of the app).
     try {
       const patch = {};
-      const parsedMin = Number(formValues.minAge);
-      const parsedMax = Number(formValues.maxAge);
+      const parsedMinForPatch = Number(formValues.minAge);
+      const parsedMaxForPatch = Number(formValues.maxAge);
 
-      if (Number.isFinite(parsedMin)) patch.ageMin = parsedMin;
-      if (Number.isFinite(parsedMax)) patch.ageMax = parsedMax;
+      if (Number.isFinite(parsedMinForPatch)) patch.ageMin = parsedMinForPatch;
+      if (Number.isFinite(parsedMaxForPatch)) patch.ageMax = parsedMaxForPatch;
 
       if (Object.keys(patch).length > 0) {
         await updateDealbreakers(patch);
@@ -765,9 +823,12 @@ const Discover = () => {
     const minIsValid = Number.isFinite(parsedMin);
     const maxIsValid = Number.isFinite(parsedMax);
 
+    let effMin = 18;
+    let effMax = 120;
+
     if (minIsValid || maxIsValid) {
-      const effMin = minIsValid ? parsedMin : 18;
-      const effMax = maxIsValid ? parsedMax : 120;
+      effMin = minIsValid ? parsedMin : 18;
+      effMax = maxIsValid ? parsedMax : 120;
 
       if (effMin !== 18 || effMax !== 120) {
         query.minAge = effMin;
@@ -781,13 +842,73 @@ const Discover = () => {
       delete query.maxAge;
     }
 
-    if (selectHasFocus) {
-      pendingQueryRef.current = query;
-      return;
+    // Build location object for POST /api/search.
+    const location =
+      query.country || query.region || query.city
+        ? {
+            country: query.country,
+            region: query.region,
+            city: query.city,
+          }
+        : undefined;
+
+    // Build dealbreakers object from form values when available.
+    let dealbreakersToSend = null;
+
+    if (formValues && typeof formValues.dealbreakers === "object") {
+      // If DiscoverFilters already bundles them under .dealbreakers, pass through as-is.
+      dealbreakersToSend = { ...formValues.dealbreakers };
+    } else {
+      const db = {};
+
+      if (formValues?.mustHavePhoto) {
+        db.mustHavePhoto = true;
+      }
+      if (formValues?.nonSmokerOnly) {
+        db.nonSmokerOnly = true;
+      }
+      if (formValues?.noDrugs) {
+        db.noDrugs = true;
+      }
+
+      // Optionally tighten age in dealbreakers as strict bounds.
+      if (minIsValid) db.ageMin = effMin;
+      if (maxIsValid) db.ageMax = effMax;
+
+      if (Object.keys(db).length > 0) {
+        dealbreakersToSend = db;
+      }
     }
 
-    loadUsers(query);
+    // Body for POST /api/search – light and explicit.
+    const searchBody = {
+      includeSelf: 1,
+    };
+
+    if (effMin !== 18 || effMax !== 120) {
+      searchBody.minAge = effMin;
+      searchBody.maxAge = effMax;
+    }
+
+    if (formValues.gender && formValues.gender !== "any") {
+      searchBody.gender = formValues.gender;
+    }
+
+    if (location) {
+      searchBody.location = location;
+    }
+
+    // Only Premium users actually send dealbreakers to the backend;
+    // Free users still get basic search without strict filters. The server
+    // will ignore dealbreakers for non-premium anyway, but skipping them
+    // here keeps intent clear and avoids noisy logs.
+    if (isPremiumForDiscover && dealbreakersToSend) {
+      searchBody.dealbreakers = dealbreakersToSend;
+    }
+
+    return runSearchWithDealbreakers(searchBody);
   };
+  // --- REPLACE END: use /api/search + dealbreakers for Premium users ---
 
   // Collect values and setters into simple objects for DiscoverFilters.
   const values = {
@@ -1030,4 +1151,5 @@ const Discover = () => {
 
 export default Discover;
 // --- REPLACE END ---
+
 

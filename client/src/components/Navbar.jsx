@@ -1,4 +1,6 @@
-﻿// --- REPLACE START: add reactive Premium badge + Premium Hub link + wrapped nav row ---
+﻿// PATH: client/src/components/Navbar.jsx
+
+// --- REPLACE START: add reactive Premium badge + Premium Hub link + wrapped nav row ---
 import React, { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -214,5 +216,4 @@ const Navbar = () => {
 
 export default Navbar;
 // --- REPLACE END ---
-
 

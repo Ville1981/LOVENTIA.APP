@@ -26,7 +26,26 @@
   },
   "auth": {
     "username": "Username",
-    "username_placeholder": "Enter your username"
+    "username_placeholder": "Enter your username",
+    "register": {
+      "title": "Create account",
+      "usernamePlaceholder": "Username",
+      "usernameAria": "Username",
+      "emailPlaceholder": "Email",
+      "emailAria": "Email",
+      "passwordPlaceholder": "Password",
+      "passwordAria": "Password",
+      "confirmPasswordPlaceholder": "Confirm password",
+      "confirmPasswordAria": "Confirm password",
+      "creating": "Creating…",
+      "submit": "Create account",
+      "checkEmailTitle": "Check your email",
+      "checkEmailBody": "We have sent a verification link to your email. Please open it to verify your address before you continue.",
+      "sentTo": "We tried to send the email to {{email}}.",
+      "goToDiscover": "Go to Discover",
+      "goToHome": "Back to Home",
+      "checkEmailHint": "If you do not see the email, check your spam folder or try again later from Settings → Email verification."
+    }
   },
   "blog": "Blog",
   "blockButtonLabel": "Block",
@@ -432,3 +451,5 @@
   "tagline": "Match better. Love smarter. 💘",
   "terms": "Terms"
 }
+
+

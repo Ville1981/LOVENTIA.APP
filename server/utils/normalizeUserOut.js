@@ -373,6 +373,10 @@ export function normalizeUserOut(src = {}) {
   // 7) Non-destructive entitlements merge for output (lift tier + fill missing premium features)
   applyEntitlementsView(user);
 
+  // 8) Email verification view for client (derived, non-sensitive)
+  user.emailVerified = Boolean(user.emailVerifiedAt);
+  user.emailVerifiedAt = user.emailVerifiedAt || null;
+
   // Done — return the normalized user (no field whitelisting!)
   return user;
 }
@@ -399,14 +403,4 @@ export function normalizeUsersOut(arr) {
 // Keep a default export alias for compatibility with `import normalizeUserOut from ...`
 export default normalizeUserOut;
 // --- REPLACE END ---
-
-
-
-
-
-
-
-
-
-
 

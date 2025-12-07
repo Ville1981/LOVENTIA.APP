@@ -1,5 +1,3 @@
-// PATH: client/src/App.jsx
-
 // --- REPLACE START: use AuthContext.user instead of authUser field ---
 import React, { Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
@@ -46,6 +44,9 @@ import AdminPanel from "./pages/AdminPanel";
 import SettingsPage from "./pages/SettingsPage";
 import SubscriptionSettings from "./pages/settings/SubscriptionSettings";
 import NotFound from "./pages/NotFound";
+
+// ✅ New page for email verification flow
+import VerifyEmailPage from "./pages/VerifyEmailPage";
 
 // React Query client with calm defaults
 const queryClient = new QueryClient({
@@ -159,6 +160,15 @@ export default function App() {
                 {/* Auth-free */}
                 <Route path="login" element={<Login />} />
                 <Route path="register" element={<Register />} />
+
+                {/* Password helpers */}
+                <Route path="forgot-password" element={<ForgotPassword />} />
+                {/* ✅ This route uses the fixed component that sends { token, password, id? } */}
+                <Route path="reset-password" element={<ResetPassword />} />
+
+                {/* ✅ NEW: Email verification landing route.
+                    This does NOT require login – link comes directly from email. */}
+                <Route path="verify-email" element={<VerifyEmailPage />} />
 
                 {/* Profile / protected */}
                 <Route
@@ -283,11 +293,6 @@ export default function App() {
                     </PrivateRoute>
                   }
                 />
-
-                {/* Password helpers */}
-                <Route path="forgot-password" element={<ForgotPassword />} />
-                {/* ✅ This route uses the fixed component that sends { token, password, id? } */}
-                <Route path="reset-password" element={<ResetPassword />} />
 
                 {/* Admin-only */}
                 <Route

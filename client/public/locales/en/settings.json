@@ -1,0 +1,15 @@
+{
+  "title": "Settings",
+  "sections": {
+    "account": "Account",
+    "profile": "Profile",
+    "notifications": "Notifications",
+    "security": "Security"
+  },
+  "verifyEmailTitle": "Verify your email address",
+  "verifyEmailDescription": "For your security and a better experience, please verify your email address. We will send you a verification link to the email associated with your account.",
+  "resendVerificationButton": "Resend verification email",
+  "save": "Save settings",
+  "saveSuccess": "Settings saved.",
+  "saveError": "Could not save settings. Please try again."
+}

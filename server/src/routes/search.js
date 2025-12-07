@@ -1,6 +1,6 @@
 // PATH: server/src/routes/search.js
 
-// --- REPLACE START: search route with DB-backed premium detection (keeps original structure) ---
+// --- REPLACE START: search route with DB-backed premium + stored dealbreakers support ---
 'use strict';
 
 // ESM imports
@@ -61,18 +61,39 @@ async function resolveCurrentUser(req) {
 
 /**
  * Determine premium entitlement from a full User document.
- * Accepts legacy flags, plan names, or entitlements.features.
+ * Accepts legacy flags, entitlements tier, or entitlements.features.
  */
 function isPremiumUser(user) {
   if (!user) return false;
-  if (user.isPremium === true || user.premium === true) return true;
 
-  const feat = user?.entitlements?.features;
-  if (feat && (feat.dealbreakers === true || feat.unlimitedRewinds === true)) {
+  // Legacy hard flags
+  if (user.isPremium === true || user.premium === true) {
     return true;
   }
 
-  if (user.plan && /premium|pro|plus/i.test(String(user.plan))) return true;
+  const ent = user.entitlements || {};
+  const feat = ent.features || {};
+
+  // Entitlements-tier based premium
+  if (ent.tier === "premium") {
+    return true;
+  }
+
+  // Explicit feature flags that imply premium
+  if (
+    feat.dealbreakers === true ||
+    feat.unlimitedRewinds === true ||
+    feat.unlimitedLikes === true ||
+    feat.noAds === true
+  ) {
+    return true;
+  }
+
+  // Legacy plan naming (defensive)
+  if (user.plan && /premium|pro|plus/i.test(String(user.plan))) {
+    return true;
+  }
+
   return false;
 }
 
@@ -89,8 +110,20 @@ function isPremiumUser(user) {
  * Body: {
  *   gender, minAge, maxAge,
  *   location?: { country, region, city } | (top-level country/region/city fallback),
- *   dealbreakers?: { mustHavePhoto, nonSmokerOnly, noDrugs, ageMin, ageMax }
+ *   dealbreakers?: {
+ *     mustHavePhoto?: boolean,
+ *     nonSmokerOnly?: boolean,
+ *     noDrugs?: boolean,
+ *     ageMin?: number,
+ *     ageMax?: number
+ *   }
  * }
+ *
+ * NOTE:
+ *   - If the request does not include dealbreakers, we fall back to the user's
+ *     stored preferences.preferences.dealbreakers (for Premium users).
+ *   - For Free users, any provided dealbreakers are ignored, but we return an
+ *     informative note in the response.
  */
 router.post("/", authenticate, async (req, res) => {
   try {
@@ -98,8 +131,44 @@ router.post("/", authenticate, async (req, res) => {
     const currentUser = await resolveCurrentUser(req);
     const premium = isPremiumUser(currentUser);
 
-    const { gender, minAge, maxAge, location, dealbreakers } = req.body || {};
+    const body = req.body || {};
+    const { gender, minAge, maxAge, location } = body;
+
+    // Dealbreakers from request body (if any)
+    const requestDealbreakers =
+      body.dealbreakers && typeof body.dealbreakers === "object"
+        ? body.dealbreakers
+        : null;
+
+    // Dealbreakers from stored preferences (if any)
+    const storedDealbreakers =
+      currentUser &&
+      currentUser.preferences &&
+      typeof currentUser.preferences.dealbreakers === "object"
+        ? currentUser.preferences.dealbreakers
+        : null;
+
+    // Effective dealbreakers for Premium:
+    // - If request provided some, they override stored ones field-by-field
+    // - Otherwise fall back to stored preferences
+    let effectiveDealbreakers = null;
+    if (premium) {
+      if (requestDealbreakers && storedDealbreakers) {
+        effectiveDealbreakers = {
+          ...storedDealbreakers,
+          ...requestDealbreakers,
+        };
+      } else {
+        effectiveDealbreakers = requestDealbreakers || storedDealbreakers;
+      }
+    }
+
     const q = { isDeleted: { $ne: true } }; // exclude soft-deleted users
+
+    // Exclude current user from results if we know who they are
+    if (currentUser && currentUser._id) {
+      q._id = { $ne: currentUser._id };
+    }
 
     // Base filters (available to everyone)
     if (gender && gender !== "any") q.gender = gender;
@@ -110,48 +179,70 @@ router.post("/", authenticate, async (req, res) => {
     }
 
     // Location filtering (accept both nested location and top-level fallbacks)
-    const locObj = (location && typeof location === "object") ? location : {};
-    const country = locObj.country ?? req.body?.country;
-    const region  = locObj.region  ?? req.body?.region;
-    const city    = locObj.city    ?? req.body?.city;
+    const locObj = location && typeof location === "object" ? location : {};
+    const country = locObj.country ?? body.country;
+    const region = locObj.region ?? body.region;
+    const city = locObj.city ?? body.city;
 
     if (country) q["location.country"] = country;
-    if (region)  q["location.region"]  = region;
-    if (city)    q["location.city"]    = city;
+    if (region) q["location.region"] = region;
+    if (city) q["location.city"] = city;
 
+    // -----------------------------------------------------------------------
     // Premium-only dealbreakers
-    if (premium) {
-      if (dealbreakers && typeof dealbreakers === "object") {
-        // Require a visible photo
-        if (dealbreakers.mustHavePhoto) {
-          q.$or = q.$or || [];
-          q.$or.push(
-            { profilePicture: { $exists: true, $ne: null } },
-            { "photos.0": { $exists: true } }
-          );
-        }
-        // Non-smoker only
-        if (dealbreakers.nonSmokerOnly) {
-          q.smoke = { $in: [null, "", "no", "never"] };
-        }
-        // No drugs
-        if (dealbreakers.noDrugs) {
-          q.drugs = { $in: [null, "", "no", "never"] };
-        }
-        // Stricter age overrides
-        if (dealbreakers.ageMin || dealbreakers.ageMax) {
-          q.age = q.age || {};
-          if (dealbreakers.ageMin) q.age.$gte = Number(dealbreakers.ageMin);
-          if (dealbreakers.ageMax) q.age.$lte = Number(dealbreakers.ageMax);
-        }
+    // -----------------------------------------------------------------------
+    if (premium && effectiveDealbreakers && typeof effectiveDealbreakers === "object") {
+      const db = effectiveDealbreakers;
+
+      // Require a visible photo
+      if (db.mustHavePhoto) {
+        q.$or = q.$or || [];
+        q.$or.push(
+          { profilePicture: { $exists: true, $ne: null } },
+          { "photos.0": { $exists: true } }
+        );
       }
-    } else if (dealbreakers) {
-      // Non-premium users cannot apply dealbreakers; ignore them silently and log once
-      console.log(`[search] Ignoring dealbreakers for non-premium user=${currentUser?._id || req.user?.id || "n/a"}`);
+
+      // Non-smoker only
+      if (db.nonSmokerOnly) {
+        q.smoke = { $in: [null, "", "no", "never"] };
+      }
+
+      // No drugs
+      if (db.noDrugs) {
+        q.drugs = { $in: [null, "", "no", "never"] };
+      }
+
+      // Stricter age overrides (if provided)
+      if (db.ageMin || db.ageMax) {
+        q.age = q.age || {};
+        if (db.ageMin) q.age.$gte = Number(db.ageMin);
+        if (db.ageMax) q.age.$lte = Number(db.ageMax);
+      }
+
+      // NOTE: distanceKm / petsOk / religion / education:
+      // These are defined in dealbreakers routes & schema, but their
+      // geo/matching logic is handled elsewhere (e.g. /users/nearby).
+      // We intentionally do not guess an implementation here to keep
+      // behavior stable.
+    } else if (!premium && (requestDealbreakers || storedDealbreakers)) {
+      // Non-premium users cannot apply dealbreakers; ignore them silently
+      // but log once for debugging.
+      const uid =
+        currentUser?._id ||
+        req.user?._id ||
+        req.user?.id ||
+        req.user?.userId ||
+        req.userId ||
+        "n/a";
+      console.log(
+        `[search] Ignoring dealbreakers for non-premium user=${uid}`
+      );
     }
 
     // Keep projection minimal to avoid leaking sensitive fields
-    const projection = "-password -emailVerificationToken -resetPasswordToken -refreshTokens -__v";
+    const projection =
+      "-password -emailVerificationToken -resetPasswordToken -refreshTokens -__v";
 
     // Limit hard-capped to avoid huge responses (keeps original behavior close with 50)
     const results = await User.find(q).select(projection).limit(50).exec();
@@ -159,8 +250,11 @@ router.post("/", authenticate, async (req, res) => {
     return res.json({
       ok: true,
       count: results.length,
-      // Informative note only for non-premium when they attempted dealbreakers
-      note: (!premium && dealbreakers) ? "Dealbreakers are available for Premium users only." : undefined,
+      // Informative note only for non-premium when they attempted custom dealbreakers
+      note:
+        !premium && requestDealbreakers
+          ? "Dealbreakers are available for Premium users only."
+          : undefined,
       results,
     });
   } catch (err) {
@@ -171,5 +265,12 @@ router.post("/", authenticate, async (req, res) => {
 
 // ESM default export (keep CJS fallback for safety)
 export default router;
-try { module.exports = router; } catch {}
+try {
+  // eslint-disable-next-line no-undef
+  module.exports = router;
+} catch {
+  // ignore if module.exports is not available (pure ESM runtime)
+}
 // --- REPLACE END ---
+
+

@@ -371,32 +371,94 @@ const DiscoverFilters = ({ values, setters, handleFilter, onApply }) => {
     [t]
   );
 
+  // --- REPLACE START: dealbreakers payload builder + Premium / Free gating ---
   const hintId = "dealbreakers-premium-hint";
   const dealbreakersDisabled = !isPremium;
+
+  /**
+   * Build a compact dealbreakers payload from raw form values.
+   * This keeps flat fields intact for compatibility but adds:
+   *   data.dealbreakers = { distanceKm, mustHavePhoto, nonSmokerOnly, noDrugs, petsOk, religionList, educationList }
+   * only for Premium users and only when something is actually set.
+   */
+  const buildDealbreakersPayload = (formData) => {
+    if (!isPremium || !formData || typeof formData !== "object") return null;
+
+    const db = {};
+
+    // Distance in km
+    if (
+      formData.distanceKm !== undefined &&
+      formData.distanceKm !== null &&
+      String(formData.distanceKm).trim() !== ""
+    ) {
+      const n = Number(formData.distanceKm);
+      db.distanceKm = Number.isFinite(n) && n > 0 ? n : formData.distanceKm;
+    }
+
+    // Simple boolean flags
+    if (formData.mustHavePhoto) {
+      db.mustHavePhoto = true;
+    }
+    if (formData.nonSmokerOnly) {
+      db.nonSmokerOnly = true;
+    }
+    if (formData.noDrugs) {
+      db.noDrugs = true;
+    }
+
+    // Pets (strict boolean dealbreaker)
+    if (formData.petsOk === "true" || formData.petsOk === "false") {
+      db.petsOk = formData.petsOk === "true";
+    }
+
+    // Religion / education multi-selects
+    if (Array.isArray(formData.religionList) && formData.religionList.length > 0) {
+      db.religionList = [...formData.religionList];
+    }
+    if (Array.isArray(formData.educationList) && formData.educationList.length > 0) {
+      db.educationList = [...formData.educationList];
+    }
+
+    return Object.keys(db).length > 0 ? db : null;
+  };
 
   // Synchronous submit handler — calls handleFilter + optional onApply immediately with values
   const onSubmit = (data) => {
     setBlockedMsg("");
-    if (!isPremium) {
-      const hasDealbreakers =
-        data?.distanceKm ||
-        data?.mustHavePhoto ||
-        data?.nonSmokerOnly ||
-        data?.noDrugs ||
-        (Array.isArray(data?.religionList) && data.religionList.length > 0) ||
-        (Array.isArray(data?.educationList) && data.educationList.length > 0) ||
-        data?.petsOk === "true" ||
-        data?.petsOk === "false";
-      if (hasDealbreakers) {
-        setBlockedMsg(
-          t(
-            "discover:dealbreakers.blockedMessage",
-            "Dealbreakers are a Premium feature. Please upgrade to use these filters."
-          )
-        );
-        return;
+
+    const hasDealbreakers =
+      data?.distanceKm ||
+      data?.mustHavePhoto ||
+      data?.nonSmokerOnly ||
+      data?.noDrugs ||
+      (Array.isArray(data?.religionList) && data.religionList.length > 0) ||
+      (Array.isArray(data?.educationList) && data.educationList.length > 0) ||
+      data?.petsOk === "true" ||
+      data?.petsOk === "false";
+
+    // Free users: block when dealbreakers are set
+    if (!isPremium && hasDealbreakers) {
+      setBlockedMsg(
+        t(
+          "discover:dealbreakers.blockedMessage",
+          "Dealbreakers are a Premium feature. Please upgrade to use these filters."
+        )
+      );
+      return;
+    }
+
+    // Premium users: attach normalized dealbreakers payload while preserving flat fields
+    if (isPremium) {
+      const dbPayload = buildDealbreakersPayload(data);
+      if (dbPayload) {
+        // Mutate the submission object in-place so Discover.jsx sees data.dealbreakers
+        // but still has distanceKm / mustHavePhoto, etc. at top level for any legacy callers.
+        // eslint-disable-next-line no-param-reassign
+        data.dealbreakers = dbPayload;
       }
     }
+
     handleFilter?.(data);
     onApply?.(data);
   };
@@ -427,6 +489,15 @@ const DiscoverFilters = ({ values, setters, handleFilter, onApply }) => {
 
       if (allowSoftSubmit) {
         setBlockedMsg("");
+
+        if (isPremium) {
+          const dbPayload = buildDealbreakersPayload(data);
+          if (dbPayload) {
+            // eslint-disable-next-line no-param-reassign
+            data.dealbreakers = dbPayload;
+          }
+        }
+
         handleFilter?.(data);
         onApply?.(data);
       }
@@ -434,6 +505,7 @@ const DiscoverFilters = ({ values, setters, handleFilter, onApply }) => {
       /* noop */
     }
   };
+  // --- REPLACE END: dealbreakers payload builder + Premium / Free gating ---
 
   const canUseDiscoverLocation =
     setters &&
@@ -894,4 +966,5 @@ DiscoverFilters.propTypes = {
 };
 
 export default React.memo(DiscoverFilters);
+
 
