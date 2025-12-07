@@ -30,7 +30,6 @@ function isPremiumUser(user) {
   if (user.isPremium || user.premium) return true;
   if (user.plan && /premium|pro|plus/i.test(String(user.plan))) return true;
 
-  // Entitlements (support both "intros" and "introsMessaging" keys)
   const ent = user.entitlements && user.entitlements.features;
   if (ent) {
     if (ent.unlimitedMessages === true) return true;
@@ -42,18 +41,22 @@ function isPremiumUser(user) {
 
 /**
  * Check if sending an intro message is allowed for this user.
- * Premium users (or users with `entitlements.features.intros|introsMessaging`) are allowed.
+ * Premium users (or users with intros/introsMessaging features) are allowed.
  */
 function canSendIntro(user) {
   // Dev override (if you temporarily want to allow free intros)
   if (String(process.env.ALLOW_FREE_INTROS || "") === "true") return true;
 
-  // Allow only real premium users based on explicit flags/tier
-  return !!(
-    user?.isPremium === true ||
-    user?.premium === true ||
-    user?.entitlements?.tier === "premium"
-  );
+  if (!user) return false;
+
+  // Prefer explicit intros feature flags if present
+  const feat = user.entitlements && user.entitlements.features;
+  if (feat && (feat.introsMessaging === true || feat.intros === true)) {
+    return true;
+  }
+
+  // Otherwise fall back to general premium detection
+  return isPremiumUser(user);
 }
 
 /** Very small helper for ObjectId format validation (keeps logs clean). */
@@ -501,6 +504,5 @@ router.post(
 // --- REPLACE START: switch to ESM default export ---
 export default router;
 // --- REPLACE END ---
-
 
 

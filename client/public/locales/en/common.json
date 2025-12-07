@@ -127,7 +127,31 @@
     "error": "We could not send your report right now. Please try again later.",
     "submitting": "Sending…",
     "submit": "Send report"
+  },
+  "settings": {
+    "dealbreakersTitle": "Discover dealbreakers",
+    "dealbreakersDescription": "Configure hard filters for matches. This is a Premium feature and will apply to Discover.",
+    "subscriptionTitle": "Subscription Settings",
+    "subscriptionDescription": "Manage your Premium plan from here. You can start, manage, or cancel from the dedicated page.",
+    "currentPlanTitle": "Current plan indicator",
+    "currentPlanLabel": "Current plan:",
+    "currentPlanPremium": "Premium",
+    "currentPlanFree": "Free",
+    "manageSubscriptionTitle": "Open the subscription settings page",
+    "manageSubscriptionButton": "Manage Subscription",
+    "viewPremiumBenefitsTitle": "View all Premium benefits",
+    "viewPremiumBenefitsButton": "View Premium benefits",
+    "subscriptionSecurityNote": "The next page uses our secure billing backend (Stripe). We never store your card details.",
+    "sessionsTitle": "Sessions and security",
+    "sessionsDescription": "If you suspect someone else may have access to your account, you can log out from all devices. This will invalidate refresh tokens and require sign-in again everywhere.",
+    "sessionsLogoutAllButton": "Log out from all devices",
+    "sessionsLogoutAllHint": "Your current session may also be logged out shortly after this action.",
+    "sessionsLogoutAllInfoSuccessDefault": "Logout from all devices requested. This device has been logged out.",
+    "sessionsLogoutAllErrorDefault": "Failed to log out from all devices."
+  },
+  "ads": {
+    "sponsoredHeadline": "Sponsored",
+    "removeAdsBody": "Upgrade to Premium to remove all ads."
   }
 }
-
 

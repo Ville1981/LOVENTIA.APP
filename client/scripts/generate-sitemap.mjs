@@ -1,3 +1,5 @@
+// PATH: client/scripts/generate-sitemap.mjs
+
 // --- REPLACE START: single, robust sitemap generator (runs from client/) ---
 // Purpose:
 //  - Generate client/public/sitemap.xml for the SPA.
@@ -15,7 +17,7 @@ import { fileURLToPath } from "node:url";
 
 /** Resolve paths robustly regardless of where the script is launched from */
 const __filename = fileURLToPath(import.meta.url);
-const __dirname  = dirname(__filename);
+const __dirname = dirname(__filename);
 
 // The client directory is one level up from this script file
 //   e.g. <repo>/client/scripts/generate-sitemap.mjs  → clientDir = <repo>/client
@@ -25,7 +27,7 @@ const clientDir = resolve(__dirname, "..");
 // If from client/, process.cwd() = <repo>/client
 // We'll prefer clientDir (derived from file location) to avoid ambiguity.
 const publicDir = resolve(clientDir, "public");
-const outFile   = resolve(publicDir, "sitemap.xml");
+const outFile = resolve(publicDir, "sitemap.xml");
 
 /** Determine canonical base URL */
 const BASE_URL =
@@ -37,14 +39,20 @@ const BASE_URL =
 
 /** Public, indexable routes only (extend safely as needed) */
 const ROUTES = [
-  "/",               // Home / Landing
-  "/discover",       // Discover feed
-  "/subscriptions",  // Billing / Plans
-  "/privacy",        // Privacy Policy
-  "/cookies",        // Cookie Policy
-  "/terms",          // Terms of Service
+  "/", // Home / Landing
+  "/discover", // Discover feed
+  "/subscriptions", // Billing / Plans
+  "/privacy", // Privacy Policy
+  "/cookies", // Cookie Policy
+  "/terms", // Terms of Service
   "/login",
   "/register",
+
+  // Sitemap 2.0: additional key app routes
+  "/messages",
+  "/likes",
+  "/settings/profile",
+  "/settings/subscriptions",
 ];
 
 /** Utility: build a fully-qualified URL from BASE_URL + path */
@@ -91,5 +99,11 @@ mkdirSync(publicDir, { recursive: true });
 writeFileSync(outFile, xml, "utf8");
 
 console.log(`[sitemap] Base: ${BASE_URL}`);
-console.log(`[sitemap] Wrote ${join("client", "public", "sitemap.xml")} with ${ROUTES.length} routes`);
+console.log(
+  `[sitemap] Wrote ${join("client", "public", "sitemap.xml")} with ${
+    ROUTES.length
+  } routes`
+);
 // --- REPLACE END ---
+
+

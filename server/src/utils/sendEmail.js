@@ -5,7 +5,8 @@
 // - If SMTP is not configured, we do NOT crash: we log and use streamTransport (dev).
 // - Always writes a log entry to ./logs/mail-YYYYMMDD-HHmmss.log so you can see
 //   what would have been sent.
-// - The replacement region is marked so you can later swap just the env/transport part.
+// - The replacement region is marked between // --- REPLACE START and // --- REPLACE END
+//   so you can later swap just the env/transport part.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -17,10 +18,30 @@ import { fileURLToPath } from "node:url";
 // C:\Windows\System32 ends up as CWD. In that case process.cwd() is WRONG for logs,
 // so we add a fallback that resolves relative to THIS file (src/utils/...).
 function getBaseDir() {
-  // try to use the real process cwd first
-  const cwd = process.cwd();
-  if (cwd && fs.existsSync(cwd)) {
-    return cwd;
+  let cwd = null;
+
+  try {
+    cwd = process.cwd();
+  } catch {
+    cwd = null;
+  }
+
+  try {
+    if (cwd && fs.existsSync(cwd)) {
+      const lower = cwd.toLowerCase();
+
+      // Explicitly avoid writing logs into Windows\System32
+      // (this happened in some PowerShell + Tee-Object runs).
+      const isSystem32 =
+        lower.includes("\\windows\\system32") ||
+        lower.includes("/windows/system32");
+
+      if (!isSystem32) {
+        return cwd;
+      }
+    }
+  } catch {
+    // ignore and fall back to file-based resolution
   }
 
   // fallback: directory of this file (ESM-safe)
@@ -41,7 +62,10 @@ function ensureLogsDir() {
     }
   } catch (err) {
     // don't crash mail on mkdir failure
-    console.warn("[sendEmail] could not create logs directory:", err?.message || err);
+    console.warn(
+      "[sendEmail] could not create logs directory:",
+      err?.message || err
+    );
   }
   return logsDir;
 }
@@ -54,7 +78,10 @@ function writeMailLog(payload = {}) {
   try {
     fs.writeFileSync(file, data, "utf8");
   } catch (err) {
-    console.warn("[sendEmail] could not write mail log:", err?.message || err);
+    console.warn(
+      "[sendEmail] could not write mail log:",
+      err?.message || err
+    );
   }
 }
 // --- REPLACE END ---
@@ -140,7 +167,7 @@ function resolveFromHeader() {
  * - Even if transporter fails, you will still see intent in logs/.
  * - Works with:
  *     sendEmail("to@example.com", "Subject", "text", "<html>")
- *   ja
+ *   and
  *     sendEmail({ to, subject, text, html, template, context })
  */
 // --- REPLACE START: support both positional args and options-object ---
@@ -215,7 +242,10 @@ export default async function sendEmail(arg1, arg2, arg3, arg4) {
       const preview = info.message.toString("utf8");
       console.log("[sendEmail preview]\n" + preview.substring(0, 1200));
     } catch (e) {
-      console.warn("[sendEmail preview] failed to print preview:", e?.message || e);
+      console.warn(
+        "[sendEmail preview] failed to print preview:",
+        e?.message || e
+      );
     }
   }
 

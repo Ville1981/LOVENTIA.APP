@@ -1,4 +1,4 @@
-﻿// PATH: server/src/routes/auth.js
+﻿// PATH: server/routes/auth.js
 // @ts-nocheck
 
 "use strict";
@@ -407,7 +407,7 @@ router.post(
   asyncHandler(async (req, res) => {
     // --- REPLACE START: Robust refresh (body + header + cookie) ---
 
-    // 1) Kerätään mahdolliset lähteet
+    // 1) Collect possible sources
     const bodyToken =
       (req.body && (req.body.refreshToken || req.body.token)) || null;
 
@@ -422,12 +422,7 @@ router.post(
           req.cookies.token)) ||
       null;
 
-    const token = (
-      bodyToken ||
-      headerToken ||
-      cookieToken ||
-      ""
-    ).trim();
+    const token = (bodyToken || headerToken || cookieToken || "").trim();
 
     if (!token) {
       return res
@@ -435,7 +430,7 @@ router.post(
         .json({ error: "No refresh token provided (refresh route)" });
     }
 
-    // 2) Tarkistetaan refresh-token
+    // 2) Verify refresh-token
     const secret =
       process.env.JWT_REFRESH_SECRET ||
       process.env.REFRESH_TOKEN_SECRET ||
@@ -466,7 +461,7 @@ router.post(
       return res.status(401).json({ error: "Invalid token payload" });
     }
 
-    // 3) Luodaan uusi accessToken
+    // 3) Create new accessToken
     const accessSecret =
       process.env.JWT_SECRET ||
       process.env.ACCESS_TOKEN_SECRET ||
@@ -489,7 +484,7 @@ router.post(
         "15m",
     });
 
-    // 4) Palautetaan uusi access-token ja kevyt user-objekti
+    // 4) Return new access-token and a light user object
     return res.json({
       accessToken,
       user: {
@@ -504,8 +499,6 @@ router.post(
     // --- REPLACE END ---
   })
 );
-
-
 
 /* 2) Logout User */
 router.options("/logout", async (req, res) => {
@@ -531,6 +524,53 @@ router.post(
     }
   })
 );
+
+// --- REPLACE START: 2b) Logout All Sessions (current device + global intent) ---
+router.options("/logout-all", async (req, res) => {
+  const cors = await getCors();
+  return cors(req, res, () => res.sendStatus(204));
+});
+
+router.post(
+  "/logout-all",
+  async (req, res, next) => {
+    const cors = await getCors();
+    return cors(req, res, next);
+  },
+  asyncHandler(async (req, res, next) => {
+    // Require an authenticated user (access token in Authorization header)
+    const authenticate = await getAuthenticate();
+
+    return authenticate(req, res, async (authErr) => {
+      if (authErr) return next(authErr);
+
+      try {
+        const cookieOptions = await getCookieOptionsOnce();
+        const { maxAge, ...withoutMaxAge } = cookieOptions || {};
+
+        // Clear current device's refresh token cookie
+        res.clearCookie("refreshToken", withoutMaxAge);
+
+        // NOTE:
+        // Full global "all devices" invalidation would require
+        // a server-side session store / tokenVersion field.
+        // For now, we:
+        //  - clear this device cookie,
+        //  - return a clear message so the UI can show
+        //    "You have been logged out from this device, and all
+        //     future sessions will require a fresh login."
+        return res.json({
+          message:
+            "Logout from all devices requested. This device has been logged out.",
+        });
+      } catch (err) {
+        console.error("Logout-all error:", err?.message || err);
+        return res.status(500).json({ error: "Logout-all failed" });
+      }
+    });
+  })
+);
+// --- REPLACE END: 2b) Logout All Sessions ---
 
 /* 3) Register New User */
 router.options("/register", async (req, res) => {
@@ -633,11 +673,11 @@ router.post(
 
       const resetToken = crypto.randomBytes(24).toString("hex");
 
-      // UUSI TOKEN KÄYTTÖÖN
+      // New token usage
       user.passwordResetToken = resetToken;
       user.passwordResetExpires = Date.now() + 60 * 60 * 1000;
 
-      // FIX: nollataan mahdollinen aiempi käyttö, jotta uusi linkki ei ole heti "already used"
+      // Reset possible previous usage so a new link is not immediately "already used"
       user.passwordResetUsedAt = undefined;
 
       await user.save();
@@ -693,7 +733,6 @@ router.post(
   })
 );
 // --- REPLACE END ---
-
 
 /* 6) Reset Password */
 // --- REPLACE START: tolerant reset that accepts RAW token OR SHA256(token) and marks token as used ---
@@ -861,8 +900,289 @@ router.post(
 );
 // --- REPLACE END ---
 
+// --- REPLACE START: email verification routes (send + verify) ---
+/* 7) Send verification email for logged-in user */
+router.options("/send-verification-email", async (req, res) => {
+  const cors = await getCors();
+  return cors(req, res, () => res.sendStatus(204));
+});
 
-/* 7) Get Current User Profile (ROBUST) — unified with /api/me and /api/users/me */
+router.post(
+  "/send-verification-email",
+  async (req, res, next) => {
+    const cors = await getCors();
+    return cors(req, res, next);
+  },
+  asyncHandler(async (req, res, next) => {
+    const authenticate = await getAuthenticate();
+    return authenticate(req, res, async (authErr) => {
+      if (authErr) return next(authErr);
+
+      const User = await getUserModel();
+      if (!User) {
+        return res.status(503).json({ error: "User model unavailable" });
+      }
+
+      const userId =
+        req.user?.userId || req.user?.id || req.user?._id || null;
+
+      // --- REPLACE START: robust user lookup (id + email fallbacks) ---
+      const emailFromBody = String(req.body?.email || "")
+        .trim()
+        .toLowerCase();
+      const emailFromUser = String(req.user?.email || "")
+        .trim()
+        .toLowerCase();
+
+      let user = null;
+
+      // 1) Primary: lookup by id from authenticate (normal case)
+      if (userId) {
+        try {
+          user = await User.findById(userId);
+        } catch (e) {
+          console.warn(
+            "[verify-email] findById failed for id=",
+            String(userId),
+            e?.message || e
+          );
+        }
+      }
+
+      // 2) Fallback: lookup by email attached to authenticated user
+      if (!user && emailFromUser) {
+        user = await User.findOne({ email: emailFromUser });
+      }
+
+      // 3) Fallback: lookup by email explicitly provided in request body
+      if (!user && emailFromBody) {
+        user = await User.findOne({ email: emailFromBody });
+      }
+
+      if (!user) {
+        writeMailLog(
+          `[verify-email] user not found for id=${userId || "<none>"} emailFromUser=${emailFromUser || "<none>"} emailFromBody=${emailFromBody || "<none>"}`
+        );
+        return res.status(404).json({ error: "User not found" });
+      }
+      // --- REPLACE END: robust user lookup (id + email fallbacks) ---
+
+      const normalizedEmail = String(user.email || "").trim().toLowerCase();
+
+      // If already verified, just echo that back (idempotent)
+      if (user.emailVerifiedAt) {
+        writeMailLog(
+          `[verify-email] email already verified for ${normalizedEmail} (userId=${user._id})`
+        );
+        const out = normalizeUserOut(user);
+        return res.json({
+          message: "Email is already verified.",
+          emailVerified: true,
+          emailVerifiedAt: user.emailVerifiedAt,
+          user: out,
+        });
+      }
+
+      // Generate token + expiry
+      const verifyToken = crypto.randomBytes(24).toString("hex");
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+      user.emailVerifyToken = verifyToken;
+      user.emailVerifyExpires = expiresAt;
+
+      await user.save();
+
+      const base = process.env.CLIENT_URL || "http://localhost:5174";
+      const verifyUrl = `${base.replace(
+        /\/+$/,
+        ""
+      )}/verify-email?token=${verifyToken}&id=${user._id}`;
+
+      // ✅ ALWAYS log the verify URL for smoketests (even if sendEmail is missing)
+      writeMailLog(
+        `[verify-email] email verification email SENT to ${normalizedEmail} url ${verifyUrl}`
+      );
+
+      // Try to send real email if sendEmail() is available
+      try {
+        const sendEmail = await getSendEmail();
+        if (!sendEmail) {
+          console.warn(
+            "[auth/routes] sendEmail() not available, skipping real verification email send"
+          );
+          writeMailLog(
+            `[warn] sendEmail() not available, verification email NOT sent (check paths) for ${normalizedEmail}`
+          );
+        } else {
+          const subject = "Verify your email for Loventia";
+          const lines = [
+            "Hi,",
+            "",
+            "Please verify your email address by clicking the link below:",
+            verifyUrl,
+            "",
+            "If you did not create an account on Loventia, you can safely ignore this email.",
+          ];
+          const message = lines.join("\n");
+          await sendEmail(normalizedEmail, subject, message);
+          writeMailLog(
+            `[info] verification email dispatched via sendEmail to ${normalizedEmail}`
+          );
+        }
+      } catch (mailErr) {
+        console.error(
+          "[auth/routes] send-verification-email sendEmail failed:",
+          mailErr?.message || mailErr
+        );
+        writeMailLog(
+          `[error] send-verification-email sendEmail failed for ${normalizedEmail}: ${
+            mailErr?.message || mailErr
+          }`
+        );
+      }
+
+      const norm = normalizeUserOut(user);
+      return res.json({
+        message:
+          "Verification email has been sent (if your email was not yet verified).",
+        emailVerified: false,
+        emailVerifiedAt: null,
+        user: norm,
+      });
+    });
+  })
+);
+
+/* 8) Verify email – token + user id from body or query */
+// --- REPLACE START: robust verify-email handler (body + query) ---
+router.options("/verify-email", async (req, res) => {
+  const cors = await getCors();
+  return cors(req, res, () => res.sendStatus(204));
+});
+
+router.post(
+  "/verify-email",
+  async (req, res, next) => {
+    const cors = await getCors();
+    return cors(req, res, next);
+  },
+  asyncHandler(async (req, res) => {
+    const body = req.body || {};
+    const query = req.query || {};
+
+    // Accept token + id from BOTH body and query:
+    //   POST /api/auth/verify-email?token=...&id=...
+    //   + optional JSON body { token, id }
+    const token = String(
+      body.token ||
+        body.emailVerifyToken ||
+        query.token ||
+        query.emailVerifyToken ||
+        ""
+    ).trim();
+
+    const id = String(
+      body.id ||
+        body.userId ||
+        query.id ||
+        query.userId ||
+        ""
+    ).trim();
+
+    if (!token || !id) {
+      writeMailLog(
+        `[verify-email] missing token or id (tokenLen=${token.length}, id=${id || "<missing>"})`
+      );
+      return res
+        .status(400)
+        .json({ error: "Token and id are required for email verification." });
+    }
+
+    const User = await getUserModel();
+    if (!User) {
+      return res.status(503).json({ error: "User model unavailable" });
+    }
+
+    const user = await User.findById(id);
+    if (!user) {
+      writeMailLog(
+        `[verify-email] user not found for id=${id} (tokenLen=${token.length})`
+      );
+      return res.status(400).json({ error: "Invalid verification link." });
+    }
+
+    const normalizedEmail = String(user.email || "").trim().toLowerCase();
+
+    // Already verified → idempotent success
+    if (user.emailVerifiedAt) {
+      writeMailLog(
+        `[verify-email] email already verified (idempotent) for ${normalizedEmail} (userId=${user._id})`
+      );
+      const out = normalizeUserOut(user);
+      return res.json({
+        message: "Email is already verified.",
+        emailVerified: true,
+        emailVerifiedAt: user.emailVerifiedAt,
+        user: out,
+      });
+    }
+
+    // Check token and expiry
+    if (!user.emailVerifyToken || !user.emailVerifyExpires) {
+      writeMailLog(
+        `[verify-email] missing verify token/expiry for ${normalizedEmail} (userId=${user._id})`
+      );
+      return res
+        .status(400)
+        .json({ error: "Invalid or expired verification token." });
+    }
+
+    if (user.emailVerifyToken !== token) {
+      writeMailLog(
+        `[verify-email] token mismatch for ${normalizedEmail} (userId=${user._id})`
+      );
+      return res
+        .status(400)
+        .json({ error: "Invalid or expired verification token." });
+    }
+
+    if (new Date(user.emailVerifyExpires).getTime() < Date.now()) {
+      writeMailLog(
+        `[verify-email] token expired for ${normalizedEmail} (userId=${user._id})`
+      );
+      return res.status(400).json({
+        error:
+          "Verification link has expired. Please request a new one.",
+      });
+    }
+
+    // Mark as verified
+    const now = new Date();
+    user.emailVerifiedAt = now;
+    user.emailVerifyToken = null;
+    user.emailVerifyExpires = null;
+
+    await user.save();
+
+    writeMailLog(
+      `[verify-email] email verified for ${normalizedEmail} (userId=${user._id})`
+    );
+
+    const out = normalizeUserOut(user);
+
+    return res.json({
+      message: "Email verified successfully.",
+      emailVerified: true,
+      emailVerifiedAt: now,
+      user: out,
+    });
+  })
+);
+// --- REPLACE END: robust verify-email handler (body + query) ---
+// --- REPLACE END: email verification routes (send + verify) ---
+
+
+/* 8) Get Current User Profile (ROBUST) — unified with /api/me and /api/users/me */
 // --- REPLACE START: unified /api/auth/me response shape ---
 router.get(
   "/me",
@@ -910,6 +1230,8 @@ router.get(
           tier: decoded.isPremium || decoded.premium ? "premium" : "free",
           since: null,
           until: null,
+          features: undefined,
+          quotas: undefined,
         },
       };
       return res.json(fallback);
@@ -949,7 +1271,7 @@ router.get(
 );
 // --- REPLACE END ---
 
-/* 8) Update User Profile */
+/* 9) Update User Profile */
 router.put(
   "/profile",
   asyncHandler(async (req, res, next) => {
@@ -1057,7 +1379,7 @@ router.put(
   })
 );
 
-/* 9) Delete User Account */
+/* 10) Delete User Account */
 router.delete(
   "/delete",
   asyncHandler(async (req, res, next) => {

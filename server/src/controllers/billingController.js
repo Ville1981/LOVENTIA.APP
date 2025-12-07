@@ -30,7 +30,7 @@ const User = UserModule.default || UserModule;
 import normalizeUserOut from "../utils/normalizeUserOut.js";
 import stripe, { billingUrls } from "../../config/stripe.js";
 
-// ✅ NEW: high-level transactional email service (logs via /api/debug/email-log)
+// ✅ High-level transactional email service (writes logs via sendEmail.js)
 import { sendTransactionalEmail } from "../utils/emailService.js";
 
 /* -------------------------------------------------------------------------- */
@@ -101,6 +101,36 @@ async function getOrCreateStripeCustomer(userDoc) {
   userDoc.stripeCustomerId = customer.id;
   await userDoc.save();
   return customer.id;
+}
+
+/**
+ * Find a user by Stripe customer id.
+ * This is shared by both premium-writer and transactional email logic.
+ */
+async function findUserByStripeCustomer(customerId) {
+  if (!customerId) return null;
+
+  // First: direct lookup
+  let userDoc = await User.findOne(
+    { stripeCustomerId: customerId },
+    { _id: 1, email: 1 },
+  );
+
+  if (userDoc) return userDoc;
+
+  // Second: best-effort metadata backfill
+  try {
+    const customer = await stripe.customers.retrieve(customerId);
+    const appUserId = customer?.metadata?.appUserId;
+    if (appUserId) {
+      userDoc = await User.findById(appUserId, { _id: 1, email: 1 });
+      return userDoc || null;
+    }
+  } catch {
+    // ignore Stripe errors here, this is best-effort only
+  }
+
+  return null;
 }
 
 /**
@@ -240,23 +270,8 @@ async function upsertPremiumByCustomer(customerId, isPremium, subscription) {
     isPremium ? subscription : null,
   );
 
-  // First: try direct lookup by stripeCustomerId
-  let userDoc = await User.findOne(
-    { stripeCustomerId: customerId },
-    { _id: 1 },
-  );
-  if (!userDoc) {
-    // Metadata backfill (best-effort)
-    try {
-      const c = await stripe.customers.retrieve(customerId);
-      const appUserId = c?.metadata?.appUserId;
-      if (appUserId) {
-        userDoc = await User.findById(appUserId, { _id: 1 });
-      }
-    } catch {
-      // ignore
-    }
-  }
+  // First: try to resolve the user
+  const userDoc = await findUserByStripeCustomer(customerId);
   if (!userDoc?._id) return;
 
   await writeUserPremiumState(userDoc._id, fromSub);
@@ -368,8 +383,8 @@ export async function sync(req, res) {
   const becamePremium = !wasPremiumBefore && !!premiumState.isPremium;
   const downgraded = wasPremiumBefore && !premiumState.isPremium;
 
-    // Best-effort transactional email logging:
-  // ⬇️ Lähetetään SÄHKÖPOSTI vain jos tila oikeasti muuttuu
+  // Best-effort transactional email logging:
+  // ⬇️ Trigger billing emails only when state actually changes
   try {
     const requestId = req.id || req.headers["x-request-id"] || undefined;
     const to = updated?.email;
@@ -381,8 +396,7 @@ export async function sync(req, res) {
       changeType = "billing.cancel";
     }
 
-    // Jos ei ole ostettu Premiumia eikä menetetty Premiumia,
-    // EI lähetetä mitään sähköpostia (mutta /sync vastaa silti 200).
+    // If there is no actual state change, do not send any email.
     if (changeType) {
       const subjectMap = {
         "billing.purchase": "Welcome to Loventia Premium",
@@ -396,8 +410,6 @@ export async function sync(req, res) {
           "Your Loventia Premium subscription is no longer active. You can upgrade again anytime from Settings → Subscriptions.",
       };
 
-      // We still require an email address for real send; if missing, emailService
-      // will simply log a skipped entry.
       await sendTransactionalEmail({
         type: changeType,
         to,
@@ -421,7 +433,7 @@ export async function sync(req, res) {
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error(
-      "Transactional email (billing) failed or was skipped:",
+      "Transactional email (billing.sync) failed or was skipped:",
       e?.message || e,
     );
   }
@@ -437,26 +449,86 @@ export async function sync(req, res) {
 
 /**
  * POST /api/billing/webhook
- * NOTE: Route must be declared with express.raw({ type: 'application/json' }) to preserve raw body.
- * Validates signature and reacts to key subscription events.
+ *
+ * NOTE:
+ * - Ideal setup: route is mounted with express.raw({ type: 'application/json' })
+ *   BEFORE any express.json() / urlencoded() body parsers, so req.body is a Buffer.
+ * - In this project, expressLoader() may already attach JSON parsers earlier,
+ *   so in local development req.body can sometimes be a parsed object when
+ *   Stripe CLI forwards events.
+ *
+ * Strategy:
+ *  - PRODUCTION:
+ *      Always require a raw Buffer and verify signature via stripe.webhooks.constructEvent.
+ *      If verification fails → 400 so Stripe can retry.
+ *  - NON-PRODUCTION (development/test):
+ *      If req.body is not a Buffer, fall back to using the already-parsed object
+ *      as the event and SKIP signature verification.
+ *      This makes Stripe CLI tests work even when raw body is not available.
+ *
+ * Additionally:
+ *  - Sends renewal success / failure transactional emails on invoice events.
  */
 export async function handleWebhook(req, res) {
   const sig = req.headers["stripe-signature"];
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!secret) return res.status(500).send("Webhook secret missing");
 
+  const NODE_ENV = process.env.NODE_ENV || "development";
+  const isProduction = NODE_ENV === "production";
+  const hasBufferBody = Buffer.isBuffer(req.body);
+
   let event;
-  try {
-    // req.body is a Buffer here (because of express.raw)
-    event = stripe.webhooks.constructEvent(req.body, sig, secret);
-  } catch (err) {
-    // Signature failed → 400 so Stripe can retry
+
+  // 1) Prefer strict signature verification when we have a Buffer
+  if (hasBufferBody) {
+    try {
+      event = stripe.webhooks.constructEvent(req.body, sig, secret);
+    } catch (err) {
+      // Signature failed → 400 in production; in dev we log + fall back to parsed body.
+      // eslint-disable-next-line no-console
+      console.error(
+        "❌ Stripe webhook signature verification failed:",
+        err?.message || err,
+      );
+
+      if (isProduction) {
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+      }
+
+      // Dev/test fallback: skip signature verification, use parsed object.
+      // eslint-disable-next-line no-console
+      console.warn(
+        "⚠️ Dev fallback: processing Stripe webhook without verified signature (Buffer case).",
+      );
+      try {
+        // If json parser already ran earlier, req.body may actually be an object here,
+        // but in practice when hasBufferBody === true, it should still be raw.
+        event = JSON.parse(req.body.toString("utf8"));
+      } catch {
+        event = req.body;
+      }
+    }
+  } else {
+    // 2) No Buffer available
+    if (isProduction) {
+      // In production we require the raw body for signature verification.
+      // eslint-disable-next-line no-console
+      console.error(
+        "❌ Stripe webhook error: req.body is not a Buffer in production. " +
+          "Ensure express.raw({ type: 'application/json' }) is mounted before JSON parsers.",
+      );
+      return res
+        .status(400)
+        .send("Webhook Error: raw Buffer body required for signature verification");
+    }
+
+    // Dev/test: accept parsed object from already-run JSON parser
     // eslint-disable-next-line no-console
-    console.error(
-      "❌ Stripe webhook signature verification failed:",
-      err?.message || err,
+    console.warn(
+      "⚠️ Dev fallback: req.body is not a Buffer, using parsed body as Stripe event without signature verification.",
     );
-    return res.status(400).send(`Webhook Error: ${err.message}`);
+    event = req.body;
   }
 
   try {
@@ -494,9 +566,96 @@ export async function handleWebhook(req, res) {
         break;
       }
 
-      // Optional: failed payment may be handled separately if you want to downgrade earlier/later.
+      // Renewal succeeded: we send a "billing.renewal_success" email.
+      // NOTE: We only treat it as a renewal if billing_reason === 'subscription_cycle'
+      //       so the initial purchase does not double-send with checkout.session.completed.
+      case "invoice.payment_succeeded": {
+        const invoice = event.data.object;
+        const customerId = invoice.customer;
+        const subscriptionId = invoice.subscription;
+        const billingReason = invoice.billing_reason;
+
+        if (billingReason === "subscription_cycle") {
+          const userDoc = await findUserByStripeCustomer(customerId);
+          if (userDoc && userDoc.email) {
+            const requestId =
+              req.id || req.headers["x-request-id"] || undefined;
+
+            try {
+              await sendTransactionalEmail({
+                type: "billing.renewal_success",
+                to: userDoc.email,
+                subject: "Your Loventia Premium renewal was successful",
+                text:
+                  "Good news – your Loventia Premium subscription has been renewed successfully. Your premium benefits continue without interruption.",
+                html: undefined,
+                payload: {
+                  userId: String(userDoc._id),
+                  subscriptionId: subscriptionId || null,
+                  billingReason,
+                },
+                meta: {
+                  source: "billing.webhook",
+                  event: "billing.renewal_success",
+                  requestId,
+                },
+              });
+            } catch (e) {
+              // eslint-disable-next-line no-console
+              console.error(
+                "Transactional email (billing.renewal_success) failed or was skipped:",
+                e?.message || e,
+              );
+            }
+          }
+        }
+
+        break;
+      }
+
+      // Payment failed: send "billing.renewal_failed" email.
       case "invoice.payment_failed": {
-        // No immediate action; rely on subscription.updated events to toggle premium.
+        const invoice = event.data.object;
+        const customerId = invoice.customer;
+        const subscriptionId = invoice.subscription;
+        const billingReason = invoice.billing_reason;
+
+        const userDoc = await findUserByStripeCustomer(customerId);
+        if (userDoc && userDoc.email) {
+          const requestId =
+            req.id || req.headers["x-request-id"] || undefined;
+
+          try {
+            await sendTransactionalEmail({
+              type: "billing.renewal_failed",
+              to: userDoc.email,
+              subject: "There was a problem renewing your Loventia Premium",
+              text:
+                "We could not renew your Loventia Premium subscription because a payment attempt failed. " +
+                "Please check your payment method in the billing portal to avoid losing your premium benefits.",
+              html: undefined,
+              payload: {
+                userId: String(userDoc._id),
+                subscriptionId: subscriptionId || null,
+                billingReason,
+              },
+              meta: {
+                source: "billing.webhook",
+                event: "billing.renewal_failed",
+                requestId,
+              },
+            });
+          } catch (e) {
+            // eslint-disable-next-line no-console
+            console.error(
+              "Transactional email (billing.renewal_failed) failed or was skipped:",
+              e?.message || e,
+            );
+          }
+        }
+
+        // We do NOT downgrade immediately here; we rely on subscription.updated
+        // events to toggle premium when Stripe actually changes the subscription status.
         break;
       }
 
@@ -514,5 +673,6 @@ export async function handleWebhook(req, res) {
   return res.status(200).send("ok");
 }
 // --- REPLACE END ---
+
 
 

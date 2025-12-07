@@ -1,4 +1,4 @@
-// File: client/src/api/axios.js
+// File: client/src/utils/axiosInstance.js
 
 // --- REPLACE START: keep token for /auth/reset-password and similar auth calls ---
 import axios from "axios";
@@ -178,6 +178,20 @@ function isPasswordResetPath(urlLike) {
 }
 
 /**
+ * Endpoints where we do NOT want to trigger auto-refresh on 401,
+ * to avoid wiping tokens from "decorative" calls such as billing sync.
+ */
+function shouldSkipRefresh(urlLike) {
+  if (!urlLike) return false;
+  const u = String(urlLike).replace(/^\//, "");
+  // Billing sync / other billing endpoints
+  if (/^billing\//i.test(u)) return true;
+  // Sending verification email – 401 here should just bubble to UI
+  if (/^auth\/send-verification-email(\/|$)/i.test(u)) return true;
+  return false;
+}
+
+/**
  * Strip sensitive keys before debug.
  * NOTE: token is deliberately in this list to avoid logging it,
  * BUT we will SKIP calling this for /auth/reset-password below.
@@ -257,12 +271,19 @@ api.interceptors.request.use(
           Authorization: `Bearer ${token}`,
         };
       }
-      config.withCredentials = true;
-    } else {
-      // For auth endpoints we normally don't send bearer
+      // Do not override an explicit `withCredentials = false`
+      if (config.withCredentials !== false) {
+        config.withCredentials = true;
+      }
+    } else if (isAuth) {
+      // For auth endpoints we normally do not send bearer,
+      // but we RESPECT an explicit withCredentials flag from the caller
+      // (e.g. login/refresh need cookies for Set-Cookie round-trip).
       if (config.headers && "Authorization" in config.headers) {
         delete config.headers.Authorization;
       }
+    } else {
+      // Non-auth request to a non-allowed origin → no credentials.
       config.withCredentials = false;
     }
 
@@ -327,6 +348,7 @@ async function performRefresh() {
         attachAccessToken(incoming);
         return incoming;
       } catch (err) {
+        // If refresh fails, clear token so subsequent requests clearly 401.
         attachAccessToken(null);
         throw err;
       } finally {
@@ -353,7 +375,9 @@ api.interceptors.response.use(
           ? urlRaw.replace(/^\/api\//, "/")
           : urlRaw;
       // eslint-disable-next-line no-console
-      console.debug?.(`[RES] ${response.status} ${method} ${base}${url}`);
+      console.debug?.(
+        `[RES] ${response.status} ${method} ${base}${url}`
+      );
     } catch {
       /* no-op */
     }
@@ -365,7 +389,7 @@ api.interceptors.response.use(
 
     const status = error?.response?.status;
 
-    // --- REPLACE START: flag intro feature lock (403) for UI handling ---
+    // --- REPLACE START: flag intro feature lock (403) + guard refresh for some paths ---
     if (status === 403) {
       const data = error?.response?.data;
       if (
@@ -375,9 +399,18 @@ api.interceptors.response.use(
         error.isIntroLocked = true;
       }
     }
+
+    const urlForCheck = original.url || "";
+
+    // Never try refresh for certain endpoints:
+    //  - /billing/*   (e.g. /billing/sync) → 401/429 must not wipe whole session
+    //  - /auth/send-verification-email     → if 401, let UI handle it
+    if (shouldSkipRefresh(urlForCheck)) {
+      return Promise.reject(error);
+    }
     // --- REPLACE END ---
 
-    // Do not refresh for auth endpoints
+    // Do not refresh for auth endpoints themselves
     if (isAuthPath(original.url || "")) {
       return Promise.reject(error);
     }

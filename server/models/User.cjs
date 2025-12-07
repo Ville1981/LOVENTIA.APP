@@ -35,6 +35,9 @@ function safeTransform(_doc, ret) {
     delete ret.password;
     delete ret.passwordResetToken;
     delete ret.passwordResetExpires;
+    // Email verification secrets should never leak to the client
+    delete ret.emailVerifyToken;
+    delete ret.emailVerifyExpires;
     // Mongoose internal fields clean-up (keep id via virtual)
     delete ret.__v;
 
@@ -392,6 +395,12 @@ const userSchema = new mongoose.Schema(
     // Password reset fields
     passwordResetToken:   { type: String, trim: true },
     passwordResetExpires: { type: Date },
+
+    // Email verification fields
+    emailVerifyToken:     { type: String, trim: true, default: null },
+    emailVerifyExpires:   { type: Date, default: null },
+    emailVerifiedAt:      { type: Date, default: null },
+
     passwordResetUsedAt:  { type: Date },
 
     // Visibility (both nested object and top-level helpers for compatibility)

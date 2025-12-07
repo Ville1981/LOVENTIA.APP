@@ -149,12 +149,15 @@ export async function updateDealbreakers(patch, previous) {
 
 /**
  * Run a discover search with server-side application of dealbreakers.
+ * NOTE: Uses POST /api/search (Axios baseURL adds the /api prefix).
+ *
  * @param {object} criteria Free-form search criteria (e.g., { q, limit, ... })
  * @returns {Promise<{ results: any[], appliedDealbreakers: typeof DEFAULT_DEALBREAKERS | null, premiumRequired?: boolean }>}
  */
 export async function discoverWithDealbreakers(criteria = {}) {
   try {
-    const res = await api.post("/discover/search", criteria);
+    // Axios baseURL is /api, so this hits POST /api/search
+    const res = await api.post("/search", criteria);
     const data = res?.data || {};
     return {
       ...data,
@@ -171,3 +174,4 @@ export async function discoverWithDealbreakers(criteria = {}) {
 /* Named export for defaults if the UI needs to reset form quickly without waiting for network */
 export const DEALBREAKER_DEFAULTS = DEFAULT_DEALBREAKERS;
 // --- REPLACE END ---
+

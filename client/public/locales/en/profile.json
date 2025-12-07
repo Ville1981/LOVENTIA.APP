@@ -246,6 +246,8 @@
     "politicalIdeology": "🗳 Political ideology",
     "pets": "🐾 Pets"
   },
+  "hubTitle": "Profile",
+  "emailVerifiedBadge": "Email verified",
   "managePhotos": "Manage photos",
   "save": "Save",
   "saveSuccess": "Profile saved."

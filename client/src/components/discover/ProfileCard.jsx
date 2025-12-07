@@ -1,7 +1,7 @@
 // PATH: client/src/components/discover/ProfileCard.jsx
 
 // --- REPLACE START: ProfileCard – normalize location (string → object), robust image URLs,
-// add RewindButton (premium-gated), likes quota passthrough, Premium badge support, and a11y (label + keyboard shortcuts) ---
+// add RewindButton (premium-gated), likes quota passthrough, Premium + emailVerified badges, and a11y (label + keyboard shortcuts) ---
 import PropTypes from "prop-types";
 import React, { memo, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -30,7 +30,7 @@ const DEMO_FALLBACK_PHOTOS = [
  * Responsibilities:
  * - Renders a single Discover profile card with:
  *   • photo carousel
- *   • name, age, compatibility, premium badge
+ *   • name, age, compatibility, premium badge, email-verified badge
  *   • location text
  *   • actions (Pass / Like / SuperLike / Rewind)
  *   • summary, stats, details
@@ -188,6 +188,12 @@ const ProfileCard = ({
     return tier === "premium";
   }, [user]);
 
+  /**
+   * Email verification flag for this profile.
+   * We expect discover/search results to include emailVerified for verified profiles.
+   */
+  const isEmailVerified = user?.emailVerified === true;
+
   // Accessible label for the whole profile card
   const ageLabel =
     user?.age !== null && user?.age !== undefined ? `${user.age}` : "unknown age";
@@ -282,15 +288,27 @@ const ProfileCard = ({
       </button>
 
       <div className="p-4 space-y-4">
-        {/* Name, age, compatibility, premium badge */}
+        {/* Name, age, compatibility, premium badge, email-verified badge */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h3 className="text-xl font-bold">
               {displayName}, {user?.age ?? "?"}
             </h3>
             {isPremiumUser && (
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-400 text-yellow-900 border border-yellow-500">
                 Premium
+              </span>
+            )}
+            {isEmailVerified && (
+              <span
+                className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-green-100 text-green-800 border border-green-400"
+                title="Email verified"
+                aria-label="Email verified"
+              >
+                <span aria-hidden="true" className="mr-1">
+                  ✓
+                </span>
+                Verified
               </span>
             )}
           </div>
@@ -379,6 +397,8 @@ ProfileCard.propTypes = {
     entitlements: PropTypes.shape({
       tier: PropTypes.string,
     }),
+    // Email verification flag (used for "Verified" badge)
+    emailVerified: PropTypes.bool,
   }).isRequired,
   onPass: PropTypes.func.isRequired,
   onLike: PropTypes.func.isRequired,
