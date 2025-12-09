@@ -31,11 +31,10 @@ jobs:
       - name: Validate environment variables
         run: node scripts/validate-env.js
         env:
-          MONGO_URI: ${{ secrets.MONGO_URI }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
-          STRIPE_PREMIUM_PRICE_ID: ${{ secrets.STRIPE_PREMIUM_PRICE_ID }}
+          STRIPE_PREMIUM_PRICE_ID: ${{ secrets.STRIPE_PREMIUM_PRICE_ID || '' }}
           PAYPAL_CLIENT_ID: ${{ secrets.PAYPAL_CLIENT_ID }}
           PAYPAL_SECRET: ${{ secrets.PAYPAL_SECRET }}
           PAYPAL_PREMIUM_PRICE: ${{ secrets.PAYPAL_PREMIUM_PRICE }}
@@ -147,24 +146,27 @@ jobs:
   lint:
     needs: setup
     runs-on: ubuntu-latest
-    # --- REPLACE START: make lint non-blocking while still running ---
-    # Lint errors will be reported but won't fail the entire workflow.
-    continue-on-error: true
-    # --- REPLACE END ---
+    # --- REPLACE START: ESLint strict (blocking) for client + server ---
+    # Lint errors in either workspace will now fail the workflow.
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Install ESLint
-        run: |
-          cd server && npm install eslint
-          cd ../client && npm install eslint
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: npm
 
-      - name: Run ESLint on server
-        run: cd server && npm run lint
+      - name: Install workspace dependencies
+        run: npm ci
 
       - name: Run ESLint on client
-        run: cd client && npm run lint
+        run: npm run lint
+
+      - name: Run ESLint on server
+        run: npm --workspace server run lint
+    # --- REPLACE END ---
 
   build-and-audit:
     needs: [server-tests, client-tests, lint]
@@ -198,3 +200,5 @@ jobs:
         working-directory: ./terraform
         run: terraform plan -no-color
       # --- REPLACE END ---
+
+

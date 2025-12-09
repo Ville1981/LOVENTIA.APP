@@ -19,8 +19,12 @@
     "test:ci": "npm --workspace client run test && npm --workspace server run test",
     "test:watch": "npm --workspace client exec vitest --watch",
     "ls:react": "npm ls react react-dom",
-    "lint": "npm --workspace client run lint",
+
+    "lint:client": "npm --workspace client run lint",
+    "lint:server": "npm --workspace server run lint",
+    "lint": "npm run lint:client && npm run lint:server",
     "lint:fix": "npm --workspace client run lint:fix",
+
     "i18n:audit": "npm --workspace client run i18n:audit",
     "i18n:sync": "npm --workspace client run i18n:sync",
     "gensitemap": "node scripts/generate-sitemap.mjs",
