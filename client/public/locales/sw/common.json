@@ -22,7 +22,8 @@
     "login": "Ingia",
     "register": "Jisajili",
     "logout": "Logout",
-    "admin": "Admin"
+    "admin": "Admin",
+    "premiumHub": "Premium Hub"
   },
   "religion": {
     "christianity": "Christianity",

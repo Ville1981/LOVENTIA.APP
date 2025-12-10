@@ -1,3 +1,5 @@
+// PATH: server/.eslintrc.cjs
+
 /* 
   ESLint config for the SERVER workspace (Node/Express, ESM).
   - Keeps structure clear and avoids unnecessary shortening.
@@ -6,6 +8,7 @@
   - Jest test files get their own environment via overrides.
 */
 
+// eslint-disable-next-line no-undef
 module.exports = {
   root: true,
 
@@ -27,17 +30,21 @@ module.exports = {
     }
   },
 
-  // --- REPLACE START: ignore build + legacy artefacts ---
+  // --- REPLACE START: ignore build + legacy artifacts ---
   ignorePatterns: [
     "node_modules/**",
     "dist/**",
     "coverage/**",
     "uploads/**",
-    "openapi/dist/**",
-    "__openapi_phase_pack/**",     // ⬅️ OpenAPI-paketti
+
+    // OpenAPI bundle and helper artifacts
+    "openapi/**",
+    "__openapi_phase_pack/**",
+
+    // Known dependency tree that we never lint here
     "node_modules/axobject-query/**",
 
-    // ⬇️ EI LINTATA näitä tässä vaiheessa
+    // Do not lint these areas for now (can be enabled later)
     "client-dist/**",
     "scripts/**",
     "tests/**"
@@ -51,14 +58,14 @@ module.exports = {
     "prettier"
   ],
 
-  // lisätään myös "n" jotta n/no-missing-require on tunnettu sääntö
+  // Also include "n" so Node-related rules from eslint-plugin-n are available if enabled elsewhere
   plugins: ["import", "n"],
 
   rules: {
     "no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
     "no-undef": "error",
 
-    // TYYLIsäännöt vain warningiksi, jotta ne eivät estä linttiä
+    // Style rules as warnings so they do not block linting
     "import/order": [
       "warn",
       {
@@ -71,9 +78,9 @@ module.exports = {
     "import/extensions": ["off"]
   },
 
-  // --- REPLACE START: overrides pysyy, mutta jätetään selkeästi näkyviin ---
+  // --- REPLACE START: overrides kept explicit and readable ---
   overrides: [
-    // src-koodi: ESM + Node
+    // src code: ESM + Node
     {
       files: ["src/**/*.js", "src/**/*.mjs"],
       parserOptions: {
@@ -82,7 +89,8 @@ module.exports = {
       },
       env: { node: true }
     },
-    // Jest-testit: sallitaan jest-globaalit (beforeAll, describe, it, jne.)
+
+    // Jest tests: allow jest globals (beforeAll, describe, it, etc.)
     {
       files: ["**/*.test.js", "**/*.test.mjs", "**/*.spec.js", "**/*.spec.mjs"],
       env: { jest: true },
@@ -90,13 +98,26 @@ module.exports = {
         "no-undef": "off"
       }
     },
-    // Skriptit (scripts/**/*.js, .mjs)
+
+    // Scripts (scripts/**/*.js, .mjs) run in Node
     {
       files: ["scripts/**/*.js", "scripts/**/*.mjs"],
       env: { node: true }
+    },
+
+    // CommonJS modules (.cjs), for example legacy models/shims
+    {
+      files: ["**/*.cjs"],
+      env: {
+        node: true,
+        commonjs: true
+      },
+      parserOptions: {
+        ecmaVersion: 2022,
+        sourceType: "script"
+      }
     }
   ]
   // --- REPLACE END ---
 };
-
 

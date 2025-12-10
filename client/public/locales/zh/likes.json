@@ -1,0 +1,23 @@
+{
+  "title": "点赞概览",
+  "subtitle": "在这里，你可以看到你点赞的人、点赞你的人以及与你匹配的人。",
+  "outgoingTitle": "你点赞的人",
+  "outgoingEmpty": "你还没有点赞任何人。可以先在“发现”中浏览。",
+  "outgoingCount": "{{count}} 位用户",
+  "outgoingCount_plural": "{{count}} 位用户",
+  "incomingTitle": "点赞你的人",
+  "incomingEmpty": "目前还没有收到点赞。当有人给你点赞时，他们会出现在这里。",
+  "incomingCount": "{{count}} 位用户",
+  "incomingCount_plural": "{{count}} 位用户",
+  "matchesTitle": "匹配",
+  "matchesEmpty": "目前还没有匹配。当你们互相点赞时，匹配会出现在这里。",
+  "matchesCount": "{{count}} 个匹配",
+  "matchesCount_plural": "{{count}} 个匹配",
+  "loading": "正在加载点赞…",
+  "errorGeneric": "加载点赞失败。请重试。",
+  "errorNotSignedIn": "请先登录以查看你的点赞。",
+  "footerCtaPrefix": "想要更多功能？",
+  "footerCtaLink": "管理你的订阅",
+  "footerTip": "提示：Premium 用户的卡片上会显示一个黄色的“Premium”徽章。",
+  "anonymousUser": "匿名用户"
+}

@@ -1,0 +1,88 @@
+{
+  "benefits": {
+    "badgeDescription": "Show a small Premium badge on your profile and messages.",
+    "badgeTitle": "Premium badge",
+    "dealbreakersDescription": "Use hard filters in Discover to only see matches that fit your must-haves.",
+    "dealbreakersTitle": "Dealbreaker filters",
+    "introsDescription": "Send a first message even before you match (where allowed).",
+    "introsTitle": "Intro messages",
+    "noAdsDescription": "No banner ads across Loventia.",
+    "noAdsTitle": "Ad-free experience",
+    "unlimitedLikesDescription": "Like as many profiles as you want every day.",
+    "unlimitedLikesTitle": "Unlimited Likes",
+    "unlimitedRewindsDescription": "Go back to the previous profile if you swiped too fast.",
+    "unlimitedRewindsTitle": "Unlimited Rewinds",
+    "weeklySuperLikesDescription": "Highlight yourself with Super Likes each week.",
+    "weeklySuperLikesDescriptionWithCount": "You currently get {{count}} Super Likes per week.",
+    "weeklySuperLikesTitle": "Weekly Super Likes",
+    "whoLikedMeDescription": "Open the Likes overview to see who already liked you.",
+    "whoLikedMeTitle": "See who liked you"
+  },
+  "hub": {
+    "activeHint": "Premium is active. Most benefits below should already be unlocked.",
+    "benefitsDescription": "Here is a quick overview of what Premium offers. Active benefits are highlighted, locked ones are shown in gray.",
+    "benefitsTitle": "Premium benefits",
+    "currentPlanDescription": "This page shows your current Premium status and the benefits that are active on your account.",
+    "currentPlanTitle": "Your current plan",
+    "freeHint": "You are currently on the Free plan. Upgrade to unlock all Premium benefits.",
+    "manageSubscription": "Manage subscription",
+    "note": "Some benefits may depend on local laws or safety rules. We may roll out new Premium features over time.",
+    "planLabel": "Current plan:",
+    "syncHint": "If something looks out of date, open Subscription Settings and press Sync. It will pull the latest entitlements from billing.",
+    "title": "Premium Hub",
+    "upgradeNow": "Upgrade to Premium",
+    "planPremium": "Premium",
+    "planFree": "Free",
+    "benefits": {
+      "noAds": {
+        "title": "Ad-free experience",
+        "description": "No banner ads across Loventia."
+      },
+      "unlimitedLikes": {
+        "title": "Unlimited Likes",
+        "description": "Like as many profiles as you want every day."
+      },
+      "unlimitedRewinds": {
+        "title": "Unlimited Rewinds",
+        "description": "Go back to the previous profile if you swiped too fast."
+      },
+      "whoLikedMe": {
+        "title": "See who liked you",
+        "description": "Open the Likes overview to see who already liked you."
+      },
+      "superLikesPerWeek": {
+        "title": "Weekly Super Likes",
+        "descriptionWithCount": "You currently get {{count}} Super Likes per week.",
+        "description": "Highlight yourself with Super Likes each week."
+      },
+      "intros": {
+        "title": "Intro messages",
+        "description": "Send a first message even before you match (where allowed)."
+      },
+      "dealbreakers": {
+        "title": "Dealbreaker filters",
+        "description": "Use hard filters in Discover to only see matches that fit your must-haves."
+      },
+      "badge": {
+        "title": "Premium badge",
+        "description": "Show a small Premium badge on your profile and messages."
+      }
+    }
+  },
+  "upgradeCheckingSessionTitle": "Checking your session…",
+  "upgradeCheckingSessionBody": "Please wait a moment.",
+  "upgradeSignInRequiredTitle": "Sign in required",
+  "upgradeSignInRequiredBody": "To view Premium benefits and upgrade your account, please sign in.",
+  "upgradeGoToLogin": "Go to Login",
+  "upgradeTitle": "Uuenda Premiumiks",
+  "upgradeContinueButton": "Jätka tellimusega",
+  "upgradeFooterNote": "You’ll be redirected to your subscription settings. Payment is handled by your configured provider (e.g., Stripe).",
+  "benefitSeeWhoLikedYou": "Vaata, kellele sa meeldid",
+  "benefitSuperLikes": "Igahädalased Super Likes",
+  "benefitQAVisibility": "Ava kogu küsimuste ja vastuste nähtavus",
+  "benefitUnlimitedLikes": "Piiramatult meeldimisi",
+  "benefitDealbreakers": "Oluliste kriteeriumide filtrid",
+  "benefitUnlimitedRewinds": "Piiramatud tagasikerimised",
+  "benefitIntrosMessaging": "Ava esimesed tutvumissõnumid",
+  "benefitNoAds": "Reklaamideta"
+}

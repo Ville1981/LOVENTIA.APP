@@ -1,6 +1,6 @@
 // PATH: client/src/pages/PremiumHub.jsx
 
-// --- REPLACE START: Premium Hub – central place to view benefits and status ---
+// --- REPLACE START: Premium Hub – use premium i18n namespace + localized benefit items ---
 import React, { useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -12,16 +12,23 @@ import AdGate from "../components/AdGate";
 import AdBanner from "../components/AdBanner";
 
 export default function PremiumHub() {
-  const { t } = useTranslation();
+  // Use dedicated namespaces:
+  // - "premium" for Premium Hub texts
+  // - "common" for shared UI labels (e.g. Back button)
+  const { t: tPremium } = useTranslation("premium");
+  const { t: tCommon } = useTranslation("common");
+
   const { user } = useAuth() || {};
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = t("premium.hub.title", { defaultValue: "Premium Hub" });
-  }, [t]);
+    // Document title comes from premium namespace
+    document.title = tPremium("hub.title", { defaultValue: "Premium Hub" });
+  }, [tPremium]);
 
   const entitlements = user?.entitlements || {};
-  const tier = entitlements.tier || (user?.isPremium || user?.premium ? "premium" : "free");
+  const tier =
+    entitlements.tier || (user?.isPremium || user?.premium ? "premium" : "free");
   const isPremium =
     tier === "premium" || user?.isPremium === true || user?.premium === true;
 
@@ -38,82 +45,125 @@ export default function PremiumHub() {
       {
         key: "noAds",
         active: !!(features.noAds || isPremium),
-        title: "Ad-free experience",
-        description: "No banner ads across Loventia.",
+        title: tPremium("hub.benefits.noAds.title", {
+          defaultValue: "Ad-free experience",
+        }),
+        description: tPremium("hub.benefits.noAds.description", {
+          defaultValue: "No banner ads across Loventia.",
+        }),
       },
       {
         key: "unlimitedLikes",
         active: !!(features.unlimitedLikes || isPremium),
-        title: "Unlimited Likes",
-        description: "Like as many profiles as you want every day.",
+        title: tPremium("hub.benefits.unlimitedLikes.title", {
+          defaultValue: "Unlimited Likes",
+        }),
+        description: tPremium("hub.benefits.unlimitedLikes.description", {
+          defaultValue: "Like as many profiles as you want every day.",
+        }),
       },
       {
         key: "unlimitedRewinds",
         active: !!(features.unlimitedRewinds || isPremium),
-        title: "Unlimited Rewinds",
-        description: "Go back to the previous profile if you swiped too fast.",
+        title: tPremium("hub.benefits.unlimitedRewinds.title", {
+          defaultValue: "Unlimited Rewinds",
+        }),
+        description: tPremium("hub.benefits.unlimitedRewinds.description", {
+          defaultValue: "Go back to the previous profile if you swiped too fast.",
+        }),
       },
       {
         key: "whoLikedMe",
         active: !!(features.whoLikedMe || isPremium),
-        title: "See who liked you",
-        description: "Open the Likes overview to see who already liked you.",
+        title: tPremium("hub.benefits.whoLikedMe.title", {
+          defaultValue: "See who liked you",
+        }),
+        description: tPremium("hub.benefits.whoLikedMe.description", {
+          defaultValue: "Open the Likes overview to see who already liked you.",
+        }),
       },
       {
         key: "superLikesPerWeek",
         active: superLikesPerWeek > 0 || isPremium,
-        title: "Weekly Super Likes",
+        title: tPremium("hub.benefits.superLikesPerWeek.title", {
+          defaultValue: "Weekly Super Likes",
+        }),
         description:
           superLikesPerWeek > 0
-            ? `You currently get ${superLikesPerWeek} Super Likes per week.`
-            : "Highlight yourself with Super Likes each week.",
+            ? tPremium("hub.benefits.superLikesPerWeek.descriptionWithCount", {
+                defaultValue: "You currently get {{count}} Super Likes per week.",
+                count: superLikesPerWeek,
+              })
+            : tPremium("hub.benefits.superLikesPerWeek.description", {
+                defaultValue: "Highlight yourself with Super Likes each week.",
+              }),
       },
       {
         key: "intros",
         active: !!(features.intros || isPremium),
-        title: "Intro messages",
-        description: "Send a first message even before you match (where allowed).",
+        title: tPremium("hub.benefits.intros.title", {
+          defaultValue: "Intro messages",
+        }),
+        description: tPremium("hub.benefits.intros.description", {
+          defaultValue:
+            "Send a first message even before you match (where allowed).",
+        }),
       },
       {
         key: "dealbreakers",
         active: !!(features.dealbreakers || isPremium),
-        title: "Dealbreaker filters",
-        description:
-          "Use hard filters in Discover to only see matches that fit your must-haves.",
+        title: tPremium("hub.benefits.dealbreakers.title", {
+          defaultValue: "Dealbreaker filters",
+        }),
+        description: tPremium("hub.benefits.dealbreakers.description", {
+          defaultValue:
+            "Use hard filters in Discover to only see matches that fit your must-haves.",
+        }),
       },
       {
         key: "badge",
         active: !!(features.premiumBadge || isPremium),
-        title: "Premium badge",
-        description: "Show a small Premium badge on your profile and messages.",
+        title: tPremium("hub.benefits.badge.title", {
+          defaultValue: "Premium badge",
+        }),
+        description: tPremium("hub.benefits.badge.description", {
+          defaultValue:
+            "Show a small Premium badge on your profile and messages.",
+        }),
       },
     ],
-    [features, isPremium, superLikesPerWeek]
+    [features, isPremium, superLikesPerWeek, tPremium]
   );
 
-  const planLabel = isPremium ? "Premium" : "Free";
+  const planPremiumLabel = tPremium("hub.planPremium", {
+    defaultValue: "Premium",
+  });
+  const planFreeLabel = tPremium("hub.planFree", {
+    defaultValue: "Free",
+  });
+  const planLabel = isPremium ? planPremiumLabel : planFreeLabel;
 
   return (
     <div className="max-w-4xl mx-auto px-3 py-6 space-y-8">
       <ControlBar
-        title={t("premium.hub.title", {
+        title={tPremium("hub.title", {
           defaultValue: "Premium Hub",
         })}
       >
         <Button onClick={() => navigate(-1)} variant="gray">
-          {t("buttons.back", { defaultValue: "Back" })}
+          {tCommon("buttons.back", { defaultValue: "Back" })}
         </Button>
       </ControlBar>
 
       {/* Plan status */}
       <section className="border rounded-md p-4 space-y-3 bg-white">
         <h2 className="text-lg font-semibold">
-          {t("premium.hub.currentPlanTitle", {
+          {tPremium("hub.currentPlanTitle", {
             defaultValue: "Your current plan",
           })}
         </h2>
         <p className="text-sm text-gray-700">
-          {t("premium.hub.currentPlanDescription", {
+          {tPremium("hub.currentPlanDescription", {
             defaultValue:
               "This page shows your current Premium status and the benefits that are active on your account.",
           })}
@@ -129,7 +179,7 @@ export default function PremiumHub() {
           >
             <span aria-hidden="true">{isPremium ? "👑" : "✨"}</span>
             <span>
-              {t("premium.hub.planLabel", {
+              {tPremium("hub.planLabel", {
                 defaultValue: "Current plan:",
               })}{" "}
               <strong>{planLabel}</strong>
@@ -138,14 +188,14 @@ export default function PremiumHub() {
 
           {isPremium ? (
             <span className="text-xs text-green-700">
-              {t("premium.hub.activeHint", {
+              {tPremium("hub.activeHint", {
                 defaultValue:
                   "Premium is active. Most benefits below should already be unlocked.",
               })}
             </span>
           ) : (
             <span className="text-xs text-amber-700">
-              {t("premium.hub.freeHint", {
+              {tPremium("hub.freeHint", {
                 defaultValue:
                   "You are currently on the Free plan. Upgrade to unlock all Premium benefits.",
               })}
@@ -158,7 +208,7 @@ export default function PremiumHub() {
             variant="yellow"
             onClick={() => navigate("/settings/subscriptions")}
           >
-            {t("premium.hub.manageSubscription", {
+            {tPremium("hub.manageSubscription", {
               defaultValue: "Manage subscription",
             })}
           </Button>
@@ -168,7 +218,7 @@ export default function PremiumHub() {
               variant="primary"
               onClick={() => navigate("/upgrade")}
             >
-              {t("premium.hub.upgradeNow", {
+              {tPremium("hub.upgradeNow", {
                 defaultValue: "Upgrade to Premium",
               })}
             </Button>
@@ -176,7 +226,7 @@ export default function PremiumHub() {
         </div>
 
         <p className="mt-3 text-xs text-gray-500">
-          {t("premium.hub.syncHint", {
+          {tPremium("hub.syncHint", {
             defaultValue:
               "If something looks out of date, open Subscription Settings and press Sync. It will pull the latest entitlements from billing.",
           })}
@@ -186,12 +236,12 @@ export default function PremiumHub() {
       {/* Benefits overview */}
       <section className="border rounded-md p-4 space-y-4 bg-white">
         <h2 className="text-lg font-semibold">
-          {t("premium.hub.benefitsTitle", {
+          {tPremium("hub.benefitsTitle", {
             defaultValue: "Premium benefits",
           })}
         </h2>
         <p className="text-sm text-gray-700">
-          {t("premium.hub.benefitsDescription", {
+          {tPremium("hub.benefitsDescription", {
             defaultValue:
               "Here is a quick overview of what Premium offers. Active benefits are highlighted, locked ones are shown in gray.",
           })}
@@ -226,7 +276,7 @@ export default function PremiumHub() {
         </div>
 
         <div className="mt-3 text-xs text-gray-500">
-          {t("premium.hub.note", {
+          {tPremium("hub.note", {
             defaultValue:
               "Some benefits may depend on local laws or safety rules. We may roll out new Premium features over time.",
           })}
@@ -247,3 +297,4 @@ export default function PremiumHub() {
   );
 }
 // --- REPLACE END ---
+

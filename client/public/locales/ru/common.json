@@ -22,7 +22,8 @@
     "login": "Войти",
     "register": "Регистрация",
     "logout": "Logout",
-    "admin": "Админ"
+    "admin": "Админ",
+    "premiumHub": "Premium Hub"
   },
   "religion": {
     "christianity": "Christianity",

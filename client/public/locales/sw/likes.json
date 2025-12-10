@@ -1,0 +1,23 @@
+{
+  "title": "Muhtasari wa likes",
+  "subtitle": "Hapa unaweza kuona watu uliowapenda, waliokupenda na mechi zako.",
+  "outgoingTitle": "Watu uliowapenda",
+  "outgoingEmpty": "Bado hujampenda mtu yeyote. Anza kuvinjari kwenye Gundua.",
+  "outgoingCount": "{{count}} mtumiaji",
+  "outgoingCount_plural": "{{count}} watumiaji",
+  "incomingTitle": "Watu waliokupenda",
+  "incomingEmpty": "Bado hakuna likes zinazoingia. Mtu akikupenda, ataonekana hapa.",
+  "incomingCount": "{{count}} mtumiaji",
+  "incomingCount_plural": "{{count}} watumiaji",
+  "matchesTitle": "Mechi",
+  "matchesEmpty": "Bado huna mechi. Mkishapendana wote wawili, mechi itaonekana hapa.",
+  "matchesCount": "{{count}} mechi",
+  "matchesCount_plural": "{{count}} mechi",
+  "loading": "Inapakia likes…",
+  "errorGeneric": "Imeshindikana kupakia likes. Jaribu tena.",
+  "errorNotSignedIn": "Ingia ili kuona likes zako.",
+  "footerCtaPrefix": "Unataka vipengele zaidi?",
+  "footerCtaLink": "Dhibiti usajili wako",
+  "footerTip": "Kidokezo: Watumiaji wa Premium wana beji ndogo ya njano ya \"Premium\" kwenye kadi yao.",
+  "anonymousUser": "Mtumiaji asiyejulikana"
+}

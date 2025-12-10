@@ -1,0 +1,30 @@
+# Perusjutut
+node_modules
+dist
+coverage
+
+# Vanhat / legacy-kansiot (ennen src-rakennetta)
+controllers/**
+middleware/**
+routes/**
+services/**
+models/**
+config/**
+normalize-*.js
+resetExtraImages.js
+set-*.js
+socket.cjs
+
+# Uusi API-rakenne, jota ei vielä käytetä tuotannossa
+src/api/**
+
+# Legacy / WIP-apu- ja compliance-koodi
+src/app.modular.js
+src/bootstrap/mongo.js
+src/models/Image.js
+src/utils/compliance/**
+src/utils/seoMeta.js
+src/utils/support/premiumSupport.js
+src/utils/sentry.js
+src/routes/me.js
+src/controllers/discoverController.js

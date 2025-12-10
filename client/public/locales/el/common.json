@@ -22,7 +22,8 @@
     "login": "Σύνδεση",
     "register": "Εγγραφή",
     "logout": "Logout",
-    "admin": "Διαχειριστής"
+    "admin": "Διαχειριστής",
+    "premiumHub": "Premium Hub"
   },
   "religion": {
     "christianity": "Christianity",

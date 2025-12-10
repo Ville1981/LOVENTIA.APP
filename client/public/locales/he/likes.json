@@ -1,0 +1,23 @@
+{
+  "title": "סקירת לייקים",
+  "subtitle": "כאן תוכל לראות את האנשים שאהבת, מי אהב אותך וההתאמות שלך.",
+  "outgoingTitle": "אנשים שאהבת",
+  "outgoingEmpty": "עדיין לא נתת לייק לאף אחד. התחל לעיין ב\"גילוי\".",
+  "outgoingCount": "{{count}} משתמש",
+  "outgoingCount_plural": "{{count}} משתמשים",
+  "incomingTitle": "אנשים שאהבו אותך",
+  "incomingEmpty": "אין עדיין לייקים נכנסים. כאשר מישהו ייתן לך לייק, הוא יופיע כאן.",
+  "incomingCount": "{{count}} משתמש",
+  "incomingCount_plural": "{{count}} משתמשים",
+  "matchesTitle": "התאמות",
+  "matchesEmpty": "אין עדיין התאמות. כאשר תיתנו לייק זה לזה, ההתאמה תופיע כאן.",
+  "matchesCount": "{{count}} התאמה",
+  "matchesCount_plural": "{{count}} התאמות",
+  "loading": "טוען לייקים…",
+  "errorGeneric": "אירעה שגיאה בטעינת הלייקים. נסה שוב.",
+  "errorNotSignedIn": "התחבר כדי לראות את הלייקים שלך.",
+  "footerCtaPrefix": "רוצה יותר אפשרויות?",
+  "footerCtaLink": "ניהול המנוי שלך",
+  "footerTip": "טיפ: משתמשי פרימיום מסומנים בסמל צהוב קטן \"Premium\" על הכרטיס שלהם.",
+  "anonymousUser": "משתמש לא ידוע"
+}

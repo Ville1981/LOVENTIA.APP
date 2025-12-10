@@ -22,7 +22,8 @@
     "login": "تسجيل الدخول",
     "register": "إنشاء حساب",
     "logout": "Logout",
-    "admin": "مسؤول"
+    "admin": "مسؤول",
+    "premiumHub": "Premium Hub"
   },
   "religion": {
     "christianity": "Christianity",

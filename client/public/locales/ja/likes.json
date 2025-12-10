@@ -1,0 +1,23 @@
+{
+  "title": "いいねの概要",
+  "subtitle": "ここでは、あなたが「いいね」した相手、あなたに「いいね」した相手、そしてマッチした相手を確認できます。",
+  "outgoingTitle": "あなたが「いいね」した相手",
+  "outgoingEmpty": "まだ誰も「いいね」していません。「探す」からプロフィールを見てみましょう。",
+  "outgoingCount": "{{count}} 人",
+  "outgoingCount_plural": "{{count}} 人",
+  "incomingTitle": "あなたに「いいね」した相手",
+  "incomingEmpty": "まだ受信した「いいね」はありません。誰かがあなたに「いいね」すると、ここに表示されます。",
+  "incomingCount": "{{count}} 人",
+  "incomingCount_plural": "{{count}} 人",
+  "matchesTitle": "マッチ",
+  "matchesEmpty": "まだマッチはありません。お互いに「いいね」すると、ここにマッチが表示されます。",
+  "matchesCount": "{{count}} 件のマッチ",
+  "matchesCount_plural": "{{count}} 件のマッチ",
+  "loading": "いいねを読み込み中…",
+  "errorGeneric": "いいねの読み込みに失敗しました。もう一度お試しください。",
+  "errorNotSignedIn": "いいねを表示するにはログインしてください。",
+  "footerCtaPrefix": "もっと多くの機能が欲しいですか？",
+  "footerCtaLink": "サブスクリプションを管理する",
+  "footerTip": "ヒント: Premium ユーザーのカードには、小さな黄色の「Premium」バッジが表示されます。",
+  "anonymousUser": "匿名ユーザー"
+}

@@ -1,0 +1,23 @@
+{
+  "title": "نظرة عامة على الإعجابات",
+  "subtitle": "هنا يمكنك رؤية الأشخاص الذين أعجبت بهم، والأشخاص الذين أعجبوا بك، والتطابقات الخاصة بك.",
+  "outgoingTitle": "الأشخاص الذين أعجبت بهم",
+  "outgoingEmpty": "لم تُعجب بأي شخص بعد. ابدأ التصفح في قسم الاكتشاف.",
+  "outgoingCount": "{{count}} مستخدم",
+  "outgoingCount_plural": "{{count}} مستخدمين",
+  "incomingTitle": "الأشخاص الذين أعجبوا بك",
+  "incomingEmpty": "لا توجد إعجابات واردة بعد. عندما يعجب بك شخص ما، سيظهر هنا.",
+  "incomingCount": "{{count}} مستخدم",
+  "incomingCount_plural": "{{count}} مستخدمين",
+  "matchesTitle": "التطابقات",
+  "matchesEmpty": "لا توجد تطابقات بعد. عندما تعجبان ببعضكما البعض، سيظهر التطابق هنا.",
+  "matchesCount": "{{count}} تطابق",
+  "matchesCount_plural": "{{count}} تطابقات",
+  "loading": "جارٍ تحميل الإعجابات…",
+  "errorGeneric": "فشل في تحميل الإعجابات. حاول مرة أخرى.",
+  "errorNotSignedIn": "يرجى تسجيل الدخول لعرض إعجاباتك.",
+  "footerCtaPrefix": "هل تريد مزيدًا من المزايا؟",
+  "footerCtaLink": "إدارة الاشتراك",
+  "footerTip": "ملاحظة: يتم تمييز مستخدمي Premium بشارة صفراء صغيرة مكتوب عليها \"Premium\" على بطاقتهم.",
+  "anonymousUser": "مستخدم مجهول"
+}

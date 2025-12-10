@@ -22,7 +22,8 @@
     "login": "Kirjaudu",
     "register": "Rekisteröidy",
     "logout": "Kirjaudu ulos",
-    "admin": "Ylläpito"
+    "admin": "Ylläpito",
+    "premiumHub": "Premium-keskus"
   },
   "religion": {
     "christianity": "Christianity",

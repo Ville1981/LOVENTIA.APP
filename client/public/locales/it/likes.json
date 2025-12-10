@@ -1,0 +1,23 @@
+{
+  "title": "Riepilogo dei Mi piace",
+  "subtitle": "Qui puoi vedere le persone a cui hai messo Mi piace, chi ha messo Mi piace a te e i tuoi match.",
+  "outgoingTitle": "Persone a cui hai messo Mi piace",
+  "outgoingEmpty": "Non hai ancora messo Mi piace a nessuno. Inizia a sfogliare nella sezione Scopri.",
+  "outgoingCount": "{{count}} utente",
+  "outgoingCount_plural": "{{count}} utenti",
+  "incomingTitle": "Persone a cui piaci",
+  "incomingEmpty": "Non hai ancora ricevuto Mi piace. Quando qualcuno ti metterà Mi piace, apparirà qui.",
+  "incomingCount": "{{count}} utente",
+  "incomingCount_plural": "{{count}} utenti",
+  "matchesTitle": "Match",
+  "matchesEmpty": "Non hai ancora nessun match. Quando vi piacerete a vicenda, il match apparirà qui.",
+  "matchesCount": "{{count}} match",
+  "matchesCount_plural": "{{count}} match",
+  "loading": "Caricamento dei Mi piace…",
+  "errorGeneric": "Impossibile caricare i Mi piace. Riprova.",
+  "errorNotSignedIn": "Accedi per vedere i tuoi Mi piace.",
+  "footerCtaPrefix": "Vuoi più funzioni?",
+  "footerCtaLink": "Gestisci il tuo abbonamento",
+  "footerTip": "Suggerimento: gli utenti Premium sono contrassegnati da una piccola etichetta gialla \"Premium\" sulla loro scheda.",
+  "anonymousUser": "Anonimo"
+}

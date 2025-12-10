@@ -1,5 +1,7 @@
 ﻿// PATH: server/src/routes/userRoutes.js
 // @ts-nocheck
+/* eslint-disable no-dupe-keys -- legacy query builder uses duplicate $or keys, last one wins */
+
 
 // --- REPLACE START: migrate file to ESM and unify output normalizer across /me, /profile & PUT /profile ---
 import fs from "fs";

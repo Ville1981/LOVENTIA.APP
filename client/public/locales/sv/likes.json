@@ -1,0 +1,23 @@
+{
+  "title": "Översikt över gillningar",
+  "subtitle": "Här kan du se personer du har gillat, de som har gillat dig och dina matcher.",
+  "outgoingTitle": "Personer du har gillat",
+  "outgoingEmpty": "Du har inte gillat någon ännu. Börja bläddra i Upptäck.",
+  "outgoingCount": "{{count}} användare",
+  "outgoingCount_plural": "{{count}} användare",
+  "incomingTitle": "Personer som har gillat dig",
+  "incomingEmpty": "Inga inkommande gillningar ännu. När någon gillar dig visas de här.",
+  "incomingCount": "{{count}} användare",
+  "incomingCount_plural": "{{count}} användare",
+  "matchesTitle": "Matcher",
+  "matchesEmpty": "Inga matcher ännu. När ni gillar varandra visas matchen här.",
+  "matchesCount": "{{count}} matchning",
+  "matchesCount_plural": "{{count}} matchningar",
+  "loading": "Laddar gillningar…",
+  "errorGeneric": "Det gick inte att läsa in gillningarna. Försök igen.",
+  "errorNotSignedIn": "Logga in för att se dina gillningar.",
+  "footerCtaPrefix": "Vill du ha fler funktioner?",
+  "footerCtaLink": "Hantera din prenumeration",
+  "footerTip": "Tips: Premium-användare markeras med en liten gul \"Premium\"-ikon på sitt kort.",
+  "anonymousUser": "Anonym"
+}

@@ -22,7 +22,8 @@
     "login": "Logga in",
     "register": "Registrera",
     "logout": "Logout",
-    "admin": "Admin"
+    "admin": "Admin",
+    "premiumHub": "Premium Hub"
   },
   "religion": {
     "christianity": "Christianity",

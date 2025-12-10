@@ -1,0 +1,17 @@
+{
+  "contactText": "If you have questions about this policy or your data, please contact support.",
+  "contactTitle": "How to contact us",
+  "howWeUseItText": "We use your data to provide and secure the app, fight fraud and abuse, improve features and – if you have given consent – measure usage and performance.",
+  "howWeUseItTitle": "How we use your data",
+  "intro": "We respect your privacy. This page explains what data we collect and why. We only collect the minimum necessary to operate the Loventia service.",
+  "lastUpdatedPrefix": "Last updated:",
+  "title": "Privacy Policy",
+  "whatWeCollectItems": {
+    "accountDetails": "Account details (email, profile data you add).",
+    "analytics": "Optional analytics (only if you consent) to understand how the app is used.",
+    "technicalLogs": "Technical logs (IP address, browser and device information) to secure the service."
+  },
+  "whatWeCollectTitle": "What we collect",
+  "yourRightsText": "You can request access, correction or deletion of your data at any time. You can also withdraw consent where it was the legal basis for processing.",
+  "yourRightsTitle": "Your rights"
+}

@@ -1,0 +1,23 @@
+{
+  "title": "Beğeniler özeti",
+  "subtitle": "Burada beğendiğiniz kişileri, sizi beğenenleri ve eşleşmelerinizi görebilirsiniz.",
+  "outgoingTitle": "Beğendiğiniz kişiler",
+  "outgoingEmpty": "Henüz kimseyi beğenmediniz. Keşfet bölümünde gezinmeye başlayın.",
+  "outgoingCount": "{{count}} kullanıcı",
+  "outgoingCount_plural": "{{count}} kullanıcı",
+  "incomingTitle": "Sizi beğenen kişiler",
+  "incomingEmpty": "Henüz gelen beğeni yok. Biri sizi beğendiğinde burada görünecek.",
+  "incomingCount": "{{count}} kullanıcı",
+  "incomingCount_plural": "{{count}} kullanıcı",
+  "matchesTitle": "Eşleşmeler",
+  "matchesEmpty": "Henüz eşleşmeniz yok. Birbirinizi beğendiğinizde eşleşme burada görünecek.",
+  "matchesCount": "{{count}} eşleşme",
+  "matchesCount_plural": "{{count}} eşleşme",
+  "loading": "Beğeniler yükleniyor…",
+  "errorGeneric": "Beğeniler yüklenemedi. Lütfen tekrar deneyin.",
+  "errorNotSignedIn": "Beğenilerinizi görmek için giriş yapın.",
+  "footerCtaPrefix": "Daha fazla özellik ister misiniz?",
+  "footerCtaLink": "Aboneliğini yönet",
+  "footerTip": "İpucu: Premium kullanıcıların kartlarında küçük sarı bir \"Premium\" rozeti görünür.",
+  "anonymousUser": "Anonim"
+}

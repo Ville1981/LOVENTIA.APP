@@ -22,7 +22,8 @@
     "login": "लॉगिन",
     "register": "रजिस्टर",
     "logout": "Logout",
-    "admin": "एडमिन"
+    "admin": "एडमिन",
+    "premiumHub": "Premium Hub"
   },
   "religion": {
     "christianity": "Christianity",

@@ -22,7 +22,8 @@
     "login": "登录",
     "register": "注册",
     "logout": "Logout",
-    "admin": "管理员"
+    "admin": "管理员",
+    "premiumHub": "Premium Hub"
   },
   "religion": {
     "christianity": "Christianity",

@@ -1,0 +1,23 @@
+{
+  "title": "Resumen de me gusta",
+  "subtitle": "Aquí puedes ver a las personas a las que has dado me gusta, a quienes les gustas tú y vuestros matches.",
+  "outgoingTitle": "Personas a las que has dado me gusta",
+  "outgoingEmpty": "Todavía no has dado me gusta a nadie. Empieza a explorar en Descubrir.",
+  "outgoingCount": "{{count}} usuario",
+  "outgoingCount_plural": "{{count}} usuarios",
+  "incomingTitle": "Personas a las que les gustas",
+  "incomingEmpty": "Aún no tienes me gusta entrantes. Cuando alguien te dé me gusta, aparecerá aquí.",
+  "incomingCount": "{{count}} usuario",
+  "incomingCount_plural": "{{count}} usuarios",
+  "matchesTitle": "Matches",
+  "matchesEmpty": "Todavía no tienes matches. Cuando os gustéis mutuamente, el match aparecerá aquí.",
+  "matchesCount": "{{count}} match",
+  "matchesCount_plural": "{{count}} matches",
+  "loading": "Cargando me gusta…",
+  "errorGeneric": "No se pudieron cargar los me gusta. Inténtalo de nuevo.",
+  "errorNotSignedIn": "Inicia sesión para ver tus me gusta.",
+  "footerCtaPrefix": "¿Quieres más funciones?",
+  "footerCtaLink": "Gestionar tu suscripción",
+  "footerTip": "Consejo: los usuarios Premium tienen una pequeña insignia amarilla de \"Premium\" en su tarjeta.",
+  "anonymousUser": "Anónimo"
+}

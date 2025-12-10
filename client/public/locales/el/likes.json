@@ -1,0 +1,23 @@
+{
+  "title": "Επισκόπηση των likes",
+  "subtitle": "Εδώ μπορείς να δεις τα άτομα που έκανες like, αυτούς που έκαναν like σε εσένα και τα ταίρια σου.",
+  "outgoingTitle": "Άτομα που έκανες like",
+  "outgoingEmpty": "Δεν έχεις κάνει ακόμα like σε κανέναν. Ξεκίνα να περιηγείσαι στην Ανακάλυψη.",
+  "outgoingCount": "{{count}} χρήστης",
+  "outgoingCount_plural": "{{count}} χρήστες",
+  "incomingTitle": "Άτομα που έκαναν like σε εσένα",
+  "incomingEmpty": "Δεν υπάρχουν ακόμη εισερχόμενα likes. Όταν κάποιος σου κάνει like, θα εμφανιστεί εδώ.",
+  "incomingCount": "{{count}} χρήστης",
+  "incomingCount_plural": "{{count}} χρήστες",
+  "matchesTitle": "Ταίρια",
+  "matchesEmpty": "Δεν υπάρχουν ακόμη ταίρια. Όταν κάνετε like ο ένας στον άλλον, το ταίρι θα εμφανιστεί εδώ.",
+  "matchesCount": "{{count}} ταίρι",
+  "matchesCount_plural": "{{count}} ταίρια",
+  "loading": "Φόρτωση likes…",
+  "errorGeneric": "Αποτυχία φόρτωσης των likes. Προσπάθησε ξανά.",
+  "errorNotSignedIn": "Σύνδεση για να δεις τα likes σου.",
+  "footerCtaPrefix": "Θέλεις περισσότερες δυνατότητες;",
+  "footerCtaLink": "Διαχείριση συνδρομής",
+  "footerTip": "Συμβουλή: Οι χρήστες Premium έχουν ένα μικρό κίτρινο σήμα \"Premium\" στην κάρτα τους.",
+  "anonymousUser": "Ανώνυμος"
+}

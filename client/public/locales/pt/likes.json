@@ -1,0 +1,23 @@
+{
+  "title": "Resumo dos gostos",
+  "subtitle": "Aqui você pode ver as pessoas que você curtiu, quem curtiu você e os seus matches.",
+  "outgoingTitle": "Pessoas que você curtiu",
+  "outgoingEmpty": "Você ainda não curtiu ninguém. Comece a explorar em Descobrir.",
+  "outgoingCount": "{{count}} usuário",
+  "outgoingCount_plural": "{{count}} usuários",
+  "incomingTitle": "Pessoas que curtiram você",
+  "incomingEmpty": "Ainda não há curtidas recebidas. Quando alguém curtir você, aparecerá aqui.",
+  "incomingCount": "{{count}} usuário",
+  "incomingCount_plural": "{{count}} usuários",
+  "matchesTitle": "Matches",
+  "matchesEmpty": "Ainda não há matches. Quando vocês se curtirem mutuamente, o match aparecerá aqui.",
+  "matchesCount": "{{count}} match",
+  "matchesCount_plural": "{{count}} matches",
+  "loading": "Carregando gostos…",
+  "errorGeneric": "Falha ao carregar os gostos. Tente novamente.",
+  "errorNotSignedIn": "Entre na sua conta para ver seus gostos.",
+  "footerCtaPrefix": "Quer mais recursos?",
+  "footerCtaLink": "Gerenciar sua assinatura",
+  "footerTip": "Dica: usuários Premium têm um pequeno selo amarelo \"Premium\" no cartão.",
+  "anonymousUser": "Anônimo"
+}

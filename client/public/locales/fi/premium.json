@@ -1,0 +1,88 @@
+{
+  "benefits": {
+    "badgeDescription": "Näytä pieni Premium-merkki profiilissasi ja viesteissäsi.",
+    "badgeTitle": "Premium-merkki",
+    "dealbreakersDescription": "Käytä Discoverissa tiukkoja suodattimia, jotta näet vain käyttäjät, jotka täyttävät tärkeimmät kriteerisi.",
+    "dealbreakersTitle": "Dealbreaker-suodattimet",
+    "introsDescription": "Lähetä ensimmäinen viesti jo ennen kuin olette osuma (siellä missä se on sallittua).",
+    "introsTitle": "Introviestit",
+    "noAdsDescription": "Ei yläbanneri- eikä sivumainoksia Loventiassa.",
+    "noAdsTitle": "Mainokseton käyttökokemus",
+    "unlimitedLikesDescription": "Voit tykätä niin monesta profiilista kuin haluat joka päivä.",
+    "unlimitedLikesTitle": "Rajattomasti tykkäyksiä",
+    "unlimitedRewindsDescription": "Palaa edelliseen profiiliin, jos pyyhkäisit väärään suuntaan.",
+    "unlimitedRewindsTitle": "Rajattomasti takaisinpäin",
+    "weeklySuperLikesDescription": "Nosta profiilisi esiin Super Tykkäysten avulla joka viikko.",
+    "weeklySuperLikesDescriptionWithCount": "Saat tällä hetkellä {{count}} Super Tykkäystä viikossa.",
+    "weeklySuperLikesTitle": "Viikoittaiset Super Tykkäykset",
+    "whoLikedMeDescription": "Avaa tykkäysnäkymä ja näe heti, ketkä ovat jo tykänneet sinusta.",
+    "whoLikedMeTitle": "Katso kuka tykkäsi sinusta"
+  },
+  "hub": {
+    "title": "Premium-keskus",
+    "planPremium": "Premium",
+    "planFree": "Ilmainen",
+    "currentPlanTitle": "Nykyinen tilauksesi",
+    "currentPlanDescription": "Tältä sivulta näet nykyisen Premium-tilasi ja edut, jotka ovat käytössä tililläsi.",
+    "planLabel": "Nykyinen tila:",
+    "activeHint": "Premium on aktiivinen. Suurin osa alla olevista eduista on jo avattu.",
+    "freeHint": "Käytät tällä hetkellä ilmaista versiota. Päivitä Premiumiin avataksesi kaikki edut.",
+    "manageSubscription": "Hallinnoi tilausta",
+    "upgradeNow": "Päivitä Premiumiin",
+    "syncHint": "Jos jokin tieto näyttää vanhentuneelta, avaa Tilausasetukset ja paina Synkronoi. Tämä hakee viimeisimmät oikeudet laskutuspalvelusta.",
+    "benefitsTitle": "Premium-edut",
+    "benefitsDescription": "Tässä on yleiskatsaus Premium-eduista. Aktiiviset edut on korostettu, lukitut näytetään harmaana.",
+    "note": "Joihinkin etuihin voivat vaikuttaa paikalliset lait ja turvallisuussäännöt. Saatamme lisätä uusia Premium-ominaisuuksia ajan myötä.",
+    "benefits": {
+      "noAds": {
+        "title": "Mainokseton käyttökokemus",
+        "description": "Ei mainosbannereita Loventiassa."
+      },
+      "unlimitedLikes": {
+        "title": "Rajattomasti tykkäyksiä",
+        "description": "Voit tykätä rajattomasti profiileista joka päivä."
+      },
+      "unlimitedRewinds": {
+        "title": "Rajattomasti peruutuksia",
+        "description": "Palaa edelliseen profiiliin, jos pyyhkäisit liian nopeasti."
+      },
+      "whoLikedMe": {
+        "title": "Näe, kuka on tykännyt sinusta",
+        "description": "Avaa Tykkäykset-näkymä ja näet, kuka on jo tykännyt sinusta."
+      },
+      "superLikesPerWeek": {
+        "title": "Viikoittaiset Super Tykkäykset",
+        "descriptionWithCount": "Saat tällä hetkellä {{count}} Super Tykkäystä viikossa.",
+        "description": "Korosta itseäsi Super Tykkäyksillä joka viikko."
+      },
+      "intros": {
+        "title": "Introviestit",
+        "description": "Lähetä ensimmäinen viesti jo ennen mätsiä (missä sallittu)."
+      },
+      "dealbreakers": {
+        "title": "Kynnyskriteerien suodattimet",
+        "description": "Käytä tiukkoja suodattimia Discoverissa ja näe vain profiileja, jotka täyttävät tärkeimmät ehtosi."
+      },
+      "badge": {
+        "title": "Premium-merkki",
+        "description": "Näytä pieni Premium-merkki profiilissasi ja viesteissäsi."
+      }
+    }
+  },
+  "upgradeCheckingSessionTitle": "Checking your session…",
+  "upgradeCheckingSessionBody": "Please wait a moment.",
+  "upgradeSignInRequiredTitle": "Sign in required",
+  "upgradeSignInRequiredBody": "To view Premium benefits and upgrade your account, please sign in.",
+  "upgradeGoToLogin": "Go to Login",
+  "upgradeTitle": "Upgrade to Premium",
+  "upgradeContinueButton": "Continue to Subscription",
+  "upgradeFooterNote": "You’ll be redirected to your subscription settings. Payment is handled by your configured provider (e.g., Stripe).",
+  "benefitSeeWhoLikedYou": "Näe, kuka on tykännyt sinusta",
+  "benefitSuperLikes": "Viikoittaiset Super Tykkäykset",
+  "benefitQAVisibility": "Unlock all Q&A visibility",
+  "benefitUnlimitedLikes": "Rajattomasti tykkäyksiä",
+  "benefitDealbreakers": "Kynnyskriteerien suodattimet",
+  "benefitUnlimitedRewinds": "Rajattomasti peruutuksia",
+  "benefitIntrosMessaging": "Introviestit",
+  "benefitNoAds": "Mainokseton käyttökokemus"
+}

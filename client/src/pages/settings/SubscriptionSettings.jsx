@@ -1,8 +1,9 @@
 // File: client/src/pages/settings/SubscriptionSettings.jsx
 
-// --- REPLACE START: add Sync support (button + call after cancel) and keep billing.js API wrapper ---
+// --- REPLACE START: add i18n support + Sync support (button + call after cancel) and keep billing.js API wrapper ---
 import React, { useCallback, useMemo, useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   createCheckoutSession,
@@ -22,6 +23,8 @@ const Row = ({ title, children }) => (
 const SubscriptionSettings = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { t } = useTranslation("premium");
+
   const { user, refreshUser } = useAuth?.() || { user: null, refreshUser: null };
 
   const [busy, setBusy] = useState(false);
@@ -61,7 +64,7 @@ const SubscriptionSettings = () => {
       for (let i = 0; i < attempts; i++) {
         try {
           const res = await syncBilling();
-          // If API responded, return immediately; caller decides how to interpret flags
+          // If API responded, return immediately; caller decides how to interpret flags.
           return res;
         } catch (e) {
           lastErr = e;
@@ -116,7 +119,10 @@ const SubscriptionSettings = () => {
           await safeRefreshUser();
           if (!ignore) {
             setSuccess(
-              "Checkout was cancelled. Your subscription status did not change."
+              t(
+                "subscriptionStatusCancelled",
+                "Checkout was cancelled. Your subscription status did not change."
+              )
             );
           }
           return;
@@ -141,12 +147,23 @@ const SubscriptionSettings = () => {
           ) {
             setSuccess(
               becamePremium
-                ? "Payment successful. Loventia Premium is now active on your account."
-                : "Payment succeeded, but we could not confirm Premium state yet. It may update in a moment or you can press Sync now."
+                ? t(
+                    "subscriptionStatusPaymentOk",
+                    "Payment successful. Loventia Premium is now active on your account."
+                  )
+                : t(
+                    "subscriptionStatusPaymentPending",
+                    "Payment succeeded, but we could not confirm Premium state yet. It may update in a moment or you can press Sync now."
+                  )
             );
           } else {
             // Fallback banner for generic portal returns
-            setSuccess("Returned from billing and reconciled with provider.");
+            setSuccess(
+              t(
+                "subscriptionStatusReturned",
+                "Returned from billing and reconciled with provider."
+              )
+            );
           }
         }
       } catch {
@@ -154,7 +171,10 @@ const SubscriptionSettings = () => {
         await safeRefreshUser();
         if (!ignore) {
           setMsg(
-            "We could not fully reconcile with billing yet. Please try Sync now."
+            t(
+              "subscriptionStatusSyncRetry",
+              "We could not fully reconcile with billing yet. Please try Sync now."
+            )
           );
         }
       }
@@ -163,7 +183,7 @@ const SubscriptionSettings = () => {
     return () => {
       ignore = true;
     };
-  }, [searchParams, safeRefreshUser]);
+  }, [searchParams, safeRefreshUser, t]);
 
   // Clear banners when premium flips after a refresh
   useEffect(() => {
@@ -171,15 +191,19 @@ const SubscriptionSettings = () => {
     setSuccess("");
   }, [isPremium]);
 
+  // Use existing Premium benefit keys so translations are shared with Upgrade page.
   const benefits = useMemo(
     () => [
-      "See who liked you",
-      "3 Super Likes per week",
-      "Unlimited likes & rewinds",
-      "Dealbreakers feature",
-      "No ads",
+      t("benefitSeeWhoLikedYou", "See who liked you"),
+      t("benefitSuperLikes", "3 Super Likes per week"),
+      `${t("benefitUnlimitedLikes", "Unlimited likes")} & ${t(
+        "benefitUnlimitedRewinds",
+        "Unlimited rewinds"
+      )}`,
+      t("benefitDealbreakers", "Dealbreakers feature"),
+      t("benefitNoAds", "No ads"),
     ],
-    []
+    [t]
   );
 
   const clearBanners = () => {
@@ -187,13 +211,19 @@ const SubscriptionSettings = () => {
     setSuccess("");
   };
 
-  const friendlyError = useCallback((fallback) => {
-    setSuccess("");
-    setMsg(
-      fallback ||
-        "Billing backend is not configured yet (or you are not authenticated). Please try again after logging in."
-    );
-  }, []);
+  const friendlyError = useCallback(
+    (fallback) => {
+      setSuccess("");
+      setMsg(
+        fallback ||
+          t(
+            "subscriptionErrorBackendMissing",
+            "Billing backend is not configured yet (or you are not authenticated). Please try again after logging in."
+          )
+      );
+    },
+    [t]
+  );
 
   const handleStartPremium = useCallback(
     async () => {
@@ -212,22 +242,38 @@ const SubscriptionSettings = () => {
         if (url) {
           window.location.assign(url);
         } else {
-          friendlyError("Checkout session URL not returned by the server.");
+          friendlyError(
+            t(
+              "subscriptionErrorCheckoutUrlMissing",
+              "Checkout session URL not returned by the server."
+            )
+          );
         }
       } catch (e) {
         const status = e?.response?.status;
         if (status === 401) {
-          friendlyError("Unauthorized. Please log in and try again.");
+          friendlyError(
+            t(
+              "subscriptionErrorUnauthorized",
+              "Unauthorized. Please log in and try again."
+            )
+          );
         } else if (status === 404 || status === 501) {
           friendlyError();
         } else {
-          setMsg(e?.message || "Unable to start checkout right now.");
+          setMsg(
+            e?.message ||
+              t(
+                "subscriptionErrorCheckoutGeneric",
+                "Unable to start checkout right now."
+              )
+          );
         }
       } finally {
         setBusy(false);
       }
     },
-    [isLoggedIn, navigate, userEmail, friendlyError, busy]
+    [isLoggedIn, navigate, userEmail, friendlyError, busy, t]
   );
 
   const handleOpenPortal = useCallback(
@@ -245,26 +291,45 @@ const SubscriptionSettings = () => {
         if (url) {
           window.location.assign(url);
         } else {
-          friendlyError("Billing portal URL not returned by the server.");
+          friendlyError(
+            t(
+              "subscriptionErrorPortalUrlMissing",
+              "Billing portal URL not returned by the server."
+            )
+          );
         }
       } catch (e) {
         const status = e?.response?.status;
         if (status === 401) {
-          friendlyError("Unauthorized. Please log in and try again.");
+          friendlyError(
+            t(
+              "subscriptionErrorUnauthorized",
+              "Unauthorized. Please log in and try again."
+            )
+          );
         } else if (status === 404 || status === 501 || status === 502) {
           friendlyError(
             status === 502
-              ? "Temporary connection issue to Stripe. Please try again."
+              ? t(
+                  "subscriptionErrorPortal502",
+                  "Temporary connection issue to Stripe. Please try again."
+                )
               : undefined
           );
         } else {
-          setMsg(e?.message || "Unable to open billing portal right now.");
+          setMsg(
+            e?.message ||
+              t(
+                "subscriptionErrorPortalGeneric",
+                "Unable to open billing portal right now."
+              )
+          );
         }
       } finally {
         setBusy(false);
       }
     },
-    [isLoggedIn, navigate, friendlyError, busy]
+    [isLoggedIn, navigate, friendlyError, busy, t]
   );
 
   // Explicit Sync handler (calls POST /api/billing/sync and refreshes user)
@@ -282,27 +347,38 @@ const SubscriptionSettings = () => {
         const becamePremium = res?.isPremium === true;
         const subId = res?.subscriptionId || null;
         setSuccess(
-          `Synced with billing provider: isPremium=${
-            becamePremium ? "true" : "false"
-          }${subId ? `, subscriptionId=${subId}` : ""}`
+          t("subscriptionStatusSynced", {
+            defaultValue:
+              "Synced with billing provider: isPremium={{isPremium}}{{subIdPart}}",
+            isPremium: becamePremium ? "true" : "false",
+            subIdPart: subId ? `, subscriptionId=${subId}` : "",
+          })
         );
         await safeRefreshUser();
       } catch (e) {
         const status = e?.response?.status;
         if (status === 401) {
-          friendlyError("Unauthorized. Please log in and try again.");
+          friendlyError(
+            t(
+              "subscriptionErrorUnauthorized",
+              "Unauthorized. Please log in and try again."
+            )
+          );
         } else {
           setMsg(
             e?.response?.data?.error ||
               e?.message ||
-              "Sync failed. Please try again."
+              t(
+                "subscriptionErrorSyncGeneric",
+                "Sync failed. Please try again."
+              )
           );
         }
       } finally {
         setBusy(false);
       }
     },
-    [isLoggedIn, navigate, friendlyError, safeRefreshUser, busy]
+    [isLoggedIn, navigate, friendlyError, safeRefreshUser, busy, t]
   );
 
   // Add 2× retry sync after cancel to handle webhook lag
@@ -314,7 +390,10 @@ const SubscriptionSettings = () => {
       }
       if (
         !window.confirm(
-          "Cancel your active subscription immediately? This will end access right away."
+          t(
+            "subscriptionConfirmCancelNow",
+            "Cancel your active subscription immediately? This will end access right away."
+          )
         )
       ) {
         return;
@@ -327,7 +406,10 @@ const SubscriptionSettings = () => {
         const results = res?.results || res?.canceled || [];
         if (Array.isArray(results) && results.length > 0) {
           setSuccess(
-            "Subscription canceled immediately. Premium access will be removed."
+            t(
+              "subscriptionStatusCanceledNow",
+              "Subscription canceled immediately. Premium access will be removed."
+            )
           );
 
           // Try to reconcile quickly without waiting for webhook delivery
@@ -345,18 +427,29 @@ const SubscriptionSettings = () => {
             // If after retries user still premium, inform user but do not fail the action
             if (syncRes?.isPremium === true) {
               setMsg(
-                "Cancellation is processed, but premium state may take a moment to reflect. It will update shortly or you can press Sync now."
+                t(
+                  "subscriptionStatusCancelLag",
+                  "Cancellation is processed, but premium state may take a moment to reflect. It will update shortly or you can press Sync now."
+                )
               );
             }
           } catch {
             // Even if syncing fails, ensure UI refresh and show clear info
             await safeRefreshUser();
             setMsg(
-              "Cancellation done. Waiting for billing confirmation. You can press Sync now."
+              t(
+                "subscriptionStatusCancelWaiting",
+                "Cancellation done. Waiting for billing confirmation. You can press Sync now."
+              )
             );
           }
         } else {
-          setMsg("No active subscription was found to cancel.");
+          setMsg(
+            t(
+              "subscriptionStatusNoActiveSub",
+              "No active subscription was found to cancel."
+            )
+          );
           // Attempt sync anyway in case server already updated
           try {
             await trySyncWithRetry(2, 450);
@@ -368,27 +461,51 @@ const SubscriptionSettings = () => {
       } catch (e) {
         const status = e?.response?.status;
         if (status === 401) {
-          friendlyError("Unauthorized. Please log in and try again.");
+          friendlyError(
+            t(
+              "subscriptionErrorUnauthorized",
+              "Unauthorized. Please log in and try again."
+            )
+          );
         } else {
           setMsg(
             e?.response?.data?.error ||
               e?.message ||
-              "Cancel failed. Please try again."
+              t(
+                "subscriptionErrorCancelGeneric",
+                "Cancel failed. Please try again."
+              )
           );
         }
       } finally {
         setBusy(false);
       }
     },
-    [isLoggedIn, navigate, safeRefreshUser, friendlyError, busy, trySyncWithRetry]
+    [
+      isLoggedIn,
+      navigate,
+      safeRefreshUser,
+      friendlyError,
+      busy,
+      trySyncWithRetry,
+      t,
+    ]
   );
+
+  const planLabel = isPremium
+    ? t("subscriptionPlanPremium", "Premium")
+    : t("subscriptionPlanFree", "Free");
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-2">Subscription Settings</h1>
+      <h1 className="text-3xl font-bold mb-2">
+        {t("subscriptionSettingsTitle", "Subscription Settings")}
+      </h1>
       <p className="text-sm text-gray-600 mb-6">
-        Here you can start, manage or cancel your Premium membership. This page
-        talks to your billing provider through our backend (e.g., Stripe).
+        {t(
+          "subscriptionSettingsIntro",
+          "Here you can start, manage or cancel your Premium membership. This page talks to your billing provider through our backend (e.g., Stripe)."
+        )}
       </p>
 
       {success && (
@@ -408,23 +525,25 @@ const SubscriptionSettings = () => {
         </div>
       )}
 
-      <Row title="Current Plan">
+      <Row title={t("subscriptionCurrentPlanTitle", "Current Plan")}>
         <p className="flex items-center gap-2">
-          You are currently on the{" "}
-          <strong>{isPremium ? "Premium" : "Free"}</strong> plan.
+          {t("subscriptionCurrentPlanText", {
+            defaultValue: "You are currently on the {{plan}} plan.",
+            plan: planLabel,
+          })}
           {isPremium && (
             <span
               data-testid="premium-badge"
               className="inline-flex items-center px-2 py-0.5 text-xs rounded-full bg-emerald-100 border border-emerald-300"
-              title="Premium active"
+              title={t("subscriptionPremiumBadgeTitle", "Premium active")}
             >
-              Premium
+              {planLabel}
             </span>
           )}
         </p>
       </Row>
 
-      <Row title="Go Premium">
+      <Row title={t("subscriptionGoPremiumTitle", "Go Premium")}>
         <ul className="list-disc pl-5 mb-3 space-y-1">
           {benefits.map((b) => (
             <li key={b}>{b}</li>
@@ -439,9 +558,20 @@ const SubscriptionSettings = () => {
             className={`px-6 py-2 rounded bg-yellow-500 text-white font-semibold hover:bg-yellow-600 transition ${
               busy || isPremium ? "opacity-60 cursor-not-allowed" : ""
             }`}
-            title={isPremium ? "Already on Premium" : undefined}
+            title={
+              isPremium
+                ? t(
+                    "subscriptionTooltipAlreadyPremium",
+                    "Already on Premium"
+                  )
+                : undefined
+            }
           >
-            {busy ? "Working…" : isPremium ? "Already Premium" : "Start Premium"}
+            {busy
+              ? t("subscriptionButtonWorking", "Working…")
+              : isPremium
+              ? t("subscriptionButtonAlreadyPremium", "Already Premium")
+              : t("subscriptionButtonStartPremium", "Start Premium")}
           </button>
 
           <button
@@ -452,9 +582,18 @@ const SubscriptionSettings = () => {
             className={`px-6 py-2 rounded bg-blue-600 text-white font-semibold hover:bg-blue-700 transition ${
               busy || !isPremium ? "opacity-60 cursor-not-allowed" : ""
             }`}
-            title={!isPremium ? "No active subscription to manage" : undefined}
+            title={
+              !isPremium
+                ? t(
+                    "subscriptionTooltipNoActiveSub",
+                    "No active subscription to manage"
+                  )
+                : undefined
+            }
           >
-            {busy ? "Opening…" : "Open Billing Portal"}
+            {busy
+              ? t("subscriptionButtonOpening", "Opening…")
+              : t("subscriptionButtonOpenPortal", "Open Billing Portal")}
           </button>
 
           <button
@@ -464,9 +603,18 @@ const SubscriptionSettings = () => {
             className={`px-6 py-2 rounded bg-red-600 text-white font-semibold hover:bg-red-700 transition ${
               busy || !isPremium ? "opacity-60 cursor-not-allowed" : ""
             }`}
-            title={!isPremium ? "No active subscription to cancel" : undefined}
+            title={
+              !isPremium
+                ? t(
+                    "subscriptionTooltipNoActiveSubToCancel",
+                    "No active subscription to cancel"
+                  )
+                : undefined
+            }
           >
-            {busy ? "Canceling…" : "Cancel now"}
+            {busy
+              ? t("subscriptionButtonCanceling", "Canceling…")
+              : t("subscriptionButtonCancelNow", "Cancel now")}
           </button>
 
           {/* Explicit Sync button */}
@@ -477,15 +625,22 @@ const SubscriptionSettings = () => {
             className={`px-6 py-2 rounded bg-gray-700 text-white font-semibold hover:bg-gray-800 transition ${
               busy ? "opacity-60 cursor-not-allowed" : ""
             }`}
-            title="Force a one-click reconciliation with Stripe"
+            title={t(
+              "subscriptionTooltipSync",
+              "Force a one-click reconciliation with Stripe"
+            )}
           >
-            {busy ? "Syncing…" : "Sync now"}
+            {busy
+              ? t("subscriptionButtonSyncing", "Syncing…")
+              : t("subscriptionButtonSyncNow", "Sync now")}
           </button>
         </div>
 
         <p className="mt-2 text-xs text-gray-500">
-          You’ll be redirected to secure checkout / portal for changes. We never
-          store your card details on our servers.
+          {t(
+            "subscriptionRedirectNote",
+            "You’ll be redirected to secure checkout / portal for changes. We never store your card details on our servers."
+          )}
         </p>
       </Row>
 
@@ -494,7 +649,7 @@ const SubscriptionSettings = () => {
         onClick={() => navigate(-1)}
         className="mt-2 text-sm underline"
       >
-        ← Back
+        {t("subscriptionBack", "← Back")}
       </button>
     </div>
   );
@@ -502,5 +657,6 @@ const SubscriptionSettings = () => {
 
 export default SubscriptionSettings;
 // --- REPLACE END ---
+
 
 

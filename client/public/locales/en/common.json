@@ -23,7 +23,8 @@
     "login": "Login",
     "register": "Register",
     "logout": "Logout",
-    "admin": "Admin"
+    "admin": "Admin",
+    "premiumHub": "Premium Hub"
   },
   "religion": {
     "christianity": "Christianity",
@@ -154,4 +155,3 @@
     "removeAdsBody": "Upgrade to Premium to remove all ads."
   }
 }
-
