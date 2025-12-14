@@ -1,34 +1,103 @@
-// File: client/src/pages/WhoLikedMe.jsx
-// --- REPLACE START: robust "Who liked me" page (gated, English texts, shared API wrapper + safe image URL + clickable cards -> chat) ---
+// PATH: client/src/pages/WhoLikedMe.jsx
+
+// --- REPLACE START: robust "Who liked me" page (gated, i18n for likes, shared API wrapper + safe image URL + clickable cards -> chat) ---
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 import FeatureGate from "../components/FeatureGate";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../services/api/axiosInstance"; // shared Axios wrapper (includes auth headers/interceptors)
-import { BACKEND_BASE_URL } from "../utils/config";
+import { BACKEND_BASE_URL, PLACEHOLDER_IMAGE } from "../utils/config";
 import { hasFeature, isPremium } from "../utils/entitlements";
 import AdGate from "../components/AdGate";
 import AdBanner from "../components/AdBanner";
 import WhoLikedMeCard from "../components/WhoLikedMeCard";
 
 /**
+ * Extract a usable photo source string from a user object.
+ * Supports several shapes:
+ *  - user.profilePicture
+ *  - user.avatar
+ *  - user.photos[0] (string or { url })
+ */
+function extractUserPhoto(user) {
+  if (!user) return "";
+  if (typeof user.profilePicture === "string") return user.profilePicture;
+  if (user.profilePicture && typeof user.profilePicture === "object" && user.profilePicture.url) {
+    return String(user.profilePicture.url);
+  }
+  if (typeof user.avatar === "string") return user.avatar;
+  if (user.avatar && typeof user.avatar === "object" && user.avatar.url) {
+    return String(user.avatar.url);
+  }
+
+  if (Array.isArray(user.photos) && user.photos.length > 0) {
+    const first = user.photos[0];
+    if (typeof first === "string") return first;
+    if (first && typeof first === "object") {
+      if (first.url) return String(first.url);
+      if (first.src) return String(first.src);
+      if (first.photoUrl) return String(first.photoUrl);
+      if (first.imageUrl) return String(first.imageUrl);
+    }
+  }
+
+  return "";
+}
+
+/**
+ * Normalize a raw image reference into a fully resolvable URL.
+ * Rules:
+ *  - Absolute http(s) → returned as-is
+ *  - "/assets/..." → served by client origin
+ *  - "/uploads/..." → BACKEND_BASE_URL + path
+ *  - bare filename → BACKEND_BASE_URL + "/uploads/" + name
+ *  - any other leading-slash path → client origin + path
+ */
+function normalizePhotoUrl(raw) {
+  if (!raw || typeof raw !== "string") return "";
+  const s0 = raw.trim();
+  if (s0 === "") return "";
+
+  // Absolute URL already
+  if (/^https?:\/\//i.test(s0)) return s0;
+
+  // Client-side static assets
+  if (s0.startsWith("/assets/")) {
+    try {
+      return `${window.location.origin}${s0}`;
+    } catch {
+      return s0;
+    }
+  }
+
+  // Server-side uploaded images
+  if (s0.startsWith("/uploads/")) {
+    return `${BACKEND_BASE_URL}${s0}`;
+  }
+
+  // Bare filename that likely refers to an upload
+  if (!s0.startsWith("/")) {
+    return `${BACKEND_BASE_URL}/uploads/${s0}`;
+  }
+
+  // Any other rooted path (rare): assume client origin
+  try {
+    return `${window.location.origin}${s0}`;
+  } catch {
+    return s0;
+  }
+}
+
+/**
  * Resolve a usable image URL for a user card (tolerant to various shapes).
+ * Falls back to PLACEHOLDER_IMAGE when nothing else is available.
  */
 function resolvePhotoUrl(user) {
-  const raw =
-    user?.profilePicture ||
-    user?.avatar ||
-    (Array.isArray(user?.photos) ? user.photos[0] : "") ||
-    "";
-
-  if (!raw) return "/default.jpg";
-  if (typeof raw !== "string") return "/default.jpg";
-  if (/^https?:\/\//i.test(raw)) return raw;
-
-  // Ensure single slash between base and path
-  const path = raw.startsWith("/") ? raw : `/${raw}`;
-  return `${BACKEND_BASE_URL}${path}`;
+  const raw = extractUserPhoto(user);
+  const normalized = normalizePhotoUrl(raw);
+  return normalized || PLACEHOLDER_IMAGE;
 }
 
 /**
@@ -71,6 +140,8 @@ function UpgradeCTA() {
 
 const WhoLikedMe = () => {
   const { user } = useAuth() || {};
+  const { t } = useTranslation("likes"); // use likes.json for all main texts
+
   const [users, setUsers] = useState([]);
   const [error, setError] = useState("");
 
@@ -114,12 +185,20 @@ const WhoLikedMe = () => {
         if (!mounted) return;
 
         if (err?.response?.status === 401) {
-          setError("Please sign in to view who liked you.");
+          setError(
+            t("errorNotSignedIn", {
+              defaultValue: "Please sign in to view who liked you.",
+            })
+          );
         } else if (err?.response?.status === 403) {
           // Should not happen because of pre-gate, but handle gracefully
           setError("This feature is available for Premium users only.");
         } else {
-          setError("Failed to load likes.");
+          setError(
+            t("errorGeneric", {
+              defaultValue: "Failed to load likes.",
+            })
+          );
         }
       }
     };
@@ -129,11 +208,17 @@ const WhoLikedMe = () => {
     return () => {
       mounted = false;
     };
-  }, [entitled]);
+  }, [entitled, t]);
 
   return (
     <div className="container mx-auto p-4">
-      <h2 className="text-2xl font-semibold mb-4 text-center">👀 Who liked you</h2>
+      <h2 className="text-2xl font-semibold mb-4 text-center">
+        {/* Emoji kept outside the translation so JSON stays clean */}
+        👀{" "}
+        {t("incomingTitle", {
+          defaultValue: "People who liked you",
+        })}
+      </h2>
 
       {/* Gate the entire content; fallback shows Upgrade CTA */}
       <FeatureGate feature="whoLikedMe" fallback={<UpgradeCTA />}>
@@ -144,7 +229,11 @@ const WhoLikedMe = () => {
         )}
 
         {!error && users.length === 0 && (
-          <p className="text-center text-gray-600">No likes yet.</p>
+          <p className="text-center text-gray-600">
+            {t("incomingEmpty", {
+              defaultValue: "No likes yet.",
+            })}
+          </p>
         )}
 
         {users.length > 0 && (
@@ -153,7 +242,10 @@ const WhoLikedMe = () => {
               const key = u?._id || u?.id;
               const targetId = key;
               const img = resolvePhotoUrl(u);
-              const title = u?.name || u?.username || "Anonymous";
+              const title =
+                u?.name ||
+                u?.username ||
+                t("anonymousUser", { defaultValue: "Anonymous" });
               const email = u?.email || "";
               const premiumTarget = isPremiumLikeUser(u);
 
@@ -189,6 +281,4 @@ const WhoLikedMe = () => {
 
 export default WhoLikedMe;
 // --- REPLACE END ---
-
-
 

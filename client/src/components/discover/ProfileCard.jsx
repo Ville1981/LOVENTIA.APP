@@ -12,7 +12,7 @@ import LocationText from "./LocationText";
 import PhotoCarousel from "./PhotoCarousel";
 import StatsPanel from "./StatsPanel";
 import SummaryAccordion from "./SummaryAccordion";
-import { BACKEND_BASE_URL } from "../../utils/config";
+import { BACKEND_BASE_URL, absolutizeUploadPath } from "../../utils/config";
 import RewindButton from "../RewindButton"; // Premium-gated rewind button
 import ReportButton from "./ReportButton"; // Passive safety report button
 
@@ -67,17 +67,23 @@ const ProfileCard = ({
    * Normalize any raw image reference into a fully resolvable URL.
    * Rules:
    *  - Absolute http(s) → return as-is
-   *  - /uploads/... or bare filename → prefix with BACKEND_BASE_URL
+   *  - /uploads/... or bare filename → go through absolutizeUploadPath (uses BACKEND_BASE_URL)
    *  - /assets/... → prefix with window.location.origin (served by client)
    *  - Any other leading-slash path → prefix with window.location.origin
+   *
+   * Note:
+   *  - Using absolutizeUploadPath keeps behavior aligned with other parts of the app
+   *    (UserCardList, LikesOverview, etc.) and avoids double "/uploads/uploads" problems.
    */
   const normalize = (raw) => {
-    if (!raw || typeof raw !== "string") return "";
-    const s0 = raw.trim();
+    if (!raw) return "";
+    const s0 = String(raw).trim();
     if (s0 === "") return "";
 
-    // Absolute URL already
-    if (/^https?:\/\//i.test(s0)) return s0;
+    // Absolute URL already (S3, CDN, etc.)
+    if (/^https?:\/\//i.test(s0)) {
+      return s0;
+    }
 
     // Client-side static assets (keep relative to client origin)
     if (s0.startsWith("/assets/")) {
@@ -88,14 +94,30 @@ const ProfileCard = ({
       }
     }
 
-    // Server-side uploaded images
-    if (s0.startsWith("/uploads/")) {
-      return `${BACKEND_BASE_URL}${s0}`;
-    }
+    // Probable server-side uploads:
+    // - "/uploads/xxx"
+    // - bare filename "xxx"
+    if (s0.startsWith("/uploads/") || !s0.startsWith("/")) {
+      // Build a normalized "/uploads/..." relative path
+      const rel = s0.startsWith("/uploads/") ? s0 : `/uploads/${s0}`;
 
-    // Bare filename that likely refers to an upload
-    if (!s0.startsWith("/")) {
-      return `${BACKEND_BASE_URL}/uploads/${s0}`;
+      // Delegate to shared helper first (handles BACKEND_BASE_URL + slashes)
+      try {
+        const absolute = absolutizeUploadPath(rel);
+        if (absolute) {
+          return absolute;
+        }
+      } catch {
+        // fall through to legacy-style fallback below
+      }
+
+      // Legacy-style fallback if env helper could not build an URL
+      if (BACKEND_BASE_URL) {
+        return `${BACKEND_BASE_URL}${rel}`.replace(/([^:])\/\/+/g, "$1/");
+      }
+
+      // As a last resort, return the relative path as-is
+      return rel;
     }
 
     // Any other rooted path (rare): assume client origin

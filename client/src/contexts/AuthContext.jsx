@@ -1,6 +1,6 @@
 // PATH: client/src/contexts/AuthContext.jsx
 
-// --- REPLACE START: expose premium features (noAds/unlimited*) via AuthContext + keep robust login/refresh/sync flow ---
+// --- REPLACE START: use normalizeUser / normalizeUserImages for authUser; keep profilePicture/photos/extraImages consistent in context state ---
 import React, {
   createContext,
   useContext,
@@ -17,6 +17,7 @@ import api, {
   attachAccessToken as _attachAccessToken,
   getAccessToken as _getAccessToken,
 } from "../api/axios.js";
+import { normalizeUserImages } from "../utils/absolutizeImage";
 
 /**
  * Token helpers
@@ -162,20 +163,31 @@ function mergeDefined(dst, src) {
 /**
  * Normalize server user payload to a consistent shape for the app.
  * Ensures entitlements object exists and includes features + quotas with safe defaults.
+ * Additionally uses normalizeUserImages to:
+ *  - keep profilePicture/profilePhoto mirrored
+ *  - build photos list from photos/extraImages/profilePicture
+ *  - absolutize image URLs where needed
  */
-// --- REPLACE START: normalizeUserPayload (keep entitlements.quotas.superLikes) ---
+// --- REPLACE START: normalizeUserPayload (keep entitlements.quotas.superLikes + unify id + images) ---
 function normalizeUserPayload(raw) {
   const u = raw?.user ?? raw ?? null;
   if (!u || typeof u !== "object") return null;
   const copy = { ...u };
 
-  // Mirror single image
+  // Canonical id (keep both id and _id in sync)
+  const canonicalId = copy.id || copy._id || null;
+  if (canonicalId) {
+    copy.id = canonicalId;
+    copy._id = canonicalId;
+  }
+
+  // Mirror single image aliases before delegating image normalization
   if (copy.profilePhoto && !copy.profilePicture)
     copy.profilePicture = copy.profilePhoto;
   if (copy.profilePicture && !copy.profilePhoto)
     copy.profilePhoto = copy.profilePicture;
 
-  // Ensure arrays
+  // Ensure arrays (string or {url}) for photos / extraImages
   if (!Array.isArray(copy.photos))
     copy.photos = copy.photos ? [copy.photos].filter(Boolean) : [];
   if (!Array.isArray(copy.extraImages)) {
@@ -244,9 +256,29 @@ function normalizeUserPayload(raw) {
     },
   };
 
-  return copy;
+  // Delegate final image normalization (absolute URLs + gallery/profilePicture)
+  let withImages = copy;
+  try {
+    if (typeof normalizeUserImages === "function") {
+      const normalized = normalizeUserImages(copy);
+      if (normalized && typeof normalized === "object") {
+        withImages = normalized;
+      }
+    }
+  } catch {
+    // If anything goes wrong, fall back to copy without breaking auth
+    withImages = copy;
+  }
+
+  // Ensure canonical id survives image normalization
+  if (canonicalId) {
+    withImages.id = canonicalId;
+    withImages._id = canonicalId;
+  }
+
+  return withImages;
 }
-// --- REPLACE END: normalizeUserPayload (keep entitlements.quotas.superLikes) ---
+// --- REPLACE END: normalizeUserPayload (keep entitlements.quotas.superLikes + unify id + images) ---
 
 /**
  * Context shape
@@ -1079,12 +1111,4 @@ export function AuthProvider({ children }) {
 
 export default AuthContext;
 // --- REPLACE END ---
-
-
-
-
-
-
-
-
 

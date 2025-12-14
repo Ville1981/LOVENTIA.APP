@@ -1,5 +1,7 @@
-// --- REPLACE START: image URL/path absolutizer + helpers (Windows path safe) ---
-import { BACKEND_BASE_URL } from "./config";
+// PATH: client/src/utils/absolutizeImage.js
+
+// --- REPLACE START: add normalizeUserImages helper (build photos list + profilePicture from photos/extraImages/profilePicture; absolutize against BACKEND_BASE_URL) ---
+import { BACKEND_BASE_URL } from "../config";
 
 /**
  * Returns true if the string already looks like an absolute http(s) URL.
@@ -83,9 +85,17 @@ export function absolutizeImage(pathOrObj) {
 
 /**
  * Normalize a user object’s image fields.
- * - Maps u.photos (string | {url})[] -> [{url: absolute}]
- * - Derives profilePicture when missing from first photo
- * Returns a shallow-cloned object; does not mutate the input.
+ * - Builds photos array from:
+ *     1) u.photos
+ *     2) u.extraImages
+ *     3) u.profilePicture (fallback)
+ * - Absolutizes URLs using absolutizeImage.
+ * - profilePicture is derived from u.profilePicture or first photo.
+ * - Returns a shallow-cloned object; does not mutate the input.
+ *
+ * Note:
+ * - photos/extraImages are returned as [{ url: absolute }] so callers can
+ *   safely use either shape.
  */
 export function normalizeUserImages(u) {
   if (!u || typeof u !== "object") return u;
@@ -117,7 +127,9 @@ export function normalizeUserImages(u) {
   return {
     ...u,
     photos,
+    extraImages: photos, // keep alias in sync for legacy callers
     profilePicture,
   };
 }
 // --- REPLACE END ---
+

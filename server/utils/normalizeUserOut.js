@@ -1,17 +1,23 @@
-// PATH: server/src/utils/normalizeUserOut.js
+// PATH: server/utils/normalizeUserOut.js
 
-// --- REPLACE START: unified user normalizer (NO field cutting; arrays guaranteed; POSIX /uploads paths; no duplicates) ---
+// --- REPLACE START: unified user normalizer (NO field cutting; arrays guaranteed; S3-friendly URLs from keys; no duplicates) ---
 /**
  * Unified user normalizer for API output.
  *
  * Required behavior:
  *  • Remove sensitive fields (passwords, reset/verify tokens, internal flags).
  *  • Guarantee arrays for `photos` and `extraImages` (NEVER `{}`, return [] if empty).
- *  • Normalize any file-like path to canonical POSIX `/uploads/...`:
- *      - no backslashes
- *      - no host/protocol
- *      - single leading `/uploads/`
- *      - collapse duplicate slashes
+ *  • Treat stored values as **keys or paths** and convert them to public URLs:
+ *      - If value is already an http(s) URL → return as-is.
+ *      - Otherwise treat it as a key/path (e.g. "users/<id>/avatar.jpg" or "/uploads/xyz.png").
+ *      - If USER_UPLOADS_BASE_URL is set:
+ *          finalUrl = USER_UPLOADS_BASE_URL + "/" + normalizedKey
+ *      - If USER_UPLOADS_BASE_URL is NOT set:
+ *          fall back to canonical POSIX `/uploads/...`:
+ *            · no backslashes
+ *            · no host/protocol
+ *            · single leading `/uploads/`
+ *            · collapse duplicate slashes
  *  • Mirror `photos` and `extraImages` to the same cleaned list for consistency.
  *  • Preserve all domain fields (no whitelisting). Only adjust the minimal set above.
  *  • Work with both Mongoose documents and plain objects.
@@ -38,6 +44,11 @@
 
 "use strict";
 
+// Public base URL for user uploads (for S3 or CDN), e.g.:
+//   USER_UPLOADS_BASE_URL=https://loventia-user-uploads.s3.eu-north-1.amazonaws.com
+// If not set, we fall back to local `/uploads/...` paths.
+const USER_UPLOADS_BASE_URL = process.env.USER_UPLOADS_BASE_URL || "";
+
 /* ─────────────────────────────────────────────────────────────────────────────
  * Path helpers
  * ────────────────────────────────────────────────────────────────────────────*/
@@ -54,19 +65,43 @@ function stripHost(p) {
 }
 
 /**
- * Normalize any path-like string to a canonical `/uploads/...` form.
- * Steps:
- *  1) Convert backslashes to slashes
- *  2) Remove protocol/host if present
- *  3) Remove any leading "uploads/" or "/uploads/"
- *  4) Prefix with single `/uploads/`
- *  5) Collapse duplicate slashes
+ * Normalize any media-like value to a public URL.
+ *
+ * Cases:
+ *  1) Already a full http(s) URL → return as-is.
+ *  2) A "key" such as "users/123/avatar.jpg" → USER_UPLOADS_BASE_URL + "/" + key (if base is set).
+ *  3) Legacy local path like "/uploads/xyz.jpg" or "uploads/xyz.jpg":
+ *       • if USER_UPLOADS_BASE_URL set → BASE + "/uploads/xyz.jpg"
+ *       • otherwise → canonical "/uploads/xyz.jpg"
  */
 export function toWebPath(p) {
   if (!p || typeof p !== "string") return p;
-  let s = toPosix(stripHost(p));
-  s = s.replace(/^\/?uploads\/?/i, "");        // strip any existing uploads prefix
-  s = `/uploads/${s}`.replace(/\/{2,}/g, "/"); // ensure single leading and collapse dups
+
+  const raw = String(p).trim();
+
+  // Case 1: already a full URL → do not touch
+  if (/^https?:\/\//i.test(raw)) {
+    return raw;
+  }
+
+  // Normalize slashes and strip any protocol/host parts if present
+  let s = toPosix(stripHost(raw));
+
+  // Remove leading slashes so we can safely join with a base URL
+  s = s.replace(/^\/+/, "");
+
+  if (USER_UPLOADS_BASE_URL) {
+    // Preferred: external base (S3/CDN/etc.)
+    //   BASE="https://bucket.s3.region.amazonaws.com"
+    //   s   ="users/123/avatar.jpg"
+    // → "https://bucket.s3.region.amazonaws.com/users/123/avatar.jpg"
+    const base = USER_UPLOADS_BASE_URL.replace(/\/+$/, "");
+    return `${base}/${s}`;
+  }
+
+  // Fallback: legacy local /uploads path
+  s = s.replace(/^\/?uploads\/?/i, "");
+  s = `/uploads/${s}`.replace(/\/{2,}/g, "/");
   return s;
 }
 
@@ -86,7 +121,7 @@ export function asArray(v) {
   return [];
 }
 
-/** Clean and deduplicate a list of file paths. */
+/** Clean and deduplicate a list of file paths / keys / URLs. */
 export function cleanPathList(list) {
   const out = [];
   const seen = new Set();
@@ -135,6 +170,7 @@ export function stripSensitive(u) {
 /**
  * Ensure array fields exist and are normalized.
  * Guarantees: photos = [], extraImages = [] when absent; both lists are canonicalized and mirrored.
+ * Values are converted to public URLs by `toWebPath` (keys → URLs).
  */
 export function ensureArrayFields(u) {
   let photos = cleanPathList(u.photos);
@@ -271,7 +307,7 @@ export function applyEntitlementsView(u) {
       features.superLikesPerWeek = n;
     } else {
       // If somehow stored as boolean true in DB, keep it truthy (client may still treat premium as unlimited),
-      // but *prefer* to coerce to a sane numeric view (do NOT persist here).
+      // but prefer to coerce to a sane numeric view (do NOT persist here).
       features.superLikesPerWeek = features.superLikesPerWeek === true ? 3 : 0;
     }
   }
@@ -355,7 +391,7 @@ export function normalizeUserOut(src = {}) {
   // 1) Remove sensitive fields
   stripSensitive(user);
 
-  // 2) Guarantee array fields + canonicalize paths
+  // 2) Guarantee array fields + canonicalize paths / keys → URLs
   ensureArrayFields(user);
 
   // 3) Normalize avatar-ish fields and keep aliases consistent

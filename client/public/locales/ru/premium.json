@@ -19,53 +19,53 @@
     "whoLikedMeTitle": "See who liked you"
   },
   "hub": {
-    "activeHint": "Premium is active. Most benefits below should already be unlocked.",
-    "benefitsDescription": "Here is a quick overview of what Premium offers. Active benefits are highlighted, locked ones are shown in gray.",
-    "benefitsTitle": "Premium benefits",
-    "currentPlanDescription": "This page shows your current Premium status and the benefits that are active on your account.",
-    "currentPlanTitle": "Your current plan",
-    "freeHint": "You are currently on the Free plan. Upgrade to unlock all Premium benefits.",
-    "manageSubscription": "Manage subscription",
-    "note": "Some benefits may depend on local laws or safety rules. We may roll out new Premium features over time.",
-    "planLabel": "Current plan:",
-    "syncHint": "If something looks out of date, open Subscription Settings and press Sync. It will pull the latest entitlements from billing.",
-    "title": "Premium Hub",
-    "upgradeNow": "Upgrade to Premium",
+    "activeHint": "Premium активен. Большинство преимуществ ниже уже должны быть разблокированы.",
+    "benefitsDescription": "Краткий обзор того, что даёт Premium. Активные преимущества подсвечены, заблокированные показаны серым цветом.",
+    "benefitsTitle": "Преимущества Premium",
+    "currentPlanDescription": "Эта страница показывает ваш текущий статус Premium и активные преимущества в аккаунте.",
+    "currentPlanTitle": "Ваш текущий план",
+    "freeHint": "Сейчас у вас бесплатный план. Перейдите на Premium, чтобы открыть все преимущества.",
+    "manageSubscription": "Управлять подпиской",
+    "note": "Некоторые преимущества могут зависеть от местного законодательства или правил безопасности. Со временем мы можем добавлять новые функции Premium.",
+    "planLabel": "Текущий план:",
+    "syncHint": "Если что‑то выглядит устаревшим, откройте настройки подписки и нажмите «Синхронизация». Будут загружены самые свежие данные из биллинга.",
+    "title": "Центр Premium",
+    "upgradeNow": "Перейти на Premium",
     "planPremium": "Premium",
-    "planFree": "Free",
+    "planFree": "Бесплатный",
     "benefits": {
       "noAds": {
-        "title": "Ad-free experience",
-        "description": "No banner ads across Loventia."
+        "title": "Без рекламы",
+        "description": "Никаких баннеров и боковой рекламы на Loventia."
       },
       "unlimitedLikes": {
-        "title": "Unlimited Likes",
-        "description": "Like as many profiles as you want every day."
+        "title": "Неограниченные лайки",
+        "description": "Ставьте лайки скольким угодно анкетам каждый день."
       },
       "unlimitedRewinds": {
-        "title": "Unlimited Rewinds",
-        "description": "Go back to the previous profile if you swiped too fast."
+        "title": "Неограниченные возвраты",
+        "description": "Возвращайтесь к предыдущему профилю, если пролистали его слишком быстро."
       },
       "whoLikedMe": {
-        "title": "See who liked you",
-        "description": "Open the Likes overview to see who already liked you."
+        "title": "Кто поставил вам лайк",
+        "description": "Откройте раздел лайков, чтобы сразу увидеть, кто уже лайкнул ваш профиль."
       },
       "superLikesPerWeek": {
-        "title": "Weekly Super Likes",
-        "descriptionWithCount": "You currently get {{count}} Super Likes per week.",
-        "description": "Highlight yourself with Super Likes each week."
+        "title": "Еженедельные Супер‑лайки",
+        "descriptionWithCount": "Сейчас вы получаете {{count}} Супер‑лайков в неделю.",
+        "description": "Выделяйте себя с помощью нескольких Супер‑лайков каждую неделю."
       },
       "intros": {
-        "title": "Intro messages",
-        "description": "Send a first message even before you match (where allowed)."
+        "title": "Вступительные сообщения",
+        "description": "Отправляйте первое сообщение ещё до совпадения (там, где это разрешено)."
       },
       "dealbreakers": {
-        "title": "Dealbreaker filters",
-        "description": "Use hard filters in Discover to only see matches that fit your must-haves."
+        "title": "Жёсткие фильтры",
+        "description": "Используйте строгие фильтры в разделе «Обзор», чтобы видеть только анкеты, соответствующие вашим обязательным критериям."
       },
       "badge": {
-        "title": "Premium badge",
-        "description": "Show a small Premium badge on your profile and messages."
+        "title": "Значок Premium",
+        "description": "Показывайте маленький значок Premium в своём профиле и в сообщениях."
       }
     }
   },

@@ -1,17 +1,17 @@
 {
-  "contactText": "If you have questions about this policy or your data, please contact support.",
-  "contactTitle": "How to contact us",
-  "howWeUseItText": "We use your data to provide and secure the app, fight fraud and abuse, improve features and – if you have given consent – measure usage and performance.",
-  "howWeUseItTitle": "How we use your data",
-  "intro": "We respect your privacy. This page explains what data we collect and why. We only collect the minimum necessary to operate the Loventia service.",
-  "lastUpdatedPrefix": "Last updated:",
-  "title": "Privacy Policy",
+  "contactText": "Если у вас есть вопросы об этой политике или о ваших данных, вы можете связаться со службой поддержки через приложение или по электронной почте.",
+  "contactTitle": "Как с нами связаться",
+  "howWeUseItText": "Мы используем ваши данные, чтобы предоставлять и защищать сервис, предотвращать мошенничество и злоупотребления и улучшать Loventia. Мы не продаём ваши персональные данные.",
+  "howWeUseItTitle": "Как мы используем данные",
+  "intro": "Мы уважаем вашу конфиденциальность. На этой странице объясняется, какие данные мы собираем и зачем. Мы собираем только те данные, которые необходимы для работы сервиса Loventia.",
+  "lastUpdatedPrefix": "Дата последнего обновления:",
+  "title": "Политика конфиденциальности",
   "whatWeCollectItems": {
-    "accountDetails": "Account details (email, profile data you add).",
-    "analytics": "Optional analytics (only if you consent) to understand how the app is used.",
-    "technicalLogs": "Technical logs (IP address, browser and device information) to secure the service."
+    "accountDetails": "Данные учётной записи (адрес электронной почты, данные профиля, которые вы добавляете).",
+    "analytics": "Необязательные аналитические данные (только с вашего согласия), чтобы понимать, как используется приложение.",
+    "technicalLogs": "Технические журналы (IP‑адрес, информация о браузере и устройстве) для защиты сервиса."
   },
-  "whatWeCollectTitle": "What we collect",
-  "yourRightsText": "You can request access, correction or deletion of your data at any time. You can also withdraw consent where it was the legal basis for processing.",
-  "yourRightsTitle": "Your rights"
+  "whatWeCollectTitle": "Какие данные мы собираем",
+  "yourRightsText": "В пределах, допускаемых законом, вы можете в любой момент запросить доступ к своим данным, а также их исправление или удаление.",
+  "yourRightsTitle": "Ваши права"
 }

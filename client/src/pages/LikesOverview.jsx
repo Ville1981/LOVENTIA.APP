@@ -4,27 +4,75 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import api from "../services/api/axiosInstance";
-import { BACKEND_BASE_URL } from "../utils/config";
+import { BACKEND_BASE_URL, PLACEHOLDER_IMAGE } from "../utils/config";
 import WhoLikedMeCard from "../components/WhoLikedMeCard";
 
 /**
  * Resolve a usable image URL for a user card (tolerant to various shapes).
- * NOTE: This is intentionally kept very similar to the helper on WhoLikedMe.jsx.
+ * NOTE: This is intentionally kept similar to the helper on WhoLikedMe.jsx.
  */
 function resolvePhotoUrl(user) {
-  const raw =
+  const primary =
     user?.profilePicture ||
     user?.avatar ||
-    (Array.isArray(user?.photos) ? user.photos[0] : "") ||
-    "";
+    (Array.isArray(user?.photos) && user.photos.length > 0 ? user.photos[0] : null);
 
-  if (!raw) return "/default.jpg";
-  if (typeof raw !== "string") return "/default.jpg";
-  if (/^https?:\/\//i.test(raw)) return raw;
+  let raw = primary || "";
 
-  // Ensure single slash between base and path
-  const path = raw.startsWith("/") ? raw : `/${raw}`;
-  return `${BACKEND_BASE_URL}${path}`;
+  // Accept shapes like { url }, { src }, { photoUrl }, { imageUrl }
+  if (raw && typeof raw === "object") {
+    raw =
+      raw.url ||
+      raw.src ||
+      raw.photoUrl ||
+      raw.imageUrl ||
+      "";
+  }
+
+  if (!raw || typeof raw !== "string") {
+    return PLACEHOLDER_IMAGE;
+  }
+
+  const trimmed = raw.trim();
+  if (!trimmed) return PLACEHOLDER_IMAGE;
+
+  // Absolute URLs (S3, CDN, etc.)
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+
+  // Client-side static assets (under /assets) – served by the frontend
+  if (trimmed.startsWith("/assets/")) {
+    try {
+      return `${window.location.origin}${trimmed}`;
+    } catch {
+      return trimmed;
+    }
+  }
+
+  // Backend uploads and bare filenames
+  const looksLikeUpload = trimmed.startsWith("/uploads/");
+  const isBareName = !trimmed.startsWith("/");
+
+  let relPath;
+
+  if (looksLikeUpload) {
+    relPath = trimmed;
+  } else if (isBareName) {
+    // Bare filename → treat as upload under /uploads
+    relPath = `/uploads/${trimmed}`;
+  } else {
+    // Any other rooted path (rare) – keep as-is
+    relPath = trimmed;
+  }
+
+  // If BACKEND_BASE_URL is not configured, fall back to the relative path
+  if (!BACKEND_BASE_URL) {
+    return relPath;
+  }
+
+  // Avoid accidental double slashes (while keeping protocol slashes intact)
+  return `${BACKEND_BASE_URL}${relPath}`.replace(/([^:])\/\/+/g, "$1/");
 }
 
 /**
@@ -289,5 +337,4 @@ const LikesOverview = () => {
 
 export default LikesOverview;
 // --- REPLACE END ---
-
 

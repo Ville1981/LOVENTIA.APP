@@ -1,6 +1,6 @@
 // PATH: client/src/pages/UserProfile.jsx
 
-// --- REPLACE START: whitelist & FI→EN fallbacks in submit, no server-managed fields, preserve full structure ---
+// --- REPLACE START: wire avatar + extra photos view to MultiStepPhotoUploader + normalizeUserImages; keep profilePicture/photos/extraImages in sync ---
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -12,6 +12,7 @@ import { BACKEND_BASE_URL, PLACEHOLDER_IMAGE } from "../config";
 import AdGate from "../components/AdGate";
 import AdBanner from "../components/AdBanner";
 import { useAuth } from "../contexts/AuthContext";
+import { normalizeUserImages } from "../utils/absolutizeImage";
 
 /** Normalize FS path → web path (handles Windows backslashes) */
 const toWebPath = (p = "") =>
@@ -22,6 +23,19 @@ const buildImgSrc = (p) => {
   if (!p) return PLACEHOLDER_IMAGE;
   if (String(p).startsWith("http")) return p;
   return `${BACKEND_BASE_URL}${toWebPath(p)}`;
+};
+
+/**
+ * Extract a usable photo string from:
+ *  - plain string
+ *  - { url: "..." }
+ * Returns null if not usable.
+ */
+const extractPhotoSrc = (item) => {
+  if (!item) return null;
+  if (typeof item === "string") return item;
+  if (typeof item === "object" && item.url) return String(item.url);
+  return null;
 };
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -106,6 +120,8 @@ const ALLOWED_PROFILE_FIELDS = new Set([
 
 /* ────────────────────────────────────────────────────────────────────────────
    Normalization helpers
+   - Centralized around normalizeUserImages so avatar + photos/extraImages
+     stay in sync with ExtraPhotosPage / MultiStepPhotoUploader.
 ──────────────────────────────────────────────────────────────────────────── */
 const isEmptyish = (v) => v === "" || v === null || v === undefined;
 
@@ -113,34 +129,69 @@ function normalizeUser(u) {
   if (!u || typeof u !== "object") return null;
 
   const id = String(u.id || u._id || "");
-  // Server is authoritative for full gallery via `photos`; fall back to extraImages
-  const photos = Array.isArray(u.photos)
-    ? u.photos
-    : Array.isArray(u.extraImages)
-    ? u.extraImages
-    : [];
 
-  const profilePicture = u.profilePicture || u.profilePhoto || null;
+  // Use shared normalizeUserImages pipeline as the canonical source.
+  let baseUser = u;
+  let photos = [];
+  let profilePictureRaw = u.profilePicture || u.profilePhoto || null;
 
-  // Location flattening
-  const loc = u.location && typeof u.location === "object" ? u.location : {};
-  const country = u.country || loc.country || null;
-  const region = u.region || loc.region || null;
-  const city = u.city || loc.city || null;
+  try {
+    const imgNorm = normalizeUserImages(u);
+    if (imgNorm && typeof imgNorm === "object") {
+      if (imgNorm.user && typeof imgNorm.user === "object") {
+        baseUser = imgNorm.user;
+      }
+      if (Array.isArray(imgNorm.photos)) {
+        photos = imgNorm.photos.map((item) => extractPhotoSrc(item)).filter(Boolean);
+      } else if (Array.isArray(imgNorm.extraImages)) {
+        photos = imgNorm.extraImages
+          .map((item) => extractPhotoSrc(item))
+          .filter(Boolean);
+      }
+      if (imgNorm.profilePicture) {
+        profilePictureRaw = imgNorm.profilePicture;
+      }
+    }
+  } catch (err) {
+    // Do not break profile page if helper fails; fall back to local logic.
+    if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
+      // eslint-disable-next-line no-console
+      console.warn("[UserProfile] normalizeUserImages failed:", err);
+    }
+  }
+
+  // Fallback: derive photos from legacy shapes if helper did not produce anything.
+  if (!photos.length) {
+    const rawPhotos = Array.isArray(u.photos)
+      ? u.photos
+      : Array.isArray(u.extraImages)
+      ? u.extraImages
+      : [];
+    photos = rawPhotos.map((item) => extractPhotoSrc(item)).filter(Boolean);
+  }
+
+  const profilePicture = profilePictureRaw ? extractPhotoSrc(profilePictureRaw) : null;
+
+  // Location flattening based on the effective user (baseUser)
+  const loc =
+    baseUser.location && typeof baseUser.location === "object" ? baseUser.location : {};
+  const country = baseUser.country || loc.country || null;
+  const region = baseUser.region || loc.region || null;
+  const city = baseUser.city || loc.city || null;
 
   const isPremium =
-    !!u.isPremium ||
-    !!u.premium ||
-    (u.entitlements && u.entitlements.tier === "premium");
+    !!baseUser.isPremium ||
+    !!baseUser.premium ||
+    (baseUser.entitlements && baseUser.entitlements.tier === "premium");
 
-  const politicalIdeology = u.politicalIdeology ?? u.ideology ?? "";
+  const politicalIdeology = baseUser.politicalIdeology ?? baseUser.ideology ?? "";
 
   return {
-    ...u,
+    ...baseUser,
     id,
-    _id: id || u._id,
+    _id: id || baseUser._id,
     photos,
-    extraImages: photos, // legacy alias for components that still look at it
+    extraImages: photos, // keep alias so ExtraPhotosPage / MultiStepPhotoUploader stay in sync
     profilePicture,
     country,
     region,
@@ -503,9 +554,11 @@ const UserProfile = () => {
     );
   }
 
-  // Server-normalized photos only
+  // Server-normalized photos (strings or { url }) → strings.
+  // Note: normalizeUser() already used normalizeUserImages, so photos/extraImages
+  // are aligned with ExtraPhotosPage / MultiStepPhotoUploader.
   const photosArray = Array.isArray(user.photos)
-    ? user.photos.filter(Boolean)
+    ? user.photos.map((item) => extractPhotoSrc(item)).filter(Boolean)
     : [];
   const photosKey = photosArray.map((x) => String(x || "")).join("|");
   const hasPhotos = photosArray.length > 0;
@@ -514,7 +567,8 @@ const UserProfile = () => {
     if (!photosArray.length) return [];
     const avatar = user.profilePicture;
     if (avatar) {
-      const idx = photosArray.findIndex((p) => String(p) === String(avatar));
+      const avatarStr = String(avatar);
+      const idx = photosArray.findIndex((p) => String(p) === avatarStr);
       if (idx > 0) {
         const clone = photosArray.slice();
         const [picked] = clone.splice(idx, 1);
@@ -523,7 +577,7 @@ const UserProfile = () => {
       }
     }
     return photosArray;
-  }, [photosKey, user?.profilePicture]);
+  }, [photosKey, user?.profilePicture, photosArray]);
 
   if (process.env.NODE_ENV !== "production") {
     try {
@@ -744,5 +798,6 @@ function PublicInfoCard({ user, t }) {
 
 export default UserProfile;
 // --- REPLACE END ---
+
 
 
