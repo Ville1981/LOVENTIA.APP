@@ -1,0 +1,17 @@
+{
+  "contactText": "Jos sinulla on kysyttävää tästä tietosuojakäytännöstä tai tiedoistasi, voit ottaa yhteyttä asiakastukeemme sovelluksen kautta tai sähköpostitse.",
+  "contactTitle": "Kuinka otat meihin yhteyttä",
+  "howWeUseItText": "Käytämme tietojasi palvelun tarjoamiseen ja suojaamiseen, petosten ja väärinkäytösten ehkäisemiseen sekä Loventia-palvelun parantamiseen. Emme myy henkilötietojasi.",
+  "howWeUseItTitle": "Miten käytämme tietojasi",
+  "intro": "Kunnioitamme yksityisyyttäsi. Tällä sivulla kerromme, mitä tietoja keräämme ja miksi. Keräämme vain vähimmäismäärän tietoja Loventia-palvelun tarjoamiseksi.",
+  "lastUpdatedPrefix": "Viimeksi päivitetty:",
+  "title": "Tietosuojakäytäntö",
+  "whatWeCollectItems": {
+    "accountDetails": "Tilin tiedot (sähköposti, profiilitiedot, jotka lisäät).",
+    "analytics": "Valinnaiset analytiikkatiedot (vain suostumuksellasi) palvelun käytön ymmärtämiseksi.",
+    "technicalLogs": "Tekniset lokit (IP-osoite, selain- ja laitetiedot) palvelun suojaamiseksi."
+  },
+  "whatWeCollectTitle": "Mitä tietoja keräämme",
+  "yourRightsText": "Voit lain sallimissa rajoissa pyytää pääsyä tietoihisi, niiden oikaisua tai poistamista milloin tahansa.",
+  "yourRightsTitle": "Oikeutesi"
+}

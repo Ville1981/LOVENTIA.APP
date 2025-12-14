@@ -1,10 +1,19 @@
-// --- REPLACE START: switch to unified axios instance + align endpoints with server ---
+// PATH: client/src/api/images.js
+
+// --- REPLACE START: ensure image API uses canonical photos endpoints; keep backward-compatible response normalization ---
 import api, { getAccessToken } from "../services/api/axiosInstance";
 
 /**
  * IMPORTANT
  * ---------------------------------------------------------------------------
  * We ONLY use /api/users/:id/... endpoints. No /api/images/... paths remain.
+ *
+ * Canonical user media endpoints (per __routes_api_full):
+ *  - POST   /api/users/:userId/upload-avatar
+ *  - POST   /api/users/:userId/photos
+ *  - POST   /api/users/:userId/photos/upload-photo-step
+ *  - DELETE /api/users/:userId/photos/:slot
+ *
  * Server responses are being unified to return a normalized user object:
  *   { user: <normalizedUser> }
  *
@@ -33,10 +42,15 @@ function normalizeUserResponse(data) {
   const user = data?.user ?? null;
 
   // When the server still returns top-level arrays/fields
-  const legacyExtra =
-    Array.isArray(data?.extraImages) ? data.extraImages : user?.extraImages || user?.photos || [];
+  const legacyExtra = Array.isArray(data?.extraImages)
+    ? data.extraImages
+    : user?.extraImages || user?.photos || [];
   const legacyAvatar =
-    data?.profilePicture ?? user?.profilePicture ?? user?.profilePhoto ?? null;
+    data?.profilePicture ??
+    user?.profilePicture ??
+    user?.profilePhoto ??
+    user?.avatar ??
+    null;
 
   return {
     user,
@@ -82,10 +96,10 @@ export const uploadAvatar = async (userId, fileOrFormData) => {
 
 /**
  * Bulk upload extra photos.
- * Server: POST /api/users/:id/upload-photos
+ * Canonical server: POST /api/users/:id/photos
  *
  * @param {string} userId
- * @param {File[]|FormData} filesOrFormData - Files or FormData with 'photos'
+ * @param {File[]|FileList|FormData} filesOrFormData - Files or FormData with 'photos'
  * @returns {Promise<{ user: any, extraImages: string[] }>}
  */
 export const uploadPhotos = async (userId, filesOrFormData) => {
@@ -94,13 +108,17 @@ export const uploadPhotos = async (userId, filesOrFormData) => {
   const formData =
     filesOrFormData instanceof FormData
       ? filesOrFormData
-      : filesOrFormData.reduce((fd, file) => {
-          fd.append("photos", file);
+      : (() => {
+          const fd = new FormData();
+          // Support File[], FileList, or any iterable of Files
+          for (const file of Array.from(filesOrFormData || [])) {
+            fd.append("photos", file);
+          }
           return fd;
-        }, new FormData());
+        })();
 
   try {
-    const res = await api.post(`/users/${userId}/upload-photos`, formData, {
+    const res = await api.post(`/users/${userId}/photos`, formData, {
       withCredentials: true,
     });
     const out = normalizeUserResponse(res?.data);
@@ -114,7 +132,7 @@ export const uploadPhotos = async (userId, filesOrFormData) => {
 
 /**
  * Upload a single photo step (optionally with crop).
- * Server: POST /api/users/:id/upload-photo-step
+ * Canonical server: POST /api/users/:id/photos/upload-photo-step
  *
  * FormData keys:
  *  - photo (File, required)
@@ -140,9 +158,11 @@ export const uploadPhotoStep = async (userId, formData) => {
   }
 
   try {
-    const res = await api.post(`/users/${userId}/upload-photo-step`, formData, {
-      withCredentials: true,
-    });
+    const res = await api.post(
+      `/users/${userId}/photos/upload-photo-step`,
+      formData,
+      { withCredentials: true }
+    );
     const out = normalizeUserResponse(res?.data);
     return { user: out.user, extraImages: out.extraImages };
   } catch (err) {
@@ -188,3 +208,4 @@ export const removeAvatar = async (userId) => {
   return { user, profilePicture: extraImages?.[0] ?? null };
 };
 // --- REPLACE END ---
+

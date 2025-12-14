@@ -1,6 +1,6 @@
 // PATH: client/src/components/profileFields/MultiStepPhotoUploader.jsx
 
-// --- REPLACE START: add "Make main" (set avatar from existing), improve Save disabled UX, skip slot 0 in grid ---
+// --- REPLACE START: avatar from slot 0 + photos/extraImages mirroring + safe onSuccess user updates (no loops), compatible with normalizeUserImages ---
 import PropTypes from "prop-types";
 import React, { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -9,46 +9,112 @@ import api from "../../services/api/axiosInstance";
 import { BACKEND_BASE_URL, PLACEHOLDER_IMAGE } from "../../config";
 import Button from "../ui/Button";
 import ControlBar from "../ui/ControlBar";
+import { normalizeUserImages } from "../../utils/absolutizeImage";
+
+/**
+ * Return true if value looks like an absolute http(s) URL.
+ */
+const isAbsoluteUrl = (s) =>
+  typeof s === "string" && /^https?:\/\//i.test(s);
+
+/**
+ * Extract a usable photo string from either:
+ *  - plain string
+ *  - { url: "..." }
+ *  - otherwise returns null
+ */
+const extractPhotoSrc = (item) => {
+  if (!item) return null;
+  if (typeof item === "string") return item;
+  if (typeof item === "object" && item.url) return String(item.url);
+  return null;
+};
 
 /**
  * Normalize Windows backslashes (\) → forward slash (/)
- * and make sure it starts with a single leading slash.
+ * and make sure it starts with a single leading slash for relative paths.
+ * Absolute http(s) URLs are returned as-is.
  */
-const normalizePath = (p = "") =>
-  "/" + String(p || "").replace(/\\/g, "/").replace(/^\/+/, "");
+const normalizePath = (p = "") => {
+  const raw = String(p || "");
+  if (!raw) return "";
+  // Keep S3 / external URLs untouched
+  if (isAbsoluteUrl(raw)) return raw;
+  return (
+    "/" +
+    raw
+      .replace(/\\/g, "/")
+      .replace(/^\/+/, "")
+  );
+};
 
 /**
  * Normalize user payload from backend to a stable shape the UI expects.
  * Guarantees:
- *  - paths have a single leading '/'
- *  - user.photos === user.extraImages (alias)
+ *  - relative paths have a single leading '/'
+ *  - absolute URLs (S3 etc.) are kept as-is
+ *  - user.photos === user.extraImages (alias with the same list)
  *  - profile picture available as user.profilePicture (fallback profilePhoto)
+ * Uses normalizeUserImages as the primary helper so behavior stays aligned
+ * with UserProfile and ExtraPhotosPage.
  */
 function normalizeUserOut(u) {
   if (!u || typeof u !== "object") return null;
-  const copy = { ...u };
 
-  // Normalize profile picture alias
-  copy.profilePicture = copy.profilePicture || copy.profilePhoto || null;
+  let baseUser = u;
+  let photos = [];
+  let profilePic = u.profilePicture || u.profilePhoto || null;
 
-  // Normalize photos / extraImages alias
-  const rawList =
-    Array.isArray(copy.photos) && copy.photos.length
-      ? copy.photos
-      : Array.isArray(copy.extraImages)
-      ? copy.extraImages
-      : [];
-
-  const normList = rawList.map((s) => (s ? normalizePath(String(s)) : null));
-  copy.photos = normList;
-  copy.extraImages = normList;
-
-  // Ensure profile picture is a normalized path if present
-  if (copy.profilePicture) {
-    copy.profilePicture = normalizePath(String(copy.profilePicture));
-  } else if (normList[0]) {
-    copy.profilePicture = normList[0];
+  try {
+    const imgNorm = normalizeUserImages(u);
+    if (imgNorm && typeof imgNorm === "object") {
+      if (imgNorm.user && typeof imgNorm.user === "object") {
+        baseUser = imgNorm.user;
+      }
+      if (Array.isArray(imgNorm.photos)) {
+        photos = imgNorm.photos.map((item) => extractPhotoSrc(item)).filter(Boolean);
+      } else if (Array.isArray(imgNorm.extraImages)) {
+        photos = imgNorm.extraImages
+          .map((item) => extractPhotoSrc(item))
+          .filter(Boolean);
+      }
+      if (imgNorm.profilePicture) {
+        profilePic = imgNorm.profilePicture;
+      }
+    }
+  } catch (err) {
+    // Do not break uploader if helper throws; fall back to local logic.
+    if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
+      // eslint-disable-next-line no-console
+      console.warn("[MultiStepPhotoUploader] normalizeUserImages failed:", err);
+    }
   }
+
+  // Fallback if normalizeUserImages did not provide photos
+  if (!photos.length) {
+    const rawList =
+      Array.isArray(u.photos) && u.photos.length
+        ? u.photos
+        : Array.isArray(u.extraImages)
+        ? u.extraImages
+        : [];
+    photos = rawList.map((item) => extractPhotoSrc(item)).filter(Boolean);
+  }
+
+  // Normalize list of photos to proper paths
+  const normList = photos.map((s) => normalizePath(s));
+
+  // Normalize avatar
+  let avatar = profilePic ? extractPhotoSrc(profilePic) : null;
+  avatar = avatar ? normalizePath(avatar) : null;
+  if (!avatar && normList[0]) {
+    avatar = normList[0];
+  }
+
+  const copy = { ...baseUser };
+  copy.photos = normList;
+  copy.extraImages = normList; // alias kept in sync
+  copy.profilePicture = avatar || null;
 
   return copy;
 }
@@ -69,22 +135,25 @@ function photosChanged(prevArr = [], nextArr = []) {
 
 /**
  * Resolve backend absolute URL for an image path or return external URL.
+ * Accepts:
+ *  - absolute http(s) URL (S3 etc.) → returned as-is
+ *  - relative '/uploads/...' path → BACKEND_BASE_URL + path
  */
 function resolveImg(srcLike, fallback = PLACEHOLDER_IMAGE) {
   if (!srcLike) return fallback;
   const s = String(srcLike);
-  if (/^https?:\/\//i.test(s)) return s;
+  if (isAbsoluteUrl(s)) return s;
   return `${BACKEND_BASE_URL}${normalizePath(s)}`;
 }
 
 /**
  * MultiStepPhotoUploader
  * -----------------------------------------------------------------------------
- * This version adds:
- *  - Clear disabled state for Save (when no file selected) + helper text.
- *  - "Make main" button per existing photo to set avatar without uploading.
- *  - Skip rendering slot 0 inside the grid (we already have a dedicated avatar card).
- *  - Keep prior functionality and length; comments in English.
+ * - Avatar is always visual slot 0 (title card).
+ * - photos and extraImages are mirrored and normalized via normalizeUserOut()
+ *   which itself uses normalizeUserImages internally.
+ * - onSuccess receives a normalized user object to avoid state loops higher up.
+ * - "Make main" moves an existing photo to slot 0 (avatar) without re-upload.
  */
 export default function MultiStepPhotoUploader({
   userId,
@@ -99,9 +168,16 @@ export default function MultiStepPhotoUploader({
 
   // Local mirrors for UI updates (keeps grid stable while saving)
   const [localPhotos, setLocalPhotos] = useState(
-    Array.from({ length: maxSlots }, (_, i) => photos[i] || null)
+    Array.from({ length: maxSlots }, (_, i) => extractPhotoSrc(photos[i]) || null)
   );
-  const [avatar, setAvatar] = useState(initialProfilePicture || photos[0] || null);
+  const [avatar, setAvatar] = useState(
+    extractPhotoSrc(initialProfilePicture) ||
+      extractPhotoSrc(photos[0]) ||
+      null
+  );
+
+  // Track images that failed to load (for small UI hint)
+  const [imageErrors, setImageErrors] = useState({});
 
   // Bulk state
   const [bulkFiles, setBulkFiles] = useState([]);
@@ -126,11 +202,16 @@ export default function MultiStepPhotoUploader({
 
   // Sync when parent props change (e.g., profile fetched elsewhere)
   useEffect(() => {
-    const nextPhotos = Array.from({ length: maxSlots }, (_, i) => photos[i] || null);
+    const nextPhotos = Array.from({ length: maxSlots }, (_, i) =>
+      extractPhotoSrc(photos[i]) || null
+    );
     if (photosChanged(localPhotos, nextPhotos)) {
       setLocalPhotos(nextPhotos);
     }
-    const nextAvatar = initialProfilePicture || photos[0] || null;
+    const nextAvatar =
+      extractPhotoSrc(initialProfilePicture) ||
+      extractPhotoSrc(photos[0]) ||
+      null;
     if (avatar !== nextAvatar) {
       setAvatar(nextAvatar);
     }
@@ -267,7 +348,15 @@ export default function MultiStepPhotoUploader({
       const nextAvatar = user?.profilePicture || updatedPhotos[0] || null;
       if (avatar !== nextAvatar) setAvatar(nextAvatar);
 
-      // ✅ Pass normalized user to parent
+      // Reset any previous error for this slot
+      setImageErrors((prev) => {
+        const copy = { ...prev };
+        delete copy[idx];
+        if (idx === 0) delete copy[0];
+        return copy;
+      });
+
+      // ✅ Pass normalized user to parent (safe against loops when parent normalizes too)
       onSuccess(user);
 
       // Clear staged file for this slot
@@ -303,6 +392,14 @@ export default function MultiStepPhotoUploader({
       }
       const nextAvatar = user?.profilePicture || updatedPhotos[0] || null;
       if (avatar !== nextAvatar) setAvatar(nextAvatar);
+
+      // Clear any error flag for this slot
+      setImageErrors((prev) => {
+        const copy = { ...prev };
+        delete copy[idx];
+        if (idx === 0) delete copy[0];
+        return copy;
+      });
 
       // ✅ Pass normalized user to parent
       onSuccess(user);
@@ -342,6 +439,9 @@ export default function MultiStepPhotoUploader({
       const nextAvatar = user?.profilePicture || updatedPhotos[0] || null;
       if (avatar !== nextAvatar) setAvatar(nextAvatar);
 
+      // Clear all image error markers (fresh list from server)
+      setImageErrors({});
+
       // ✅ Pass normalized user to parent
       onSuccess(user);
       setBulkFiles([]);
@@ -356,16 +456,15 @@ export default function MultiStepPhotoUploader({
 
   /**
    * Make the selected existing photo the main one (avatar) without uploading.
+   * Note: localPhotos mirrors server order, so using idx directly is safe.
    */
   const handleMakeMain = async (idx) => {
-    // idx here refers to the index within localPhotos (grid index).
-    // Note: We skip rendering idx=0 inside the grid; avatar card covers slot 0.
     if (savingSlots[`mk_${idx}`]) return;
 
     try {
       setSavingSlots((m) => ({ ...m, [`mk_${idx}`]: true }));
       const list = localPhotos.filter(Boolean);
-      const fromIndex = idx; // because localPhotos matches server order
+      const fromIndex = idx;
 
       const user = await apiSetAvatarFromExisting(userId, list, fromIndex);
 
@@ -377,6 +476,14 @@ export default function MultiStepPhotoUploader({
       }
       const nextAvatar = user?.profilePicture || updatedPhotos[0] || null;
       if (avatar !== nextAvatar) setAvatar(nextAvatar);
+
+      // Clear possible errors for this index and avatar
+      setImageErrors((prev) => {
+        const copy = { ...prev };
+        delete copy[idx];
+        delete copy[0];
+        return copy;
+      });
 
       // ✅ Pass normalized user to parent
       onSuccess(user);
@@ -421,7 +528,10 @@ export default function MultiStepPhotoUploader({
           src={resolveImg(avatar)}
           alt="Avatar"
           className="w-32 h-32 rounded-full object-cover mb-2"
-          onError={(e) => (e.currentTarget.src = PLACEHOLDER_IMAGE)}
+          onError={(e) => {
+            e.currentTarget.src = PLACEHOLDER_IMAGE;
+            setImageErrors((prev) => ({ ...prev, 0: true }));
+          }}
         />
         <input
           ref={slotInputRefs.current[0]}
@@ -460,6 +570,11 @@ export default function MultiStepPhotoUploader({
             {savingSlots[0] ? t("Removing…") : t("Remove")}
           </Button>
         </ControlBar>
+        {imageErrors[0] && (
+          <p className="text-xs text-red-600 mt-1">
+            {t("Avatar image failed to load, showing placeholder.")}
+          </p>
+        )}
         {!stagedFiles[0] && (
           <p className="text-xs text-gray-600 mt-2">
             {t(
@@ -516,7 +631,10 @@ export default function MultiStepPhotoUploader({
                   src={resolveImg(currentSrc)}
                   alt={`Slot ${slotNum}`}
                   className="w-full h-full object-cover"
-                  onError={(e) => (e.currentTarget.src = PLACEHOLDER_IMAGE)}
+                  onError={(e) => {
+                    e.currentTarget.src = PLACEHOLDER_IMAGE;
+                    setImageErrors((prev) => ({ ...prev, [idx]: true }));
+                  }}
                 />
               </div>
               <input
@@ -560,6 +678,11 @@ export default function MultiStepPhotoUploader({
                   {savingSlots[`mk_${idx}`] ? t("Updating…") : t("Make main")}
                 </Button>
               </ControlBar>
+              {imageErrors[idx] && (
+                <p className="text-xs text-red-600 mt-1 text-center">
+                  {t("Image failed to load, showing placeholder.")}
+                </p>
+              )}
             </div>
           );
         })}
@@ -572,10 +695,20 @@ MultiStepPhotoUploader.propTypes = {
   userId: PropTypes.string.isRequired,
   isPremium: PropTypes.bool,
   // Prefer reading from user.photos; keep prop name aligned for callers.
-  photos: PropTypes.arrayOf(PropTypes.string),
+  photos: PropTypes.arrayOf(
+    PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.shape({ url: PropTypes.string }),
+    ])
+  ),
   // Optional explicit profile picture; falls back to photos[0]
-  profilePicture: PropTypes.string,
+  profilePicture: PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.shape({ url: PropTypes.string }),
+  ]),
   onSuccess: PropTypes.func,
   onError: PropTypes.func,
 };
 // --- REPLACE END ---
+
+

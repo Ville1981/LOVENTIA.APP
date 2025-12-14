@@ -8,11 +8,17 @@ WORKDIR /app
 
 # Install dependencies
 COPY package*.json vite.config.js ./
-RUN npm ci
+# Käytä npm ci jos package-lock.json on olemassa, muuten fallback npm installiin
+RUN if [ -f package-lock.json ]; then \
+      npm ci; \
+    else \
+      npm install --legacy-peer-deps; \
+    fi
 
 # Copy source and build
 COPY . .
 RUN npm run build
+
 
 # 2) Runtime stage
 FROM nginx:alpine

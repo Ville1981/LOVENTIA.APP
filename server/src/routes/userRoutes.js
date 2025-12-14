@@ -12,6 +12,8 @@ import { body, validationResult } from "express-validator";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import multer from "multer";
+import { S3Client, PutObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+
 // --- REPLACE END ---
 
 // --- REPLACE START: configuration/constants carried from legacy user.js ---
@@ -219,6 +221,151 @@ function toWebPath(p) {
   s = s.replace(/^\/?uploads\/?/i, "");
   s = `/uploads/${s}`.replace(/\/{2,}/g, "/");
   return s;
+}
+// --- REPLACE END ---
+
+// --- REPLACE START: S3 mirror helpers for user media uploads ---
+const S3_REGION = process.env.AWS_REGION || "eu-north-1";
+const S3_BUCKET = process.env.AWS_S3_BUCKET || "loventia-user-uploads";
+
+let s3Client = null;
+
+/**
+ * Get or create a singleton S3 client.
+ * If bucket is not configured, returns null and effectively disables S3 uploads.
+ */
+function getS3Client() {
+  if (!S3_BUCKET) {
+    console.warn("[S3][userRoutes] Bucket name not configured, skipping S3 uploads");
+    return null;
+  }
+  if (!s3Client) {
+    s3Client = new S3Client({ region: S3_REGION });
+  }
+  return s3Client;
+}
+
+/**
+ * Upload a file addressed by a web-style path ("/uploads/...") to S3.
+ * - webPath is converted to a key without leading slash ("uploads/...")
+ * - local file is read from process.cwd() + key
+ * - best-effort: on error, logs and returns null
+ *
+ * @param {string} webPath
+ * @param {string|undefined} contentType
+ * @returns {Promise<string|null>}
+ */
+// --- REPLACE START: uploadWebPathToS3 — robust local path resolve + no ACL ---
+async function uploadWebPathToS3(webPath, contentType) {
+  try {
+    const client = getS3Client();
+    if (!client || !webPath) return null;
+
+    // "/uploads/x.png" -> "uploads/x.png"
+    const key = String(webPath).replace(/\\/g, "/").replace(/^\/+/, "");
+
+    // Try a few likely roots:
+    // - if server started in /server: process.cwd() => ...\server
+    // - if server started in repo root: process.cwd() => ...\
+    const candidates = [
+      pathFs.resolve(process.cwd(), key),
+      pathFs.resolve(process.cwd(), "..", key),
+      pathFs.resolve(process.cwd(), "..", "..", key),
+    ];
+
+    const absolutePath = candidates.find((p) => {
+      try {
+        return fs.existsSync(p);
+      } catch {
+        return false;
+      }
+    });
+
+    if (!absolutePath) {
+      console.error("[S3][userRoutes] local file not found for upload", {
+        webPath,
+        key,
+        tried: candidates,
+      });
+      return null;
+    }
+
+    const data = await fs.promises.readFile(absolutePath);
+
+    const putParams = {
+      Bucket: S3_BUCKET,
+      Key: key,
+      Body: data,
+      // NOTE: do NOT set ACL here (many buckets have ACLs disabled)
+    };
+
+    if (contentType) putParams.ContentType = contentType;
+
+    await client.send(new PutObjectCommand(putParams));
+
+    const publicUrl = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/${key}`;
+    console.log("[S3][userRoutes] uploaded", { key, publicUrl });
+    return publicUrl;
+  } catch (err) {
+    console.error("[S3][userRoutes] upload error for", webPath, "-", err?.message || err);
+    return null;
+  }
+}
+// --- REPLACE END ---
+
+
+/**
+ * Best-effort S3 mirroring for existing user media.
+ * Useful when upload logic lives inside controllers (e.g. uploadPhotoStep),
+ * so we can still ensure S3 has matching objects for /uploads/... paths.
+ *
+ * @param {any} userDoc
+ */
+async function mirrorUserMediaToS3(userDoc) {
+  try {
+    if (!userDoc) return;
+
+    const raw =
+      typeof userDoc.toObject === "function"
+        ? userDoc.toObject()
+        : typeof userDoc.toJSON === "function"
+        ? userDoc.toJSON()
+        : { ...userDoc };
+
+    const pathsSet = new Set();
+
+    if (raw.profilePicture) {
+      pathsSet.add(raw.profilePicture);
+    }
+
+    if (Array.isArray(raw.photos)) {
+      raw.photos.forEach((p) => p && pathsSet.add(p));
+    }
+
+    if (Array.isArray(raw.extraImages)) {
+      raw.extraImages.forEach((p) => p && pathsSet.add(p));
+    }
+
+    for (const localPath of pathsSet) {
+      const webPath = toWebPath(localPath);
+      if (!webPath) continue;
+
+      const ext = pathFs.extname(webPath).toLowerCase();
+      let mime;
+      if (ext === ".jpg" || ext === ".jpeg") mime = "image/jpeg";
+      else if (ext === ".png") mime = "image/png";
+      else if (ext === ".gif") mime = "image/gif";
+      else if (ext === ".webp") mime = "image/webp";
+
+      // eslint-disable-next-line no-await-in-loop
+      await uploadWebPathToS3(webPath, mime);
+    }
+  } catch (err) {
+    console.error(
+      "[S3][userRoutes] mirrorUserMediaToS3 error:",
+      err?.message || err
+    );
+  }
 }
 // --- REPLACE END ---
 
@@ -908,6 +1055,27 @@ router.put(
         user.photos = user.extraImages;
       }
 
+      // Best-effort: mirror profile media uploaded via /profile to S3
+      try {
+        if (req.files?.profilePhoto?.length) {
+          const f = req.files.profilePhoto[0];
+          const webPath = toWebPath(f.path);
+          await uploadWebPathToS3(webPath, f.mimetype);
+        }
+        if (req.files?.extraImages?.length) {
+          for (const f of req.files.extraImages) {
+            const webPath = toWebPath(f.path);
+            // eslint-disable-next-line no-await-in-loop
+            await uploadWebPathToS3(webPath, f.mimetype);
+          }
+        }
+      } catch (e) {
+        console.error(
+          "[S3][userRoutes] /profile media mirror error:",
+          e?.message || e
+        );
+      }
+
       const updated = await user.save();
       return res.json(normalizeUserOut(updated));
     } catch (err) {
@@ -1219,9 +1387,23 @@ router.post(
       const user = await User.findById(id);
       if (!user) return res.status(404).json({ error: "User not found" });
 
+      const localPath = req.file?.path;
+
       removeFile(user.profilePicture);
-      user.profilePicture = req.file?.path;
+      user.profilePicture = localPath;
+
       await user.save();
+
+      // Best-effort: mirror avatar to S3 using canonical /uploads/... path
+      try {
+        const webPath = toWebPath(localPath || "");
+        await uploadWebPathToS3(webPath, req.file?.mimetype);
+      } catch (e) {
+        console.error(
+          "[S3][userRoutes] avatar mirror error:",
+          e?.message || e
+        );
+      }
 
       return res.json(normalizeUserOut(user));
     } catch (err) {
@@ -1231,7 +1413,173 @@ router.post(
   }
 );
 
-// --- REPLACE START: direct upload-photos without controller; normalize and return full user ---
+// --- REPLACE START: upload-photo-step — mirror to S3, verify via HEAD (webPath), rollback on failure ---
+router.post(
+  "/:id/upload-photo-step",
+  authenticateToken,
+  mustBeSelfOrAdmin,
+  upload.single("photo"),
+  async (req, res, next) => {
+    let originalJson = null;
+
+    try {
+      const { uploadPhotoStep } = await getUserController();
+      if (typeof uploadPhotoStep !== "function") return res.sendStatus(404);
+
+      const User = await getUserModel();
+      if (!User) return res.status(500).json({ error: "User model not available" });
+
+      const userId = req.params.id;
+
+      // Snapshot BEFORE (rollback target if S3 verify fails)
+      const before = await User.findById(userId)
+        .select("photos extraImages profilePicture profilePhoto avatar")
+        .lean();
+
+      // Capture controller output (prevent early res.json send)
+      let capturedPayload = null;
+
+      originalJson = res.json.bind(res);
+      res.json = (payload) => {
+        capturedPayload = payload;
+        // Do NOT send now. We respond after mirror+verify.
+        return res;
+      };
+
+      await uploadPhotoStep(req, res, next);
+
+      // Restore json BEFORE we send our own response
+      res.json = originalJson;
+
+      // If controller already sent headers via res.send/res.end etc, bail out
+      if (res.headersSent) return;
+
+      const capturedStatus = res.statusCode || 200;
+      if (capturedStatus >= 400) {
+        return res
+          .status(capturedStatus)
+          .json(capturedPayload ?? { error: "Upload failed" });
+      }
+
+      // Fetch AFTER controller DB update
+      const afterController = await User.findById(userId).select("-password");
+      if (!afterController) return res.status(404).json({ error: "User not found" });
+
+      // Mirror to S3 (best-effort, but MUST be awaited)
+      await mirrorUserMediaToS3(afterController);
+
+      // Fetch AFTER mirror (this is what we return)
+      const afterMirror = await User.findById(userId).select("-password").lean();
+      if (!afterMirror) return res.status(404).json({ error: "User not found" });
+
+      // --- VERIFY: any NEW uploads must exist in S3 (HEAD). Rollback on failure.
+      // Use SAME client + SAME bucket config as mirror uses:
+      const client = getS3Client(); // uses S3_REGION + S3_BUCKET from this file
+      const { HeadObjectCommand } = await import("@aws-sdk/client-s3");
+
+      const toArr = (v) => (Array.isArray(v) ? v : v ? [v] : []);
+      const urlOf = (x) =>
+        typeof x === "string" ? x : x && typeof x.url === "string" ? x.url : null;
+
+      const asWeb = (v) => {
+        const u = urlOf(v);
+        return u ? toWebPath(u) : null; // normalize to "/uploads/..."
+      };
+
+      const beforeWeb = new Set(
+        [
+          ...toArr(before?.photos).map(asWeb),
+          ...toArr(before?.extraImages).map(asWeb),
+          asWeb(before?.profilePicture),
+          asWeb(before?.profilePhoto),
+          asWeb(before?.avatar),
+        ].filter(Boolean)
+      );
+
+      const afterWeb = [
+        ...toArr(afterMirror.photos).map(asWeb),
+        ...toArr(afterMirror.extraImages).map(asWeb),
+        asWeb(afterMirror.profilePicture),
+        asWeb(afterMirror.profilePhoto),
+        asWeb(afterMirror.avatar),
+      ].filter(Boolean);
+
+      const newWeb = afterWeb.filter((p) => !beforeWeb.has(p));
+      const uniqueNewWeb = Array.from(new Set(newWeb));
+
+      const missing = [];
+
+      if (client && uniqueNewWeb.length > 0) {
+        for (const webPath of uniqueNewWeb) {
+          // 1) ensure upload (retry upload just for NEW items)
+          const ext = pathFs.extname(webPath).toLowerCase();
+          let mime;
+          if (ext === ".jpg" || ext === ".jpeg") mime = "image/jpeg";
+          else if (ext === ".png") mime = "image/png";
+          else if (ext === ".gif") mime = "image/gif";
+          else if (ext === ".webp") mime = "image/webp";
+
+          // eslint-disable-next-line no-await-in-loop
+          const publicUrl = await uploadWebPathToS3(webPath, mime);
+          if (!publicUrl) {
+            missing.push(webPath);
+            continue;
+          }
+
+          // 2) HEAD verify
+          try {
+            const key = String(webPath).replace(/^\/+/, ""); // "/uploads/x" -> "uploads/x"
+            // eslint-disable-next-line no-await-in-loop
+            await client.send(new HeadObjectCommand({ Bucket: S3_BUCKET, Key: key }));
+          } catch {
+            missing.push(webPath);
+          }
+        }
+      }
+
+      if (missing.length > 0) {
+        // Rollback DB to BEFORE snapshot (best-effort)
+        try {
+          await User.findByIdAndUpdate(userId, {
+            $set: {
+              photos: before?.photos ?? [],
+              extraImages: before?.extraImages ?? [],
+              profilePicture: before?.profilePicture ?? null,
+              profilePhoto: before?.profilePhoto ?? null,
+              avatar: before?.avatar ?? null,
+            },
+          });
+        } catch (rbErr) {
+          console.error(
+            "[S3][userRoutes] upload-photo-step rollback error:",
+            rbErr?.message || rbErr
+          );
+        }
+
+        return res.status(502).json({
+          error: "S3 mirror/verify failed (rolled back DB)",
+          missing,
+        });
+      }
+
+      return res.json(normalizeUserOut(afterMirror));
+    } catch (err) {
+      // restore if we wrapped responders
+      try {
+        if (originalJson) res.json = originalJson;
+      } catch {}
+
+      console.error(
+        "[userRoutes] upload-photo-step handler error:",
+        err?.message || err
+      );
+      return res.status(500).json({ error: "Upload photo step failed" });
+    }
+  }
+);
+// --- REPLACE END ---
+
+// --- REPLACE START: upload-photos — multi-upload to /uploads + mirror to S3 + verify via HEAD + rollback on failure ---
 router.post(
   "/:id/upload-photos",
   authenticateToken,
@@ -1242,10 +1590,10 @@ router.post(
   ]),
   async (req, res) => {
     try {
-      console.log("[upload-photos] HIT direct handler (no controller)");
-
       const User = await getUserModel();
       if (!User) return res.status(500).json({ error: "User model not available" });
+
+      const userId = req.params.id;
 
       const files = [
         ...(req.files?.photos || []),
@@ -1253,20 +1601,31 @@ router.post(
       ];
 
       if (!files.length) {
-        return res.status(400).json({ error: "No files uploaded (use field 'photos')" });
+        return res
+          .status(400)
+          .json({ error: "No files uploaded (use field 'photos')" });
       }
 
-      const userId = req.params.id;
+      // Snapshot BEFORE (rollback target if S3 verify fails)
+      const before = await User.findById(userId)
+        .select("photos extraImages profilePicture profilePhoto avatar")
+        .lean();
+      if (!before) return res.status(404).json({ error: "User not found" });
+
+      // Load mutable doc
       const user = await User.findById(userId);
       if (!user) return res.status(404).json({ error: "User not found" });
 
-      const newPaths = files.map((f) => f.path);
+      const newLocalPaths = files.map((f) => f.path);
+
       const current =
         Array.isArray(user.photos) && user.photos.length
           ? user.photos
-          : user.extraImages || [];
+          : Array.isArray(user.extraImages)
+          ? user.extraImages
+          : [];
 
-      const merged = [...current, ...newPaths];
+      const merged = [...current, ...newLocalPaths];
       user.photos = merged;
       user.extraImages = merged;
 
@@ -1274,64 +1633,110 @@ router.post(
         user.profilePicture = merged[0];
       }
 
+      // Save DB first (so state matches filesystem), then mirror+verify and rollback if needed
       await user.save();
-      return res.json(normalizeUserOut(user));
+
+      // --- S3 mirror+verify only NEW items (dedupe)
+      const client = getS3Client();
+      const { HeadObjectCommand } = await import("@aws-sdk/client-s3");
+
+      const toArr = (v) => (Array.isArray(v) ? v : v ? [v] : []);
+      const urlOf = (x) =>
+        typeof x === "string" ? x : x && typeof x.url === "string" ? x.url : null;
+
+      const asWeb = (v) => {
+        const u = urlOf(v);
+        return u ? toWebPath(u) : null; // always "/uploads/..."
+      };
+
+      const beforeWeb = new Set(
+        [
+          ...toArr(before?.photos).map(asWeb),
+          ...toArr(before?.extraImages).map(asWeb),
+          asWeb(before?.profilePicture),
+          asWeb(before?.profilePhoto),
+          asWeb(before?.avatar),
+        ].filter(Boolean)
+      );
+
+      // NEW uploads from this request (local file paths)
+      const newWeb = newLocalPaths.map((p) => toWebPath(p)).filter(Boolean);
+      const uniqueNewWeb = Array.from(new Set(newWeb)).filter(
+        (p) => !beforeWeb.has(p)
+      );
+
+      const missing = [];
+
+      if (client && uniqueNewWeb.length > 0) {
+        for (const webPath of uniqueNewWeb) {
+          const ext = pathFs.extname(webPath).toLowerCase();
+          let mime;
+          if (ext === ".jpg" || ext === ".jpeg") mime = "image/jpeg";
+          else if (ext === ".png") mime = "image/png";
+          else if (ext === ".gif") mime = "image/gif";
+          else if (ext === ".webp") mime = "image/webp";
+
+          // 1) ensure upload
+          // eslint-disable-next-line no-await-in-loop
+          const publicUrl = await uploadWebPathToS3(webPath, mime);
+          if (!publicUrl) {
+            missing.push(webPath);
+            continue;
+          }
+
+          // 2) HEAD verify
+          try {
+            const key = String(webPath).replace(/^\/+/, ""); // "/uploads/x" -> "uploads/x"
+            // eslint-disable-next-line no-await-in-loop
+            await client.send(new HeadObjectCommand({ Bucket: S3_BUCKET, Key: key }));
+          } catch {
+            missing.push(webPath);
+          }
+        }
+      }
+
+      if (missing.length > 0) {
+        // Rollback DB to BEFORE snapshot (best-effort)
+        try {
+          await User.findByIdAndUpdate(userId, {
+            $set: {
+              photos: before?.photos ?? [],
+              extraImages: before?.extraImages ?? [],
+              profilePicture: before?.profilePicture ?? null,
+              profilePhoto: before?.profilePhoto ?? null,
+              avatar: before?.avatar ?? null,
+            },
+          });
+        } catch (rbErr) {
+          console.error(
+            "[S3][userRoutes] upload-photos rollback error:",
+            rbErr?.message || rbErr
+          );
+        }
+
+        return res.status(502).json({
+          error: "S3 mirror/verify failed (rolled back DB)",
+          missing,
+        });
+      }
+
+      // Return latest user
+      const fresh = await User.findById(userId).select("-password");
+      if (!fresh) return res.status(404).json({ error: "User not found" });
+
+      return res.json(normalizeUserOut(fresh));
     } catch (err) {
-      console.error("upload-photos (direct) error:", err?.message || err);
+      console.error("[userRoutes] upload-photos handler error:", err?.message || err);
       return res.status(500).json({ error: "Upload photos failed" });
     }
   }
 );
 // --- REPLACE END ---
 
-// --- REPLACE START: safer res.json interception for upload-photo-step ---
-router.post(
-  "/:id/upload-photo-step",
-  authenticateToken,
-  mustBeSelfOrAdmin,
-  upload.single("photo"),
-  async (req, res, next) => {
-    try {
-      const { uploadPhotoStep } = await getUserController();
-      if (typeof uploadPhotoStep !== "function") return res.sendStatus(404);
 
-      const User = await getUserModel();
-      let wrote = false;
 
-      const originalJson = res.json.bind(res);
-      res.json = async (payload) => {
-        try {
-          if (User) {
-            const fresh = await User.findById(req.params.id).select("-password");
-            wrote = true;
-            return originalJson(normalizeUserOut(fresh || payload));
-          }
-        } catch {
-          /* fall through */
-        }
-        wrote = true;
-        return originalJson(payload);
-      };
 
-      await uploadPhotoStep(req, res, next);
 
-      res.json = originalJson;
-
-      if (!wrote) {
-        try {
-          const fresh = await User.findById(req.params.id).select("-password");
-          return res.json(normalizeUserOut(fresh));
-        } catch {
-          return res.status(200).json({ ok: true });
-        }
-      }
-    } catch (err) {
-      console.error("upload-photo-step handler error:", err?.message || err);
-      return res.status(500).json({ error: "Upload photo step failed" });
-    }
-  }
-);
-// --- REPLACE END ---
 
 // DELETE /:id/photos/:slot
 router.delete(
@@ -1766,5 +2171,9 @@ try {
      is used across both /api/superlike/:id and this legacy /api/users/superlike/:id endpoint.
    - New: /api/users/nearby?city=Kouvola returns an ARRAY of users with latitude/longitude,
      excluding the current user and hidden profiles. This is what MapPage.jsx uses.
+   - New in this step: avatar, profile media, upload-photos and upload-photo-step flows now
+     mirror their `/uploads/...` paths to S3 (best-effort) using the same key format as imageRoutes.js.
+     If AWS_S3_BUCKET / AWS_REGION are not set, uploads still work locally exactly as before.
 ============================================================================= */
+
 

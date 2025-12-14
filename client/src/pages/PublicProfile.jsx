@@ -3,19 +3,40 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import api from "../utils/axiosInstance";
-// --- REPLACE START: add helper to build absolute image URLs safely ---
-import { BACKEND_BASE_URL } from "../utils/config";
+// --- REPLACE START: use absolutizeUploadPath for uploads (S3-safe) instead of raw BACKEND_BASE_URL concatenation ---
+import { absolutizeUploadPath } from "../utils/config";
 
-/** Build a safe absolute URL for images.
- * - Leaves http(s) URLs as-is
- * - Normalizes relative paths to start with a single '/'
- * - Prefixes with BACKEND_BASE_URL for server-hosted uploads
+/**
+ * Build a safe absolute URL for images.
+ * - Leaves http(s) URLs as-is.
+ * - Treats /assets/... as client-side assets (prefix window.location.origin).
+ * - For uploads and bare filenames, delegates to absolutizeUploadPath (BACKEND_BASE_URL-aware, S3-safe).
+ * - If backend base URL is not configured, falls back to a simple leading-slash path (old behavior).
  */
 function buildImgSrc(p) {
   if (!p || typeof p !== "string") return "";
-  if (/^https?:\/\//i.test(p)) return p;
-  const norm = p.startsWith("/") ? p : `/${p}`;
-  return `${BACKEND_BASE_URL}${norm}`;
+  const s = p.trim();
+  if (s === "") return "";
+
+  // Already absolute (S3 or any external host)
+  if (/^https?:\/\//i.test(s)) return s;
+
+  // Client-side static assets
+  if (s.startsWith("/assets/")) {
+    try {
+      return `${window.location.origin}${s}`;
+    } catch {
+      return s;
+    }
+  }
+
+  // Uploads / bare filenames → go through global helper (handles /uploads/, BACKEND_BASE_URL, S3, etc.)
+  const abs = absolutizeUploadPath(s);
+  if (abs) return abs;
+
+  // Fallback: behave like the original helper when backend base is not configured
+  const norm = s.startsWith("/") ? s : `/${s}`;
+  return norm;
 }
 // --- REPLACE END ---
 
@@ -121,3 +142,5 @@ const PublicProfile = () => {
 };
 
 export default PublicProfile;
+
+

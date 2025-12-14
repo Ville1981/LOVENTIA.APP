@@ -1,17 +1,17 @@
 {
-  "contactText": "If you have questions about this policy or your data, please contact support.",
-  "contactTitle": "How to contact us",
-  "howWeUseItText": "We use your data to provide and secure the app, fight fraud and abuse, improve features and – if you have given consent – measure usage and performance.",
-  "howWeUseItTitle": "How we use your data",
-  "intro": "We respect your privacy. This page explains what data we collect and why. We only collect the minimum necessary to operate the Loventia service.",
-  "lastUpdatedPrefix": "Last updated:",
-  "title": "Privacy Policy",
+  "contactText": "Se hai domande su questa informativa o sui tuoi dati, puoi contattare il nostro supporto tramite l’app o via e‑mail.",
+  "contactTitle": "Come contattarci",
+  "howWeUseItText": "Utilizziamo i tuoi dati per fornire e proteggere il servizio, prevenire frodi e abusi e migliorare Loventia. Non vendiamo i tuoi dati personali.",
+  "howWeUseItTitle": "Come utilizziamo i tuoi dati",
+  "intro": "Rispettiamo la tua privacy. In questa pagina spieghiamo quali dati raccogliamo e perché. Raccogliamo solo i dati necessari per far funzionare il servizio Loventia.",
+  "lastUpdatedPrefix": "Ultimo aggiornamento:",
+  "title": "Informativa sulla privacy",
   "whatWeCollectItems": {
-    "accountDetails": "Account details (email, profile data you add).",
-    "analytics": "Optional analytics (only if you consent) to understand how the app is used.",
-    "technicalLogs": "Technical logs (IP address, browser and device information) to secure the service."
+    "accountDetails": "Dati dell’account (indirizzo e‑mail, dati del profilo che aggiungi).",
+    "analytics": "Dati di analisi facoltativi (solo con il tuo consenso) per capire come viene utilizzata l’applicazione.",
+    "technicalLogs": "Log tecnici (indirizzo IP, informazioni sul browser e sul dispositivo) per proteggere il servizio."
   },
-  "whatWeCollectTitle": "What we collect",
-  "yourRightsText": "You can request access, correction or deletion of your data at any time. You can also withdraw consent where it was the legal basis for processing.",
-  "yourRightsTitle": "Your rights"
+  "whatWeCollectTitle": "Dati che raccogliamo",
+  "yourRightsText": "Nei limiti previsti dalla legge, puoi richiedere in qualsiasi momento l’accesso ai tuoi dati e chiederne la rettifica o la cancellazione.",
+  "yourRightsTitle": "I tuoi diritti"
 }

@@ -19,53 +19,53 @@
     "whoLikedMeTitle": "See who liked you"
   },
   "hub": {
-    "activeHint": "Premium is active. Most benefits below should already be unlocked.",
-    "benefitsDescription": "Here is a quick overview of what Premium offers. Active benefits are highlighted, locked ones are shown in gray.",
-    "benefitsTitle": "Premium benefits",
-    "currentPlanDescription": "This page shows your current Premium status and the benefits that are active on your account.",
-    "currentPlanTitle": "Your current plan",
-    "freeHint": "You are currently on the Free plan. Upgrade to unlock all Premium benefits.",
-    "manageSubscription": "Manage subscription",
-    "note": "Some benefits may depend on local laws or safety rules. We may roll out new Premium features over time.",
-    "planLabel": "Current plan:",
-    "syncHint": "If something looks out of date, open Subscription Settings and press Sync. It will pull the latest entitlements from billing.",
+    "activeHint": "Premium è attivo. La maggior parte dei vantaggi qui sotto dovrebbe essere già sbloccata.",
+    "benefitsDescription": "Qui trovi un riepilogo veloce di ciò che offre Premium. I vantaggi attivi sono evidenziati, quelli bloccati sono mostrati in grigio.",
+    "benefitsTitle": "Vantaggi di Premium",
+    "currentPlanDescription": "Questa pagina mostra il tuo stato Premium attuale e i vantaggi attivi sul tuo account.",
+    "currentPlanTitle": "Il tuo piano attuale",
+    "freeHint": "Al momento sei nel piano Gratuito. Passa a Premium per sbloccare tutti i vantaggi.",
+    "manageSubscription": "Gestisci abbonamento",
+    "note": "Alcuni vantaggi possono dipendere dalle leggi locali o dalle regole di sicurezza. Potremmo introdurre nuove funzioni Premium nel tempo.",
+    "planLabel": "Piano attuale:",
+    "syncHint": "Se qualcosa sembra non aggiornato, apri Impostazioni abbonamento e premi Sincronizza. Recupereremo i permessi più recenti dalla fatturazione.",
     "title": "Premium Hub",
-    "upgradeNow": "Upgrade to Premium",
+    "upgradeNow": "Passa a Premium",
     "planPremium": "Premium",
-    "planFree": "Free",
+    "planFree": "Gratuito",
     "benefits": {
       "noAds": {
-        "title": "Ad-free experience",
-        "description": "No banner ads across Loventia."
+        "title": "Esperienza senza pubblicità",
+        "description": "Nessun banner o annuncio laterale su Loventia."
       },
       "unlimitedLikes": {
-        "title": "Unlimited Likes",
-        "description": "Like as many profiles as you want every day."
+        "title": "Mi piace illimitati",
+        "description": "Metti Mi piace a tutti i profili che vuoi ogni giorno."
       },
       "unlimitedRewinds": {
-        "title": "Unlimited Rewinds",
-        "description": "Go back to the previous profile if you swiped too fast."
+        "title": "Rewind illimitati",
+        "description": "Torna al profilo precedente se hai fatto swipe troppo in fretta."
       },
       "whoLikedMe": {
-        "title": "See who liked you",
-        "description": "Open the Likes overview to see who already liked you."
+        "title": "Vedi chi ti ha messo Mi piace",
+        "description": "Apri la vista Mi piace per vedere subito chi ti ha già messo Mi piace."
       },
       "superLikesPerWeek": {
-        "title": "Weekly Super Likes",
-        "descriptionWithCount": "You currently get {{count}} Super Likes per week.",
-        "description": "Highlight yourself with Super Likes each week."
+        "title": "Super Like settimanali",
+        "descriptionWithCount": "Al momento ricevi {{count}} Super Like a settimana.",
+        "description": "Metti in evidenza il tuo profilo con alcuni Super Like ogni settimana."
       },
       "intros": {
-        "title": "Intro messages",
-        "description": "Send a first message even before you match (where allowed)."
+        "title": "Messaggi introduttivi",
+        "description": "Invia un primo messaggio anche prima di fare match (dove è consentito)."
       },
       "dealbreakers": {
-        "title": "Dealbreaker filters",
-        "description": "Use hard filters in Discover to only see matches that fit your must-haves."
+        "title": "Filtri irrinunciabili",
+        "description": "Usa filtri rigidi in Scopri per vedere solo i profili che rispettano i tuoi requisiti fondamentali."
       },
       "badge": {
-        "title": "Premium badge",
-        "description": "Show a small Premium badge on your profile and messages."
+        "title": "Badge Premium",
+        "description": "Mostra un piccolo badge Premium sul tuo profilo e nei tuoi messaggi."
       }
     }
   },
