@@ -57,16 +57,52 @@ jobs:
         uses: actions/checkout@v4
 
       # -------------------------------------------------------------
-      # Node.js toolchain + dependency cache
+      # Detect lockfiles to avoid cache path errors
+      # NOTE: This repo uses a root package-lock.json (no client/package-lock.json).
       # -------------------------------------------------------------
-      - name: Setup Node
+      - name: Detect lockfiles
+        id: locks
+        shell: bash
+        working-directory: .
+        run: |
+          if [[ -f "package-lock.json" ]]; then
+            echo "root_lock=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "root_lock=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if [[ -f "client/package-lock.json" ]]; then
+            echo "client_lock=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "client_lock=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # -------------------------------------------------------------
+      # Node.js toolchain + dependency cache
+      # Use cache only when the referenced lockfile exists.
+      # -------------------------------------------------------------
+      - name: Setup Node (cached)
+        if: steps.locks.outputs.root_lock == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: client/package-lock.json
+          # Cache from repo root lockfile (this exists in your repo)
+          cache-dependency-path: package-lock.json
 
+      - name: Setup Node (no cache)
+        if: steps.locks.outputs.root_lock != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # -------------------------------------------------------------
+      # Install dependencies
+      # IMPORTANT: Install from repo root because package-lock.json is in the root.
+      # Client build still runs in ./client (defaults.run.working-directory).
+      # -------------------------------------------------------------
       - name: Install dependencies
+        working-directory: .
         run: npm ci
 
       # -------------------------------------------------------------
@@ -201,4 +237,8 @@ jobs:
           echo "S3 bucket: ${{ steps.bucket.outputs.value }}"
           echo "CloudFront: ${{ steps.cf.outputs.id }}"
 # --- REPLACE END ---
+
+
+
+
 
