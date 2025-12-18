@@ -6,8 +6,11 @@ name: Client Deploy
 on:
   push:
     branches:
+      # --- REPLACE START: include your staging/debug branch if you deploy from it ---
       - develop
       - main
+      - varaoksa21
+      # --- REPLACE END ---
   # Manual trigger is handy during setup/debug
   workflow_dispatch:
 
@@ -85,7 +88,9 @@ jobs:
         if: steps.locks.outputs.root_lock == 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # --- REPLACE START: Node 22 to satisfy packages with strict engines (e.g., artillery) ---
+          node-version: 22
+          # --- REPLACE END ---
           cache: npm
           # Cache from repo root lockfile (this exists in your repo)
           cache-dependency-path: package-lock.json
@@ -94,7 +99,9 @@ jobs:
         if: steps.locks.outputs.root_lock != 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # --- REPLACE START: keep Node version consistent even without cache ---
+          node-version: 22
+          # --- REPLACE END ---
 
       # -------------------------------------------------------------
       # Install dependencies
@@ -103,7 +110,17 @@ jobs:
       # -------------------------------------------------------------
       - name: Install dependencies
         working-directory: .
-        run: npm ci
+        shell: bash
+        run: |
+          # --- REPLACE START: support both workspace and non-workspace installs safely ---
+          if [[ -f "package.json" ]] && grep -q '"workspaces"' package.json; then
+            echo "Detected npm workspaces in root package.json -> running workspace-aware npm ci"
+            npm ci --workspaces --include-workspace-root
+          else
+            echo "No npm workspaces detected -> running standard npm ci"
+            npm ci
+          fi
+          # --- REPLACE END ---
 
       # -------------------------------------------------------------
       # i18n audit BEFORE build (robust: only run if script exists)
@@ -137,15 +154,21 @@ jobs:
       # - IAM role trust policy for GitHub OIDC provider
       # -------------------------------------------------------------
       - name: Configure AWS credentials (OIDC)
-        if: ((github.ref_name == 'develop' && vars.AWS_ROLE_TO_ASSUME_STAGING != '') || (github.ref_name == 'main' && vars.AWS_ROLE_TO_ASSUME != ''))
+        # --- REPLACE START: treat any non-main branch as staging (develop, varaoksa21, etc.) ---
+        if: ((github.ref_name == 'main' && vars.AWS_ROLE_TO_ASSUME != '') || (github.ref_name != 'main' && vars.AWS_ROLE_TO_ASSUME_STAGING != ''))
+        # --- REPLACE END ---
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ github.ref_name == 'develop' && vars.AWS_ROLE_TO_ASSUME_STAGING || vars.AWS_ROLE_TO_ASSUME }}
+          # --- REPLACE START: select prod role for main, staging role for everything else ---
+          role-to-assume: ${{ github.ref_name == 'main' && vars.AWS_ROLE_TO_ASSUME || vars.AWS_ROLE_TO_ASSUME_STAGING }}
+          # --- REPLACE END ---
           aws-region: ${{ env.AWS_REGION }}
           audience: sts.amazonaws.com
 
       - name: Configure AWS credentials (static keys)
-        if: ((github.ref_name == 'develop' && vars.AWS_ROLE_TO_ASSUME_STAGING == '') || (github.ref_name == 'main' && vars.AWS_ROLE_TO_ASSUME == ''))
+        # --- REPLACE START: fallback keys for both prod and staging when role vars are missing ---
+        if: ((github.ref_name == 'main' && vars.AWS_ROLE_TO_ASSUME == '') || (github.ref_name != 'main' && vars.AWS_ROLE_TO_ASSUME_STAGING == ''))
+        # --- REPLACE END ---
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -168,7 +191,7 @@ jobs:
               echo "value=${{ secrets.S3_BUCKET_PROD }}" >> "$GITHUB_OUTPUT"
             fi
           else
-            # Staging branch (develop)
+            # Staging branch (develop / varaoksa21 / etc.)
             if [[ -n "${{ vars.S3_BUCKET_STAGING }}" ]]; then
               echo "value=${{ vars.S3_BUCKET_STAGING }}" >> "$GITHUB_OUTPUT"
             else
@@ -237,8 +260,4 @@ jobs:
           echo "S3 bucket: ${{ steps.bucket.outputs.value }}"
           echo "CloudFront: ${{ steps.cf.outputs.id }}"
 # --- REPLACE END ---
-
-
-
-
 
