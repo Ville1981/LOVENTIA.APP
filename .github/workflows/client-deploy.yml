@@ -1,4 +1,4 @@
-# File: .github/workflows/client-deploy.yml
+# PATH: .github/workflows/client-deploy.yml
 
 # --- REPLACE START: unify workflow, add least-privilege permissions, expose test env vars, keep behavior intact ---
 name: Client Deploy
@@ -11,8 +11,13 @@ on:
   # Manual trigger is handy during setup/debug
   workflow_dispatch:
 
+# Avoid overlapping deploys per-branch
+concurrency:
+  group: client-deploy-${{ github.ref_name }}
+  cancel-in-progress: true
+
 # GitHub token scope for this workflow.
-# Keep read access for repo contents and allow OIDC (id-token) for a future AWS migration.
+# Keep read access for repo contents and allow OIDC (id-token) for AWS keyless auth.
 permissions:
   id-token: write
   contents: read
@@ -28,8 +33,11 @@ jobs:
   build-deploy:
     name: Build client, deploy to S3, invalidate CloudFront
     runs-on: ubuntu-latest
-    # Use the GitHub Environment "staging" so this job gets environment-scoped secrets.
-    environment: staging
+
+    # Use GitHub Environments for env-scoped secrets/vars.
+    # main   -> production
+    # develop-> staging
+    environment: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
 
     # Default working directory for all "run:" steps to keep file paths short/consistent.
     defaults:
@@ -62,13 +70,16 @@ jobs:
         run: npm ci
 
       # -------------------------------------------------------------
-      # i18n audit BEFORE build to keep bundles clean
-      # If this is too strict for now, use the soft-fail variant below.
+      # i18n audit BEFORE build (robust: only run if script exists)
       # -------------------------------------------------------------
       - name: i18n audit
-        run: npm run i18n:audit
-        # Soft-fail alternative (uncomment to warn instead of fail):
-        # run: npm run i18n:audit || echo "::warning::i18n audit failed but continuing"
+        shell: bash
+        run: |
+          if npm run | grep -qE ' i18n:audit\b'; then
+            npm run i18n:audit
+          else
+            echo "::notice::No i18n:audit script found in client/package.json; skipping."
+          fi
 
       # -------------------------------------------------------------
       # Build production client bundle
@@ -82,30 +93,32 @@ jobs:
 
       # -------------------------------------------------------------
       # AWS credentials configuration
-      # We KEEP your current static-keys method (from GitHub Secrets).
-      # When you migrate to OIDC, use the commented block below instead.
+      # Preferred: OIDC (keyless). Fallback: static keys.
+      #
+      # OIDC requires:
+      # - repo/org variable for prod:    AWS_ROLE_TO_ASSUME (arn:aws:iam::<acct>:role/<role>)
+      # - repo/org variable for staging: AWS_ROLE_TO_ASSUME_STAGING (arn:aws:iam::<acct>:role/<role>)
+      # - IAM role trust policy for GitHub OIDC provider
       # -------------------------------------------------------------
-      - name: Configure AWS credentials (static keys)
-        if: github.ref_name == 'develop' || github.ref_name == 'main'
+      - name: Configure AWS credentials (OIDC)
+        if: ((github.ref_name == 'develop' && vars.AWS_ROLE_TO_ASSUME_STAGING != '') || (github.ref_name == 'main' && vars.AWS_ROLE_TO_ASSUME != ''))
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region:            ${{ env.AWS_REGION }}
+          role-to-assume: ${{ github.ref_name == 'develop' && vars.AWS_ROLE_TO_ASSUME_STAGING || vars.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+          audience: sts.amazonaws.com
 
-      # --- OIDC (future, recommended) --------------------------------
-      # - name: Configure AWS credentials (OIDC)
-      #   if: github.ref_name == 'develop' || github.ref_name == 'main'
-      #   uses: aws-actions/configure-aws-credentials@v4
-      #   with:
-      #     role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}    # ex: arn:aws:iam::<account>:role/<role-name>
-      #     aws-region:     ${{ env.AWS_REGION }}
-      #     audience:       sts.amazonaws.com
-      # ---------------------------------------------------------------
+      - name: Configure AWS credentials (static keys)
+        if: ((github.ref_name == 'develop' && vars.AWS_ROLE_TO_ASSUME_STAGING == '') || (github.ref_name == 'main' && vars.AWS_ROLE_TO_ASSUME == ''))
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
       # -------------------------------------------------------------
       # Resolve target S3 bucket by branch.
-      # Prefer repository variables; fall back to old per-env secrets.
+      # Prefer repository variables; fall back to per-env secrets.
       # -------------------------------------------------------------
       - name: Resolve S3 bucket (staging/prod)
         id: bucket
@@ -126,7 +139,6 @@ jobs:
               echo "value=${{ secrets.S3_BUCKET_STAGING }}" >> "$GITHUB_OUTPUT"
             fi
           fi
-          echo "Selected bucket: $(cat $GITHUB_OUTPUT | cut -d= -f2- | tail -n1)"
 
       # -------------------------------------------------------------
       # Upload built assets to S3 (sync keeps bucket tidy)
@@ -162,7 +174,6 @@ jobs:
               echo "id=${{ secrets.CLOUDFRONT_DISTRIBUTION_ID_STAGING }}" >> "$GITHUB_OUTPUT"
             fi
           fi
-          echo "Selected distribution: $(cat $GITHUB_OUTPUT | cut -d= -f2- | tail -n1)"
 
       # -------------------------------------------------------------
       # Invalidate CloudFront cache to roll out the fresh build
@@ -179,32 +190,15 @@ jobs:
           aws cloudfront create-invalidation --distribution-id "${DIST_ID}" --paths "/*"
 
       # -------------------------------------------------------------
-      # (Optional) Post-deploy sanity print
+      # Post-deploy summary (safe: prints no secrets)
       # -------------------------------------------------------------
       - name: Deployment summary
         shell: bash
         run: |
           echo "Branch: ${GITHUB_REF_NAME}"
+          echo "Environment: ${{ github.ref_name == 'main' && 'production' || 'staging' }}"
           echo "Region: ${AWS_REGION}"
           echo "S3 bucket: ${{ steps.bucket.outputs.value }}"
           echo "CloudFront: ${{ steps.cf.outputs.id }}"
 # --- REPLACE END ---
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
