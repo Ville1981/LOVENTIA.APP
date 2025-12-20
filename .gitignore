@@ -80,3 +80,6 @@ _pack/
 
 client/i18n-report/
 
+
+*.bak-heroTekstit
+
