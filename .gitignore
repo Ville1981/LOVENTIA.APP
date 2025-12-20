@@ -77,3 +77,6 @@ nul
 # Diagnostic/pack bundles (keep out of git)
 _diag/
 _pack/
+
+client/i18n-report/
+

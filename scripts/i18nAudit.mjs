@@ -1,4 +1,4 @@
-// PATH: scripts/i18nAudit.mjs
+﻿// PATH: scripts/i18nAudit.mjs
 
 // --- REPLACE START: single source-of-truth i18n audit (supports translation.json and namespace *.json) ---
 //
@@ -12,8 +12,8 @@
 //    <locales>/<lang>/common.json, discover.json, ...
 //
 // It compares ALL keys present in EN against every other language and reports:
-// - Missing keys (present in EN but missing in target language)
-// - Extra keys (present in target language but not in EN)
+// - Missing keys (in target lang but present in EN)
+// - Extra keys (in target lang but not in EN)
 // - Invalid JSON files
 //
 // Exit codes:
@@ -27,9 +27,14 @@
 //   node scripts/i18nAudit.mjs --fill
 //
 // Notes:
-// - This script never deletes translations.
+// - This script never deletes translations arbitrarily.
 // - When --fill is used, only missing keys are filled with EN values.
-// - Comments are in English by request.
+// - IMPORTANT: If EN expects a "leaf" value (array/string/number/bool/null) at key K,
+//   but a target language has nested keys under K.* (i.e. K is an object), then K is a
+//   TYPE MISMATCH and must be normalized. In --fill mode we remove K.* before writing K,
+//   so the file ends up with the correct shape.
+//
+// Comments are in English by request.
 //
 // ------------------------------------------------------------
 
@@ -99,22 +104,31 @@ const writeCsv = (file, rows) => {
   fs.writeFileSync(file, lines.join("\n") + "\n", "utf8");
 };
 
-const isPlainObject = (v) => v && typeof v === "object" && !Array.isArray(v);
+const isPlainObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 
 const flatten = (obj, parent = "", out = {}) => {
+  // Arrays are leaf values (do not flatten indexes)
+  if (Array.isArray(obj)) {
+    out[parent] = obj;
+    return out;
+  }
+
   if (!isPlainObject(obj)) {
     out[parent] = obj;
     return out;
   }
+
   for (const [k, v] of Object.entries(obj)) {
     const key = parent ? `${parent}.${k}` : k;
     if (isPlainObject(v)) flatten(v, key, out);
-    else out[key] = v;
+    else out[key] = v; // includes arrays
   }
   return out;
 };
 
-// Build nested tree from flat pairs; safely promote scalars to objects if needed
+// Build nested tree from flat pairs; safely promote scalars/arrays to objects if needed
+// NOTE: If both "a.b" (leaf) and "a.b.c" (descendant) exist, the descendant will force "a.b" to become object.
+// Therefore in --fill we remove "a.b.*" descendants when EN expects "a.b" as a leaf.
 const unflatten = (pairs) => {
   const root = {};
   const setPath = (obj, parts, value) => {
@@ -140,7 +154,59 @@ const abort = (msg) => {
   process.exit(1);
 };
 
-const hasOwn = (obj, key) => Object.hasOwn ? Object.hasOwn(obj, key) : Object.prototype.hasOwnProperty.call(obj, key);
+// Returns true if flat-map contains any descendant key under prefix "k."
+const hasDescendants = (flatMap, k) => {
+  const prefix = `${k}.`;
+  for (const kk of Object.keys(flatMap)) {
+    if (kk.startsWith(prefix)) return true;
+  }
+  return false;
+};
+
+// Remove all descendant keys under "k." from a flat-map (in-place)
+const deleteDescendants = (flatMap, k) => {
+  const prefix = `${k}.`;
+  for (const kk of Object.keys(flatMap)) {
+    if (kk.startsWith(prefix)) delete flatMap[kk];
+  }
+};
+
+// Determine if EN expects a "leaf" at key k (i.e. not a plain object)
+const enExpectsLeaf = (enFlat, k) => {
+  // If EN flatten created key "k", that is by definition a leaf in EN (array/string/number/bool/null).
+  // If EN does not have key "k" but has descendants, then EN expects object.
+  return Object.prototype.hasOwnProperty.call(enFlat, k);
+};
+
+// --- REPLACE START: robust shape enforcement helpers for leaf keys (fixes array/scalar -> object regressions) ---
+// Get a value at dotted path; returns undefined if any segment is missing or not an object before the leaf.
+const getAtPath = (obj, dotted) => {
+  const parts = dotted.split(".");
+  let cur = obj;
+  for (const p of parts) {
+    if (!cur || typeof cur !== "object") return undefined;
+    cur = cur[p];
+  }
+  return cur;
+};
+
+// Set a value at dotted path; creates intermediate objects as needed.
+// If an intermediate segment exists but is not an object (or is an array), it is replaced with an object.
+const setAtPath = (obj, dotted, value) => {
+  const parts = dotted.split(".");
+  let cur = obj;
+  for (let i = 0; i < parts.length; i++) {
+    const p = parts[i];
+    const isLeaf = i === parts.length - 1;
+    if (isLeaf) {
+      cur[p] = value;
+    } else {
+      if (!cur[p] || typeof cur[p] !== "object" || Array.isArray(cur[p])) cur[p] = {};
+      cur = cur[p];
+    }
+  }
+};
+// --- REPLACE END ---
 
 // -------------------- Locales dir detection --------------------
 const detectLocalesDir = () => {
@@ -148,13 +214,13 @@ const detectLocalesDir = () => {
 
   // Typical monorepo layout: repoRoot/client/public/locales
   const candidateA = path.resolve(__dirname, "..", "client", "public", "locales");
-  // Typical single-app layout when running from client/: public/locales
+  // Typical single-app layout when running from client/: client/public/locales or public/locales
   const candidateB = path.resolve(process.cwd(), "public", "locales");
 
   if (exists(candidateA)) return candidateA;
   if (exists(candidateB)) return candidateB;
 
-  // Last resort: repoRoot/public/locales
+  // Last resort: try repoRoot/public/locales
   const candidateC = path.resolve(__dirname, "..", "public", "locales");
   if (exists(candidateC)) return candidateC;
 
@@ -201,7 +267,9 @@ const hasTranslationJson = enFiles.includes("translation.json");
 const mode = hasTranslationJson ? "translation" : "namespaces";
 
 console.log(`[i18nAudit] Locales dir: ${LOCALES_DIR}`);
-console.log(`[i18nAudit] Mode: ${mode === "translation" ? "translation.json" : "namespace *.json files"}`);
+console.log(
+  `[i18nAudit] Mode: ${mode === "translation" ? "translation.json" : "namespace *.json files"}`
+);
 console.log(`[i18nAudit] Fill missing: ${DO_FILL && mode === "translation" ? "YES" : "NO"}`);
 
 if (DO_FILL && mode !== "translation") {
@@ -211,7 +279,7 @@ if (DO_FILL && mode !== "translation") {
 // -------------------- Load EN baseline keys --------------------
 const loadEnBaseline = () => {
   const baseline = {
-    files: {}, // fileName -> flat map of keys -> value
+    files: {}, // fileName -> flat map of keys
     allKeys: new Set(), // fileName:key -> present
   };
 
@@ -266,17 +334,18 @@ for (const lang of languages.sort()) {
 
   for (const fileName of filesToUse) {
     const filePath = path.join(LOCALES_DIR, lang, fileName);
-    const enFlat = enBaseline.files[fileName] ?? {};
-    const enKeys = Object.keys(enFlat);
 
+    // -------------------- Missing file -> all EN keys in that file are missing --------------------
     if (!exists(filePath)) {
-      // Missing file => all EN keys in that file are missing
-      missingKeysThisLang.push(...enKeys.map((k) => `${fileName}:${k} (file missing)`));
+      const enFlat = enBaseline.files[fileName] ?? {};
+      const enKeys = Object.keys(enFlat).map((k) => `${fileName}:${k}`);
+      missingKeysThisLang.push(...enKeys.map((k) => `${k} (file missing)`));
       missingCount += enKeys.length;
       hasProblems = true;
       continue;
     }
 
+    // -------------------- Read + parse --------------------
     const json = readJsonSafe(filePath);
     if (json.__INVALID__) {
       invalidFilesCount += 1;
@@ -285,40 +354,108 @@ for (const lang of languages.sort()) {
       continue;
     }
 
-    // Flatten target language file
     let flat = flatten(json);
+    const enFlat = enBaseline.files[fileName] ?? {};
 
-    // --- REPLACE START: apply --fill BEFORE counting missing keys ---
+    // --- REPLACE START: normalize conflicting shapes during --fill, then audit against the updated flat map ---
+    //
+    // Key point:
+    // - EN expects leaf key "etusivu.heroTekstit" (array), but FI had "etusivu.heroTekstit.*" as object children.
+    //   Without removing descendants, unflatten will convert the array back into object.
+    //
+    // Additional hardening:
+    // - Even after deleting descendants in the flat map, a file may still end up with the wrong shape
+    //   due to stale conflicting structures. After building the tree we enforce EN leaf shapes:
+    //   if EN expects a leaf at K, then tree[K] is overwritten with EN value (array/scalar), removing nested objects.
+    //
     if (DO_FILL && mode === "translation" && fileName === "translation.json") {
+      const enKeys = Object.keys(enFlat);
       const filled = { ...flat };
-      let filledN = 0;
+
+      let changed = 0;
 
       for (const k of enKeys) {
-        if (!hasOwn(filled, k)) {
-          filled[k] = enFlat[k];
-          filledN += 1;
+        const enHasLeaf = enExpectsLeaf(enFlat, k);
+
+        if (enHasLeaf) {
+          // EN expects a leaf at k. If target has descendants (k.*), that's a type mismatch.
+          if (hasDescendants(filled, k)) {
+            // Remove descendants so the leaf can survive unflatten.
+            deleteDescendants(filled, k);
+            changed += 1;
+          }
+
+          // If the leaf itself is missing, fill it from EN.
+          if (!Object.prototype.hasOwnProperty.call(filled, k)) {
+            filled[k] = enFlat[k];
+            changed += 1;
+          }
+        } else {
+          // EN expects object (descendants) at k. We do not auto-create object structures here.
         }
       }
 
-      if (filledN > 0) {
+      if (changed > 0) {
         const tree = unflatten(filled);
+
+        // Enforce EN leaf shapes at tree-level to prevent array/scalar -> object regressions.
+        // If EN expects a leaf at key K, and target tree has an object at K, overwrite K with EN value.
+        let enforced = 0;
+        for (const k of enKeys) {
+          if (!Object.prototype.hasOwnProperty.call(enFlat, k)) continue; // only leaf keys are present in enFlat
+          const expected = enFlat[k];
+          const actual = getAtPath(tree, k);
+
+          // EN leaf can be array/string/number/bool/null; EN leaf is never a plain object here.
+          if (isPlainObject(actual)) {
+            setAtPath(tree, k, expected);
+            enforced += 1;
+          } else if (Array.isArray(expected) && !Array.isArray(actual)) {
+            // If EN expects array but target is scalar (or missing), force array.
+            setAtPath(tree, k, expected);
+            enforced += 1;
+          }
+        }
+
         writeJson(filePath, tree);
-        console.log(`[i18nAudit] Filled ${lang}/${fileName} with ${filledN} missing keys from EN`);
-        flat = filled; // IMPORTANT: keep counting against the filled set
+
+        // Re-flatten AFTER writing to ensure audit uses the real final structure.
+        flat = flatten(tree);
+
+        const total = changed + enforced;
+        console.log(
+          `[i18nAudit] Filled/normalized ${lang}/${fileName} (${total} structural/key updates from EN)`
+        );
       }
     }
     // --- REPLACE END ---
 
-    // Missing keys (EN -> lang)
-    for (const k of enKeys) {
-      if (!hasOwn(flat, k)) {
-        missingKeysThisLang.push(`${fileName}:${k}`);
-        missingCount += 1;
+    // -------------------- Missing keys (EN -> lang) --------------------
+    // NOTE: If EN expects a leaf key K, but lang only has K.* descendants, it's a type mismatch.
+    // We report it as missing K (type mismatch) because the UI expects the EN shape.
+    for (const k of Object.keys(enFlat)) {
+      // --- idxfix: ignore EN array index keys like "etusivu.heroTekstit.0"
+      // If the target language has the base key as an array (e.g. "etusivu.heroTekstit": [...]),
+      // we should NOT require .0/.1/.2.
+      const mIdx = k.match(/^(.*)\.(\d+)$/);
+      if (mIdx) {
+        const base = mIdx[1];
+        if (Object.prototype.hasOwnProperty.call(flat, base) && Array.isArray(flat[base])) continue;
       }
+      if (Object.prototype.hasOwnProperty.call(flat, k)) continue;
+
+      if (hasDescendants(flat, k)) {
+        // Type mismatch: EN has leaf at k, lang has object at k (descendants exist)
+        missingKeysThisLang.push(`${fileName}:${k} (type mismatch: expected leaf like EN, found nested object)`);
+      } else {
+        missingKeysThisLang.push(`${fileName}:${k}`);
+      }
+      missingCount += 1;
+      hasProblems = true;
     }
 
-    // Extra keys (lang -> EN)
-    const enKeySet = new Set(enKeys);
+    // -------------------- Extra keys (lang -> EN) --------------------
+    const enKeySet = new Set(Object.keys(enFlat));
     for (const k of Object.keys(flat)) {
       if (!enKeySet.has(k)) {
         extraKeysThisLang.push(`${fileName}:${k}`);
@@ -327,10 +464,7 @@ for (const lang of languages.sort()) {
     }
   }
 
-  if (missingKeysThisLang.length) {
-    missingReport[lang] = missingKeysThisLang.sort();
-    hasProblems = true; // mark problems once per lang if any missing remain
-  }
+  if (missingKeysThisLang.length) missingReport[lang] = missingKeysThisLang.sort();
   if (extraKeysThisLang.length) extraReport[lang] = extraKeysThisLang.sort();
   if (invalidFilesThisLang.length) invalidReport[lang] = invalidFilesThisLang;
 
@@ -377,11 +511,15 @@ if (OUT_DIR) {
 
 // -------------------- Exit code --------------------
 if (hasProblems) {
-  console.log("\n[i18nAudit] ❌ Missing keys and/or invalid JSON detected.");
+  console.log("\n[i18nAudit] âŒ Missing keys and/or invalid JSON detected.");
   process.exit(1);
 } else {
-  console.log("\n[i18nAudit] ✅ OK (no missing keys, no invalid JSON).");
+  console.log("\n[i18nAudit] âœ… OK (no missing keys, no invalid JSON).");
   process.exit(0);
 }
 // --- REPLACE END ---
+
+
+
+
 

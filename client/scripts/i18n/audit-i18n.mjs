@@ -1,5 +1,12 @@
+// PATH: client/scripts/i18n/audit-i18n.mjs
+
 // --- REPLACE START: i18n key auditor (+ optional fill) ---
-// Usage:
+// Usage (from /client):
+//   node scripts/i18n/audit-i18n.mjs \
+//     --locales-dir public/locales \
+//     --out-dir i18n-report [--fill]
+//
+// Usage (from repo root):
 //   node client/scripts/i18n/audit-i18n.mjs \
 //     --locales-dir client/public/locales \
 //     --out-dir client/i18n-report [--fill]
@@ -23,23 +30,20 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 // -------------------- CLI --------------------
 const args = process.argv.slice(2);
+
 const getFlag = (name, def = undefined) => {
-  const i = args.findIndex(a => a === name || a.startsWith(`${name}=`));
+  const i = args.findIndex((a) => a === name || a.startsWith(`${name}=`));
   if (i === -1) return def;
   const eq = args[i].indexOf("=");
   if (eq >= 0) return args[i].slice(eq + 1);
   return args[i + 1] && !args[i + 1].startsWith("--") ? args[i + 1] : true;
 };
 
-const LOCALES_DIR = path.resolve(getFlag("--locales-dir", "client/public/locales"));
-const OUT_DIR = path.resolve(getFlag("--out-dir", "client/i18n-report"));
+const LOCALES_DIR = path.resolve(getFlag("--locales-dir", "public/locales"));
+const OUT_DIR = path.resolve(getFlag("--out-dir", "i18n-report"));
 const DO_FILL = Boolean(getFlag("--fill", false));
 
 // -------------------- Helpers --------------------
@@ -61,14 +65,15 @@ const writeJSON = (file, data) => {
 
 const writeCSV = (file, rows) => {
   ensureDir(path.dirname(file));
-  if (!rows.length) {
-    fs.writeFileSync(file, "lang,status,missing,extra\n", "utf8");
-    return;
+  const headers = ["lang", "status", "missing", "extra"];
+  const lines = [headers.join(",")];
+
+  for (const r of rows) {
+    lines.push(
+      [r.lang, r.status, String(r.missing ?? ""), String(r.extra ?? "")].join(",")
+    );
   }
-  const headers = Object.keys(rows[0]);
-  const lines = [headers.join(",")].concat(
-    rows.map(r => headers.map(h => String(r[h] ?? "")).join(","))
-  );
+
   fs.writeFileSync(file, lines.join("\n") + "\n", "utf8");
 };
 
@@ -93,11 +98,13 @@ const flatten = (obj, parent = "", out = {}) => {
 // Build nested tree from flat pairs; safely promote scalars to objects if needed
 const unflatten = (pairs) => {
   const root = {};
+
   const setPath = (obj, parts, value) => {
     let node = obj;
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i];
       const isLeaf = i === parts.length - 1;
+
       if (isLeaf) {
         node[part] = value;
       } else {
@@ -108,6 +115,7 @@ const unflatten = (pairs) => {
       }
     }
   };
+
   const keys = Object.keys(pairs).sort();
   for (const k of keys) {
     setPath(root, k.split("."), pairs[k]);
@@ -125,12 +133,12 @@ if (!fs.existsSync(LOCALES_DIR)) {
   abort(`Locales directory not found: ${LOCALES_DIR}`);
 }
 
-const languages = fs.readdirSync(LOCALES_DIR).filter((d) =>
-  fs.existsSync(path.join(LOCALES_DIR, d, "translation.json"))
-);
+const languages = fs
+  .readdirSync(LOCALES_DIR)
+  .filter((d) => fs.existsSync(path.join(LOCALES_DIR, d, "translation.json")));
 
 if (!languages.includes("en")) {
-  abort(`EN translation missing under ${LOCALES_DIR}/en/translation.json`);
+  abort(`EN translation missing under ${path.join(LOCALES_DIR, "en", "translation.json")}`);
 }
 
 console.log(`[audit-i18n] Scanning: ${LOCALES_DIR}`);
@@ -154,6 +162,7 @@ const invalidAll = {};
 // Process each language
 for (const lang of languages.sort()) {
   const file = path.join(LOCALES_DIR, lang, "translation.json");
+
   if (lang === "en") {
     summary.push({ lang, status: "ok", missing: 0, extra: 0 });
     continue;

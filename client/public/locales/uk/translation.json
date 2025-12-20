@@ -25,9 +25,29 @@
     "yes": "Yes"
   },
   "auth": {
+    "register": {
+      "checkEmailBody": "We have sent a verification link to your email. Please open it to verify your address before you continue.",
+      "checkEmailHint": "If you do not see the email, check your spam folder or try again later from Settings → Email verification.",
+      "checkEmailTitle": "Check your email",
+      "confirmPasswordAria": "Confirm password",
+      "confirmPasswordPlaceholder": "Confirm password",
+      "creating": "Creating…",
+      "emailAria": "Email",
+      "emailPlaceholder": "Email",
+      "goToDiscover": "Go to Discover",
+      "goToHome": "Back to Home",
+      "passwordAria": "Password",
+      "passwordPlaceholder": "Password",
+      "sentTo": "We tried to send the email to {{email}}.",
+      "submit": "Create account",
+      "title": "Create account",
+      "usernameAria": "Username",
+      "usernamePlaceholder": "Username"
+    },
     "username": "Username",
     "username_placeholder": "Enter your username"
   },
+  "blockButtonLabel": "Block",
   "blog": "Blog",
   "buttons": {
     "back": "Back",
@@ -69,29 +89,32 @@
   "conditions": "Conditions",
   "contact": "Contact",
   "conversationCard": {
-    "avatarAlt": "User avatar"
+    "avatarAlt": "User avatar",
+    "noTime": " ",
+    "unknownUser": "Unknown user",
+    "unreadCount": "Unread messages"
   },
   "cookies": "Cookies",
   "countries": {
     "Argentina": "Argentina",
     "Brazil": "Brazil",
+    "Canada": "Canada",
     "Chile": "Chile",
-    "Spain": "Spain",
+    "China": "China",
+    "Finland": "Finland",
+    "France": "France",
+    "Germany": "Germany",
     "India": "India",
-    "United Kingdom": "United Kingdom",
     "Italy": "Italy",
     "Japan": "Japan",
-    "Canada": "Canada",
     "Kazakhstan": "Kazakhstan",
-    "China": "China",
     "Norway": "Norway",
     "Portugal": "Portugal",
-    "France": "France",
-    "Sweden": "Sweden",
-    "Germany": "Germany",
-    "Finland": "Finland",
-    "Ukraine": "Ukraine",
     "Russia": "Russia",
+    "Spain": "Spain",
+    "Sweden": "Sweden",
+    "Ukraine": "Ukraine",
+    "United Kingdom": "United Kingdom",
     "United States": "United States"
   },
   "country": "Country",
@@ -165,9 +188,13 @@
     "title": "Meet kind singles near you"
   },
   "home": {
-    "title": "Welcome to Loventia.site!",
     "subtitle": "Find meaningful connections easily and safely.",
-    "texts": "__TODO: translate__"
+    "texts": [
+      "Find love that lasts.",
+      "Meet people who share your values.",
+      "Your next match is one click away."
+    ],
+    "title": "Welcome to Loventia.site!"
   },
   "impressum": "Impressum",
   "lifestyle": {
@@ -254,7 +281,10 @@
     "superlikeReceived": "{{username}} superliked you"
   },
   "overview": {
-    "error": "Failed to load conversations"
+    "empty": "No conversations yet. When you match and start messaging, your conversations will appear here.",
+    "error": "Failed to load conversations",
+    "loading": "Loading conversations…",
+    "title": "Conversations"
   },
   "politics": {
     "anarchism": "Anarchism",
@@ -384,22 +414,22 @@
     "deleteConfirm": "Are you sure you want to permanently delete your account?",
     "deleteErrorAlert": "Account deletion failed. Please try again later.",
     "deleteErrorConsole": "Account deletion failed:",
-    "title": "Account settings",
-    "hideTitle": "Hide account",
     "hideDescription": "Temporarily hide your profile from Discover, search and suggestions. You can unhide anytime.",
     "hideDurationLabel": "Duration",
+    "hideError": "Failed to hide your account.",
     "hideIndefinite": "Indefinitely",
     "hideIndefiniteHint": "Your profile stays hidden until you manually unhide it.",
-    "resumeOnLoginLabel": "Automatically unhide on next login (if duration is over)",
-    "hidingNow": "Hiding…",
     "hideNowButton": "Hide now",
-    "unhiding": "Unhiding…",
-    "unhideButton": "Unhide",
     "hideSuccess": "Your account is now hidden.",
-    "hideError": "Failed to hide your account.",
-    "unhideSuccess": "Your account is visible again.",
+    "hideTitle": "Hide account",
+    "hidingNow": "Hiding…",
+    "resumeOnLoginLabel": "Automatically unhide on next login (if duration is over)",
+    "signedInAs": "Signed in as",
+    "title": "Account settings",
+    "unhideButton": "Unhide",
     "unhideError": "Failed to unhide your account.",
-    "signedInAs": "Signed in as"
+    "unhideSuccess": "Your account is visible again.",
+    "unhiding": "Unhiding…"
   },
   "site": {
     "title": "Loventia.site"
