@@ -46,15 +46,112 @@ jobs:
         with:
           node-version: 20
           # The replacement region is marked between // --- REPLACE START and // --- REPLACE END so you can verify exactly what changed
-          # --- REPLACE START (disable cache to avoid unresolved path error) ---
+          # --- REPLACE START (keep cache disabled to avoid cache path issues) ---
           # cache: npm
           # cache-dependency-path: client/package-lock.json
           # --- REPLACE END ---
 
-      # Install dependencies from repo root (monorepo workspaces)
+      # -------------------------------------------------------------
+      # Install dependencies (root, monorepo workspaces)
+      # -------------------------------------------------------------
       - name: Install dependencies
         working-directory: .
-        run: npm ci
+        shell: bash
+        run: |
+          # --- REPLACE START: fix YAML issues + ensure optional deps are allowed (native binaries) ---
+          set -euo pipefail
+
+          echo "== Install dependencies (root) =="
+          echo "Node: $(node --version)"
+          echo "npm:  $(npm --version)"
+          echo "PWD:  $(pwd)"
+
+          # Ensure optional deps are not omitted (native/platform binaries can come via optionalDependencies)
+          export npm_config_optional=true
+          export npm_config_omit=""
+
+          npm ci
+          # --- REPLACE END ---
+
+      # -------------------------------------------------------------
+      # Repair: lightningcss native binary (Linux runner)
+      # -------------------------------------------------------------
+      - name: Repair lightningcss native binary (Linux)
+        working-directory: .
+        shell: bash
+        run: |
+          # --- REPLACE START: robust lightningcss fix (no YAML heredocs, no invalid indentation) ---
+          set -euo pipefail
+
+          echo "== lightningcss sanity check =="
+          echo "Node: $(node --version)"
+          echo "npm:  $(npm --version)"
+          echo "PWD:  $(pwd)"
+
+          if [[ ! -f "node_modules/lightningcss/package.json" ]]; then
+            echo "::error::node_modules/lightningcss is missing. Install step likely failed."
+            exit 1
+          fi
+
+          LC_VERSION="$(node -p "require('./node_modules/lightningcss/package.json').version")"
+          echo "lightningcss version: ${LC_VERSION}"
+
+          # Pick platform optional dependency (name@version) from lightningcss' optionalDependencies.
+          # Avoids guessing package names and avoids YAML-breaking heredocs.
+          CANDIDATE="$(node -e 'try{const pkg=require("./node_modules/lightningcss/package.json");const opt=pkg.optionalDependencies||{};const keys=Object.keys(opt);const p=process.platform;const a=process.arch;const pick=keys.find(k=>k.includes(p)&&k.includes(a)&&k.includes("gnu"))||keys.find(k=>k.includes(p)&&k.includes(a))||"";process.stdout.write(pick?`${pick}@${opt[pick]}`:"");}catch(e){process.stdout.write("");}')"
+
+          if [[ -n "${CANDIDATE}" ]]; then
+            CANDIDATE_NAME="${CANDIDATE%%@*}"
+          else
+            # Fallback for GitHub ubuntu-latest (x64 glibc)
+            CANDIDATE="lightningcss-linux-x64-gnu"
+            CANDIDATE_NAME="${CANDIDATE}"
+          fi
+
+          SUFFIX="${CANDIDATE_NAME#lightningcss-}"
+          EXPECTED="node_modules/lightningcss/lightningcss.${SUFFIX}.node"
+
+          echo "Platform package candidate: ${CANDIDATE}"
+          echo "Expected binary path: ${EXPECTED}"
+
+          if [[ -f "${EXPECTED}" ]]; then
+            echo "OK: Found lightningcss native binary."
+            exit 0
+          fi
+
+          echo "::warning::Missing lightningcss native binary. Attempting repair..."
+
+          echo "Installing platform package (no-save): ${CANDIDATE}"
+          npm install --no-save "${CANDIDATE}" --no-audit --no-fund || true
+
+          echo "Rebuilding lightningcss (safe even if purely prebuilt)..."
+          npm rebuild lightningcss --verbose || true
+
+          # If postinstall didn't place the binary, try to locate any lightningcss.*.node and copy into lightningcss folder.
+          if [[ ! -f "${EXPECTED}" ]]; then
+            echo "::warning::Binary still missing. Searching for lightningcss.*.node under node_modules..."
+            FOUND="$(find node_modules -maxdepth 4 -type f -name 'lightningcss.*.node' 2>/dev/null | head -n 1 || true)"
+            if [[ -n "${FOUND}" ]]; then
+              echo "Found binary at: ${FOUND}"
+              mkdir -p "node_modules/lightningcss"
+              cp -f "${FOUND}" "node_modules/lightningcss/$(basename "${FOUND}")" || true
+            else
+              echo "::warning::No lightningcss.*.node found under node_modules."
+            fi
+          fi
+
+          echo "== lightningcss directory listing =="
+          ls -la node_modules/lightningcss || true
+          echo "== lightningcss/node directory listing =="
+          ls -la node_modules/lightningcss/node || true
+
+          if [[ ! -f "${EXPECTED}" ]]; then
+            echo "::error::lightningcss native binary is still missing after repair attempts: ${EXPECTED}"
+            exit 1
+          fi
+
+          echo "OK: Repaired lightningcss native binary: ${EXPECTED}"
+          # --- REPLACE END ---
 
       # -------------------------------------------------------------
       # Build (pass production Environment secrets to Vite + sitemap)
@@ -81,11 +178,14 @@ jobs:
       - name: Resolve S3 bucket (prod)
         id: bucket
         shell: bash
+        env:
+          S3_BUCKET_PROD_VAR: ${{ vars.S3_BUCKET_PROD }}
+          S3_BUCKET_PROD_SECRET: ${{ secrets.S3_BUCKET_PROD }}
         run: |
-          if [[ -n "${{ vars.S3_BUCKET_PROD }}" ]]; then
-            echo "value=${{ vars.S3_BUCKET_PROD }}" >> "$GITHUB_OUTPUT"
+          if [[ -n "$S3_BUCKET_PROD_VAR" ]]; then
+            echo "value=$S3_BUCKET_PROD_VAR" >> "$GITHUB_OUTPUT"
           else
-            echo "value=${{ secrets.S3_BUCKET_PROD }}" >> "$GITHUB_OUTPUT"
+            echo "value=$S3_BUCKET_PROD_SECRET" >> "$GITHUB_OUTPUT"
           fi
           echo "Selected bucket: $(cat $GITHUB_OUTPUT | cut -d= -f2- | tail -n1)"
 
@@ -142,3 +242,4 @@ jobs:
           echo "S3 bucket: ${{ steps.bucket.outputs.value }}"
           echo "CloudFront: ${{ steps.cf.outputs.id }}"
 # --- REPLACE END ---
+
