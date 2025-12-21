@@ -1,16 +1,13 @@
 # File: .github/workflows/client-deploy-prod.yml
 
-# --- REPLACE START: production deploy workflow (main → production env) ---
 name: Client Deploy (prod)
 
 on:
   push:
     branches:
       - main
-  # Manual trigger is handy during setup/debug
   workflow_dispatch:
 
-# Least-privilege permissions + OIDC readiness
 permissions:
   id-token: write
   contents: read
@@ -21,44 +18,33 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
 
-    # Keep client as default working directory for run-steps,
-    # so paths like "dist" resolve without extra prefixes.
     defaults:
       run:
         working-directory: client
 
     env:
-      # Prefer repository variable if set; otherwise use eu-north-1 as a safe default
       AWS_REGION: ${{ vars.AWS_REGION != '' && vars.AWS_REGION || 'eu-north-1' }}
 
     steps:
-      # -------------------------------------------------------------
-      # Checkout
-      # -------------------------------------------------------------
       - name: Checkout
         uses: actions/checkout@v4
 
-      # -------------------------------------------------------------
-      # Node
-      # -------------------------------------------------------------
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          # The replacement region is marked between // --- REPLACE START and // --- REPLACE END so you can verify exactly what changed
-          # --- REPLACE START (keep cache disabled to avoid cache path issues) ---
+          # cache disabled (avoid cache path issues)
           # cache: npm
           # cache-dependency-path: client/package-lock.json
-          # --- REPLACE END ---
 
       # -------------------------------------------------------------
-      # Install dependencies (root, monorepo workspaces)
+      # Install deps (ROOT)
       # -------------------------------------------------------------
       - name: Install dependencies
         working-directory: .
         shell: bash
         run: |
-          # --- REPLACE START: fix YAML issues + ensure optional deps are allowed (native binaries) ---
+          # --- REPLACE START: ensure optional deps are allowed (native binaries) ---
           set -euo pipefail
 
           echo "== Install dependencies (root) =="
@@ -74,87 +60,141 @@ jobs:
           # --- REPLACE END ---
 
       # -------------------------------------------------------------
-      # Repair: lightningcss native binary (Linux runner)
+      # Repair lightningcss native binary (Linux)
       # -------------------------------------------------------------
       - name: Repair lightningcss native binary (Linux)
+        if: runner.os == 'Linux'
         working-directory: .
         shell: bash
         run: |
-          # --- REPLACE START: robust lightningcss fix (no YAML heredocs, no invalid indentation) ---
           set -euo pipefail
 
-          echo "== lightningcss sanity check =="
-          echo "Node: $(node --version)"
-          echo "npm:  $(npm --version)"
-          echo "PWD:  $(pwd)"
+          echo "== lightningcss sanity check (Linux runner) =="
+          EXPECTED="node_modules/lightningcss/lightningcss.linux-x64-gnu.node"
 
-          if [[ ! -f "node_modules/lightningcss/package.json" ]]; then
-            echo "::error::node_modules/lightningcss is missing. Install step likely failed."
-            exit 1
-          fi
-
-          LC_VERSION="$(node -p "require('./node_modules/lightningcss/package.json').version")"
-          echo "lightningcss version: ${LC_VERSION}"
-
-          # Pick platform optional dependency (name@version) from lightningcss' optionalDependencies.
-          # Avoids guessing package names and avoids YAML-breaking heredocs.
-          CANDIDATE="$(node -e 'try{const pkg=require("./node_modules/lightningcss/package.json");const opt=pkg.optionalDependencies||{};const keys=Object.keys(opt);const p=process.platform;const a=process.arch;const pick=keys.find(k=>k.includes(p)&&k.includes(a)&&k.includes("gnu"))||keys.find(k=>k.includes(p)&&k.includes(a))||"";process.stdout.write(pick?`${pick}@${opt[pick]}`:"");}catch(e){process.stdout.write("");}')"
-
-          if [[ -n "${CANDIDATE}" ]]; then
-            CANDIDATE_NAME="${CANDIDATE%%@*}"
-          else
-            # Fallback for GitHub ubuntu-latest (x64 glibc)
-            CANDIDATE="lightningcss-linux-x64-gnu"
-            CANDIDATE_NAME="${CANDIDATE}"
-          fi
-
-          SUFFIX="${CANDIDATE_NAME#lightningcss-}"
-          EXPECTED="node_modules/lightningcss/lightningcss.${SUFFIX}.node"
-
-          echo "Platform package candidate: ${CANDIDATE}"
-          echo "Expected binary path: ${EXPECTED}"
-
-          if [[ -f "${EXPECTED}" ]]; then
-            echo "OK: Found lightningcss native binary."
+          if [[ -f "$EXPECTED" ]]; then
+            echo "OK: Found $EXPECTED"
             exit 0
           fi
 
-          echo "::warning::Missing lightningcss native binary. Attempting repair..."
+          echo "::warning::Missing $EXPECTED. Attempting repair..."
 
-          echo "Installing platform package (no-save): ${CANDIDATE}"
-          npm install --no-save "${CANDIDATE}" --no-audit --no-fund || true
-
-          echo "Rebuilding lightningcss (safe even if purely prebuilt)..."
-          npm rebuild lightningcss --verbose || true
-
-          # If postinstall didn't place the binary, try to locate any lightningcss.*.node and copy into lightningcss folder.
-          if [[ ! -f "${EXPECTED}" ]]; then
-            echo "::warning::Binary still missing. Searching for lightningcss.*.node under node_modules..."
-            FOUND="$(find node_modules -maxdepth 4 -type f -name 'lightningcss.*.node' 2>/dev/null | head -n 1 || true)"
-            if [[ -n "${FOUND}" ]]; then
-              echo "Found binary at: ${FOUND}"
-              mkdir -p "node_modules/lightningcss"
-              cp -f "${FOUND}" "node_modules/lightningcss/$(basename "${FOUND}")" || true
-            else
-              echo "::warning::No lightningcss.*.node found under node_modules."
-            fi
-          fi
-
-          echo "== lightningcss directory listing =="
-          ls -la node_modules/lightningcss || true
-          echo "== lightningcss/node directory listing =="
-          ls -la node_modules/lightningcss/node || true
-
-          if [[ ! -f "${EXPECTED}" ]]; then
-            echo "::error::lightningcss native binary is still missing after repair attempts: ${EXPECTED}"
+          if [[ -f "node_modules/lightningcss/package.json" ]]; then
+            echo "lightningcss version: $(node -p "require('./node_modules/lightningcss/package.json').version")"
+          else
+            echo "::error::node_modules/lightningcss/package.json not found."
             exit 1
           fi
 
-          echo "OK: Repaired lightningcss native binary: ${EXPECTED}"
-          # --- REPLACE END ---
+          CANDIDATE="$(node -e "try{const pkg=require('./node_modules/lightningcss/package.json');const opt=Object.keys(pkg.optionalDependencies||{});const p=process.platform;const a=process.arch;const pick=opt.find(k=>k.includes(p)&&k.includes(a)&&k.includes('gnu'))||opt.find(k=>k.includes(p)&&k.includes(a))||'';process.stdout.write(pick);}catch(e){process.stdout.write('');}")"
+
+          if [[ -z "$CANDIDATE" ]]; then
+            echo "::error::Could not detect optionalDependencies candidate for lightningcss."
+            node -e "try{console.log(require('./node_modules/lightningcss/package.json').optionalDependencies)}catch(e){console.error(e)}"
+            exit 1
+          fi
+
+          echo "Detected lightningcss optional package candidate: $CANDIDATE"
+
+          TMP="$(mktemp -d)"
+          pushd "$TMP" >/dev/null
+          npm pack "$CANDIDATE"
+          TARBALL="$(ls -1 *.tgz | head -n1)"
+          tar -xzf "$TARBALL"
+          popd >/dev/null
+
+          if [[ ! -f "$TMP/package/lightningcss.linux-x64-gnu.node" ]]; then
+            echo "::error::Packed optional package did not contain lightningcss.linux-x64-gnu.node"
+            ls -la "$TMP/package" || true
+            exit 1
+          fi
+
+          cp -f "$TMP/package/lightningcss.linux-x64-gnu.node" "$EXPECTED"
+          rm -rf "$TMP"
+
+          ls -la node_modules/lightningcss || true
+
+          if [[ ! -f "$EXPECTED" ]]; then
+            echo "::error::lightningcss native binary still missing: $EXPECTED"
+            exit 1
+          fi
+
+          echo "OK: Repaired lightningcss native binary: $EXPECTED"
 
       # -------------------------------------------------------------
-      # Build (pass production Environment secrets to Vite + sitemap)
+      # --- NEW: Repair @tailwindcss/oxide native binary (Linux)
+      # -------------------------------------------------------------
+      - name: Repair tailwindcss-oxide native binary (Linux)
+        if: runner.os == 'Linux'
+        working-directory: .
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "== @tailwindcss/oxide sanity check (Linux runner) =="
+
+          LOCAL="node_modules/@tailwindcss/oxide/tailwindcss-oxide.linux-x64-gnu.node"
+          PKGDIR="node_modules/@tailwindcss/oxide-linux-x64-gnu"
+
+          if [[ -f "$LOCAL" && -d "$PKGDIR" ]]; then
+            echo "OK: Found $LOCAL and $PKGDIR"
+            exit 0
+          fi
+
+          if [[ ! -f "node_modules/@tailwindcss/oxide/package.json" ]]; then
+            echo "::error::node_modules/@tailwindcss/oxide/package.json not found. Cannot repair."
+            exit 1
+          fi
+
+          echo "::warning::Missing Tailwind Oxide native binding. Attempting repair..."
+          echo "oxide version: $(node -p "require('./node_modules/@tailwindcss/oxide/package.json').version")"
+
+          CANDIDATE="$(node -e "try{const pkg=require('./node_modules/@tailwindcss/oxide/package.json');const opt=Object.keys(pkg.optionalDependencies||{});const p=process.platform;const a=process.arch;const pick=opt.find(k=>k.includes(p)&&k.includes(a)&&k.includes('gnu'))||opt.find(k=>k.includes(p)&&k.includes(a))||'';process.stdout.write(pick);}catch(e){process.stdout.write('');}")"
+
+          if [[ -z "$CANDIDATE" ]]; then
+            echo "::error::Could not detect optionalDependencies candidate for @tailwindcss/oxide."
+            node -e "try{console.log(require('./node_modules/@tailwindcss/oxide/package.json').optionalDependencies)}catch(e){console.error(e)}"
+            exit 1
+          fi
+
+          echo "Detected oxide optional package candidate: $CANDIDATE"
+
+          TMP="$(mktemp -d)"
+          pushd "$TMP" >/dev/null
+          npm pack "$CANDIDATE"
+          TARBALL="$(ls -1 *.tgz | head -n1)"
+          tar -xzf "$TARBALL"
+          popd >/dev/null
+
+          mkdir -p node_modules/@tailwindcss
+          rm -rf "$PKGDIR"
+          mv "$TMP/package" "$PKGDIR"
+          rm -rf "$TMP"
+
+          # Copy the native .node also into @tailwindcss/oxide (some versions try local require first)
+          if [[ -f "$PKGDIR/tailwindcss-oxide.linux-x64-gnu.node" ]]; then
+            mkdir -p node_modules/@tailwindcss/oxide
+            cp -f "$PKGDIR/tailwindcss-oxide.linux-x64-gnu.node" "$LOCAL" || true
+          fi
+
+          echo "== oxide diagnostics =="
+          ls -la node_modules/@tailwindcss/oxide || true
+          ls -la "$PKGDIR" || true
+
+          if [[ ! -d "$PKGDIR" ]]; then
+            echo "::error::Missing platform package directory after repair: $PKGDIR"
+            exit 1
+          fi
+
+          echo "OK: Installed $PKGDIR"
+          if [[ -f "$LOCAL" ]]; then
+            echo "OK: Installed $LOCAL"
+          else
+            echo "::warning::Local oxide .node not found ($LOCAL), but platform package exists; build should still pass."
+          fi
+
+      # -------------------------------------------------------------
+      # Build (Vite)
       # -------------------------------------------------------------
       - name: Build
         env:
@@ -163,7 +203,7 @@ jobs:
         run: npm run build
 
       # -------------------------------------------------------------
-      # AWS credentials via OIDC (no static keys)
+      # AWS credentials via OIDC
       # -------------------------------------------------------------
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
@@ -172,9 +212,6 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           audience: sts.amazonaws.com
 
-      # -------------------------------------------------------------
-      # Resolve S3 bucket for production
-      # -------------------------------------------------------------
       - name: Resolve S3 bucket (prod)
         id: bucket
         shell: bash
@@ -187,25 +224,17 @@ jobs:
           else
             echo "value=$S3_BUCKET_PROD_SECRET" >> "$GITHUB_OUTPUT"
           fi
-          echo "Selected bucket: $(cat $GITHUB_OUTPUT | cut -d= -f2- | tail -n1)"
 
-      # -------------------------------------------------------------
-      # Upload to S3
-      # -------------------------------------------------------------
       - name: Upload to S3
         shell: bash
         run: |
           BUCKET="${{ steps.bucket.outputs.value }}"
           if [[ -z "$BUCKET" ]]; then
-            echo "::error::S3 bucket not resolved (check repository Variables/Secrets: S3_BUCKET_PROD)."
+            echo "::error::S3 bucket not resolved (check vars/secrets: S3_BUCKET_PROD)."
             exit 1
           fi
-          echo "Syncing client/dist to s3://${BUCKET}"
           aws s3 sync dist "s3://${BUCKET}" --delete
 
-      # -------------------------------------------------------------
-      # Resolve CloudFront distribution
-      # -------------------------------------------------------------
       - name: Resolve CloudFront distribution (prod)
         id: cf
         shell: bash
@@ -215,25 +244,17 @@ jobs:
           else
             echo "id=${{ secrets.CLOUDFRONT_DISTRIBUTION_ID_PROD }}" >> "$GITHUB_OUTPUT"
           fi
-          echo "Selected distribution: $(cat $GITHUB_OUTPUT | cut -d= -f2- | tail -n1)"
 
-      # -------------------------------------------------------------
-      # Invalidate CloudFront
-      # -------------------------------------------------------------
       - name: Invalidate CloudFront
         shell: bash
         run: |
           DIST_ID="${{ steps.cf.outputs.id }}"
           if [[ -z "$DIST_ID" ]]; then
-            echo "::error::CloudFront Distribution ID not resolved (vars/Secrets: CF_DISTRIBUTION_ID_PROD)."
+            echo "::error::CloudFront Distribution ID not resolved (vars/secrets: CF_DISTRIBUTION_ID_PROD)."
             exit 1
           fi
-          echo "Creating CloudFront invalidation for distribution ${DIST_ID}"
           aws cloudfront create-invalidation --distribution-id "${DIST_ID}" --paths "/*"
 
-      # -------------------------------------------------------------
-      # Summary
-      # -------------------------------------------------------------
       - name: Deployment summary
         shell: bash
         run: |
@@ -241,5 +262,4 @@ jobs:
           echo "Region: ${AWS_REGION}"
           echo "S3 bucket: ${{ steps.bucket.outputs.value }}"
           echo "CloudFront: ${{ steps.cf.outputs.id }}"
-# --- REPLACE END ---
 
