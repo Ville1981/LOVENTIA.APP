@@ -16,8 +16,9 @@
  *  - ENV:
  *      STRIPE_PRICE_ID            -> Stripe Price ID for the subscription.
  *      STRIPE_WEBHOOK_SECRET      -> Webhook signing secret for this environment.
- *      STRIPE_SUCCESS_URL         -> (Optional) Success redirect; falls back to configured billingUrls.successUrl.
- *      STRIPE_CANCEL_URL          -> (Optional) Cancel redirect;  falls back to configured billingUrls.cancelUrl.
+ *      STRIPE_SUCCESS_URL         -> (Optional) Checkout success redirect; falls back to configured billingUrls.successUrl.
+ *      STRIPE_CANCEL_URL          -> (Optional) Checkout cancel redirect;  falls back to configured billingUrls.cancelUrl.
+ *      STRIPE_RETURN_URL          -> (Optional) Billing Portal return redirect; falls back to configured billingUrls.returnUrl.
  *  - Stripe client is initialized in server/config/stripe.js
  *  - User model is provided by server/src/models/User.js (ESM/CJS bridge).
  */
@@ -330,7 +331,16 @@ export async function createPortal(req, res) {
   if (!user) return res.status(401).json({ error: "Unauthorized" });
 
   const customerId = await getOrCreateStripeCustomer(user);
-  const returnUrl = process.env.STRIPE_SUCCESS_URL || billingUrls.returnUrl;
+
+  // --- REPLACE START: fix Billing Portal return URL selection (do NOT use STRIPE_SUCCESS_URL) ---
+  // Portal return URL is NOT the same as Checkout success URL.
+  // Prefer STRIPE_RETURN_URL (or the centralized billingUrls.returnUrl which already supports BILLING_RETURN_URL/STRIPE_RETURN_URL defaults).
+  // Keep STRIPE_SUCCESS_URL only as a last-resort legacy fallback to avoid breaking older envs.
+  const returnUrl =
+    process.env.STRIPE_RETURN_URL ||
+    billingUrls.returnUrl ||
+    process.env.STRIPE_SUCCESS_URL;
+  // --- REPLACE END ---
 
   const portal = await stripe.billingPortal.sessions.create({
     customer: customerId,
@@ -673,6 +683,4 @@ export async function handleWebhook(req, res) {
   return res.status(200).send("ok");
 }
 // --- REPLACE END ---
-
-
 

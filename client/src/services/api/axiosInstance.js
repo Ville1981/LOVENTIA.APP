@@ -160,7 +160,11 @@ function describeRequest(config) {
  */
 function isAuthPath(urlLike) {
   if (!urlLike) return false;
-  const u = String(urlLike).replace(/^\//, "");
+
+  let u = String(urlLike).replace(/^\//, "");
+  // Harden: tolerate accidental "/api/..." prefix
+  u = u.replace(/^api\//i, "");
+
   return (
     /^auth\/(login|register|refresh|forgot|reset)(\/|$)/i.test(u) ||
     /^auth\/(forgot-password|reset-password)(\/|$)/i.test(u) ||
@@ -183,13 +187,20 @@ function isPasswordResetPath(urlLike) {
  */
 function shouldSkipRefresh(urlLike) {
   if (!urlLike) return false;
-  const u = String(urlLike).replace(/^\//, "");
+
+  let u = String(urlLike).replace(/^\//, "");
+  // Harden: tolerate accidental "/api/..." prefix
+  u = u.replace(/^api\//i, "");
+
   // Billing sync / other billing endpoints
   if (/^billing\//i.test(u)) return true;
+
   // Sending verification email – 401 here should just bubble to UI
   if (/^auth\/send-verification-email(\/|$)/i.test(u)) return true;
+
   return false;
 }
+
 
 /**
  * Strip sensitive keys before debug.

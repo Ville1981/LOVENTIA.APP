@@ -1,202 +1,226 @@
-````markdown
-# PATH: docs/security-hardening.md
+﻿````md
+<!--
+Path: docs/security-hardening.md
 
-# Security hardening plan
+NOTE:
+Keep this doc practical and environment-driven.
+Avoid claims that require code verification unless explicitly confirmed in the repo.
+-->
 
-This document summarizes how we want to configure **helmet**, **CORS** and **rate-limits** for Loventia in a consistent way across environments.
+<!-- // --- REPLACE START: Security hardening doc cleanup (English, consistent structure, clean code fences, ASCII-safe) --- -->
 
-The goal is:
-- Keep **dev** fast and convenient.
+# Security Hardening Plan
+
+This document summarizes how we want to configure **Helmet**, **CORS**, and **rate limits** for Loventia in a consistent way across environments.
+
+## Goals
+
+- Keep **development** fast and convenient.
 - Keep **production** locked down by default.
-- Avoid “hidden behaviour” by making everything driven by env flags.
+- Avoid "hidden behavior" by making changes explicit and **env-driven**.
+- Keep docs aligned with actual middleware order and route grouping.
 
 ---
 
-## 1. Helmet configuration (HTTP security headers)
+## 0) Canonical ops/docs links
 
-### 1.1 Current state (dev)
-
-- `helmet()` is already mounted in `server/src/app.js`.
-- `X-Content-Type-Options: nosniff`
-- `X-Frame-Options: DENY`
-- `Referrer-Policy: no-referrer`
-- `Permissions-Policy: geolocation=(), microphone=(), camera=(), fullscreen=(self)`
-- `Strict-Transport-Security` (HSTS) is **not** sent on plain HTTP (dev).
-
-### 1.2 Target state (prod)
-
-In production (behind HTTPS):
-
-- `helmet()` enabled with:
-  - `frameguard: { action: 'deny' }`
-  - `referrerPolicy: { policy: 'no-referrer' }`
-  - `contentSecurityPolicy` left to our **CSP middleware** (see below).
-- HSTS:
-  - Enabled **only** if `NODE_ENV=production` **and** `req.secure === true`.
-  - `maxAge`: 6–12 months (to be decided).
-  - `includeSubDomains`: false (for now).
-  - `preload`: false (for now).
-
-**Action items:**
-
-- [ ] Keep helmet as-is in dev.
-- [ ] In prod, make sure HSTS is only set for HTTPS traffic (already done in `securityHeaders` helper).
-- [ ] Document any future header changes here so they match PS smoketests.
+- **Ops Runbook:** [`./ops/runbook.md`](./ops/runbook.md)
+- **Rollback Playbook:** [`./ops/rollback-playbook.md`](./ops/rollback-playbook.md)
+- **Test Plan:** [`./test-plan.md`](./test-plan.md)
+- **CI/CD:** [`./ci-cd.md`](./ci-cd.md)
 
 ---
 
-## 2. CORS profiles
+## 1) Helmet (HTTP security headers)
 
-We want **two clear CORS modes**: dev and prod.
+### 1.1 Current status (verify in code)
 
-### 2.1 Dev CORS
+We typically mount Helmet near the top of the Express app (before routes).
 
-- Allowed origins:
+Verify in repo:
+
+- The app uses `helmet()` in the main server entry (`server/src/app.js` or equivalent).
+- Any custom header helper (if present) does not conflict with Helmet.
+
+> Keep this section factual: if you change Helmet config in code, update this doc in the same PR.
+
+### 1.2 Target state (production)
+
+In production (behind HTTPS), enable Helmet and keep settings explicit:
+
+- `frameguard: { action: 'deny' }`
+- `referrerPolicy: { policy: 'no-referrer' }`
+- `xContentTypeOptions: true` (`nosniff`)
+
+**HSTS (Strict-Transport-Security)**
+
+- Send HSTS **only** over HTTPS responses.
+- Enable only when `NODE_ENV=production`.
+- Recommended defaults:
+  - `maxAge`: 15552000 (180 days) to 31536000 (365 days)
+  - `includeSubDomains`: `false` (unless we control all subdomains)
+  - `preload`: `false` (unless we are ready to commit to preload requirements)
+
+Action items:
+
+- [ ] Confirm Helmet middleware location (should run before routes).
+- [ ] Confirm HSTS is only added for HTTPS traffic in production.
+- [ ] Document any non-default Helmet config we rely on.
+
+---
+
+## 2) CORS profiles
+
+We want two clear CORS modes: development and production.
+
+### 2.1 Development CORS
+
+- Allowed origins (examples):
   - `http://localhost:5174`
   - `http://127.0.0.1:5174`
-- Credentials: `true` (cookies for refresh token).
-- Methods: `GET, POST, PUT, PATCH, DELETE, OPTIONS`.
-- Allowed headers: `Content-Type, Authorization, X-Requested-With`.
+- Credentials: `true` (cookies / refresh token flows)
+- Methods: `GET, POST, PUT, PATCH, DELETE, OPTIONS`
+- Allowed headers: `Content-Type, Authorization, X-Requested-With`
 
 Suggested env variables:
 
 ```ini
 CORS_DEV_ORIGINS=http://localhost:5174,http://127.0.0.1:5174
 CORS_ALLOW_CREDENTIALS=true
-````
+```
+### 2.2 Production CORS
 
-### 2.2 Prod CORS
-
-* Allowed origins:
+* Allowed origins (examples):
 
   * `https://loventia.app`
-  * possibly `https://www.loventia.app` (if we ever use www).
-* Credentials: `true`.
-* Methods and headers same as dev.
-* No wildcard `*` in production.
+  * `https://www.loventia.app` (only if we actually serve from www)
+* Credentials: `true`
+* No wildcard `*` in production
 
 Suggested env variables:
 
 ```ini
 CORS_PROD_ORIGINS=https://loventia.app,https://www.loventia.app
+CORS_ALLOW_CREDENTIALS=true
 ```
 
-**Action items:**
+Action items:
 
-* [ ] Centralize CORS logic in `server/src/app.js`:
-
-  * Read `NODE_ENV` and choose dev vs prod origins from env vars.
-  * Throw a clear log if no origins are configured in prod.
-* [ ] Keep CORS rules in sync with the client’s `VITE_API_BASE_URL`.
+* [ ] Centralize CORS origin parsing in one place (app bootstrap).
+* [ ] In production, log a clear error/warning if no allowed origins are configured.
+* [ ] Keep CORS aligned with the client base URL(s) and any CloudFront domain used for staging.
 
 ---
 
-## 3. Rate-limits per scope
+## 3) Rate limits (by scope)
 
-We already have a shared `rateLimit.js` with named limiters. This plan just defines how we want to **use** them consistently.
+We should apply rate limits by route group, then keep a soft catch-all burst limiter for unexpected abuse.
 
-### 3.1 Auth-related limits
+> Business quotas (likes/superlikes/rewinds) remain the primary gate for social actions.
+> Rate limits here are a secondary abuse guard.
 
-* **Login (`/api/auth/login`, `/api/users/login`)**
+### 3.1 Auth limits
 
-  * Scope: `login`
-  * Very strict limit (e.g. 5–10 attempts per IP per 15 minutes).
-  * Purpose: protect against password spraying and brute force.
+* Login (`/api/auth/login`, legacy `/api/users/login`)
 
-* **Register (`/api/users/register` if present)**
+  * Very strict (example: 5-10 attempts per IP per 15 minutes)
+  * Goal: reduce brute-force and password spraying
 
-  * Scope: `register`
-  * Low rate (e.g. 3 per IP per hour) to block abuse.
+* Register (if present)
 
-* **Refresh (`/api/auth/refresh`)**
+  * Low rate (example: 3 per IP per hour)
+  * Goal: deter automated registrations
 
-  * Scope: `auth`
-  * Moderate limit (e.g. 60/min per IP), since FE may call this automatically.
+* Refresh (`/api/auth/refresh`)
+
+  * Moderate rate (example: 60 per minute per IP)
+  * Goal: tolerate normal token refresh behavior while blocking loops/abuse
 
 ### 3.2 Billing limits
 
-* **Stripe checkout & portal (`/api/billing/*`)**
+* Checkout/Portal (`/api/billing/*`)
 
-  * Scope: `billing`
-  * Very low rate (e.g. 10/min per IP + per user).
-  * We only expect a few clicks per user per hour.
+  * Low rate (example: 10 per minute per IP and/or per user)
+  * Goal: prevent repeated session creation and abuse
 
-* **Mock endpoints (`/api/payment/mock/*`)**
+* Mock billing (`/api/payment/mock/*` or similar)
 
-  * Scope: `billingMock`
-  * Enabled only if `STRIPE_MOCK_MODE=1`.
+  * Enabled only when `STRIPE_MOCK_MODE=1`
 
-### 3.3 Messages & social actions
+### 3.3 Messages and social actions
 
-* **Messages (`/api/messages/*`)**
+* Messages (`/api/messages/*`)
 
-  * Scope: `messages`
-  * Limit to a reasonable number of messages/minute per user to deter spam.
+  * Reasonable per-user limit (example: 30-120 per minute, tune later)
+  * Goal: deter spam
 
-* **Likes / Superlikes / Rewind**
+* Likes / Superlikes / Rewind
 
-  * Scope: `social`
-  * Use business logic (quotas) as the primary gate.
-  * Rate-limit only to block extreme abuse (e.g. scripted spam).
+  * Primary gating via entitlements/quotas
+  * Secondary rate limiter only for extreme bursts
 
-### 3.4 Global API burst limit
+### 3.4 Global API burst limiter
 
-* **Catch-all** limiter:
+* A soft global limiter (catch-all) to guard against abusive clients.
+* Keep it high enough not to break normal browsing.
 
-  * Scope: `api`
-  * A soft global guard for “too many requests”.
+Action items:
 
-**Action items:**
-
-* [ ] Document existing scopes and their numeric settings in `server/src/middleware/rateLimit.js`.
-* [ ] Ensure `app.js` mounts the correct limiter per route group:
-
-  * `authRouter` → `loginLimiter` / `authLimiter`.
-  * `billingRouter` → `billingLimiter`.
-  * `messagesRouter` → `messagesLimiter`.
-  * Catch-all → `apiBurstLimiter`.
+* [ ] Document the actual limiter names and numeric settings in `server/src/middleware/rateLimit.js` (or equivalent).
+* [ ] Ensure mount order: per-scope limiters first, then global burst limiter.
+* [ ] Ensure limiters are mounted before heavy handlers (uploads, expensive DB queries).
 
 ---
 
-## 4. CSP and metrics/admin access (alignment only)
+## 4) CSP and metrics/admin access (alignment notes)
 
-These are already mostly implemented; this section only records the intended behaviour.
+This section documents intended behavior so we avoid accidental exposure.
 
-### 4.1 CSP
+### 4.1 Content Security Policy (CSP)
 
-* Report-Only:
+* Prefer starting in Report-Only mode.
+* Move to enforce mode only after we confirm reports are clean.
 
-  * Enabled always via `Content-Security-Policy-Report-Only`.
-  * Default policy: strict `default-src 'none'` with narrow allowances.
-* Enforce:
+Suggested env flags (example):
 
-  * Controlled by `CSP_ENFORCE` and `CSP_ENFORCE_POLICY`.
-  * Currently **off** in dev.
-  * Will be turned on **only after** we validate the policy with CSP reports.
+```ini
+CSP_REPORT_ONLY=true
+CSP_ENFORCE=false
+```
 
-### 4.2 Metrics & admin
+> If CSP is implemented via a custom middleware, keep the policy in one canonical config and document it here.
 
-* `/metrics` (root):
+### 4.2 Metrics endpoints
 
-  * Always open (liveness/perf probe, no sensitive data).
-* `/api/metrics`, `/api/metrics/json`:
+* `/metrics` (root)
 
-  * Dev/test: open.
-  * Prod: requires JWT + role `admin|owner|superadmin`.
-* `/api/admin/*`:
+  * Keep low-risk; do not expose secrets or user data
 
-  * Must always go through `authenticate` + admin role guard.
+* `/api/metrics`, `/api/metrics/json`
+
+  * Dev: may be open
+  * Prod: require JWT + admin role guard
+
+### 4.3 Admin routes
+
+* `/api/admin/*`
+
+  * Always require authentication + admin role guard
+  * Never rely on "security by obscurity"
 
 ---
 
-## 5. Next steps
+## 5) Next steps
 
-1. Keep this document updated when we tweak helmet/CORS/rate-limits.
-2. Optionally, add a short “Security & Hardening” section to `README.md` linking to this file.
-3. Once the settings are stable in prod, add a small PowerShell smoketest that:
+1. Keep this document updated whenever we change Helmet/CORS/rate-limit behavior.
+2. Optionally add a short "Security Hardening" link section in `README.md` pointing here.
+3. After settings stabilize, add a small PowerShell smoke test that validates:
 
-   * Confirms CORS headers for a sample OPTIONS/GET request.
-   * Confirms 429 behaviour for at least one rate-limited route group (e.g. login).
+   * CORS headers for an `OPTIONS` request
+   * a known rate-limited endpoint returning `429` after repeated calls (dev-only)
 
+<!-- // --- REPLACE END: Security hardening doc cleanup (English, consistent structure, clean code fences, ASCII-safe) --- -->
 ```
-```
+---
+
+

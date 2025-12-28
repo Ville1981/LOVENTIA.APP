@@ -17,11 +17,29 @@ const PremiumCancel = () => {
         ❌ {t("premium.cancelTitle")}
         {/* --- REPLACE END --- */}
       </h1>
-      {/* --- REPLACE START: i18n message --- */}
-      <p>{t("premium.cancelMessage")}</p>
+      {/* --- REPLACE END --- */}
+
+      {/* --- REPLACE START: i18n defaultValue + keep text English --- */}
+      <p className="mb-6">
+        {t("premium.cancelMessage", {
+          defaultValue: "Checkout was cancelled. Your subscription status did not change.",
+        })}
+      </p>
+      {/* --- REPLACE END --- */}
+
+      {/* --- REPLACE START: ensure correct route path + i18n defaultValue --- */}
+      <Link
+        className="inline-flex items-center justify-center rounded-lg px-4 py-2 font-semibold border"
+        to="/settings/subscriptions"
+      >
+        {t("premium.goToSubscriptions", {
+          defaultValue: "Go to subscription settings",
+        })}
+      </Link>
       {/* --- REPLACE END --- */}
     </div>
   );
 };
 
 export default PremiumCancel;
+

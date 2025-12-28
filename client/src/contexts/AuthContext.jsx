@@ -724,7 +724,9 @@ export function AuthProvider({ children }) {
           }
 
           // Reconcile after refresh
-          await reconcileBillingNow();
+          // Reconcile after refresh (best-effort; do not block /me)
+reconcileBillingNow().catch?.(() => {});
+
 
           // Fetch user profile
           const current = await fetchMe();
@@ -822,13 +824,31 @@ export function AuthProvider({ children }) {
   /**
    * Also reconcile on tab focus.
    */
+    /**
+   * Reconcile when returning to the tab (less noisy than focus).
+   * Avoids bursts during refresh/interceptor races.
+   */
   useEffect(() => {
-    function onFocus() {
-      reconcileBillingNow();
+    const MIN_VISIBLE_RECONCILE_MS = 60_000; // 1 min (tweak)
+    let lastAt = 0;
+
+    function maybeReconcile() {
+      try {
+        if (typeof document === "undefined") return;
+        if (document.visibilityState !== "visible") return;
+        if (!getAccessToken()) return; // not logged in
+        const now = Date.now();
+        if (now - lastAt < MIN_VISIBLE_RECONCILE_MS) return;
+        lastAt = now;
+        reconcileBillingNow();
+      } catch {
+        /* ignore */
+      }
     }
-    if (typeof window !== "undefined") {
-      window.addEventListener("focus", onFocus);
-      return () => window.removeEventListener("focus", onFocus);
+
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", maybeReconcile);
+      return () => document.removeEventListener("visibilitychange", maybeReconcile);
     }
     return undefined;
   }, [reconcileBillingNow]);

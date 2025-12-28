@@ -1,7 +1,7 @@
 // File: client/src/pages/settings/SubscriptionSettings.jsx
 
 // --- REPLACE START: add i18n support + Sync support (button + call after cancel) and keep billing.js API wrapper ---
-import React, { useCallback, useMemo, useState, useEffect } from "react";
+import React, { useCallback, useMemo, useState, useEffect, useRef } from "react"; // --- REPLACE: add useRef
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../contexts/AuthContext";
@@ -31,6 +31,10 @@ const SubscriptionSettings = () => {
   const [msg, setMsg] = useState("");
   const [success, setSuccess] = useState("");
 
+  // --- REPLACE START: add Sync click-lock ref (prevents double click before busy state updates) ---
+  const syncClickLockRef = useRef(false);
+  // --- REPLACE END ---
+
   // Prefer isPremium; reconcile with entitlements.tier; fallback to legacy premium
   const isLoggedIn = !!user;
   const isPremium =
@@ -54,16 +58,41 @@ const SubscriptionSettings = () => {
   // Helper for retryable syncs
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+  // --- REPLACE START: unify billing sync key (status + sessionId) across ALL sync triggers ---
+  const billingSyncContext = useMemo(() => {
+    const status = searchParams.get("status") || undefined; // ?status=success|cancel
+    const sessionId = searchParams.get("session_id") || undefined; // Stripe checkout session
+    return { status, sessionId };
+  }, [searchParams]);
+
+  /**
+   * Always sync using the same attempt key inputs (status + sessionId) when available.
+   * This ensures sessionStorage cache + in-memory single-flight Map (billing.js) can dedupe properly.
+   */
+  const syncBillingWithContext = useCallback(
+    async (opts = {}) => {
+      const merged =
+        opts && typeof opts === "object"
+          ? { ...billingSyncContext, ...opts }
+          : billingSyncContext;
+
+      return syncBilling(merged);
+    },
+    [billingSyncContext]
+  );
+  // --- REPLACE END ---
+
   /**
    * Try to sync with Stripe up to `attempts` times.
    * Returns the last response (or throws the last error).
    */
   const trySyncWithRetry = useCallback(
-    async (attempts = 3, delayMs = 400) => {
+    // --- REPLACE START: route retries through syncBillingWithContext (same attempt key) ---
+    async (attempts = 3, delayMs = 400, baseOpts = {}) => {
       let lastErr;
       for (let i = 0; i < attempts; i++) {
         try {
-          const res = await syncBilling();
+          const res = await syncBillingWithContext(baseOpts);
           // If API responded, return immediately; caller decides how to interpret flags.
           return res;
         } catch (e) {
@@ -75,7 +104,8 @@ const SubscriptionSettings = () => {
       }
       throw lastErr;
     },
-    []
+    [syncBillingWithContext]
+    // --- REPLACE END ---
   );
 
   // When we come back from Stripe/Portal, URL may include flags → refresh state
@@ -130,7 +160,9 @@ const SubscriptionSettings = () => {
 
         // Success or generic portal return:
         // First sync (source of truth), then refresh local user.
-        const syncRes = await syncBilling();
+        // --- REPLACE START: include status + sessionId so billing.js dedupe hits the same attemptKey everywhere ---
+        const syncRes = await syncBillingWithContext();
+        // --- REPLACE END ---
         await safeRefreshUser();
 
         if (!ignore) {
@@ -183,7 +215,9 @@ const SubscriptionSettings = () => {
     return () => {
       ignore = true;
     };
-  }, [searchParams, safeRefreshUser, t]);
+    // --- REPLACE START: include syncBillingWithContext dependency ---
+  }, [searchParams, safeRefreshUser, t, syncBillingWithContext]);
+  // --- REPLACE END ---
 
   // Clear banners when premium flips after a refresh
   useEffect(() => {
@@ -333,19 +367,29 @@ const SubscriptionSettings = () => {
   );
 
   // Explicit Sync handler (calls POST /api/billing/sync and refreshes user)
+  // --- REPLACE START: add useRef click-lock to prevent rapid double clicks before busy updates ---
   const handleSync = useCallback(
     async () => {
       if (!isLoggedIn) {
         navigate("/login");
         return;
       }
-      if (busy) return; // guard against double clicks
+
+      // Ref-lock first: blocks a 2nd click before React state (`busy`) is applied.
+      if (syncClickLockRef.current) return;
+      if (busy) return;
+
+      syncClickLockRef.current = true;
       setBusy(true);
       clearBanners();
+
       try {
-        const res = await syncBilling();
+        // include status + sessionId so this button uses the same attemptKey too
+        const res = await syncBillingWithContext({ force: true });
+
         const becamePremium = res?.isPremium === true;
         const subId = res?.subscriptionId || null;
+
         setSuccess(
           t("subscriptionStatusSynced", {
             defaultValue:
@@ -354,6 +398,7 @@ const SubscriptionSettings = () => {
             subIdPart: subId ? `, subscriptionId=${subId}` : "",
           })
         );
+
         await safeRefreshUser();
       } catch (e) {
         const status = e?.response?.status;
@@ -376,10 +421,12 @@ const SubscriptionSettings = () => {
         }
       } finally {
         setBusy(false);
+        syncClickLockRef.current = false;
       }
     },
-    [isLoggedIn, navigate, friendlyError, safeRefreshUser, busy, t]
+    [isLoggedIn, navigate, friendlyError, safeRefreshUser, busy, t, syncBillingWithContext]
   );
+  // --- REPLACE END ---
 
   // Add 2× retry sync after cancel to handle webhook lag
   const handleCancelNow = useCallback(
@@ -415,11 +462,13 @@ const SubscriptionSettings = () => {
           // Try to reconcile quickly without waiting for webhook delivery
           try {
             // First attempt
-            let syncRes = await syncBilling();
+            // --- REPLACE START: include status + sessionId for cancel reconciliation too ---
+            let syncRes = await syncBillingWithContext({ force: true });
+            // --- REPLACE END ---
 
             // If still premium (or uncertain), try two more times with short delays
             if (syncRes?.isPremium === true) {
-              syncRes = await trySyncWithRetry(2, 450);
+              syncRes = await trySyncWithRetry(2, 450, { force: true });
             }
 
             await safeRefreshUser();
@@ -445,14 +494,13 @@ const SubscriptionSettings = () => {
           }
         } else {
           setMsg(
-            t(
-              "subscriptionStatusNoActiveSub",
-              "No active subscription was found to cancel."
-            )
+            t("subscriptionStatusNoActiveSub", {
+              defaultValue: "No active subscription was found to cancel.",
+            })
           );
           // Attempt sync anyway in case server already updated
           try {
-            await trySyncWithRetry(2, 450);
+            await trySyncWithRetry(2, 450, { force: true });
           } catch {
             // ignore retry errors here
           }
@@ -489,6 +537,9 @@ const SubscriptionSettings = () => {
       busy,
       trySyncWithRetry,
       t,
+      // --- REPLACE START: include syncBillingWithContext dependency ---
+      syncBillingWithContext,
+      // --- REPLACE END ---
     ]
   );
 
@@ -500,6 +551,9 @@ const SubscriptionSettings = () => {
     <div className="max-w-4xl mx-auto p-6">
       <h1 className="text-3xl font-bold mb-2">
         {t("subscriptionSettingsTitle", "Subscription Settings")}
+        {t("subscriptionSettingsTitle", {
+          defaultValue: "Subscription Settings",
+        })}
       </h1>
       <p className="text-sm text-gray-600 mb-6">
         {t(
@@ -525,7 +579,13 @@ const SubscriptionSettings = () => {
         </div>
       )}
 
-      <Row title={t("subscriptionCurrentPlanTitle", "Current Plan")}>
+      {/* --- REPLACE START: fix i18next fallback usage (defaultValue options object) --- */}
+      <Row
+        title={t("subscriptionCurrentPlanTitle", {
+          defaultValue: "Current Plan",
+        })}
+      >
+        {/* --- REPLACE END --- */}
         <p className="flex items-center gap-2">
           {t("subscriptionCurrentPlanText", {
             defaultValue: "You are currently on the {{plan}} plan.",
@@ -536,6 +596,9 @@ const SubscriptionSettings = () => {
               data-testid="premium-badge"
               className="inline-flex items-center px-2 py-0.5 text-xs rounded-full bg-emerald-100 border border-emerald-300"
               title={t("subscriptionPremiumBadgeTitle", "Premium active")}
+              title={t("subscriptionPremiumBadgeTitle", {
+                defaultValue: "Premium active",
+              })}
             >
               {planLabel}
             </span>
@@ -543,7 +606,9 @@ const SubscriptionSettings = () => {
         </p>
       </Row>
 
-      <Row title={t("subscriptionGoPremiumTitle", "Go Premium")}>
+      {/* --- REPLACE START: fix i18next fallback usage (defaultValue options object) --- */}
+      <Row title={t("subscriptionGoPremiumTitle", { defaultValue: "Go Premium" })}>
+        {/* --- REPLACE END --- */}
         <ul className="list-disc pl-5 mb-3 space-y-1">
           {benefits.map((b) => (
             <li key={b}>{b}</li>
@@ -560,18 +625,21 @@ const SubscriptionSettings = () => {
             }`}
             title={
               isPremium
-                ? t(
-                    "subscriptionTooltipAlreadyPremium",
-                    "Already on Premium"
-                  )
+                ? t("subscriptionTooltipAlreadyPremium", {
+                    defaultValue: "Already on Premium",
+                  })
                 : undefined
             }
           >
             {busy
-              ? t("subscriptionButtonWorking", "Working…")
+              ? t("subscriptionButtonWorking", { defaultValue: "Working…" })
               : isPremium
-              ? t("subscriptionButtonAlreadyPremium", "Already Premium")
-              : t("subscriptionButtonStartPremium", "Start Premium")}
+              ? t("subscriptionButtonAlreadyPremium", {
+                  defaultValue: "Already Premium",
+                })
+              : t("subscriptionButtonStartPremium", {
+                  defaultValue: "Start Premium",
+                })}
           </button>
 
           <button
@@ -584,16 +652,17 @@ const SubscriptionSettings = () => {
             }`}
             title={
               !isPremium
-                ? t(
-                    "subscriptionTooltipNoActiveSub",
-                    "No active subscription to manage"
-                  )
+                ? t("subscriptionTooltipNoActiveSub", {
+                    defaultValue: "No active subscription to manage",
+                  })
                 : undefined
             }
           >
             {busy
-              ? t("subscriptionButtonOpening", "Opening…")
-              : t("subscriptionButtonOpenPortal", "Open Billing Portal")}
+              ? t("subscriptionButtonOpening", { defaultValue: "Opening…" })
+              : t("subscriptionButtonOpenPortal", {
+                  defaultValue: "Open Billing Portal",
+                })}
           </button>
 
           <button
@@ -605,16 +674,17 @@ const SubscriptionSettings = () => {
             }`}
             title={
               !isPremium
-                ? t(
-                    "subscriptionTooltipNoActiveSubToCancel",
-                    "No active subscription to cancel"
-                  )
+                ? t("subscriptionTooltipNoActiveSubToCancel", {
+                    defaultValue: "No active subscription to cancel",
+                  })
                 : undefined
             }
           >
             {busy
-              ? t("subscriptionButtonCanceling", "Canceling…")
-              : t("subscriptionButtonCancelNow", "Cancel now")}
+              ? t("subscriptionButtonCanceling", { defaultValue: "Canceling…" })
+              : t("subscriptionButtonCancelNow", {
+                  defaultValue: "Cancel now",
+                })}
           </button>
 
           {/* Explicit Sync button */}
@@ -625,14 +695,13 @@ const SubscriptionSettings = () => {
             className={`px-6 py-2 rounded bg-gray-700 text-white font-semibold hover:bg-gray-800 transition ${
               busy ? "opacity-60 cursor-not-allowed" : ""
             }`}
-            title={t(
-              "subscriptionTooltipSync",
-              "Force a one-click reconciliation with Stripe"
-            )}
+            title={t("subscriptionTooltipSync", {
+              defaultValue: "Force a one-click reconciliation with Stripe",
+            })}
           >
             {busy
-              ? t("subscriptionButtonSyncing", "Syncing…")
-              : t("subscriptionButtonSyncNow", "Sync now")}
+              ? t("subscriptionButtonSyncing", { defaultValue: "Syncing…" })
+              : t("subscriptionButtonSyncNow", { defaultValue: "Sync now" })}
           </button>
         </div>
 
@@ -641,6 +710,10 @@ const SubscriptionSettings = () => {
             "subscriptionRedirectNote",
             "You’ll be redirected to secure checkout / portal for changes. We never store your card details on our servers."
           )}
+          {t("subscriptionRedirectNote", {
+            defaultValue:
+              "You’ll be redirected to secure checkout / portal for changes. We never store your card details on our servers.",
+          })}
         </p>
       </Row>
 
@@ -649,7 +722,7 @@ const SubscriptionSettings = () => {
         onClick={() => navigate(-1)}
         className="mt-2 text-sm underline"
       >
-        {t("subscriptionBack", "← Back")}
+        {t("subscriptionBack", { defaultValue: "← Back" })}
       </button>
     </div>
   );
