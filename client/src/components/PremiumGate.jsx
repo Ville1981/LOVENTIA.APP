@@ -1,9 +1,17 @@
+// PATH: client/src/components/PremiumGate.jsx
+// File: client/src/components/PremiumGate.jsx
+
 // --- REPLACE START: PremiumGate – reusable feature gate & upsell for Premium ---
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import PropTypes from "prop-types";
 // NOTE: matches your actual folder: "src/contexts/AuthContext.jsx"
 import { useAuth } from "../contexts/AuthContext";
-import api from "../utils/axiosInstance";
+
+// --- REPLACE START: prefer shared Axios instance (baseURL + interceptors) ---
+// If your tree still uses ../utils/axiosInstance elsewhere, this is safe here.
+// The shared one typically has baseURL that already includes `/api`.
+import api from "../services/api/axiosInstance";
+// --- REPLACE END ---
 
 /**
  * PremiumGate
@@ -34,6 +42,56 @@ export default function PremiumGate({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
+  // --- REPLACE START: small dedupe/cooldown to avoid hammering billing endpoints ---
+  const ranAtRef = useRef({ sync: 0, checkout: 0 });
+
+  const safeSessionGet = (key) => {
+    try {
+      if (typeof window === "undefined") return null;
+      return window.sessionStorage ? sessionStorage.getItem(key) : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const safeSessionSet = (key, value) => {
+    try {
+      if (typeof window === "undefined") return;
+      if (window.sessionStorage) sessionStorage.setItem(key, value);
+    } catch {
+      // ignore storage errors
+    }
+  };
+
+  /**
+   * Post helper:
+   * - First tries "/billing/..." (assuming axios baseURL already includes "/api")
+   * - If server responds 404, retries "/api/billing/..." as a compatibility fallback
+   * This avoids accidental "/api/api" double-prefix issues depending on which axios instance is used.
+   */
+  const postBilling = async (path, body) => {
+    try {
+      return await api.post(path, body);
+    } catch (e) {
+      const status = e?.response?.status;
+      if (status === 404 && typeof path === "string" && !path.startsWith("/api/")) {
+        return await api.post(`/api${path}`, body);
+      }
+      throw e;
+    }
+  };
+
+  const formatRateLimitMessage = (resp) => {
+    const reset = resp?.data?.reset; // epoch ms
+    const msLeft = typeof reset === "number" ? Math.max(0, reset - Date.now()) : 0;
+    const secLeft = msLeft ? Math.ceil(msLeft / 1000) : null;
+
+    return secLeft
+      ? `Too many requests. Please wait ${secLeft}s and try again.`
+      : "Too many requests. Please slow down and try again.";
+  };
+  // --- REPLACE END ---
+
   // Determine if the account has Premium tier
   const isPremiumTier = useMemo(() => {
     const tierPremium = user?.entitlements?.tier === "premium";
@@ -53,38 +111,85 @@ export default function PremiumGate({
   const unlocked = isPremiumTier && hasFeature;
 
   // Sync button: ask backend to reconcile with Stripe, then refresh /me
-  const handleSync = useCallback(async () => {
-    setErr("");
-    setBusy(true);
-    try {
-      await api.post("/api/billing/sync", {}); // backend will infer customerId
-      const me = await refreshMe();
-      if (typeof onUpgraded === "function") onUpgraded(me);
-    } catch (e) {
-      setErr("Sync failed. Please try again.");
-    } finally {
-      setBusy(false);
+const handleSync = useCallback(async () => {
+  setErr("");
+
+  // --- REPLACE START: cooldown + sessionStorage dedupe for sync button ---
+  const now = Date.now();
+  if (now - (ranAtRef.current.sync || 0) < 1500) return; // prevent double-click bursts
+  ranAtRef.current.sync = now;
+
+  const dedupeKey = "billing_sync_gate:last";
+  const last = Number(safeSessionGet(dedupeKey) || 0);
+  if (last && now - last < 2500) return; // avoid rapid repeats across rerenders
+  safeSessionSet(dedupeKey, String(now));
+  // --- REPLACE END ---
+  setBusy(true);
+  try {
+    // IMPORTANT:
+    // refreshMe() already:
+    //  - refreshes token (if needed)
+    //  - reconciles billing (calls /billing/sync with cooldown/in-flight guards)
+    //  - fetches /me
+    const me = await refreshMe();
+
+    if (!me) {
+      setErr("You are not logged in. Please log in and try Sync again.");
+      return;
     }
-  }, [onUpgraded, refreshMe]);
+
+    if (typeof onUpgraded === "function") onUpgraded(me);
+  } catch (e) {
+    const resp = e?.response;
+    if (resp?.status === 401) {
+      setErr("You are not logged in. Please log in and try Sync again.");
+    } else if (resp?.status === 429) {
+      setErr(formatRateLimitMessage(resp));
+    } else {
+      setErr("Sync failed. Please try again.");
+    }
+  } finally {
+    setBusy(false);
+  }
+}, [onUpgraded, refreshMe, safeSessionGet, safeSessionSet]);
 
   // Checkout button: open Stripe Checkout session
   const handleCheckout = useCallback(async () => {
     setErr("");
+
+    // --- REPLACE START: cooldown for checkout button ---
+    const now = Date.now();
+    if (now - (ranAtRef.current.checkout || 0) < 1500) return;
+    ranAtRef.current.checkout = now;
+    // --- REPLACE END ---
+
     setBusy(true);
     try {
-      const res = await api.post("/api/billing/create-checkout-session", {});
-      const url = res?.data?.url;
+      // --- REPLACE START: call create-checkout-session without hardcoding "/api" prefix ---
+      const res = await postBilling("/billing/create-checkout-session", {});
+      // --- REPLACE END ---
+
+      const url = res?.data?.url || res?.data?.data?.url;
       if (url) {
         window.location.assign(url);
         return;
       }
       setErr("Could not open checkout.");
     } catch (e) {
-      setErr("Checkout could not be created.");
+      // --- REPLACE START: show clear 401/429 messages ---
+      const resp = e?.response;
+      if (resp?.status === 401) {
+        setErr("You are not logged in. Please log in and try again.");
+      } else if (resp?.status === 429) {
+        setErr(formatRateLimitMessage(resp));
+      } else {
+        setErr("Checkout could not be created.");
+      }
+      // --- REPLACE END ---
     } finally {
       setBusy(false);
     }
-  }, []);
+  }, [postBilling]);
 
   // If unlocked, simply render children
   if (unlocked) {
@@ -158,9 +263,7 @@ export default function PremiumGate({
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <div className="bg-white/90 backdrop-blur border border-gray-200 rounded-xl shadow p-4 max-w-md mx-auto text-center">
           <div className="text-2xl mb-1">🔒</div>
-          <p className="text-sm text-gray-700">
-            This is a Premium feature. Unlock to continue.
-          </p>
+          <p className="text-sm text-gray-700">This is a Premium feature. Unlock to continue.</p>
 
           {requireFeature ? (
             <p className="mt-1 text-xs text-gray-500">
@@ -206,3 +309,4 @@ PremiumGate.propTypes = {
   onUpgraded: PropTypes.func,
 };
 // --- REPLACE END ---
+

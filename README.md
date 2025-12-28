@@ -1,5 +1,13 @@
-````markdown
+﻿````md
 # PATH: README.md
+
+<!--
+  NOTE:
+  This file must NOT be wrapped in an outer Markdown code fence.
+  It should start directly with a Markdown heading.
+-->
+
+<!-- // --- REPLACE START: README Ops links + fix broken code fence + align headings/TOC with anchor-smoke slugs (keep content intact) --- -->
 
 # Loventia.app
 
@@ -21,13 +29,13 @@ A full-stack dating application with both **server** (Node.js/Express, MongoDB) 
 8. [Docker Desktop Auto-Start](#docker-desktop-auto-start)
 9. [API Documentation](#api-documentation)
 10. [Authentication (IMPORTANT)](#authentication-important)
-11. [Documentation & Infrastructure](#documentation--infrastructure)
+11. [Documentation and Infrastructure](#documentation-and-infrastructure)
     * [Version Control Workflow](#version-control-workflow)
     * [CI/CD Documentation](#cicd-documentation)
 12. [Image Upload API](#image-upload-api)
 13. [Client API Abstraction](#client-api-abstraction)
-14. [Testing & CI/CD](#testing--cicd)
-15. [Commit Convention & Code Style](#commit-convention--code-style)
+14. [Testing and CI/CD](#testing-and-cicd)
+15. [Commit Convention and Code Style](#commit-convention-and-code-style)
 16. [ER Diagram](#er-diagram)
 
 ---
@@ -77,8 +85,6 @@ A full-stack dating application with both **server** (Node.js/Express, MongoDB) 
 
 ---
 
-<!-- --- REPLACE START: Quick start for new developers --- -->
-
 ## Quick start for new developers
 
 This section is a **short, practical path** to get Loventia running locally and verify that the core API is healthy.
@@ -97,7 +103,7 @@ This section is a **short, practical path** to get Loventia running locally and 
 
    Then edit:
 
-   * `server/.env` → set at least:
+   * `server/.env` -> set at least:
 
      * `MONGO_URI`
      * `JWT_SECRET`
@@ -106,7 +112,7 @@ This section is a **short, practical path** to get Loventia running locally and 
      * `STRIPE_WEBHOOK_SECRET`
      * `STRIPE_PREMIUM_PRICE_ID`
      * `CLIENT_URL=http://localhost:5174`
-   * `client/.env` → set:
+   * `client/.env` -> set:
 
      * `VITE_API_BASE_URL=http://localhost:5000/api`
 
@@ -208,7 +214,7 @@ This section is a **short, practical path** to get Loventia running locally and 
      ```
 
    * To validate Stripe webhooks in dev, see the section
-     **“Stripe CLI smoke (dev)”** under [Testing & CI/CD](#testing--cicd).
+     **"Stripe CLI smoke (dev)"** under [Testing and CI/CD](#testing-and-cicd).
 
 7. **Quick reference: core backend endpoints & OpenAPI commands**
 
@@ -227,8 +233,6 @@ This section is a **short, practical path** to get Loventia running locally and 
    | Metrics (API JSON)  | `GET /api/metrics/json`                                                             | Same metrics as above but JSON-formatted.                                                       |
    | OpenAPI lint+bundle | `powershell -ExecutionPolicy Bypass -File .\openapi\openapi.ps1` (run in `server/`) | Runs Spectral lint and bundles OpenAPI spec with Redocly into `openapi/openapi.bundle.yaml`.    |
 
-<!-- --- REPLACE END: Quick start for new developers --- -->
-
 ---
 
 ## Environment Variables
@@ -243,24 +247,34 @@ cp server/.env.example server/.env
 cp client/.env.example client/.env
 ```
 
+### Staging / Production env templates
+
+These templates are provided so deployment environments stay consistent:
+
+```bash
+# Server templates (documentation)
+cp server/.env.staging.example server/.env.staging
+cp server/.env.prod.example    server/.env.prod
+
+# Client templates (documentation)
+cp client/.env.staging.example client/.env.staging
+cp client/.env.prod.example    client/.env.prod
+```
+
+In CI/CD (GitHub Actions), environment variables are usually injected via secrets.
+These template files are still useful as documentation and for local simulation.
+
 **Server `.env`**
 
 ```ini
 PORT=5000
 MONGO_URI=<your-mongo-uri>
 
-# --- REPLACE START: JWT/env alignment with src/utils/generateTokens.js & src/utils/jwt.js ---
 # Access token secret (short-lived)
 JWT_SECRET=dev_access_secret
 
 # Refresh token secret (long-lived)
 REFRESH_TOKEN_SECRET=dev_refresh_secret
-
-# Optional: override expirations
-# JWT_EXPIRES_IN=2h
-# JWT_REFRESH_EXPIRES_IN=30d
-# TOKEN_ISSUER=loventia-api
-# --- REPLACE END ---
 
 STRIPE_SECRET_KEY=<sk_test_xxx>
 STRIPE_WEBHOOK_SECRET=<whsec_xxx>
@@ -394,7 +408,7 @@ npm install swagger-ui-express yamljs
 In Express app (`server/src/app.js` or `server/src/index.js`):
 
 ```js
-// --- REPLACE START: Swagger integration ---
+// Swagger integration
 import path from 'path';
 import { fileURLToPath } from 'url';
 import swaggerUi from 'swagger-ui-express';
@@ -410,7 +424,6 @@ const swaggerDocument = YAML.load(
 
 // Mount under /api/docs so it matches the rest of the API
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-// --- REPLACE END ---
 ```
 
 > **Note:** If you use a separate `server/src/routes/index.js` that is mounted with `app.use('/api', routes);`, Swagger should still be mounted **directly on the app** as above, not inside the routes index.
@@ -551,7 +564,16 @@ POST /api/auth/reset-password
 
 ---
 
-## Documentation & Infrastructure
+## Documentation and Infrastructure
+
+This section points to the canonical operational documentation.
+
+### Ops docs (canonical)
+
+* **Ops Runbook:** [`docs/ops/runbook.md`](./docs/ops/runbook.md)
+* **Rollback Playbook:** [`docs/ops/rollback-playbook.md`](./docs/ops/rollback-playbook.md)
+* **Security Hardening:** [`docs/security-hardening.md`](./docs/security-hardening.md)
+* **Test Plan:** [`docs/test-plan.md`](./docs/test-plan.md)
 
 ### Version Control Workflow
 
@@ -559,7 +581,7 @@ Document your branching strategy (e.g. Git-flow or trunk-based) and pull request
 
 ### CI/CD Documentation
 
-Describe GitHub Actions workflows, environment secrets management, and automated checks in `docs/ci-cd.md`.
+See: [`docs/ci-cd.md`](./docs/ci-cd.md)
 
 ---
 
@@ -626,7 +648,7 @@ export const uploadPhotos = (userId, files) => {
 
 ---
 
-## Testing & CI/CD
+## Testing and CI/CD
 
 * **Server Tests**: Jest & Supertest (`server/tests`)
 * **Client Tests**: React Testing Library (`client/src/__tests__`)
@@ -650,12 +672,6 @@ jobs:
       - run: npm run lint
 ```
 
-<!-- Stripe CLI smoke test snippet -->
-
-<!-- The replacement region marks exactly what was added for webhook testing -->
-
-<!-- --- REPLACE START: Stripe CLI smoke (dev) --- -->
-
 ### Stripe CLI smoke (dev)
 
 Quick way to validate webhook-only flow locally (Test mode):
@@ -670,11 +686,9 @@ stripe trigger customer.subscription.updated
 stripe trigger customer.subscription.deleted
 ```
 
-<!-- --- REPLACE END --- -->
-
 ---
 
-## Commit Convention & Code Style
+## Commit Convention and Code Style
 
 * **Linting**: ESLint
 * **Formatting**: Prettier
@@ -730,7 +744,9 @@ erDiagram
     }
 ```
 
-```
-```
+<!-- // --- REPLACE END: README Ops links + fix broken code fence + align headings/TOC with anchor-smoke slugs (keep content intact) --- -->
 
+```
+::contentReference[oaicite:0]{index=0}
+```
 

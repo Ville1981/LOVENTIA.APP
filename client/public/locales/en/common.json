@@ -10,6 +10,12 @@
   "cancel": "Cancel",
   "update": "Update",
   "close": "Close",
+
+  "continue": "Continue",
+  "common": {
+    "continue": "Continue"
+  },
+
   "language": "Language",
   "fixErrors": "Please fix the highlighted fields.",
   "home": {
@@ -87,6 +93,14 @@
     "africa": "🌍 AFRICA"
   },
   "premium": {
+    "updating": "Updating premium status...",
+    "successTitle": "Premium subscription successful",
+    "successMessage": "Premium is now active ✅",
+    "errorMessage": "Could not update premium right now. Please try again.",
+    "cancelTitle": "Checkout cancelled",
+    "cancelMessage": "Checkout was cancelled. Your subscription status did not change.",
+    "goToSubscriptions": "Go to subscription settings",
+
     "superLike": {
       "buttonLabelWithQuota": "Super Like {{remaining}}/{{limit}}",
       "buttonLabel": "Super Like",

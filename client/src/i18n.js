@@ -1,4 +1,4 @@
-// client/src/i18n.js
+// File: client/src/i18n.js
 // --- REPLACE START: add "countries" namespace + preload, fix import order, keep behavior intact ---
 /* eslint-env browser */
 /* eslint-disable import/no-named-as-default-member, import/no-named-as-default */
@@ -12,7 +12,7 @@ import { initReactI18next } from "react-i18next";
  * IMPORTANT NOTES
  * - Expects translation files in: /public/locales/{lng}/{ns}.json
  * - Namespaces are split by feature:
- *   "common", "profile", "lifestyle", "discover", "chat", "navbar", "footer", "translation", "countries"
+ *   "common", "profile", "lifestyle", "discover", "chat", "navbar", "footer", "translation", "premium", "countries"
  * - Changing language will:
  *     1) persist to localStorage
  *     2) update <html lang=".."> and dir attribute
@@ -35,6 +35,9 @@ export const NAMESPACES = [
   "navbar",
   "footer",
   "translation",
+  // --- REPLACE START: add premium namespace for billing/subscription UI ---
+  "premium",
+  // --- REPLACE END ---
   // ↓ ADDED: ensure country names are available to the UI out of the box
   "countries"
 ];
@@ -91,7 +94,9 @@ if (process.env.NODE_ENV === "test") {
       supportedLngs: SUPPORTED_LANGS,
       ns: NAMESPACES,
       defaultNS: "common",
-      fallbackNS: ["common", "translation"],
+      // --- REPLACE START: include premium in fallbackNS for test env ---
+      fallbackNS: ["common", "translation", "premium"],
+      // --- REPLACE END ---
       // keeping resources minimal in tests
       resources: {
         en: {
@@ -107,6 +112,10 @@ if (process.env.NODE_ENV === "test") {
               empty: "No conversations",
             },
           },
+          // Optional: minimal premium keys for tests (safe to keep tiny)
+          premium: {
+            goToSubscriptions: "Go to subscription settings",
+          },
           // tests do not need full countries list
         },
       },
@@ -116,7 +125,12 @@ if (process.env.NODE_ENV === "test") {
       interpolation: { escapeValue: false },
       returnNull: false,
       returnEmptyString: false,
-      parseMissingKeyHandler: (key) => key,
+      // --- REPLACE START: allow defaultValue to win over missing-key handler ---
+      // In some i18next versions parseMissingKeyHandler is called when key is missing.
+      // If it always returns the key, it can override defaultValue and show raw keys in UI.
+      // Prefer defaultValue when available.
+      parseMissingKeyHandler: (key, defaultValue) => defaultValue || key,
+      // --- REPLACE END ---
       react: { useSuspense: false, bindI18n: "languageChanged loaded" },
       // preload is harmless here; resources are inline anyway
       preload: ["en"], // ensures parity with app init
@@ -158,12 +172,14 @@ if (process.env.NODE_ENV === "test") {
       fallbackLng: FALLBACK_LANG,
       lng: persisted,
 
-      // ↓ This now includes "countries"
+      // ↓ This now includes "countries" and "premium"
       ns: NAMESPACES,
       defaultNS: "common",
-      fallbackNS: ["common", "translation"],
+      // --- REPLACE START: include premium in fallbackNS to reduce raw-key UI ---
+      fallbackNS: ["common", "translation", "premium"],
+      // --- REPLACE END ---
 
-      // ↓ Preload English so /locales/en/countries.json is fetched immediately
+      // ↓ Preload English so /locales/en/countries.json (and other ns) is fetched immediately
       preload: ["en"],
 
       load: "currentOnly",
@@ -173,7 +189,9 @@ if (process.env.NODE_ENV === "test") {
       debug: Boolean(import.meta?.env?.DEV),
       returnNull: false,
       returnEmptyString: false,
-      parseMissingKeyHandler: (key) => key,
+      // --- REPLACE START: allow defaultValue to win over missing-key handler ---
+      parseMissingKeyHandler: (key, defaultValue) => defaultValue || key,
+      // --- REPLACE END ---
       saveMissing: false,
       nonExplicitSupportedLngs: true,
       cleanCode: true,
@@ -247,3 +265,4 @@ export function isCurrentLanguageRtl() {
 
 export default i18n;
 // --- REPLACE END ---
+

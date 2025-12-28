@@ -1,51 +1,21 @@
-# File: docs/rollback-playbook.md
+# PATH: docs/rollback-playbook.md
 
-# --- REPLACE START: ECS + CloudFront rollback playbook ---
-# Loventia – Rollback Playbook (ECS + CloudFront)
+<!--
+  NOTE:
+  This file is intentionally kept as a POINTER to avoid maintaining two rollback truths.
+  Keep it small, explicit, and non-contradictory.
+-->
 
-> Purpose: Quickly revert the backend to the **previous ECS task definition** and optionally invalidate CloudFront for the frontend.
+<!-- // --- REPLACE START: Pointer file to canonical rollback playbook (clean + consistent) --- -->
 
----
+# Rollback Playbook (Moved)
 
-## Prerequisites
+This rollback playbook has been **consolidated** into a single canonical location to avoid duplicate or conflicting instructions.
 
-- AWS CLI v2 configured (`aws sts get-caller-identity` works).
-- Permissions: ECS (read/update), ECR (read), CloudFront (create invalidation).
-- Know your:
-  - `ECS_CLUSTER` (e.g., `loventia-staging`)
-  - `ECS_SERVICE` (e.g., `loventia-server`)
-  - `CLOUDFRONT_DISTRIBUTION_ID` (only for frontend cache purge)
+✅ **Canonical rollback playbook (use this one):**
+- [`docs/ops/rollback-playbook.md`](./ops/rollback-playbook.md)
 
----
+If you landed here from an older link, please update your bookmarks and any internal references to point to the canonical file above.
 
-## A) Roll back ECS service to the previous task definition
+<!-- // --- REPLACE END: Pointer file to canonical rollback playbook (clean + consistent) --- -->
 
-### 1) Inspect current and previous task definitions
-```bash
-aws ecs describe-services --cluster "$ECS_CLUSTER" --services "$ECS_SERVICE" \
-  --query 'services[0].taskDefinition' --output text
-
-aws ecs list-task-definitions \
-  --family-prefix <your-task-family> \
-  --sort DESC --max-items 5
-
-
-
-
-# File: docs/rollback-playbook.md
-
-# --- REPLACE START: ECS + CloudFront rollback playbook ---
-# Rollback Playbook (ECS service + CloudFront)
-
-## 1. Preconditions
-- AWS CLI v2 toimii ( `aws sts get-caller-identity` ).
-- Sinulla on riittävät oikeudet ECS:ään ja CloudFrontiin.
-
-## 2. Tarkista mikä on “current” ja “previous”
-```bash
-aws ecs describe-services \
-  --region eu-north-1 \
-  --cluster <CLUSTER> \
-  --services <SERVICE> \
-  | jq -r '.services[0].taskDefinition'
-,,,,

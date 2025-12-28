@@ -1,3 +1,6 @@
+// PATH: client/src/App.jsx
+// File: client/src/App.jsx
+
 // --- REPLACE START: use AuthContext.user instead of authUser field ---
 import React, { Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
@@ -35,6 +38,7 @@ import ChatPage from "./pages/ChatPage";
 import MapPage from "./pages/MapPage";
 import Upgrade from "./pages/Upgrade";
 import WhoLikedMe from "./pages/WhoLikedMe";
+import PremiumSuccess from "./pages/PremiumSuccess";
 import PremiumCancel from "./pages/PremiumCancel";
 import LikesOverview from "./pages/LikesOverview";
 import PremiumHub from "./pages/PremiumHub";
@@ -101,6 +105,14 @@ function RouteAnalytics() {
 
   return null;
 }
+
+// --- REPLACE START: preserve query string when redirecting alias routes ---
+function RedirectWithSearch({ to }) {
+  const location = useLocation();
+  const search = location?.search || "";
+  return <Navigate to={`${to}${search}`} replace />;
+}
+// --- REPLACE END ---
 
 // MSW in dev only
 if (
@@ -241,14 +253,28 @@ export default function App() {
                 />
 
                 {/* Billing / upgrade / premium */}
+                {/* --- REPLACE START: support Stripe return URLs (/premium/success and /premium/cancel) + keep aliases --- */}
+                {/* Canonical Stripe return routes (do NOT require login; Stripe may return in a fresh browser session). */}
+                <Route path="premium/success" element={<PremiumSuccess />} />
+                <Route path="premium/cancel" element={<PremiumCancel />} />
+
+                {/* Aliases kept for backwards compatibility (preserve query string). */}
+                <Route
+                  path="premium-success"
+                  element={<RedirectWithSearch to="/premium/success" />}
+                />
+                <Route
+                  path="premium-cancel"
+                  element={<RedirectWithSearch to="/premium/cancel" />}
+                />
+
+                {/* Legacy/alias cancel route (kept for backwards compatibility). */}
                 <Route
                   path="cancel"
-                  element={
-                    <PrivateRoute>
-                      <PremiumCancel />
-                    </PrivateRoute>
-                  }
+                  element={<RedirectWithSearch to="/premium/cancel" />}
                 />
+                {/* --- REPLACE END --- */}
+
                 <Route
                   path="upgrade"
                   element={

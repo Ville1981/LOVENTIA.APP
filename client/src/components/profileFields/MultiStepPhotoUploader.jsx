@@ -1,6 +1,6 @@
 // PATH: client/src/components/profileFields/MultiStepPhotoUploader.jsx
 
-// --- REPLACE START: avatar from slot 0 + photos/extraImages mirroring + safe onSuccess user updates (no loops), compatible with normalizeUserImages ---
+// --- REPLACE START: fix responsive layout so controls never overlap (wrap/stack), keep logic intact ---
 import PropTypes from "prop-types";
 import React, { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -40,12 +40,7 @@ const normalizePath = (p = "") => {
   if (!raw) return "";
   // Keep S3 / external URLs untouched
   if (isAbsoluteUrl(raw)) return raw;
-  return (
-    "/" +
-    raw
-      .replace(/\\/g, "/")
-      .replace(/^\/+/, "")
-  );
+  return "/" + raw.replace(/\\/g, "/").replace(/^\/+/, "");
 };
 
 /**
@@ -72,7 +67,9 @@ function normalizeUserOut(u) {
         baseUser = imgNorm.user;
       }
       if (Array.isArray(imgNorm.photos)) {
-        photos = imgNorm.photos.map((item) => extractPhotoSrc(item)).filter(Boolean);
+        photos = imgNorm.photos
+          .map((item) => extractPhotoSrc(item))
+          .filter(Boolean);
       } else if (Array.isArray(imgNorm.extraImages)) {
         photos = imgNorm.extraImages
           .map((item) => extractPhotoSrc(item))
@@ -171,9 +168,7 @@ export default function MultiStepPhotoUploader({
     Array.from({ length: maxSlots }, (_, i) => extractPhotoSrc(photos[i]) || null)
   );
   const [avatar, setAvatar] = useState(
-    extractPhotoSrc(initialProfilePicture) ||
-      extractPhotoSrc(photos[0]) ||
-      null
+    extractPhotoSrc(initialProfilePicture) || extractPhotoSrc(photos[0]) || null
   );
 
   // Track images that failed to load (for small UI hint)
@@ -209,9 +204,7 @@ export default function MultiStepPhotoUploader({
       setLocalPhotos(nextPhotos);
     }
     const nextAvatar =
-      extractPhotoSrc(initialProfilePicture) ||
-      extractPhotoSrc(photos[0]) ||
-      null;
+      extractPhotoSrc(initialProfilePicture) || extractPhotoSrc(photos[0]) || null;
     if (avatar !== nextAvatar) {
       setAvatar(nextAvatar);
     }
@@ -273,7 +266,12 @@ export default function MultiStepPhotoUploader({
    */
   async function apiSetAvatarFromExisting(uid, currentList, fromIndex) {
     const list = (currentList || []).filter(Boolean);
-    if (!list.length || fromIndex == null || fromIndex < 0 || fromIndex >= list.length) {
+    if (
+      !list.length ||
+      fromIndex == null ||
+      fromIndex < 0 ||
+      fromIndex >= list.length
+    ) {
       throw new Error("Invalid source index for Make main");
     }
 
@@ -283,9 +281,12 @@ export default function MultiStepPhotoUploader({
 
     // 1) Reorder endpoint (preferred if exists)
     try {
-      const res = await api.put(`/users/${encodeURIComponent(uid)}/photos/reorder`, {
-        order: reordered,
-      });
+      const res = await api.put(
+        `/users/${encodeURIComponent(uid)}/photos/reorder`,
+        {
+          order: reordered,
+        }
+      );
       const user = normalizeUserOut(res?.data?.user || res?.data || null);
       if (user) return user;
     } catch (_) {
@@ -295,7 +296,10 @@ export default function MultiStepPhotoUploader({
     // 2) Explicit set-avatar endpoint (if present)
     try {
       const payload = { path: picked, index: fromIndex };
-      const res = await api.post(`/users/${encodeURIComponent(uid)}/set-avatar`, payload);
+      const res = await api.post(
+        `/users/${encodeURIComponent(uid)}/set-avatar`,
+        payload
+      );
       const user = normalizeUserOut(res?.data?.user || res?.data || null);
       if (user) return user;
     } catch (_) {
@@ -540,43 +544,54 @@ export default function MultiStepPhotoUploader({
           onChange={(e) => handleSlotChange(0, e)}
           className="hidden"
         />
-        <ControlBar>
-          <Button
-            variant="gray"
-            type="button"
-            className="min-w-[120px]"
-            onClick={() => slotInputRefs.current[0].current.click()}
-          >
-            {t("Browse…")}
-          </Button>
-          <div
-            className="flex-1 border bg-white px-3 py-2 rounded text-gray-700 text-sm truncate"
-            role="status"
-            aria-live="polite"
-          >
-            {stagedFiles[0]?.name || t("No files chosen")}
+
+        {/* --- REPLACE START: responsive control layout (wrap/stack) to prevent overlaps --- */}
+        <ControlBar className="w-full flex flex-col gap-2">
+          <div className="w-full flex flex-col sm:flex-row sm:items-center gap-2">
+            <Button
+              variant="gray"
+              type="button"
+              className="min-w-[120px]"
+              onClick={() => slotInputRefs.current[0].current.click()}
+            >
+              {t("Browse…")}
+            </Button>
+
+            <div
+              className="w-full sm:flex-1 min-w-0 border bg-white px-3 py-2 rounded text-gray-700 text-sm truncate"
+              role="status"
+              aria-live="polite"
+              title={stagedFiles[0]?.name || ""}
+            >
+              {stagedFiles[0]?.name || t("No file chosen")}
+            </div>
+
+            <div className="w-full sm:w-auto flex flex-wrap items-center justify-center sm:justify-end gap-2">
+              <SaveButton
+                disabled={!stagedFiles[0] || !!savingSlots[0]}
+                busy={!!savingSlots[0]}
+                onClick={() => handleSlotSave(0)}
+              />
+              <Button
+                variant="red"
+                type="button"
+                disabled={!localPhotos[0] || savingSlots[0]}
+                onClick={() => handleDelete(0)}
+              >
+                {savingSlots[0] ? t("Removing…") : t("Remove")}
+              </Button>
+            </div>
           </div>
-          <SaveButton
-            disabled={!stagedFiles[0] || !!savingSlots[0]}
-            busy={!!savingSlots[0]}
-            onClick={() => handleSlotSave(0)}
-          />
-          <Button
-            variant="red"
-            type="button"
-            disabled={!localPhotos[0] || savingSlots[0]}
-            onClick={() => handleDelete(0)}
-          >
-            {savingSlots[0] ? t("Removing…") : t("Remove")}
-          </Button>
         </ControlBar>
+        {/* --- REPLACE END --- */}
+
         {imageErrors[0] && (
           <p className="text-xs text-red-600 mt-1">
             {t("Avatar image failed to load, showing placeholder.")}
           </p>
         )}
         {!stagedFiles[0] && (
-          <p className="text-xs text-gray-600 mt-2">
+          <p className="text-xs text-gray-600 mt-2 text-center">
             {t(
               "Tip: Choose a file to enable Save. To use an existing photo as your avatar, click “Make main” on that photo below."
             )}
@@ -593,34 +608,49 @@ export default function MultiStepPhotoUploader({
         onChange={handleBulkChange}
         className="hidden"
       />
-      <ControlBar className="mb-4 bg-gray-200">
-        <Button
-          variant="gray"
-          type="button"
-          className="min-w-[120px]"
-          onClick={() => bulkInputRef.current?.click()}
-        >
-          {t("Browse…")}
-        </Button>
-        <div className="flex-1 border bg-white px-3 py-2 rounded text-gray-700 text-sm truncate">
-          {bulkFiles.length
-            ? bulkFiles.map((f) => f.name).join(", ")
-            : t("No files chosen")}
+
+      {/* --- REPLACE START: responsive bulk bar layout (no overlaps on small screens) --- */}
+      <ControlBar className="mb-4 bg-gray-200 w-full flex flex-col gap-2">
+        <div className="w-full flex flex-col sm:flex-row sm:items-center gap-2">
+          <Button
+            variant="gray"
+            type="button"
+            className="min-w-[120px]"
+            onClick={() => bulkInputRef.current?.click()}
+          >
+            {t("Browse…")}
+          </Button>
+
+          <div
+            className="w-full sm:flex-1 min-w-0 border bg-white px-3 py-2 rounded text-gray-700 text-sm truncate"
+            title={bulkFiles.length ? bulkFiles.map((f) => f.name).join(", ") : ""}
+          >
+            {bulkFiles.length
+              ? bulkFiles.map((f) => f.name).join(", ")
+              : t("No files chosen")}
+          </div>
+
+          <div className="w-full sm:w-auto flex flex-wrap items-center justify-center sm:justify-end gap-2">
+            <SaveButton
+              disabled={!bulkFiles.length || bulkSaving}
+              busy={bulkSaving}
+              onClick={handleBulkUpload}
+            />
+          </div>
         </div>
-        <SaveButton
-          disabled={!bulkFiles.length || bulkSaving}
-          busy={bulkSaving}
-          onClick={handleBulkUpload}
-        />
       </ControlBar>
+      {/* --- REPLACE END --- */}
+
       {bulkError && <p className="text-red-600 text-sm mb-4">{bulkError}</p>}
 
       {/* Extra slots grid (skip idx 0 to avoid duplicate of avatar card) */}
-      <div className="grid grid-cols-3 gap-4">
+      {/* --- REPLACE START: responsive grid columns so cards have room on small screens --- */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {Array.from({ length: maxSlots }).map((_, idx) => {
           if (idx === 0) return null; // ← Skip slot 0 here; it's rendered by the avatar card above
           const slotNum = idx + 1;
           const currentSrc = localPhotos[idx];
+          const stagedName = stagedFiles[idx]?.name || "";
           return (
             <div
               key={slotNum}
@@ -630,13 +660,16 @@ export default function MultiStepPhotoUploader({
                 <img
                   src={resolveImg(currentSrc)}
                   alt={`Slot ${slotNum}`}
-                  className="w-full h-full object-cover"
+                  // --- REPLACE START: show full photo (no cropping) ---
+                  className="w-full h-full object-contain bg-gray-100"
+                  // --- REPLACE END ---
                   onError={(e) => {
                     e.currentTarget.src = PLACEHOLDER_IMAGE;
                     setImageErrors((prev) => ({ ...prev, [idx]: true }));
                   }}
                 />
               </div>
+
               <input
                 ref={slotInputRefs.current[idx]}
                 type="file"
@@ -644,40 +677,61 @@ export default function MultiStepPhotoUploader({
                 onChange={(e) => handleSlotChange(idx, e)}
                 className="hidden"
               />
-              <ControlBar>
-                <Button
-                  variant="gray"
-                  type="button"
-                  className="min-w-[120px]"
-                  onClick={() => slotInputRefs.current[idx].current.click()}
-                >
-                  {t("Browse…")}
-                </Button>
-                <span className="bg-blue-200 text-white px-2 py-1 rounded text-sm">
-                  {t("Slot")} {slotNum}
-                </span>
-                <SaveButton
-                  disabled={!stagedFiles[idx] || !!savingSlots[idx]}
-                  busy={!!savingSlots[idx]}
-                  onClick={() => handleSlotSave(idx)}
-                />
-                <Button
-                  variant="red"
-                  type="button"
-                  disabled={!localPhotos[idx] || savingSlots[idx]}
-                  onClick={() => handleDelete(idx)}
-                >
-                  {savingSlots[idx] ? t("Removing…") : t("Remove")}
-                </Button>
-                <Button
-                  variant="blue"
-                  type="button"
-                  disabled={!localPhotos[idx] || !!savingSlots[`mk_${idx}`]}
-                  onClick={() => handleMakeMain(idx)}
-                >
-                  {savingSlots[`mk_${idx}`] ? t("Updating…") : t("Make main")}
-                </Button>
-              </ControlBar>
+
+              {/* --- REPLACE START: per-slot controls stacked/wrapped to avoid overlap --- */}
+              <div className="w-full">
+                <ControlBar className="w-full flex flex-col gap-2">
+                  <div className="w-full flex flex-col sm:flex-row sm:items-center gap-2">
+                    <Button
+                      variant="gray"
+                      type="button"
+                      className="min-w-[120px]"
+                      onClick={() => slotInputRefs.current[idx].current.click()}
+                    >
+                      {t("Browse…")}
+                    </Button>
+
+                    <span className="inline-flex items-center justify-center rounded px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800">
+                      {t("Slot")} {slotNum}
+                    </span>
+
+                    <div
+                      className="w-full sm:flex-1 min-w-0 border bg-white px-3 py-2 rounded text-gray-700 text-sm truncate"
+                      role="status"
+                      aria-live="polite"
+                      title={stagedName}
+                    >
+                      {stagedName || t("No file chosen")}
+                    </div>
+                  </div>
+
+                  <div className="w-full flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                    <SaveButton
+                      disabled={!stagedFiles[idx] || !!savingSlots[idx]}
+                      busy={!!savingSlots[idx]}
+                      onClick={() => handleSlotSave(idx)}
+                    />
+                    <Button
+                      variant="red"
+                      type="button"
+                      disabled={!localPhotos[idx] || savingSlots[idx]}
+                      onClick={() => handleDelete(idx)}
+                    >
+                      {savingSlots[idx] ? t("Removing…") : t("Remove")}
+                    </Button>
+                    <Button
+                      variant="blue"
+                      type="button"
+                      disabled={!localPhotos[idx] || !!savingSlots[`mk_${idx}`]}
+                      onClick={() => handleMakeMain(idx)}
+                    >
+                      {savingSlots[`mk_${idx}`] ? t("Updating…") : t("Make main")}
+                    </Button>
+                  </div>
+                </ControlBar>
+              </div>
+              {/* --- REPLACE END --- */}
+
               {imageErrors[idx] && (
                 <p className="text-xs text-red-600 mt-1 text-center">
                   {t("Image failed to load, showing placeholder.")}
@@ -687,6 +741,7 @@ export default function MultiStepPhotoUploader({
           );
         })}
       </div>
+      {/* --- REPLACE END --- */}
     </div>
   );
 }
@@ -696,10 +751,7 @@ MultiStepPhotoUploader.propTypes = {
   isPremium: PropTypes.bool,
   // Prefer reading from user.photos; keep prop name aligned for callers.
   photos: PropTypes.arrayOf(
-    PropTypes.oneOfType([
-      PropTypes.string,
-      PropTypes.shape({ url: PropTypes.string }),
-    ])
+    PropTypes.oneOfType([PropTypes.string, PropTypes.shape({ url: PropTypes.string })])
   ),
   // Optional explicit profile picture; falls back to photos[0]
   profilePicture: PropTypes.oneOfType([
@@ -710,5 +762,4 @@ MultiStepPhotoUploader.propTypes = {
   onError: PropTypes.func,
 };
 // --- REPLACE END ---
-
 
