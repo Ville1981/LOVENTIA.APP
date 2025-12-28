@@ -1,10 +1,5 @@
-<<<<<<< HEAD
-````markdown
-=======
-﻿````md
-# PATH: docs/ci-cd.md
+﻿# PATH: docs/ci-cd.md
 
->>>>>>> fbc1b5a0 (docs: ops/security/stripe test docs updates)
 # CI/CD Documentation
 
 This document explains our GitHub Actions workflows, secrets management, and best practices for continuous integration and delivery of the Loventia application.
@@ -136,46 +131,15 @@ Resolve all failing tests/lint issues locally, re-run them (see section 4), and 
 
 ---
 
-<<<<<<< HEAD
 ### 1.4 Other workflows
 
 Depending on the repository, you may also see additional workflows such as:
-=======
-### 1.5 Client deploy workflows (S3 + CloudFront) (staging + prod)
->>>>>>> fbc1b5a0 (docs: ops/security/stripe test docs updates)
 
 - `client-ci.yml` – CI for the React frontend (`client/`).
 - Deploy / release workflows – build and push Docker images or deploy to staging/production.
 - Lint-only workflows – for ESLint or TypeScript checks.
 
-<<<<<<< HEAD
 These should follow the same conventions: clear purpose, explicit triggers, and fail only on issues that must block a merge.
-=======
-- Deploy the built frontend to S3 and invalidate CloudFront so changes go live reliably.
-
-**Typical design**
-
-- `develop` -> **staging**
-  - Build the Vite client
-  - `aws s3 sync` to a staging bucket (e.g. `loventia-staging-site`)
-  - `aws cloudfront create-invalidation --distribution-id <STAGING_DISTRIBUTION_ID> --paths "/*"`
-
-- `main` -> **production**
-  - Build the Vite client
-  - `aws s3 sync` to a production bucket (e.g. `loventia-prod-site`)
-  - CloudFront invalidation for the production distribution
-
-**Notes**
-
-- SPA deep-link fallback is handled in CloudFront using **Custom Error Responses**:
-  - 403 + 404 -> `/index.html` with ResponseCode `200` and ErrorCachingMinTTL `0`.
-- If your repo uses separate workflow files, they may be named like:
-  - `client-deploy-staging.yml`
-  - `client-deploy-prod.yml`
-  - or a single deploy workflow with branch-based logic.
-
-Always check the actual YAML files in `.github/workflows/` to confirm names, bucket targets, and distribution IDs.
->>>>>>> fbc1b5a0 (docs: ops/security/stripe test docs updates)
 
 ---
 
@@ -214,13 +178,9 @@ Reference secrets in workflows using:
 ```yaml
 env:
   STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
-````
+```
 
-<<<<<<< HEAD
-or directly:
-=======
 or per-step:
->>>>>>> fbc1b5a0 (docs: ops/security/stripe test docs updates)
 
 ```yaml
 - name: Example step
@@ -233,25 +193,22 @@ or per-step:
 
 * **Limit scope**
 
-<<<<<<< HEAD
   * Use separate secrets for **development**, **staging**, and **production** environments.
-  * Prefer environment-specific GitHub environments and secrets when deploying.
-
-=======
-  * Use separate secrets for **development**, **staging**, and **production**.
   * Prefer **GitHub Environments**:
 
     * `staging` environment has staging-only secrets.
     * `production` environment has production-only secrets and protections.
->>>>>>> fbc1b5a0 (docs: ops/security/stripe test docs updates)
+
 * **Rotate regularly**
 
   * Rotate API keys, access tokens, and passwords periodically.
   * Immediately rotate secrets if you suspect they may have been leaked.
+
 * **Audit usage**
 
   * Review who can read or modify secrets.
   * Clean up unused secrets when services are removed or replaced.
+
 * **Never log secrets**
 
   * Do not `echo` secrets directly in workflow logs.
@@ -263,14 +220,8 @@ or per-step:
 
 ### 3.1 Typical branch flow
 
-<<<<<<< HEAD
 * `main` – stable, production-ready branch.
 * `dev` or feature branches – active development.
-=======
-* `main` - stable, production-ready branch.
-* `develop` - integration branch (if used).
-* Feature branches - active development.
->>>>>>> fbc1b5a0 (docs: ops/security/stripe test docs updates)
 
 Pull requests into `main` (and optionally `dev`) should:
 
@@ -287,7 +238,6 @@ For higher safety, mark at least the following as **required** checks before mer
 * OpenAPI CI (`openapi-ci.yml`)
 * Security Scans (`security-scans.yml`)
 
-<<<<<<< HEAD
 This ensures that:
 
 * the backend builds and tests pass,
@@ -295,8 +245,6 @@ This ensures that:
 * the API documentation is valid,
 * there are no high/critical security issues.
 
-=======
->>>>>>> fbc1b5a0 (docs: ops/security/stripe test docs updates)
 ---
 
 ## 4. Local Preflight Before Pushing
@@ -356,7 +304,6 @@ Common cases:
 
   * If the failure is due to `npm audit`:
 
-<<<<<<< HEAD
     * Check the `audit-server.json` / `audit-client.json` artifacts.
     * For **high/critical** vulnerabilities:
 
@@ -372,18 +319,6 @@ Common cases:
 
     * Ensure the target URL is correct and reachable.
     * Adjust the ZAP config or disable certain rules only with good reason.
-=======
-    * check uploaded audit artifacts
-    * for **high/critical** vulnerabilities:
-
-      * try `npm audit fix`
-      * or upgrade dependencies in `package.json`
-      * avoid `npm audit fix --force` unless you accept breaking changes
-  * If the failure is in the ZAP scan:
-
-    * ensure the target URL is correct and reachable
-    * adjust the ZAP config only with a clear reason
->>>>>>> fbc1b5a0 (docs: ops/security/stripe test docs updates)
 
 Resolve the root cause, commit the fix, and re-run the workflow.
 
@@ -395,7 +330,6 @@ Planned improvements for the CI/CD setup include:
 
 * Enforcing ESLint in CI for both server and client (B-phase).
 * Adding Docker build and smoke tests to CI for backend (and optionally frontend).
-<<<<<<< HEAD
 * Adding Lighthouse / performance budgets to the frontend build pipeline.
 * Documenting deployment and rollback steps in more detail (`docs/env.md`, deployment runbooks).
 
@@ -403,20 +337,4 @@ Planned improvements for the CI/CD setup include:
 
 *Last updated: November 18, 2025*
 
-```
-::contentReference[oaicite:0]{index=0}
-```
-
-=======
-* Adding Lighthouse / performance budgets to the frontend pipeline.
-* Keeping ops docs canonical and linked from CI/CD and README (see the ops docs section above).
-
----
-
-*Last updated: December 27, 2025*
->>>>>>> fbc1b5a0 (docs: ops/security/stripe test docs updates)
-
-```
-::contentReference[oaicite:0]{index=0}
-```
 
