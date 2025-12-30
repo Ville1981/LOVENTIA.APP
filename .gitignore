@@ -77,3 +77,22 @@ nul
 # Diagnostic/pack bundles (keep out of git)
 _diag/
 _pack/
+
+
+# local generated / backup / reports
+artifacts/
+lighthouse_prod_*/
+preview_out_*.txt
+preview_err_*.txt
+client/public/_asset_backup_*/
+client/public/_hero_backup_*/
+
+# openapi phase packs (break jest haste map)
+_openapi_phase_pack/
+server/__openapi_phase_pack/
+
+
+# OpenAPI phase pack (temporary)
+_openapi_phase_pack/
+server/__openapi_phase_pack/
+_trash_openapi/
