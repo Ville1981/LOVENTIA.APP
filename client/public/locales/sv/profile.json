@@ -123,58 +123,32 @@
   "age": "Ålder",
   "username": "Användarnamn",
   "email": "E-post",
-  "gender": {
-    "label": "Gender"
-  },
-  "orientation": {
-    "label": "❤️ Orientation"
-  },
+  "gender.label": "Gender",
+  "orientation.label": "❤️ Orientation",
   "height": {
     "label": "Height"
   },
+  "height.label": "Height",
   "heightUnit": "cm",
   "cm": "cm",
   "weight": {
     "label": "Weight"
   },
+  "weight.label": "Weight",
   "weightUnit": "kg",
   "kg": "kg",
-  "bodyType": {
-    "label": "Body type",
-    "slim": "Slim",
-    "normal": "Normal",
-    "athletic": "Athletic",
-    "overweight": "Overweight",
-    "obese": "Obese"
-  },
-  "location": {
-    "country": "Land",
-    "region": "Region",
-    "city": "Stad"
-  },
-  "education": {
-    "label": "Education",
-    "secondary": "High school",
-    "vocational": "Vocational training",
-    "higher": "University",
-    "phd": "PhD / Research"
-  },
+  "bodyType.label": "Body type",
+  "location.country": "🌍 Country",
+  "location.region": "🗺 Region/State",
+  "location.city": "🏩 City",
+  "education.label": "🎓 Education",
   "professionCategory": {
     "label": "💼 Profession category"
   },
+  "professionCategory.label": "💼 Profession category",
   "profession": "Yrke",
   "professionPlaceholder": "Enter profession…",
-  "religion": {
-    "label": "Religion",
-    "christianity": "Christianity",
-    "islam": "Islam",
-    "hinduism": "Hinduism",
-    "buddhism": "Buddhism",
-    "folk": "Folk religion",
-    "none": "None",
-    "other": "Other",
-    "atheism": "Atheism"
-  },
+  "religion.label": "🕊 Religion",
   "religionImportance": {
     "label": "Religion importance",
     "notImportant": "Not important",
@@ -197,6 +171,24 @@
   "male": "Male",
   "female": "Female",
   "other": "Other",
+  "education": {
+    "label": "Education",
+    "secondary": "High school",
+    "vocational": "Vocational training",
+    "higher": "University",
+    "phd": "PhD / Research"
+  },
+  "religion": {
+    "label": "Religion",
+    "christianity": "Christianity",
+    "islam": "Islam",
+    "hinduism": "Hinduism",
+    "buddhism": "Buddhism",
+    "folk": "Folk religion",
+    "none": "None",
+    "other": "Other",
+    "atheism": "Atheism"
+  },
   "common": {
     "other": "Other"
   },
@@ -230,6 +222,14 @@
     "casual": "Casual",
     "undecided": "Undecided"
   },
+  "bodyType": {
+    "slim": "Slim",
+    "normal": "Normal",
+    "athletic": "Athletic",
+    "overweight": "Overweight",
+    "obese": "Obese",
+    "label": "Body type"
+  },
   "childrenYes": "Yes",
   "childrenNo": "No",
   "childrenAdult": "Adult children",
@@ -253,7 +253,20 @@
     "politicalIdeology": "🗳 Political ideology",
     "pets": "🐾 Pets"
   },
+  "hubTitle": "Profile",
+  "emailVerifiedBadge": "Email verified",
   "managePhotos": "Manage photos",
   "save": "Spara",
-  "saveSuccess": "Profile saved."
+  "saveSuccess": "Profile saved.",
+  "gender": {
+    "label": "Gender"
+  },
+  "orientation": {
+    "label": "❤️ Orientation"
+  },
+  "location": {
+    "country": "Land",
+    "region": "Region",
+    "city": "Stad"
+  }
 }

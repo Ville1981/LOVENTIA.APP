@@ -1,0 +1,23 @@
+{
+  "anonymousUser": "Anonymous",
+  "errorGeneric": "Failed to load likes. Please try again.",
+  "errorNotSignedIn": "Please sign in to view your likes.",
+  "footerCtaLink": "Manage your subscription",
+  "footerCtaPrefix": "Want more features?",
+  "footerTip": "Tip: Premium users are marked with a small yellow \"Premium\" badge on their card.",
+  "incomingCount": "{{count}} user",
+  "incomingCount_plural": "{{count}} users",
+  "incomingEmpty": "No incoming likes yet. When someone likes you, they will appear here.",
+  "incomingTitle": "People who liked you",
+  "loading": "Loading likes…",
+  "matchesCount": "{{count}} match",
+  "matchesCount_plural": "{{count}} matches",
+  "matchesEmpty": "No matches yet. When you both like each other, the match will appear here.",
+  "matchesTitle": "Matches",
+  "outgoingCount": "{{count}} user",
+  "outgoingCount_plural": "{{count}} users",
+  "outgoingEmpty": "You have not liked anyone yet. Start browsing in Discover.",
+  "outgoingTitle": "People you liked",
+  "subtitle": "Here you can see people you liked, people who liked you, and your matches.",
+  "title": "Likes overview"
+}

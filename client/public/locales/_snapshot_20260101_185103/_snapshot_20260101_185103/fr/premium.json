@@ -1,0 +1,88 @@
+{
+  "benefits": {
+    "badgeDescription": "Affichez un petit badge Premium sur votre profil et dans vos messages.",
+    "badgeTitle": "Badge Premium",
+    "dealbreakersDescription": "Utilisez des filtres stricts dans Découvrir pour ne voir que les profils qui correspondent à vos critères essentiels.",
+    "dealbreakersTitle": "Filtres « dealbreaker »",
+    "introsDescription": "Envoyez un premier message avant même d’avoir un match (là où c’est autorisé).",
+    "introsTitle": "Messages d’introduction",
+    "noAdsDescription": "Aucune bannière ni publicité latérale sur Loventia.",
+    "noAdsTitle": "Expérience sans publicité",
+    "unlimitedLikesDescription": "Aimez autant de profils que vous le souhaitez chaque jour.",
+    "unlimitedLikesTitle": "Likes illimités",
+    "unlimitedRewindsDescription": "Revenez au profil précédent si vous avez glissé dans le mauvais sens.",
+    "unlimitedRewindsTitle": "Retours en arrière illimités",
+    "weeklySuperLikesDescription": "Mettez votre profil en avant chaque semaine avec des Super Likes.",
+    "weeklySuperLikesDescriptionWithCount": "Vous recevez actuellement {{count}} Super Likes par semaine.",
+    "weeklySuperLikesTitle": "Super Likes hebdomadaires",
+    "whoLikedMeDescription": "Ouvrez la vue Likes pour voir immédiatement qui vous a déjà aimé.",
+    "whoLikedMeTitle": "Voir qui vous a aimé"
+  },
+  "hub": {
+    "title": "Premium Hub",
+    "planPremium": "Premium",
+    "planFree": "Free",
+    "currentPlanTitle": "Your current plan",
+    "currentPlanDescription": "This page shows your current Premium status and the benefits that are active on your account.",
+    "planLabel": "Current plan:",
+    "activeHint": "Premium is active. Most benefits below should already be unlocked.",
+    "freeHint": "You are currently on the Free plan. Upgrade to unlock all Premium benefits.",
+    "manageSubscription": "Manage subscription",
+    "upgradeNow": "Upgrade to Premium",
+    "syncHint": "If something looks out of date, open Subscription Settings and press Sync. It will pull the latest entitlements from billing.",
+    "benefitsTitle": "Premium benefits",
+    "benefitsDescription": "Here is a quick overview of what Premium offers. Active benefits are highlighted, locked ones are shown in gray.",
+    "note": "Some benefits may depend on local laws or safety rules. We may roll out new Premium features over time.",
+    "benefits": {
+      "noAds": {
+        "title": "Expérience sans publicité",
+        "description": "Aucune bannière ni publicité latérale sur Loventia."
+      },
+      "unlimitedLikes": {
+        "title": "Likes illimités",
+        "description": "Aimez autant de profils que vous le souhaitez chaque jour."
+      },
+      "unlimitedRewinds": {
+        "title": "Retours en arrière illimités",
+        "description": "Revenez au profil précédent si vous avez glissé dans le mauvais sens."
+      },
+      "whoLikedMe": {
+        "title": "Voir qui vous a aimé",
+        "description": "Ouvrez la vue Likes pour voir immédiatement qui vous a déjà aimé."
+      },
+      "superLikesPerWeek": {
+        "title": "Super Likes hebdomadaires",
+        "descriptionWithCount": "Vous recevez actuellement {{count}} Super Likes par semaine.",
+        "description": "Mettez votre profil en avant chaque semaine avec des Super Likes."
+      },
+      "intros": {
+        "title": "Messages d’introduction",
+        "description": "Envoyez un premier message avant même d’avoir un match (là où c’est autorisé)."
+      },
+      "dealbreakers": {
+        "title": "Filtres « dealbreaker »",
+        "description": "Utilisez des filtres stricts dans Découvrir pour ne voir que les profils qui correspondent à vos critères essentiels."
+      },
+      "badge": {
+        "title": "Badge Premium",
+        "description": "Affichez un petit badge Premium sur votre profil et dans vos messages."
+      }
+    }
+  },
+  "upgradeCheckingSessionTitle": "Checking your session…",
+  "upgradeCheckingSessionBody": "Please wait a moment.",
+  "upgradeSignInRequiredTitle": "Sign in required",
+  "upgradeSignInRequiredBody": "To view Premium benefits and upgrade your account, please sign in.",
+  "upgradeGoToLogin": "Go to Login",
+  "upgradeTitle": "Upgrade to Premium",
+  "upgradeContinueButton": "Continue to Subscription",
+  "upgradeFooterNote": "You’ll be redirected to your subscription settings. Payment is handled by your configured provider (e.g., Stripe).",
+  "benefitSeeWhoLikedYou": "Voir qui vous a aimé",
+  "benefitSuperLikes": "Super Likes hebdomadaires",
+  "benefitQAVisibility": "Unlock all Q&A visibility",
+  "benefitUnlimitedLikes": "Likes illimités",
+  "benefitDealbreakers": "Filtres « dealbreaker »",
+  "benefitUnlimitedRewinds": "Retours en arrière illimités",
+  "benefitIntrosMessaging": "Messages d’introduction",
+  "benefitNoAds": "Expérience sans publicité"
+}

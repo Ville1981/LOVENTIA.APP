@@ -72,24 +72,14 @@
   "instructions": "Set filters and click Filter to find people.",
   "ageRange": "Возрастной диапазон",
   "username": "Имя пользователя",
-  "gender": {
-    "label": "Gender"
-  },
-  "orientation": {
-    "label": "❤️ Orientation"
-  },
-  "location": {
-    "country": "🌍 Country",
-    "region": "🗺 Region/State",
-    "city": "🏩 City"
-  },
-  "education": {
-    "label": "🎓 Education"
-  },
+  "gender.label": "Gender",
+  "orientation.label": "❤️ Orientation",
+  "location.country": "🌍 Country",
+  "location.region": "🗺 Region/State",
+  "location.city": "🏩 City",
+  "education.label": "🎓 Education",
   "profession": "Профессия",
-  "religion": {
-    "label": "🕊 Religion"
-  },
+  "religion.label": "🕊 Religion",
   "religionImportance": "Важность религии",
   "politicalIdeology": "Политическая идеология",
   "children": "👶 Children",
@@ -120,5 +110,23 @@
   "state": {
     "noResults": "No matching profiles found.",
     "loading": "Loading…"
+  },
+  "error": "Failed to load profiles. Please log in again and try once more.",
+  "gender": {
+    "label": "Gender"
+  },
+  "orientation": {
+    "label": "❤️ Orientation"
+  },
+  "location": {
+    "country": "🌍 Country",
+    "region": "🗺 Region/State",
+    "city": "🏩 City"
+  },
+  "education": {
+    "label": "🎓 Education"
+  },
+  "religion": {
+    "label": "🕊 Religion"
   }
 }

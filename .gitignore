@@ -96,3 +96,8 @@ server/__openapi_phase_pack/
 _openapi_phase_pack/
 server/__openapi_phase_pack/
 _trash_openapi/
+
+# i18n cleanup backups
+*.bak
+*.todoFix.bak
+*.json.bak

@@ -26,9 +26,29 @@
   },
   "auth": {
     "username": "Username",
-    "username_placeholder": "Enter your username"
+    "username_placeholder": "Enter your username",
+    "register": {
+      "title": "Create account",
+      "usernamePlaceholder": "Username",
+      "usernameAria": "Username",
+      "emailPlaceholder": "Email",
+      "emailAria": "Email",
+      "passwordPlaceholder": "Password",
+      "passwordAria": "Password",
+      "confirmPasswordPlaceholder": "Confirm password",
+      "confirmPasswordAria": "Confirm password",
+      "creating": "Creating…",
+      "submit": "Create account",
+      "checkEmailTitle": "Check your email",
+      "checkEmailBody": "We have sent a verification link to your email. Please open it to verify your address before you continue.",
+      "sentTo": "We tried to send the email to {{email}}.",
+      "goToDiscover": "Go to Discover",
+      "goToHome": "Back to Home",
+      "checkEmailHint": "If you do not see the email, check your spam folder or try again later from Settings → Email verification."
+    }
   },
   "blog": "Blog",
+  "blockButtonLabel": "Block",
   "buttons": {
     "back": "Back",
     "cancel": "Cancel",
@@ -69,7 +89,10 @@
   "conditions": "Conditions",
   "contact": "Contact",
   "conversationCard": {
-    "avatarAlt": "User avatar"
+    "avatarAlt": "User avatar",
+    "unknownUser": "Unknown user",
+    "noTime": "",
+    "unreadCount": "Unread messages"
   },
   "cookies": "Cookies",
   "countries": {
@@ -147,15 +170,18 @@
     "heroOtsikko": "Welcome to Loventia.site!",
     "heroTeksti": "Find meaningful connections easily and safely.",
     "heroTekstit": [
-      "Najděte lásku, která vydrží.",
-      "Poznejte lidi, kteří sdílí vaše hodnoty.",
-      "Vaše další shoda je na jedno kliknutí."
+      "Find love that lasts.",
+      "Meet people who share your values.",
+      "Your next match is one click away."
     ],
     "katso_kayttajat": "See users",
     "kuvaus": "Find companionship, friends or love easily and safely.",
     "lue_lisaa": "Read more",
     "tervetuloa": "Welcome to Loventia.site!"
   },
+  "etusivu.heroTekstit.0": "Find love that lasts.",
+  "etusivu.heroTekstit.1": "Meet people who share your values.",
+  "etusivu.heroTekstit.2": "Your next match is one click away.",
   "follow": "Follow",
   "health": "Health Policy",
   "hero": {
@@ -164,10 +190,16 @@
     "2": "Vaše další shoda je na jedno kliknutí.",
     "title": "Meet kind singles near you"
   },
+  "home.title": "Welcome to Loventia.site!",
+  "home.subtitle": "Find meaningful connections easily and safely.",
   "home": {
     "title": "Welcome to Loventia.site!",
     "subtitle": "Find meaningful connections easily and safely.",
-    "texts": "__TODO: translate__"
+    "texts": [
+      "Najděte lásku, která vydrží.",
+      "Poznejte lidi, kteří sdílí vaše hodnoty.",
+      "Vaše další shoda je na jedno kliknutí."
+    ]
   },
   "impressum": "Impressum",
   "lifestyle": {
@@ -254,6 +286,9 @@
     "superlikeReceived": "{{username}} superliked you"
   },
   "overview": {
+    "title": "Conversations",
+    "loading": "Loading conversations…",
+    "empty": "No conversations yet. When you match and start messaging, your conversations will appear here.",
     "error": "Failed to load conversations"
   },
   "politics": {

@@ -1,0 +1,273 @@
+﻿{
+  "labels": {
+    "header": "Profil",
+    "age": "Alter",
+    "username": "Benutzername",
+    "gender": "Geschlecht",
+    "orientation": "Orientierung",
+    "height": "GrÃ¶ÃŸe",
+    "weight": "Gewicht",
+    "bodyType": "KÃ¶rperbau",
+    "country": "Land",
+    "region": "Region/Bundesland",
+    "city": "Stadt",
+    "education": "Bildung",
+    "professionCategory": "ðŸ’¼ Berufskategorie",
+    "profession": "Beruf",
+    "religion": "Religion",
+    "religionImportance": "Wichtigkeit der Religion",
+    "politicalIdeology": "Politische Einstellung",
+    "children": "Kinder",
+    "pets": "Haustiere",
+    "lifestyle": "Lebensstil",
+    "smoke": "Rauchen",
+    "drink": "Alkohol",
+    "drugs": "Drogen",
+    "diet": "ErnÃ¤hrung",
+    "exercise": "Bewegung",
+    "aboutMe": "Ãœber mich",
+    "goals": "Ziele",
+    "lookingFor": "Wonach ich suche",
+    "childrenPets": "ðŸ¾ Haustiere"
+  },
+  "placeholders": {
+    "select": "Bitte wÃ¤hlen"
+  },
+  "options": {
+    "gender": {
+      "male": "MÃ¤nnlich",
+      "female": "Weiblich",
+      "nonbinary": "Nicht-binÃ¤r",
+      "other": "Andere",
+      "preferNot": "MÃ¶chte ich nicht angeben"
+    },
+    "orientation": {
+      "straight": "Hetero",
+      "gay": "Schwul",
+      "lesbian": "Lesbisch",
+      "bisexual": "Bisexuell",
+      "asexual": "Asexuell",
+      "pansexual": "Pansexuell",
+      "queer": "Queer",
+      "questioning": "Unsicher",
+      "other": "Andere"
+    },
+    "education": {
+      "highschool": "Abitur / Gymnasium",
+      "vocational": "Berufsausbildung",
+      "bachelor": "Bachelor",
+      "master": "Master",
+      "doctorate": "Doktor",
+      "other": "Andere"
+    },
+    "religion": {
+      "agnostic": "Agnostiker",
+      "atheist": "Atheist",
+      "buddhist": "Buddhist",
+      "christian": "Christ",
+      "hindu": "Hindu",
+      "jewish": "Jude",
+      "muslim": "Muslim",
+      "spiritual": "Spirituell",
+      "other": "Andere",
+      "preferNot": "MÃ¶chte ich nicht angeben"
+    },
+    "professionCategory": {
+      "administration": "Verwaltung",
+      "finance": "Finanzen",
+      "military": "MilitÃ¤r",
+      "technical": "Technik",
+      "healthcare": "Gesundheitswesen",
+      "education": "Bildung",
+      "entrepreneur": "Unternehmer/in",
+      "law": "Recht / Justiz",
+      "farmerForestWorker": "Land-/Forstarbeiter/in",
+      "theologianPriest": "Theologe/Geistliche/r",
+      "service": "Dienstleistung",
+      "artist": "KÃ¼nstler/in",
+      "divineServant": "Geistlicher Dienst",
+      "homeparent": "Hauselternteil",
+      "foodIndustry": "Lebensmittelindustrie",
+      "retail": "Einzelhandel",
+      "arts": "KÃ¼nste",
+      "government": "Ã–ffentlicher Dienst",
+      "retired": "Im Ruhestand",
+      "athlete": "Sportler/in",
+      "other": "Andere"
+    },
+    "politicalIdeology": {
+      "left": "Links",
+      "centre": "Mitte",
+      "right": "Rechts",
+      "conservatism": "Konservatismus",
+      "liberalism": "Liberalismus",
+      "socialism": "Sozialismus",
+      "communism": "Kommunismus",
+      "fascism": "Faschismus",
+      "environmentalism": "Umweltschutz",
+      "anarchism": "Anarchismus",
+      "nationalism": "Nationalismus",
+      "populism": "Populismus",
+      "progressivism": "Progressivismus",
+      "libertarianism": "Libertarismus",
+      "democracy": "Demokratie",
+      "other": "Anderes"
+    },
+    "pets": {
+      "cat": "Katze",
+      "dog": "Hund",
+      "both": "Beide",
+      "none": "Keine"
+    }
+  },
+  "age": "Alter",
+  "username": "Benutzername",
+  "email": "E-Mail",
+  "gender.label": "Gender",
+  "orientation.label": "â¤ï¸ Orientation",
+  "height": {
+    "label": "Height"
+  },
+  "height.label": "Height",
+  "heightUnit": "GrÃ¶ÃŸeneinheit",
+  "cm": "cm",
+  "weight": {
+    "label": "Weight"
+  },
+  "weight.label": "Weight",
+  "weightUnit": "Gewichtseinheit",
+  "kg": "kg",
+  "bodyType.label": "Body type",
+  "location.country": "ðŸŒ Country",
+  "location.region": "ðŸ—º Region/State",
+  "location.city": "ðŸ© City",
+  "education.label": "ðŸŽ“ Education",
+  "professionCategory": {
+    "label": "ðŸ’¼ Profession category"
+  },
+  "professionCategory.label": "ðŸ’¼ Profession category",
+  "profession": "ðŸ’¼ Beruf",
+  "professionPlaceholder": "Berufsbezeichnungâ€¦",
+  "religion.label": "ðŸ•Š Religion",
+  "religionImportance": {
+    "label": "Wichtigkeit der Religion",
+    "notImportant": "Nicht wichtig",
+    "somewhatImportant": "Etwas wichtig",
+    "veryImportant": "Sehr wichtig",
+    "essential": "Unverzichtbar"
+  },
+  "politicalIdeology": "ðŸ—³ Politische Einstellung",
+  "children": "Kinder",
+  "pets": "ðŸ¾ Haustiere",
+  "lifestyle": "Lebensstil",
+  "smoke": "Rauchen",
+  "drink": "Alkohol",
+  "drugs": "Drogen",
+  "diet": "ErnÃ¤hrung",
+  "exercise": "Bewegung",
+  "aboutMe": "ðŸ“„ Ãœber mich",
+  "goals": "ðŸŽ¯ Ziele",
+  "lookingFor": "ðŸ” Wonach ich suche",
+  "male": "MÃ¤nnlich",
+  "female": "Weiblich",
+  "other": "Andere",
+  "education": {
+    "label": "Bildung",
+    "secondary": "Abitur / Gymnasium",
+    "vocational": "Berufsausbildung",
+    "higher": "Hochschule / UniversitÃ¤t",
+    "phd": "Promotion / Forschung"
+  },
+  "religion": {
+    "label": "Religion",
+    "christianity": "Christentum",
+    "islam": "Islam",
+    "hinduism": "Hinduismus",
+    "buddhism": "Buddhismus",
+    "folk": "Volksreligion",
+    "none": "Keine",
+    "other": "Andere",
+    "atheism": "Atheismus"
+  },
+  "common": {
+    "other": "Andere"
+  },
+  "interests": {
+    "movies": "Filme",
+    "music": "Musik",
+    "reading": "Lesen",
+    "sports": "Sport",
+    "travel": "Reisen"
+  },
+  "profile": {
+    "bi": "Bi",
+    "female": "Weiblich",
+    "gender": "Geschlecht",
+    "hetero": "Hetero",
+    "homo": "Homosexuell",
+    "male": "MÃ¤nnlich",
+    "orientation": "Orientierung",
+    "other": "Andere",
+    "religion": "Religion"
+  },
+  "searchingFor": "Ich suche",
+  "looking": {
+    "friendship": "Freundschaft",
+    "gettingToKnow": "Kennenlernen",
+    "dating": "Dating",
+    "dates": "Verabredungen",
+    "longTerm": "Langfristige Beziehung",
+    "marriage": "Ehe",
+    "chatOnly": "Nur chatten",
+    "casual": "Unverbindlich",
+    "undecided": "Unentschieden"
+  },
+  "bodyType": {
+    "slim": "Schlank",
+    "normal": "Normal",
+    "athletic": "Athletisch",
+    "overweight": "Ãœbergewichtig",
+    "obese": "AdipÃ¶s",
+    "label": "KÃ¶rperbau"
+  },
+  "childrenYes": "Ja",
+  "childrenNo": "Nein",
+  "childrenAdult": "Erwachsene Kinder",
+  "fields": {
+    "professionCategory": "ðŸ’¼ Berufskategorie",
+    "politicalIdeology": "ðŸ—³ Politische Einstellung",
+    "pets": "ðŸ¾ Haustiere"
+  },
+  "sections": {
+    "professionCategory": "ðŸ’¼ Berufskategorie",
+    "politicalIdeology": "ðŸ—³ Politische Einstellung",
+    "pets": "ðŸ¾ Haustiere"
+  },
+  "form": {
+    "professionCategory": "ðŸ’¼ Berufskategorie",
+    "politicalIdeology": "ðŸ—³ Politische Einstellung",
+    "pets": "ðŸ¾ Haustiere"
+  },
+  "headings": {
+    "professionCategory": "ðŸ’¼ Berufskategorie",
+    "politicalIdeology": "ðŸ—³ Politische Einstellung",
+    "pets": "ðŸ¾ Haustiere"
+  },
+  "hubTitle": "Profile",
+  "emailVerifiedBadge": "Email verified",
+  "managePhotos": "Fotos verwalten",
+  "save": "Speichern",
+  "saveSuccess": "Profil gespeichert.",
+  "gender": {
+    "label": "Geschlecht"
+  },
+  "orientation": {
+    "label": "â¤ï¸ Orientierung"
+  },
+  "location": {
+    "country": "ðŸŒ Land",
+    "region": "ðŸ—º Region/Bundesland",
+    "city": "ðŸ© Stadt"
+  }
+}
+

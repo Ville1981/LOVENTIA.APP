@@ -72,24 +72,14 @@
   "instructions": "Refine your search using the filters below.",
   "ageRange": "आयु सीमा",
   "username": "उपयोगकर्ता नाम",
-  "gender": {
-    "label": "Gender"
-  },
-  "orientation": {
-    "label": "❤️ Orientation"
-  },
-  "location": {
-    "country": "🌍 Country",
-    "region": "🗺 Region/State",
-    "city": "🏩 City"
-  },
-  "education": {
-    "label": "🎓 Education"
-  },
+  "gender.label": "Gender",
+  "orientation.label": "❤️ Orientation",
+  "location.country": "🌍 Country",
+  "location.region": "🗺 Region/State",
+  "location.city": "🏩 City",
+  "education.label": "🎓 Education",
   "profession": "पेशा",
-  "religion": {
-    "label": "🕊 Religion"
-  },
+  "religion.label": "🕊 Religion",
   "religionImportance": "धर्म का महत्व",
   "politicalIdeology": "राजनैतिक विचारधारा",
   "children": "👶 Children",
@@ -120,5 +110,23 @@
   "state": {
     "noResults": "No matching profiles found.",
     "loading": "Loading…"
+  },
+  "error": "Failed to load profiles. Please log in again and try once more.",
+  "gender": {
+    "label": "Gender"
+  },
+  "orientation": {
+    "label": "❤️ Orientation"
+  },
+  "location": {
+    "country": "🌍 Country",
+    "region": "🗺 Region/State",
+    "city": "🏩 City"
+  },
+  "education": {
+    "label": "🎓 Education"
+  },
+  "religion": {
+    "label": "🕊 Religion"
   }
 }

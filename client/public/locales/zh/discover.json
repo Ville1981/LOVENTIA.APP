@@ -72,24 +72,14 @@
   "instructions": "Set filters and click Filter to find people.",
   "ageRange": "年龄范围",
   "username": "用户名",
-  "gender": {
-    "label": "Gender"
-  },
-  "orientation": {
-    "label": "❤️ Orientation"
-  },
-  "location": {
-    "country": "🌍 Country",
-    "region": "🗺 Region/State",
-    "city": "🏩 City"
-  },
-  "education": {
-    "label": "🎓 Education"
-  },
+  "gender.label": "Gender",
+  "orientation.label": "❤️ Orientation",
+  "location.country": "🌍 Country",
+  "location.region": "🗺 Region/State",
+  "location.city": "🏩 City",
+  "education.label": "🎓 Education",
   "profession": "职业",
-  "religion": {
-    "label": "🕊 Religion"
-  },
+  "religion.label": "🕊 Religion",
   "religionImportance": "宗教重要性",
   "politicalIdeology": "政治理念",
   "children": "👶 Children",
@@ -120,5 +110,23 @@
   "state": {
     "noResults": "No matching profiles found.",
     "loading": "Loading…"
+  },
+  "error": "Failed to load profiles. Please log in again and try once more.",
+  "gender": {
+    "label": "Gender"
+  },
+  "orientation": {
+    "label": "❤️ Orientation"
+  },
+  "location": {
+    "country": "🌍 Country",
+    "region": "🗺 Region/State",
+    "city": "🏩 City"
+  },
+  "education": {
+    "label": "🎓 Education"
+  },
+  "religion": {
+    "label": "🕊 Religion"
   }
 }
