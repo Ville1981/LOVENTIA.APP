@@ -416,10 +416,7 @@ export function AuthProvider({ children }) {
       if (import.meta?.env?.DEV) {
         try {
           // eslint-disable-next-line no-console
-          console.debug(
-            "[AuthContext] user changed →",
-            window.__AUTH_DEBUG__
-          );
+          console.debug("[AuthContext] user changed →", window.__AUTH_DEBUG__);
         } catch {
           /* noop */
         }
@@ -653,10 +650,7 @@ export function AuthProvider({ children }) {
             );
           } else {
             // eslint-disable-next-line no-console
-            console.warn(
-              "[AuthContext] Billing sync failed:",
-              e?.message || e
-            );
+            console.warn("[AuthContext] Billing sync failed:", e?.message || e);
           }
         } catch {
           /* ignore */
@@ -723,10 +717,15 @@ export function AuthProvider({ children }) {
             setAccessTokenState(nextToken);
           }
 
-          // Reconcile after refresh
           // Reconcile after refresh (best-effort; do not block /me)
-reconcileBillingNow().catch?.(() => {});
-
+          try {
+            const p = reconcileBillingNow();
+            if (p && typeof p.catch === "function") {
+              p.catch(() => {});
+            }
+          } catch {
+            /* ignore */
+          }
 
           // Fetch user profile
           const current = await fetchMe();
@@ -803,28 +802,139 @@ reconcileBillingNow().catch?.(() => {});
     [fetchMe, setAuthUser, reconcileBillingNow]
   );
 
+  // --- REPLACE START: non-blocking auth bootstrap on public routes (improves mobile LCP) ---
+  /**
+   * PERFORMANCE NOTE (Mobile LCP)
+   * -----------------------------
+   * On public routes (especially "/"), awaiting refresh/me calls before marking
+   * the app bootstrapped can delay the first meaningful render. That shows up as
+   * a high "render delay" for the LCP element, even if the hero image is small.
+   *
+   * Strategy:
+   * - If the user is on a protected route (Discover/Chat/Settings/etc), bootstrap eagerly.
+   * - If the user returned from Stripe (success/canceled/session_id/portal params), bootstrap eagerly.
+   * - Otherwise (public routes), mark bootstrapped immediately and refresh in idle time
+   *   ONLY if we already have an access token in storage (so anonymous users don't churn).
+   */
+  const isProtectedRoute = useCallback(() => {
+    try {
+      if (typeof window === "undefined") return false;
+      const p = window.location?.pathname || "/";
+      // Keep this list conservative: only routes that truly need auth immediately.
+      return (
+        p.startsWith("/discover") ||
+        p.startsWith("/matches") ||
+        p.startsWith("/chat") ||
+        p.startsWith("/messages") ||
+        p.startsWith("/settings") ||
+        p.startsWith("/profile") ||
+        p.startsWith("/map") ||
+        p.startsWith("/premium") ||
+        p.startsWith("/admin")
+      );
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const hasBillingReturnParams = useCallback(() => {
+    try {
+      if (typeof window === "undefined") return false;
+      const qs = new URLSearchParams(window.location.search || "");
+      return (
+        qs.has("success") ||
+        qs.has("canceled") ||
+        qs.has("session_id") ||
+        qs.has("portal_session_id") ||
+        qs.has("return_from")
+      );
+    } catch {
+      return false;
+    }
+  }, []);
+
+  function scheduleAfterFirstPaint(fn) {
+    try {
+      if (typeof window === "undefined") return;
+      // Prefer idle callback when available, but guarantee execution via timeout.
+      if (typeof window.requestIdleCallback === "function") {
+        window.requestIdleCallback(
+          () => {
+            try {
+              fn();
+            } catch {
+              /* ignore */
+            }
+          },
+          { timeout: 2000 }
+        );
+        return;
+      }
+      setTimeout(() => {
+        try {
+          fn();
+        } catch {
+          /* ignore */
+        }
+      }, 0);
+    } catch {
+      /* ignore */
+    }
+  }
+  // --- REPLACE END: non-blocking auth bootstrap on public routes (improves mobile LCP) ---
+
   /**
    * Initial bootstrap.
    */
+  // --- REPLACE START: bootstrap effect uses eager vs deferred strategy ---
   useEffect(() => {
     let alive = true;
+
+    const eager = isProtectedRoute() || hasBillingReturnParams();
+    const tokenExists = Boolean(getAccessToken());
+
     (async () => {
       try {
-        await detectBillingReturnAndReconcile();
-        await refreshMe();
-      } finally {
+        if (eager) {
+          // Protected routes or billing returns: do the full flow eagerly.
+          await detectBillingReturnAndReconcile();
+          await refreshMe();
+          return;
+        }
+
+        // Public routes: allow first paint ASAP.
+        // Mark bootstrapped immediately, then refresh later (only if we already have a token).
+        // This prevents anonymous users from paying the /refresh + /me cost on the homepage.
         if (alive) setBootstrapped(true);
+
+        scheduleAfterFirstPaint(() => {
+          if (!tokenExists) return;
+          refreshMe();
+        });
+
+        return;
+      } finally {
+        // If we ran the eager path, ensure we mark bootstrapped here.
+        if (alive && eager) setBootstrapped(true);
       }
     })();
+
     return () => {
       alive = false;
     };
-  }, [refreshMe, detectBillingReturnAndReconcile]);
+  }, [
+    refreshMe,
+    detectBillingReturnAndReconcile,
+    isProtectedRoute,
+    hasBillingReturnParams,
+    scheduleAfterFirstPaint,
+  ]);
+  // --- REPLACE END: bootstrap effect uses eager vs deferred strategy ---
 
   /**
    * Also reconcile on tab focus.
    */
-    /**
+  /**
    * Reconcile when returning to the tab (less noisy than focus).
    * Avoids bursts during refresh/interceptor races.
    */
@@ -848,7 +958,8 @@ reconcileBillingNow().catch?.(() => {});
 
     if (typeof document !== "undefined") {
       document.addEventListener("visibilitychange", maybeReconcile);
-      return () => document.removeEventListener("visibilitychange", maybeReconcile);
+      return () =>
+        document.removeEventListener("visibilitychange", maybeReconcile);
     }
     return undefined;
   }, [reconcileBillingNow]);

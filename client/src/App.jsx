@@ -1,76 +1,108 @@
 // PATH: client/src/App.jsx
 // File: client/src/App.jsx
 
-// --- REPLACE START: use AuthContext.user instead of authUser field ---
-import React, { Suspense, useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+// --- REPLACE START: route-level code splitting (keep homepage fast; reduce initial JS bundle) ---
+import React, { Suspense, useEffect, lazy } from "react";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
+// --- REPLACE END ---
 
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
 import ErrorBoundary from "./components/ErrorBoundary";
-import { ForgotPassword } from "./components/ForgotPassword";
-// ✅ this is the version we just fixed: client/src/components/ResetPassword.jsx
-import ResetPassword from "./components/ResetPassword.jsx";
+// --- REPLACE START: lazy-load password helpers to reduce initial bundle ---
+// Previous:
+// import { ForgotPassword } from "./components/ForgotPassword";
+// import ResetPassword from "./components/ResetPassword.jsx";
+// Now: lazy-load both; keep compatibility with named export in ForgotPassword.jsx.
+// --- REPLACE END ---
 import MainLayout from "./components/MainLayout";
 import ConsentBanner from "./components/privacy/ConsentBanner";
 import { useAuth } from "./contexts/AuthContext";
 import { trackPageView } from "./utils/analytics";
 
+// Keep homepage eager for best LCP (hero image loads immediately)
 import Etusivu from "./pages/Etusivu";
-import Discover from "./pages/Discover";
-import About from "./pages/About";
-import Support from "./pages/Support";
-import Security from "./pages/Security";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import Terms from "./pages/Terms";
-import Cookies from "./pages/Cookies";
 
-import Login from "./pages/Login";
-import Register from "./pages/Register";
+// Lazy-load other routes to reduce initial bundle size (improves FCP/LCP on anon homepage)
+const Discover = lazy(() => import("./pages/Discover"));
+const About = lazy(() => import("./pages/About"));
+const Support = lazy(() => import("./pages/Support"));
+const Security = lazy(() => import("./pages/Security"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const Terms = lazy(() => import("./pages/Terms"));
+const Cookies = lazy(() => import("./pages/Cookies"));
 
-import ProfileHub from "./pages/ProfileHub";
-import ExtraPhotosPage from "./pages/ExtraPhotosPage";
-import MatchPage from "./pages/MatchPage";
-import MessagesOverview from "./pages/MessagesOverview";
-import ChatPage from "./pages/ChatPage";
-import MapPage from "./pages/MapPage";
-import Upgrade from "./pages/Upgrade";
-import WhoLikedMe from "./pages/WhoLikedMe";
-import PremiumSuccess from "./pages/PremiumSuccess";
-import PremiumCancel from "./pages/PremiumCancel";
-import LikesOverview from "./pages/LikesOverview";
-import PremiumHub from "./pages/PremiumHub";
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
 
-import AdminPanel from "./pages/AdminPanel";
+const ProfileHub = lazy(() => import("./pages/ProfileHub"));
+const ExtraPhotosPage = lazy(() => import("./pages/ExtraPhotosPage"));
+const MatchPage = lazy(() => import("./pages/MatchPage"));
+const MessagesOverview = lazy(() => import("./pages/MessagesOverview"));
+const ChatPage = lazy(() => import("./pages/ChatPage"));
+const MapPage = lazy(() => import("./pages/MapPage"));
+const Upgrade = lazy(() => import("./pages/Upgrade"));
+const WhoLikedMe = lazy(() => import("./pages/WhoLikedMe"));
+const PremiumSuccess = lazy(() => import("./pages/PremiumSuccess"));
+const PremiumCancel = lazy(() => import("./pages/PremiumCancel"));
+const LikesOverview = lazy(() => import("./pages/LikesOverview"));
+const PremiumHub = lazy(() => import("./pages/PremiumHub"));
 
-import SettingsPage from "./pages/SettingsPage";
-import SubscriptionSettings from "./pages/settings/SubscriptionSettings";
-import NotFound from "./pages/NotFound";
+const AdminPanel = lazy(() => import("./pages/AdminPanel"));
 
-// ✅ New page for email verification flow
-import VerifyEmailPage from "./pages/VerifyEmailPage";
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const SubscriptionSettings = lazy(() =>
+  import("./pages/settings/SubscriptionSettings")
+);
+const NotFound = lazy(() => import("./pages/NotFound"));
 
-// React Query client with calm defaults
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
-      retry: 1,
-    },
-  },
-});
+// New page for email verification flow
+const VerifyEmailPage = lazy(() => import("./pages/VerifyEmailPage"));
+
+// --- REPLACE START: lazy-load password helpers (named export + default export) ---
+const ForgotPassword = lazy(() =>
+  import("./components/ForgotPassword").then((mod) => ({
+    default: mod.ForgotPassword,
+  }))
+);
+const ResetPassword = lazy(() => import("./components/ResetPassword.jsx"));
+// --- REPLACE END ---
+
+// --- REPLACE START: CLS-safe shared loading placeholder (reserve stable space) ---
+function StableLoading({ label = "Loading..." }) {
+  // Reserve vertical space to reduce layout shifts while lazy routes/auth bootstrap.
+  // Use inline style (no Tailwind config dependency).
+  return (
+    <div
+      className="p-4"
+      style={{ minHeight: "60vh" }}
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+    >
+      {label}
+    </div>
+  );
+}
+// --- REPLACE END ---
 
 // Private route gate – uses user from AuthContext
 function PrivateRoute({ children }) {
-  // 🔑 AuthContext exposes `user`, so alias it locally to authUser
+  // NOTE: AuthContext exposes `user`, so alias it locally to authUser
   const { user: authUser, bootstrapped } = useAuth();
 
+  // --- REPLACE START: CLS-safe loading placeholder ---
   if (!bootstrapped) {
-    return <div className="p-4">Loading...</div>;
+    return <StableLoading label="Loading..." />;
   }
+  // --- REPLACE END ---
 
   return authUser ? children : <Navigate to="/login" replace />;
 }
@@ -79,9 +111,11 @@ function PrivateRoute({ children }) {
 function AdminRoute({ children }) {
   const { user: authUser, bootstrapped } = useAuth();
 
+  // --- REPLACE START: CLS-safe loading placeholder ---
   if (!bootstrapped) {
-    return <div className="p-4">Loading...</div>;
+    return <StableLoading label="Loading..." />;
   }
+  // --- REPLACE END ---
 
   if (!authUser) {
     return <Navigate to="/login" replace />;
@@ -143,202 +177,221 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <Suspense fallback={<div className="p-4">Loading translations…</div>}>
-          <BrowserRouter
-            future={{
-              v7_startTransition: true,
-              v7_relativeSplatPath: true,
-            }}
-          >
-            {/* Route-level analytics hook (consent-aware via analytics.js) */}
-            <RouteAnalytics />
+      {/* --- REPLACE START: remove duplicate React Query provider (single source of truth in main.jsx) --- */}
+      {/* React Query provider is mounted in client/src/main.jsx to avoid double clients and extra init work. */}
+      {/* --- REPLACE END --- */}
+      {/* --- REPLACE START: Suspense fallback (avoid mojibake ellipsis) --- */}
+      <Suspense fallback={<StableLoading label="Loading translations..." />}>
+        {/* --- REPLACE END --- */}
+        <BrowserRouter
+          future={{
+            v7_startTransition: true,
+            v7_relativeSplatPath: true,
+          }}
+        >
+          {/* Route-level analytics hook (consent-aware via analytics.js) */}
+          <RouteAnalytics />
 
-            {/* Global consent banner */}
-            <ConsentBanner />
+          {/* Global consent banner */}
+          <ConsentBanner />
 
-            <Routes>
-              <Route path="/" element={<MainLayout />}>
-                {/* Public routes */}
-                <Route index element={<Etusivu />} />
-                <Route path="discover" element={<Discover />} />
-                <Route path="about" element={<About />} />
-                <Route path="support" element={<Support />} />
-                <Route path="security" element={<Security />} />
-                <Route path="privacy" element={<PrivacyPolicy />} />
-                <Route path="terms" element={<Terms />} />
-                <Route path="cookies" element={<Cookies />} />
+          <Routes>
+            <Route path="/" element={<MainLayout />}>
+              {/* Public routes */}
+              <Route index element={<Etusivu />} />
+              <Route path="discover" element={<Discover />} />
+              <Route path="about" element={<About />} />
+              <Route path="support" element={<Support />} />
 
-                {/* Auth-free */}
-                <Route path="login" element={<Login />} />
-                <Route path="register" element={<Register />} />
+              {/* --- REPLACE START: add /help and /faq aliases (preserve query string) --- */}
+              <Route path="help" element={<RedirectWithSearch to="/support" />} />
+              <Route path="faq" element={<RedirectWithSearch to="/support" />} />
+              {/* --- REPLACE END --- */}
 
-                {/* Password helpers */}
-                <Route path="forgot-password" element={<ForgotPassword />} />
-                {/* ✅ This route uses the fixed component that sends { token, password, id? } */}
-                <Route path="reset-password" element={<ResetPassword />} />
+              <Route path="security" element={<Security />} />
+              <Route path="privacy" element={<PrivacyPolicy />} />
+              <Route path="terms" element={<Terms />} />
+              <Route path="cookies" element={<Cookies />} />
 
-                {/* ✅ NEW: Email verification landing route.
-                    This does NOT require login – link comes directly from email. */}
-                <Route path="verify-email" element={<VerifyEmailPage />} />
+              {/* Auth-free */}
+              <Route path="login" element={<Login />} />
+              <Route path="register" element={<Register />} />
 
-                {/* Profile / protected */}
-                <Route
-                  path="profile"
-                  element={
-                    <PrivateRoute>
-                      <ProfileHub />
-                    </PrivateRoute>
-                  }
-                />
-                <Route
-                  path="profile/:userId"
-                  element={
-                    <PrivateRoute>
-                      <ProfileHub />
-                    </PrivateRoute>
-                  }
-                />
-                <Route
-                  path="profile/photos"
-                  element={
-                    <PrivateRoute>
-                      <ExtraPhotosPage />
-                    </PrivateRoute>
-                  }
-                />
+              {/* Password helpers */}
+              <Route path="forgot-password" element={<ForgotPassword />} />
+              {/* OK: This route uses the fixed component that sends { token, password, id? } */}
+              <Route path="reset-password" element={<ResetPassword />} />
 
-                {/* Matches / messages */}
-                <Route
-                  path="matches"
-                  element={
-                    <PrivateRoute>
-                      <MatchPage />
-                    </PrivateRoute>
-                  }
-                />
-                {/* --- REPLACE START: wire /likes to LikesOverview and /who-liked-me to WhoLikedMe --- */}
-                <Route
-                  path="likes"
-                  element={
-                    <PrivateRoute>
-                      <LikesOverview />
-                    </PrivateRoute>
-                  }
-                />
-                <Route
-                  path="who-liked-me"
-                  element={
-                    <PrivateRoute>
-                      <WhoLikedMe />
-                    </PrivateRoute>
-                  }
-                />
-                {/* --- REPLACE END --- */}
-                <Route
-                  path="messages"
-                  element={
-                    <PrivateRoute>
-                      <MessagesOverview />
-                    </PrivateRoute>
-                  }
-                />
-                <Route
-                  path="chat/:userId"
-                  element={
-                    <PrivateRoute>
-                      <ChatPage />
-                    </PrivateRoute>
-                  }
-                />
+              {/* OK: NEW: Email verification landing route.
+                  This does NOT require login - link comes directly from email. */}
+              <Route path="verify-email" element={<VerifyEmailPage />} />
 
-                {/* Billing / upgrade / premium */}
-                {/* --- REPLACE START: support Stripe return URLs (/premium/success and /premium/cancel) + keep aliases --- */}
-                {/* Canonical Stripe return routes (do NOT require login; Stripe may return in a fresh browser session). */}
-                <Route path="premium/success" element={<PremiumSuccess />} />
-                <Route path="premium/cancel" element={<PremiumCancel />} />
+              {/* Profile / protected */}
+              <Route
+                path="profile"
+                element={
+                  <PrivateRoute>
+                    <ProfileHub />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="profile/:userId"
+                element={
+                  <PrivateRoute>
+                    <ProfileHub />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="profile/photos"
+                element={
+                  <PrivateRoute>
+                    <ExtraPhotosPage />
+                  </PrivateRoute>
+                }
+              />
 
-                {/* Aliases kept for backwards compatibility (preserve query string). */}
-                <Route
-                  path="premium-success"
-                  element={<RedirectWithSearch to="/premium/success" />}
-                />
-                <Route
-                  path="premium-cancel"
-                  element={<RedirectWithSearch to="/premium/cancel" />}
-                />
+              {/* Matches / messages */}
+              <Route
+                path="matches"
+                element={
+                  <PrivateRoute>
+                    <MatchPage />
+                  </PrivateRoute>
+                }
+              />
+              {/* --- REPLACE START: wire /likes to LikesOverview and /who-liked-me to WhoLikedMe --- */}
+              <Route
+                path="likes"
+                element={
+                  <PrivateRoute>
+                    <LikesOverview />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="who-liked-me"
+                element={
+                  <PrivateRoute>
+                    <WhoLikedMe />
+                  </PrivateRoute>
+                }
+              />
+              {/* --- REPLACE END --- */}
+              <Route
+                path="messages"
+                element={
+                  <PrivateRoute>
+                    <MessagesOverview />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="chat/:userId"
+                element={
+                  <PrivateRoute>
+                    <ChatPage />
+                  </PrivateRoute>
+                }
+              />
 
-                {/* Legacy/alias cancel route (kept for backwards compatibility). */}
-                <Route
-                  path="cancel"
-                  element={<RedirectWithSearch to="/premium/cancel" />}
-                />
-                {/* --- REPLACE END --- */}
+              {/* Billing / upgrade / premium */}
+              {/* --- REPLACE START: support Stripe return URLs (/premium/success and /premium/cancel) + keep aliases --- */}
+              {/* Canonical Stripe return routes (do NOT require login; Stripe may return in a fresh browser session). */}
+              <Route path="premium/success" element={<PremiumSuccess />} />
+              <Route path="premium/cancel" element={<PremiumCancel />} />
 
-                <Route
-                  path="upgrade"
-                  element={
-                    <PrivateRoute>
-                      <Upgrade />
-                    </PrivateRoute>
-                  }
-                />
-                <Route
-                  path="premium"
-                  element={
-                    <PrivateRoute>
-                      <PremiumHub />
-                    </PrivateRoute>
-                  }
-                />
+              {/* Aliases kept for backwards compatibility (preserve query string). */}
+              <Route
+                path="premium-success"
+                element={<RedirectWithSearch to="/premium/success" />}
+              />
+              <Route
+                path="premium-cancel"
+                element={<RedirectWithSearch to="/premium/cancel" />}
+              />
 
-                {/* Map */}
-                <Route
-                  path="map"
-                  element={
-                    <PrivateRoute>
-                      <MapPage />
-                    </PrivateRoute>
-                  }
-                />
+              {/* Legacy/alias cancel route (kept for backwards compatibility). */}
+              <Route
+                path="cancel"
+                element={<RedirectWithSearch to="/premium/cancel" />}
+              />
+              {/* --- REPLACE END --- */}
 
-                {/* Settings */}
-                <Route
-                  path="settings"
-                  element={
-                    <PrivateRoute>
-                      <SettingsPage />
-                    </PrivateRoute>
-                  }
-                />
-                <Route
-                  path="settings/subscriptions"
-                  element={
-                    <PrivateRoute>
-                      <SubscriptionSettings />
-                    </PrivateRoute>
-                  }
-                />
+              <Route
+                path="upgrade"
+                element={
+                  <PrivateRoute>
+                    <Upgrade />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="premium"
+                element={
+                  <PrivateRoute>
+                    <PremiumHub />
+                  </PrivateRoute>
+                }
+              />
 
-                {/* Admin-only */}
-                <Route
-                  path="admin"
-                  element={
-                    <AdminRoute>
-                      <AdminPanel />
-                    </AdminRoute>
-                  }
-                />
+              {/* Map */}
+              <Route
+                path="map"
+                element={
+                  <PrivateRoute>
+                    <MapPage />
+                  </PrivateRoute>
+                }
+              />
 
-                {/* 404 */}
-                <Route path="*" element={<NotFound />} />
-              </Route>
-            </Routes>
-          </BrowserRouter>
-        </Suspense>
-      </QueryClientProvider>
+              {/* Settings */}
+              <Route
+                path="settings"
+                element={
+                  <PrivateRoute>
+                    <SettingsPage />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="settings/subscriptions"
+                element={
+                  <PrivateRoute>
+                    <SubscriptionSettings />
+                  </PrivateRoute>
+                }
+              />
+
+              {/* Admin-only */}
+              <Route
+                path="admin"
+                element={
+                  <AdminRoute>
+                    <AdminPanel />
+                  </AdminRoute>
+                }
+              />
+
+              {/* 404 */}
+              <Route path="*" element={<NotFound />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </Suspense>
+      {/* --- REPLACE START: remove duplicate React Query provider (single source of truth in main.jsx) --- */}
+      {/* --- REPLACE END --- */}
     </ErrorBoundary>
   );
 }
-// --- REPLACE END ---
+
+
+
+
+
+
+
+
+
 

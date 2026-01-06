@@ -1,3 +1,5 @@
+// PATH: client/src/__tests__/ConversationOverview.test.jsx
+
 // --- REPLACE START ---
 import "@testing-library/jest-dom";
 import { screen, waitFor } from "@testing-library/react";
@@ -12,6 +14,9 @@ vi.mock("react-i18next", () => {
     "chat:overview.error": "Unable to load conversations",
     "chat:overview.title": "Conversations",
     "chat:overview.empty": "No conversations",
+    "chat:overview.emptyTitle": "No conversations yet",
+    "chat:overview.emptyDescription":
+      "When you like someone and they like you back, your conversations will appear here.",
     "common:noData": "No conversations",
   };
   return {
@@ -85,6 +90,25 @@ function findAnyCardHeading() {
   );
 }
 
+// --- REPLACE START: robust empty-state detector (handles async loading → empty) ---
+/**
+ * Helper: detect empty state text rendered by the component.
+ * Accepts:
+ *  - Default fallback strings ("No conversations yet")
+ *  - i18n keys (if a mock returns keys)
+ *  - Any heading level 2 that includes "No conversations"
+ */
+function findEmptyEl() {
+  return (
+    screen.queryByRole("heading", { level: 2, name: /no conversations/i }) ||
+    screen.queryByText(/no conversations/i) ||
+    screen.queryByText("chat:overview.emptyTitle") ||
+    screen.queryByText("chat:overview.empty") ||
+    screen.queryByText("common:noData")
+  );
+}
+// --- REPLACE END ---
+
 describe("ConversationsOverview", () => {
   const mockConvos = [
     {
@@ -140,21 +164,19 @@ describe("ConversationsOverview", () => {
 
     renderWithRouter(<ConversationsOverview />);
 
-    // Prefer an explicit empty-state text if present…
-    const emptyMsg =
-      screen.queryByText(/no conversations/i) ||
-      screen.queryByText("chat:overview.empty") ||
-      screen.queryByText("common:noData");
+    // --- REPLACE START: wait for async loading to settle before asserting empty ---
+    await waitFor(() => {
+      const empty = findEmptyEl();
+      const anyCardHeading = findAnyCardHeading();
+      expect(empty || anyCardHeading).toBeTruthy();
+    });
 
-    if (emptyMsg) {
-      expect(emptyMsg).toBeInTheDocument();
-    } else {
-      // …otherwise accept the current fallback demo card (e.g., "Bunny")
-      await waitFor(() => {
-        const anyCardHeading = findAnyCardHeading();
-        expect(anyCardHeading).toBeTruthy();
-      });
+    // If empty is present, assert it explicitly (preferred UX).
+    const empty = findEmptyEl();
+    if (empty) {
+      expect(empty).toBeInTheDocument();
     }
+    // --- REPLACE END ---
   });
 
   it("shows error on fetch failure (robust to wording/i18n)", async () => {
@@ -171,3 +193,4 @@ describe("ConversationsOverview", () => {
   });
 });
 // --- REPLACE END ---
+

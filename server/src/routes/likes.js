@@ -157,7 +157,11 @@ async function getBlockModel() {
   try {
     const modSrcJs = await import('../models/Block.js');
     BlockModelCached =
-      modSrcJs?.default || modSrcJs?.Block || modSrcJs?.model || modSrcJs || null;
+      modSrcJs?.default ||
+      modSrcJs?.Block ||
+      modSrcJs?.model ||
+      modSrcJs ||
+      null;
     if (BlockModelCached) return BlockModelCached;
   } catch {
     // ignore
@@ -166,7 +170,11 @@ async function getBlockModel() {
   try {
     const modSrcCjs = await import('../models/Block.cjs');
     BlockModelCached =
-      modSrcCjs?.default || modSrcCjs?.Block || modSrcCjs?.model || modSrcCjs || null;
+      modSrcCjs?.default ||
+      modSrcCjs?.Block ||
+      modSrcCjs?.model ||
+      modSrcCjs ||
+      null;
     if (BlockModelCached) return BlockModelCached;
   } catch {
     // ignore
@@ -176,7 +184,11 @@ async function getBlockModel() {
   try {
     const modLegacyJs = await import('../../models/Block.js');
     BlockModelCached =
-      modLegacyJs?.default || modLegacyJs?.Block || modLegacyJs?.model || modLegacyJs || null;
+      modLegacyJs?.default ||
+      modLegacyJs?.Block ||
+      modLegacyJs?.model ||
+      modLegacyJs ||
+      null;
     if (BlockModelCached) return BlockModelCached;
   } catch {
     // ignore
@@ -185,7 +197,11 @@ async function getBlockModel() {
   try {
     const modLegacyCjs = await import('../../models/Block.cjs');
     BlockModelCached =
-      modLegacyCjs?.default || modLegacyCjs?.Block || modLegacyCjs?.model || modLegacyCjs || null;
+      modLegacyCjs?.default ||
+      modLegacyCjs?.Block ||
+      modLegacyCjs?.model ||
+      modLegacyCjs ||
+      null;
   } catch {
     BlockModelCached = null;
   }
@@ -205,6 +221,37 @@ function getTargetIdFromReq(req) {
     null;
   return req.params?.targetId || bodyId || null;
 }
+
+// --- REPLACE START: Email-leak hardening (defense-in-depth) ---
+/**
+ * Defense-in-depth:
+ * Even if a controller accidentally returns "email" for users in likes/matches lists,
+ * this router guarantees the response will not include it.
+ *
+ * The replacement region is marked between // --- REPLACE START and // --- REPLACE END
+ * so you can verify exactly what changed.
+ */
+function stripEmailFromLikesPayload(payload) {
+  try {
+    if (!payload || typeof payload !== 'object') return payload;
+    if (!Array.isArray(payload.users)) return payload;
+
+    const users = payload.users.map((u) => {
+      if (!u || typeof u !== 'object') return u;
+
+      // Shallow copy is enough for this specific leak (top-level user.email)
+      const copy = { ...u };
+      if ('email' in copy) delete copy.email;
+
+      return copy;
+    });
+
+    return { ...payload, users };
+  } catch {
+    return payload;
+  }
+}
+// --- REPLACE END ---
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Best-effort rewind push after a successful like (non-blocking if possible).
@@ -391,7 +438,11 @@ async function getBlocksForUserBestEffort(meStr) {
 // ──────────────────────────────────────────────────────────────────────────────
 async function filterMatchesWithBlocks(req, payload) {
   try {
-    if (!payload || !Array.isArray(payload.users) || payload.users.length === 0) {
+    if (
+      !payload ||
+      !Array.isArray(payload.users) ||
+      payload.users.length === 0
+    ) {
       return payload;
     }
 
@@ -621,6 +672,7 @@ router.delete('/:targetId', authenticate, async (req, res) => {
 // GET /outgoing | /incoming | /matches — lists (keep legacy function names)
 //  - All three responses are filtered using Block-relations so that blocked
 //    users do not appear in incoming/outgoing/matches for the current user.
+//  - Defense-in-depth: strip email field from the outgoing payload.
 // ──────────────────────────────────────────────────────────────────────────────
 router.get('/outgoing', authenticate, async (req, res) => {
   const c = await getLikesCtrl();
@@ -635,11 +687,12 @@ router.get('/outgoing', authenticate, async (req, res) => {
   // Wrap res.json so we can filter outgoing likes using Block-relations
   const originalJson = res.json.bind(res);
 
+  // --- REPLACE START: outgoing sanitize (email) + block-filter ---
   res.json = (body) => {
     Promise.resolve(filterMatchesWithBlocks(req, body))
       .then((filtered) => {
         try {
-          originalJson(filtered);
+          originalJson(stripEmailFromLikesPayload(filtered));
         } catch (e) {
           console.warn(
             '[likes routes] outgoing originalJson error:',
@@ -653,7 +706,7 @@ router.get('/outgoing', authenticate, async (req, res) => {
           e?.message || e,
         );
         try {
-          originalJson(body);
+          originalJson(stripEmailFromLikesPayload(body));
         } catch (e2) {
           console.warn(
             '[likes routes] outgoing fallback originalJson error:',
@@ -664,6 +717,7 @@ router.get('/outgoing', authenticate, async (req, res) => {
 
     return res;
   };
+  // --- REPLACE END ---
 
   const maybePromise = fn(req, res);
   if (maybePromise && typeof maybePromise.then === 'function') {
@@ -691,11 +745,12 @@ router.get('/incoming', authenticate, async (req, res) => {
   // Wrap res.json so we can filter incoming likes using Block-relations
   const originalJson = res.json.bind(res);
 
+  // --- REPLACE START: incoming sanitize (email) + block-filter ---
   res.json = (body) => {
     Promise.resolve(filterMatchesWithBlocks(req, body))
       .then((filtered) => {
         try {
-          originalJson(filtered);
+          originalJson(stripEmailFromLikesPayload(filtered));
         } catch (e) {
           console.warn(
             '[likes routes] incoming originalJson error:',
@@ -709,7 +764,7 @@ router.get('/incoming', authenticate, async (req, res) => {
           e?.message || e,
         );
         try {
-          originalJson(body);
+          originalJson(stripEmailFromLikesPayload(body));
         } catch (e2) {
           console.warn(
             '[likes routes] incoming fallback originalJson error:',
@@ -720,6 +775,7 @@ router.get('/incoming', authenticate, async (req, res) => {
 
     return res;
   };
+  // --- REPLACE END ---
 
   const maybePromise = fn(req, res);
   if (maybePromise && typeof maybePromise.then === 'function') {
@@ -747,11 +803,12 @@ router.get('/matches', authenticate, async (req, res) => {
   // Wrap res.json so we can filter matches using Block-relations
   const originalJson = res.json.bind(res);
 
+  // --- REPLACE START: matches sanitize (email) + block-filter ---
   res.json = (body) => {
     Promise.resolve(filterMatchesWithBlocks(req, body))
       .then((filtered) => {
         try {
-          originalJson(filtered);
+          originalJson(stripEmailFromLikesPayload(filtered));
         } catch (e) {
           console.warn(
             '[likes routes] matches originalJson error:',
@@ -765,7 +822,7 @@ router.get('/matches', authenticate, async (req, res) => {
           e?.message || e,
         );
         try {
-          originalJson(body);
+          originalJson(stripEmailFromLikesPayload(body));
         } catch (e2) {
           console.warn(
             '[likes routes] matches fallback originalJson error:',
@@ -776,6 +833,7 @@ router.get('/matches', authenticate, async (req, res) => {
 
     return res;
   };
+  // --- REPLACE END ---
 
   const maybePromise = fn(req, res);
   if (maybePromise && typeof maybePromise.then === 'function') {
@@ -795,6 +853,5 @@ router.get('/matches', authenticate, async (req, res) => {
 // --- REPLACE END ---
 
 export default router;
-
 
 

@@ -30,13 +30,7 @@ function parseCurrentUserIdFromToken() {
 
   try {
     const payload = JSON.parse(atob(parts[1]));
-    return (
-      payload?.id ||
-      payload?._id ||
-      payload?.userId ||
-      payload?.uid ||
-      null
-    );
+    return payload?.id || payload?._id || payload?.userId || payload?.uid || null;
   } catch {
     return null;
   }
@@ -45,12 +39,7 @@ function parseCurrentUserIdFromToken() {
 function normalizeMessage(raw, myUserId, peerUserId) {
   if (!raw) return null;
 
-  const rawId =
-    (raw && raw._id) ||
-    raw?.id ||
-    raw?.messageId ||
-    raw?.uuid ||
-    null;
+  const rawId = (raw && raw._id) || raw?.id || raw?.messageId || raw?.uuid || null;
   const id = rawId ? String(rawId) : null;
 
   const senderValue = raw?.sender;
@@ -77,23 +66,15 @@ function normalizeMessage(raw, myUserId, peerUserId) {
       ? raw.content
       : "";
 
-  const createdAt =
-    raw.createdAt ||
-    raw.timestamp ||
-    raw.sentAt ||
-    raw.time ||
-    null;
+  const createdAt = raw.createdAt || raw.timestamp || raw.sentAt || raw.time || null;
 
   const myIdString = myUserId ? String(myUserId) : null;
   const peerIdString = peerUserId ? String(peerUserId) : null;
 
-  const fromMe =
-    !!myIdString && !!senderId && String(senderId) === myIdString;
+  const fromMe = !!myIdString && !!senderId && String(senderId) === myIdString;
 
   const incoming =
-    !!peerIdString && !!senderId
-      ? String(senderId) === peerIdString
-      : !fromMe;
+    !!peerIdString && !!senderId ? String(senderId) === peerIdString : !fromMe;
 
   return {
     id: id || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
@@ -265,8 +246,7 @@ export default function ChatPage() {
     // --- REPLACE END ---
 
     const myId = parseCurrentUserIdFromToken();
-    const conversationId =
-      [myId, userId].filter(Boolean).sort().join("_") || String(userId);
+    const conversationId = [myId, userId].filter(Boolean).sort().join("_") || String(userId);
 
     try {
       try {
@@ -301,22 +281,18 @@ export default function ChatPage() {
   };
 
   return (
-    // --- REPLACE START: conversation header with title + passive Report button ---
+    // --- REPLACE START: remove h-screen (100vh) to prevent overflow under Navbar/Footer; use flex-1 instead ---
     <div
-      className="flex flex-col max-w-2xl mx-auto h-screen p-4"
+      className="flex flex-col max-w-2xl mx-auto w-full flex-1 min-h-0 p-4"
       role="main"
       aria-label={t("chat:mainAriaLabel", "Chat conversation")}
     >
+      {/* --- REPLACE END --- */}
       <div className="flex items-center justify-between mb-2">
-        <h2 className="text-xl font-bold">
-          💬 {t("chat:title")}
-        </h2>
-        <ReportButton
-          targetUserId={userId}
-          messageId={undefined}
-        />
+        <h2 className="text-xl font-bold">💬 {t("chat:title")}</h2>
+        <ReportButton targetUserId={userId} messageId={undefined} />
       </div>
-    {/* --- REPLACE END --- */}
+
       {pageError && (
         <div className="mb-3 rounded-2xl border p-3 text-sm bg-red-50 border-red-200 text-red-800">
           {pageError}
@@ -327,9 +303,7 @@ export default function ChatPage() {
       {!introCheckLoading && !hasThread && !canSendIntro && (
         <div className="mb-3 rounded-2xl border p-3 text-sm bg-yellow-50 border-yellow-200">
           <div className="font-medium">Intro messages are a Premium feature</div>
-          <div className="opacity-80">
-            You need Premium to send the first message to this user.
-          </div>
+          <div className="opacity-80">You need Premium to send the first message to this user.</div>
           <div className="mt-2">
             <button
               type="button"
@@ -347,7 +321,7 @@ export default function ChatPage() {
 
       {/* --- REPLACE START: messages log section with ARIA roles for screen readers --- */}
       <div
-        className="flex-1 overflow-y-auto bg-gray-100 p-4 rounded shadow-sm"
+        className="flex-1 min-h-0 overflow-y-auto bg-gray-100 p-4 rounded shadow-sm"
         role="log"
         aria-label={t("chat:messagesAriaLabel", "Conversation messages")}
         aria-live="polite"
@@ -365,31 +339,22 @@ export default function ChatPage() {
                 ? msg.raw.content
                 : "";
 
-            const timestamp =
-              msg?.createdAt ||
-              (msg?.raw && msg.raw.createdAt) ||
-              null;
+            const timestamp = msg?.createdAt || (msg?.raw && msg.raw.createdAt) || null;
             const timeLabel = formatTime(timestamp);
 
             return (
               <div
                 key={msg?.id || msg?._id || idx}
-                className={`my-2 flex ${
-                  isIncoming ? "justify-start" : "justify-end"
-                }`}
+                className={`my-2 flex ${isIncoming ? "justify-start" : "justify-end"}`}
               >
                 <div
                   className={`p-2 rounded-lg max-w-xs whitespace-pre-wrap ${
-                    isIncoming
-                      ? "bg-white text-left"
-                      : "bg-blue-500 text-white text-right"
+                    isIncoming ? "bg-white text-left" : "bg-blue-500 text-white text-right"
                   }`}
                 >
                   {bubbleText}
                   {timeLabel && (
-                    <div className="mt-1 text-[11px] opacity-70 text-right">
-                      {timeLabel}
-                    </div>
+                    <div className="mt-1 text-[11px] opacity-70 text-right">{timeLabel}</div>
                   )}
                 </div>
               </div>
@@ -447,5 +412,4 @@ export default function ChatPage() {
 // The replacement regions are marked between
 // --- REPLACE START and // --- REPLACE END
 // so you can verify exactly what changed.
-
 

@@ -1,5 +1,6 @@
-// PATH: src/pages/MapPage.jsx
-// File: src/pages/MapPage.jsx
+// PATH: client/src/pages/MapPage.jsx
+// File: client/src/pages/MapPage.jsx
+
 import L from "leaflet";
 import PropTypes from "prop-types";
 import React, { useEffect, useState } from "react";
@@ -14,7 +15,15 @@ import {
 } from "react-leaflet";
 
 import api from "../utils/axiosInstance";
+
+// --- REPLACE START: keep Leaflet CSS scoped to the Map route chunk (bundle hygiene) ---
+// NOTE:
+// - This file is lazy-loaded via App.jsx (route-level code splitting).
+// - Keeping Leaflet CSS import HERE ensures it is NOT part of the initial homepage bundle.
+// - Make sure main.jsx does NOT also import leaflet.css, otherwise it ends up in the entry chunk.
 import "leaflet/dist/leaflet.css";
+// --- REPLACE END ---
+
 import AdGate from "../components/AdGate";
 import AdBanner from "../components/AdBanner";
 
@@ -43,9 +52,10 @@ function getDistance([lat1, lon1], [lat2, lon2]) {
   return R * c;
 }
 
-/** Automatically locates the user via Leaflet and calls onLocate. */
+/** Automatically locates the user via Leaflet and tell parent via onLocate. */
 function LocateControl({ onLocate }) {
   const map = useMap();
+
   useEffect(() => {
     map.locate({
       watch: false,
@@ -53,23 +63,29 @@ function LocateControl({ onLocate }) {
       maxZoom: 16,
       enableHighAccuracy: true,
     });
+
     const handleFound = (e) => onLocate([e.latlng.lat, e.latlng.lng]);
     const handleError = () => {};
+
     map.on("locationfound", handleFound);
     map.on("locationerror", handleError);
+
     return () => {
       map.off("locationfound", handleFound);
       map.off("locationerror", handleError);
     };
   }, [map, onLocate]);
+
   return null;
 }
+
 LocateControl.propTypes = { onLocate: PropTypes.func.isRequired };
 
 /** Renders a "Home" button that resets the map view to the home coordinates. */
 function HomeButton({ home }) {
   const map = useMap();
   const handleClick = () => map.setView(home, map.getZoom());
+
   return (
     <button
       type="button"
@@ -89,6 +105,7 @@ function HomeButton({ home }) {
     </button>
   );
 }
+
 HomeButton.propTypes = { home: PropTypes.arrayOf(PropTypes.number).isRequired };
 
 /** Captures map clicks and calls onMapClick with [lat, lng]. */
@@ -100,6 +117,7 @@ function ClickHandler({ onMapClick }) {
   });
   return null;
 }
+
 ClickHandler.propTypes = { onMapClick: PropTypes.func.isRequired };
 
 const MapPage = ({ onLocationSelect }) => {
@@ -180,24 +198,18 @@ const MapPage = ({ onLocationSelect }) => {
   // When 'home' changes, reverse-geocode and fetch nearby users
   useEffect(() => {
     if (!home) return;
+
     fetch(
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${home[0]}&lon=${home[1]}`
     )
       .then((res) => res.json())
       .then((data) => {
-        const city =
-          data.address.city ||
-          data.address.town ||
-          data.address.village;
+        const city = data.address.city || data.address.town || data.address.village;
         if (!city) throw new Error(t("map.cityNotFound"));
         return api.get(`/users/nearby?city=${encodeURIComponent(city)}`);
       })
       .then((res) => {
-        setUsers(
-          res.data.filter(
-            (u) => u.latitude != null && u.longitude != null
-          )
-        );
+        setUsers(res.data.filter((u) => u.latitude != null && u.longitude != null));
       })
       .catch((err) => setError(err.message));
   }, [home, t]);
@@ -207,7 +219,9 @@ const MapPage = ({ onLocationSelect }) => {
       <h2 className="text-xl font-semibold mb-4 text-center">
         🗺️ {t("map.title")}
       </h2>
+
       {error && <p className="text-red-500 text-center">{error}</p>}
+
       <MapContainer
         center={home || [60.1699, 24.9384]}
         zoom={13}
@@ -237,6 +251,7 @@ const MapPage = ({ onLocationSelect }) => {
         {users.map((u) => {
           const pos = [u.latitude, u.longitude];
           const dist = home ? getDistance(home, pos).toFixed(2) : "?";
+
           return (
             <Marker key={u._id} position={pos}>
               <Popup>
@@ -255,7 +270,7 @@ const MapPage = ({ onLocationSelect }) => {
         })}
       </MapContainer>
 
-      {/* // --- REPLACE START: standard content ad slot (inline) --- */}
+      {/* --- REPLACE START: standard content ad slot (inline) --- */}
       <AdGate type="inline" debug={false}>
         <div className="max-w-3xl mx-auto mt-6">
           <AdBanner
@@ -265,7 +280,7 @@ const MapPage = ({ onLocationSelect }) => {
           />
         </div>
       </AdGate>
-      {/* // --- REPLACE END --- */}
+      {/* --- REPLACE END --- */}
     </div>
   );
 };
@@ -273,3 +288,4 @@ const MapPage = ({ onLocationSelect }) => {
 MapPage.propTypes = { onLocationSelect: PropTypes.func };
 
 export default MapPage;
+
