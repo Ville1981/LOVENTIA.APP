@@ -1,0 +1,26 @@
+{
+  "title": "Settings",
+  "sections": {
+    "account": "Account",
+    "profile": "Profile",
+    "notifications": "Notifications",
+    "security": "Security"
+  },
+  "verifyEmailTitle": "Verify your email address",
+  "verifyEmailDescription": "For your security and a better experience, please verify your email address. We will send you a verification link to the email associated with your account.",
+  "resendVerificationButton": "Resend verification email",
+  "verifyEmailShort": "Verify email",
+  "save": "Save settings",
+  "saveSuccess": "Settings saved.",
+  "saveError": "Could not save settings. Please try again.",
+  "verifyEmailMissingToken": "Verification link is invalid. Missing token or id.",
+  "verifyEmailSuccess": "Email verified successfully. You can continue using Loventia.",
+  "verifyEmailGenericError": "Email verification failed. The link may be invalid or expired.",
+  "verifyEmailPageTitleVerifying": "Verifying your email…",
+  "verifyEmailPageTitleSuccess": "Email verified",
+  "verifyEmailPageTitleError": "Email verification problem",
+  "verifyEmailPageVerifyingMessage": "Please wait while we verify your email address with Loventia.",
+  "verifyEmailGoToDiscover": "Go to Discover",
+  "verifyEmailBackToHome": "Back to Home",
+  "verifyEmailAlreadyVerifiedHint": "If this link was already used before, you may see a message saying that your email is already verified. That is normal."
+}

@@ -1,75 +1,75 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- generated: 2025-12-30T19:10:54.280Z -->
+<!-- generated: 2026-01-06T17:03:08.137Z -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>http://localhost:5173/</loc>
-    <lastmod>2025-12-30T19:10:54.280Z</lastmod>
+    <lastmod>2026-01-06T17:03:08.137Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>http://localhost:5173/discover</loc>
-    <lastmod>2025-12-30T19:10:54.280Z</lastmod>
+    <lastmod>2026-01-06T17:03:08.137Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>http://localhost:5173/subscriptions</loc>
-    <lastmod>2025-12-30T19:10:54.280Z</lastmod>
+    <lastmod>2026-01-06T17:03:08.137Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>http://localhost:5173/privacy</loc>
-    <lastmod>2025-12-30T19:10:54.280Z</lastmod>
+    <lastmod>2026-01-06T17:03:08.137Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>http://localhost:5173/cookies</loc>
-    <lastmod>2025-12-30T19:10:54.280Z</lastmod>
+    <lastmod>2026-01-06T17:03:08.137Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>http://localhost:5173/terms</loc>
-    <lastmod>2025-12-30T19:10:54.280Z</lastmod>
+    <lastmod>2026-01-06T17:03:08.137Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>http://localhost:5173/login</loc>
-    <lastmod>2025-12-30T19:10:54.280Z</lastmod>
+    <lastmod>2026-01-06T17:03:08.137Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>http://localhost:5173/register</loc>
-    <lastmod>2025-12-30T19:10:54.280Z</lastmod>
+    <lastmod>2026-01-06T17:03:08.137Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>http://localhost:5173/messages</loc>
-    <lastmod>2025-12-30T19:10:54.280Z</lastmod>
+    <lastmod>2026-01-06T17:03:08.137Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>http://localhost:5173/likes</loc>
-    <lastmod>2025-12-30T19:10:54.280Z</lastmod>
+    <lastmod>2026-01-06T17:03:08.137Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>http://localhost:5173/settings/profile</loc>
-    <lastmod>2025-12-30T19:10:54.280Z</lastmod>
+    <lastmod>2026-01-06T17:03:08.137Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>http://localhost:5173/settings/subscriptions</loc>
-    <lastmod>2025-12-30T19:10:54.280Z</lastmod>
+    <lastmod>2026-01-06T17:03:08.137Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>

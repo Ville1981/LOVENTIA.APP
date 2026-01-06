@@ -1,0 +1,17 @@
+{
+  "contactText": "Si vous avez des questions concernant cette politique ou vos données, vous pouvez contacter notre support via l’application ou par e-mail.",
+  "contactTitle": "Comment nous contacter",
+  "howWeUseItText": "Nous utilisons vos données pour fournir et sécuriser le service, prévenir la fraude et les abus, et améliorer Loventia. Nous ne vendons pas vos données personnelles.",
+  "howWeUseItTitle": "Comment nous utilisons vos données",
+  "intro": "Nous respectons votre vie privée. Cette page explique quelles données nous collectons et pourquoi. Nous ne collectons que le minimum nécessaire pour faire fonctionner le service Loventia.",
+  "lastUpdatedPrefix": "Dernière mise à jour :",
+  "title": "Politique de confidentialité",
+  "whatWeCollectItems": {
+    "accountDetails": "Informations de compte (e-mail, données de profil que vous ajoutez).",
+    "analytics": "Données d’analyse facultatives (uniquement avec votre consentement) pour comprendre comment l’application est utilisée.",
+    "technicalLogs": "Journaux techniques (adresse IP, informations sur le navigateur et l’appareil) afin de sécuriser le service."
+  },
+  "whatWeCollectTitle": "Données que nous collectons",
+  "yourRightsText": "Vous pouvez, dans les limites prévues par la loi, demander l’accès à vos données, leur rectification ou leur suppression à tout moment.",
+  "yourRightsTitle": "Vos droits"
+}

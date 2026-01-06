@@ -1,4 +1,4 @@
-// PATH: scripts/i18nAudit.mjs
+﻿// PATH: scripts/i18nAudit.mjs
 
 // --- REPLACE START: robust i18n audit (counts only EN keys, reports extras & _legacy without inflating %) ---
 /* eslint-disable no-console */
@@ -14,6 +14,9 @@ const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, "..");
 const LOCALES_ROOT = path.resolve(ROOT, "client", "public", "locales");
 
+// NOTE:
+// - Keep this list aligned with the namespaces your app actually uses.
+// - Added: likes, countries, support (so audit catches likes.subtitle and missing locale files you recently fixed).
 const NAMESPACES = [
   "common",
   "profile",
@@ -22,12 +25,15 @@ const NAMESPACES = [
   "chat",
   "navbar",
   "footer",
+  "likes",
+  "countries",
+  "support",
   "translation",
 ];
 
 const SUPPORTED = [
-  "en","fi","sv","de","fr","es","it","pt","pl","ro","tr","nl","no","da","cs","sk",
-  "hu","et","lt","lv","bg","el","uk","ru","ja","ko","zh","ar","he","hi","sw","ur",
+  "en", "fi", "sv", "de", "fr", "es", "it", "pt", "pl", "ro", "tr", "nl", "no", "da", "cs", "sk",
+  "hu", "et", "lt", "lv", "bg", "el", "uk", "ru", "ja", "ko", "zh", "ar", "he", "hi", "sw", "ur",
 ];
 
 function readJsonSafe(file, fallback = {}) {
@@ -162,3 +168,6 @@ function audit() {
 
 audit();
 // --- REPLACE END ---
+
+
+

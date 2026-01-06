@@ -19,12 +19,10 @@
     "test:ci": "npm --workspace client run test && npm --workspace server run test",
     "test:watch": "npm --workspace client exec vitest --watch",
     "ls:react": "npm ls react react-dom",
-
     "lint:client": "npm --workspace client run lint",
     "lint:server": "npm --workspace server run lint",
     "lint": "npm run lint:client && npm run lint:server",
     "lint:fix": "npm --workspace client run lint:fix",
-
     "i18n:audit": "npm --workspace client run i18n:audit",
     "i18n:sync": "npm --workspace client run i18n:sync",
     "gensitemap": "node scripts/generate-sitemap.mjs",
@@ -50,6 +48,10 @@
     "react-dom": "18.3.1"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/sinon": "^21.0.0",
+    "@types/trusted-types": "^2.0.7",
+    "@types/winston": "^2.4.4",
     "@typescript-eslint/eslint-plugin": "^8.46.3",
     "@typescript-eslint/parser": "^8.46.3",
     "@vitest/ui": "^3.2.4",

@@ -1,8 +1,13 @@
-﻿// --- REPLACE START: Fix LS key reset + keep imports relative to src/__tests__ ---
+﻿// PATH: client/src/__tests__/ConsentBanner.test.jsx
+
+// --- REPLACE START: Fix LS key reset + keep imports relative to src/__tests__ ----
 /**
  * Jest/Vitest + jsdom tests for ConsentBanner + ConsentProvider
  * This file lives in `client/src/__tests__/`, so components are at `../components/*`.
- * Important: clear BOTH legacy and canonical LS keys between tests.
+ *
+ * IMPORTANT:
+ * - ConsentProvider persists to localStorage using the canonical key "loventia:consent".
+ * - Clear BOTH legacy and canonical keys between tests to avoid cross-test bleed.
  */
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
@@ -12,24 +17,41 @@ import ConsentBanner from "../components/ConsentBanner.jsx";
 
 // Legacy key used by older tests (keep clearing for compatibility)
 const LEGACY_CONSENT_KEY = "consent.v1";
-// Canonical key used by the component
-const LS_KEY = "loventia-consent-v1";
+
+// --- REPLACE START: align storage key(s) with ConsentProvider ---
+/**
+ * Canonical key used by ConsentProvider (must match client/src/components/ConsentProvider.jsx)
+ * NOTE: we also clear a previous canonical variant to be safe across repo history.
+ */
+const CONSENT_KEY = "loventia:consent";
+const OLD_CANONICAL_KEY = "loventia-consent-v1";
+// --- REPLACE END ---
 
 function renderWithProvider(ui) {
   return render(<ConsentProvider>{ui}</ConsentProvider>);
 }
 
+// --- REPLACE START: robust localStorage cleanup (all known keys) ---
+function clearConsentStorage() {
+  try {
+    localStorage.removeItem(LEGACY_CONSENT_KEY);
+    localStorage.removeItem(CONSENT_KEY);
+    localStorage.removeItem(OLD_CANONICAL_KEY);
+  } catch {
+    // ignore (jsdom/localStorage quirks)
+  }
+}
+
 beforeEach(() => {
-  // Clean slate before each test (both keys!)
-  localStorage.removeItem(LEGACY_CONSENT_KEY);
-  localStorage.removeItem(LS_KEY);
+  // Clean slate before each test (all known keys)
+  clearConsentStorage();
 });
 
 afterEach(() => {
   // Extra safety to avoid bleed between tests
-  localStorage.removeItem(LEGACY_CONSENT_KEY);
-  localStorage.removeItem(LS_KEY);
+  clearConsentStorage();
 });
+// --- REPLACE END ---
 
 describe("ConsentBanner", () => {
   test("shows banner when no decision, hides after Accept all", async () => {
@@ -48,9 +70,18 @@ describe("ConsentBanner", () => {
     });
 
     // LocalStorage should contain analytics/marketing true
-    const stored = JSON.parse(localStorage.getItem(LS_KEY) || "{}");
-    expect(stored).toMatchObject({ analytics: true, marketing: true, necessary: true });
-    expect(typeof stored.ts ?? stored.timestamp).toBe("number");
+    // --- REPLACE START: read canonical key + assert timestamp field correctly ---
+    const stored = JSON.parse(localStorage.getItem(CONSENT_KEY) || "{}");
+    expect(stored).toMatchObject({
+      analytics: true,
+      marketing: true,
+      necessary: true,
+    });
+
+    // ConsentProvider writes `timestamp` (number)
+    expect(typeof stored.timestamp).toBe("number");
+    expect(stored.timestamp).toBeGreaterThan(0);
+    // --- REPLACE END ---
   });
 
   test("Reject non-essential sets analytics=false, marketing=false", async () => {
@@ -64,8 +95,15 @@ describe("ConsentBanner", () => {
       expect(screen.queryByTestId("consent-banner")).not.toBeInTheDocument();
     });
 
-    const stored = JSON.parse(localStorage.getItem(LS_KEY) || "{}");
-    expect(stored).toMatchObject({ analytics: false, marketing: false, necessary: true });
+    // --- REPLACE START: read canonical key ---
+    const stored = JSON.parse(localStorage.getItem(CONSENT_KEY) || "{}");
+    expect(stored).toMatchObject({
+      analytics: false,
+      marketing: false,
+      necessary: true,
+    });
+    expect(typeof stored.timestamp).toBe("number");
+    // --- REPLACE END ---
   });
 
   test("Manage → Save choices (analytics on, marketing off)", async () => {
@@ -90,7 +128,14 @@ describe("ConsentBanner", () => {
       expect(screen.queryByTestId("consent-banner")).not.toBeInTheDocument();
     });
 
-    const stored = JSON.parse(localStorage.getItem(LS_KEY) || "{}");
-    expect(stored).toMatchObject({ analytics: true, marketing: false, necessary: true });
+    // --- REPLACE START: read canonical key ---
+    const stored = JSON.parse(localStorage.getItem(CONSENT_KEY) || "{}");
+    expect(stored).toMatchObject({
+      analytics: true,
+      marketing: false,
+      necessary: true,
+    });
+    expect(typeof stored.timestamp).toBe("number");
+    // --- REPLACE END ---
   });
 });

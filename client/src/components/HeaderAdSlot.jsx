@@ -1,58 +1,111 @@
 ﻿// PATH: client/src/components/HeaderAdSlot.jsx
 
-/**
- * HeaderAdSlot: global promo/banner just under the navbar.
- * Neutral class/id names on purpose to avoid adblockers.
- */
-
-import React from "react";
-// --- REPLACE START: add centralized no-ads gate (Premium kill-switch) ---
-import AdGate from "./AdGate"; // wraps ad content; hides on Premium / noAds feature
-// --- REPLACE END ---
+import React, { useMemo, useState } from "react";
+import AdGate from "./AdGate"; // hides on Premium / noAds feature
 
 export default function HeaderAdSlot({ className = "" }) {
-  // --- REPLACE START: adjust fill behavior and height (cover + 180px) ---
-  /**
-   * Notes (all text in English):
-   * - Keep the wrapper at full width so the banner spans the viewport.
-   * - Fixed height keeps the header compact and consistent.
-   * - object-fit: "cover" fills the area (slight vertical crop is expected).
-   */
-  const WRAP_STYLES = {
-    width: "100%",
-  };
+  const initialSrc = useMemo(() => {
+    let s = "/ads/header1.png";
+    try {
+      const envSrc = import.meta?.env?.VITE_HEADER_AD_SRC;
+      if (typeof envSrc === "string" && envSrc.trim()) s = envSrc.trim();
+    } catch {
+      // best-effort only
+    }
+    return s;
+  }, []);
 
-  const IMG_STYLES = {
-    display: "block",
+  const [src, setSrc] = useState(initialSrc);
+
+  // CLS-safe reserved space
+  const H = 150;
+  const MAX_W = 960;
+
+  // Fill more horizontally while keeping text mostly safe
+  const FOREGROUND_ZOOM = 1.22; // tweak 1.18 -> 1.22 (covers more width)
+
+  // Background tuning: less “muddy blur”
+  const BG_BLUR_PX = 6;         // was 10
+  const BG_SCALE = 1.12;        // slightly enlarged so blur edges won't show
+  const BG_OPACITY = 0.55;      // keep it subtle so it won't look messy
+
+  const wrapStyles = {
+    position: "relative",
     width: "100%",
-    height: "180px", // increased from 170px → 180px for better fill
-    objectFit: "cover", // was "contain"; now fills the bar without letterboxing
-    objectPosition: "center",
-    borderRadius: "8px",
+    height: `${H}px`,
+    overflow: "hidden",
+    borderRadius: "12px",
+    background: "rgba(0,0,0,0.06)",
     boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)",
   };
-  // --- REPLACE END ---
+
+  const bgImgStyles = {
+    position: "absolute",
+    inset: 0,
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+    objectPosition: "center",
+    transform: `scale(${BG_SCALE})`,
+    filter: `blur(${BG_BLUR_PX}px) saturate(1.05)`,
+    opacity: BG_OPACITY,
+    pointerEvents: "none",
+  };
+
+  // Overlay hides blur artifacts + makes edges feel “clean” (not suttuinen)
+  const overlayStyles = {
+    position: "absolute",
+    inset: 0,
+    background:
+      "linear-gradient(to bottom, rgba(0,0,0,0.18), rgba(0,0,0,0.08) 40%, rgba(0,0,0,0.18))",
+    pointerEvents: "none",
+  };
+
+  const fgImgStyles = {
+    position: "relative",
+    zIndex: 1,
+    display: "block",
+    width: "100%",
+    height: "100%",
+    objectFit: "contain",
+    objectPosition: "center",
+    transform: `scale(${FOREGROUND_ZOOM})`,
+    transformOrigin: "center",
+  };
 
   return (
+    // Mobiilissa ei pakko näkyä (sun toive): hidden md:block
     <div
-      className={`promo-header-wrap w-full ${className}`}
+      className={`promo-header-wrap w-full hidden md:block ${className}`}
       role="complementary"
       aria-label="Header advertisement"
-      style={WRAP_STYLES} // --- REPLACE START/END applied here ---
     >
-      {/* --- REPLACE START: gate the ad content (renders only when ads are allowed) --- */}
+      {/* Gate ulommaksi -> jos piilottaa, EI jää tyhjää laatikkoa */}
       <AdGate type="inline" debug={false}>
-        <img
-          src="/ads/header.png"
-          alt="Sponsored"
-          className="promo-header-img w-full block" // no max-width/mx-auto clamps
-          // Enforce full-width + fixed-height + cover
-          style={IMG_STYLES}
-          loading="lazy"
-          decoding="async"
-        />
+        <div className="mx-auto w-full px-4" style={{ maxWidth: MAX_W }}>
+          <div style={wrapStyles}>
+            {/* Background image layer (less “muddy” than CSS background-image) */}
+            <img aria-hidden="true" src={src} alt="" style={bgImgStyles} />
+            <div aria-hidden="true" style={overlayStyles} />
+
+            {/* Foreground image layer (keeps text readable) */}
+            <img
+              src={src}
+              alt="Sponsored"
+              className="promo-header-img w-full"
+              style={fgImgStyles}
+              width={MAX_W}
+              height={H}
+              loading="lazy"
+              decoding="async"
+              fetchpriority="low"
+              onError={() => {
+                if (src !== "/ads/header1.png") setSrc("/ads/header1.png");
+              }}
+            />
+          </div>
+        </div>
       </AdGate>
-      {/* --- REPLACE END --- */}
     </div>
   );
 }

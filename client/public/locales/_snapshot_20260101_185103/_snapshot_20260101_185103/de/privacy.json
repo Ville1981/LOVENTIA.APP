@@ -1,0 +1,17 @@
+{
+  "contactText": "Wenn du Fragen zu dieser Datenschutzerklärung oder zu deinen Daten hast, kannst du unseren Support über die App oder per E-Mail kontaktieren.",
+  "contactTitle": "Wie du uns kontaktieren kannst",
+  "howWeUseItText": "Wir verwenden deine Daten, um den Dienst bereitzustellen und zu sichern, Betrug und Missbrauch zu verhindern und Loventia zu verbessern. Wir verkaufen deine personenbezogenen Daten nicht.",
+  "howWeUseItTitle": "Wie wir deine Daten verwenden",
+  "intro": "Wir respektieren deine Privatsphäre. Auf dieser Seite erklären wir, welche Daten wir sammeln und warum. Wir erfassen nur die Daten, die notwendig sind, um den Loventia-Dienst zu betreiben.",
+  "lastUpdatedPrefix": "Zuletzt aktualisiert:",
+  "title": "Datenschutzerklärung",
+  "whatWeCollectItems": {
+    "accountDetails": "Kontodaten (E-Mail-Adresse, Profildaten, die du hinzufügst).",
+    "analytics": "Optionale Analysedaten (nur mit deiner Einwilligung), um zu verstehen, wie die App genutzt wird.",
+    "technicalLogs": "Technische Protokolle (IP-Adresse, Browser- und Geräteinformationen), um den Dienst zu schützen."
+  },
+  "whatWeCollectTitle": "Welche Daten wir sammeln",
+  "yourRightsText": "Du kannst – soweit gesetzlich zulässig – jederzeit Auskunft über deine Daten sowie deren Berichtigung oder Löschung verlangen.",
+  "yourRightsTitle": "Deine Rechte"
+}

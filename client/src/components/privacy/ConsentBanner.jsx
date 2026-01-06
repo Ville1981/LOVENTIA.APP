@@ -1,3 +1,4 @@
+// PATH: client/src/components/privacy/ConsentBanner.jsx
 // File: client/src/components/privacy/ConsentBanner.jsx
 
 // --- REPLACE START: Full, explicit React-based consent banner (with Provider support + a11y) ---
@@ -26,6 +27,8 @@
  * Notes:
  *  - Guards window.scrollTo for test environments.
  *  - Performs a one-time bootstrap from localStorage into Provider if undecided.
+ *  - CLS: the banner is fixed-position (overlay) and uses CSS containment to reduce
+ *    expensive relayout/repaint work. It should not push page content.
  */
 
 import React, { useEffect, useMemo, useState, useRef } from "react";
@@ -175,18 +178,37 @@ export default function ConsentBanner() {
     }
   };
 
-  const containerStyle = useMemo(
+  const containerClassName = useMemo(
     () =>
       "fixed inset-x-0 bottom-0 z-50 mx-auto max-w-3xl rounded-t-lg border border-gray-200 bg-white/95 p-4 shadow-xl backdrop-blur",
     []
   );
+
+  // --- REPLACE START: CLS/perf containment (overlay should not force page relayout) ---
+  const containerInlineStyle = useMemo(
+    () => ({
+      // Contain layout/paint work to the banner itself; reduce expensive invalidations.
+      contain: "layout paint",
+      // Promote to its own layer (helps reduce repaint artifacts on some mobile browsers).
+      willChange: "transform",
+      transform: "translateZ(0)",
+      // Respect iOS safe-area so the banner doesn't "jump" when the browser chrome changes.
+      paddingBottom: "calc(1rem + env(safe-area-inset-bottom))",
+      // Keep the banner from growing too tall on small screens (overlay only; no page push).
+      maxHeight: "60vh",
+      overflowY: "auto",
+    }),
+    []
+  );
+  // --- REPLACE END ---
 
   if (!visible) return null;
 
   return (
     <aside
       ref={bannerRef}
-      className={containerStyle}
+      className={containerClassName}
+      style={containerInlineStyle}
       data-testid="consent-banner"
       role="dialog"
       aria-modal="true"
@@ -303,4 +325,5 @@ export default function ConsentBanner() {
   );
 }
 // --- REPLACE END ---
+
 

@@ -12,7 +12,9 @@ import { initReactI18next } from "react-i18next";
  * IMPORTANT NOTES
  * - Expects translation files in: /public/locales/{lng}/{ns}.json
  * - Namespaces are split by feature:
- *   "common", "profile", "lifestyle", "discover", "chat", "navbar", "footer", "translation", "premium", "countries"
+ *   // --- REPLACE START: include "support" namespace in docs ---
+ *   "common", "profile", "lifestyle", "discover", "chat", "navbar", "footer", "support", "translation", "premium", "countries"
+ *   // --- REPLACE END ---
  * - Changing language will:
  *     1) persist to localStorage
  *     2) update <html lang=".."> and dir attribute
@@ -34,6 +36,9 @@ export const NAMESPACES = [
   "chat",
   "navbar",
   "footer",
+  // --- REPLACE START: add support namespace (Help/FAQ lives here) ---
+  "support",
+  // --- REPLACE END ---
   "translation",
   // --- REPLACE START: add premium namespace for billing/subscription UI ---
   "premium",
@@ -72,9 +77,10 @@ function applyHtmlLang(lng) {
 // Persisted language or fallback — guarded for environments where localStorage may throw
 let persistedRaw = null;
 try {
-  persistedRaw = typeof window !== "undefined" && window.localStorage
-    ? localStorage.getItem(STORAGE_KEY)
-    : null;
+  persistedRaw =
+    typeof window !== "undefined" && window.localStorage
+      ? localStorage.getItem(STORAGE_KEY)
+      : null;
 } catch {
   // ignore storage errors
 }
@@ -94,8 +100,8 @@ if (process.env.NODE_ENV === "test") {
       supportedLngs: SUPPORTED_LANGS,
       ns: NAMESPACES,
       defaultNS: "common",
-      // --- REPLACE START: include premium in fallbackNS for test env ---
-      fallbackNS: ["common", "translation", "premium"],
+      // --- REPLACE START: include support+premium in fallbackNS for test env ---
+      fallbackNS: ["common", "translation", "support", "premium"],
       // --- REPLACE END ---
       // keeping resources minimal in tests
       resources: {
@@ -117,6 +123,7 @@ if (process.env.NODE_ENV === "test") {
             goToSubscriptions: "Go to subscription settings",
           },
           // tests do not need full countries list
+          // support keys are optional in tests because pages provide defaultValue fallbacks
         },
       },
       // i18next options
@@ -143,8 +150,9 @@ if (process.env.NODE_ENV === "test") {
       }
       applyHtmlLang(i18n.language);
     })
-    .catch(() => { /* quiet in tests */ });
-
+    .catch(() => {
+      /* quiet in tests */
+    });
 } else {
   /* -----------------------------------------------------------------------------
    * NORMAL APP INIT (DEV/PROD)
@@ -172,14 +180,14 @@ if (process.env.NODE_ENV === "test") {
       fallbackLng: FALLBACK_LANG,
       lng: persisted,
 
-      // ↓ This now includes "countries" and "premium"
+      // ↓ This now includes "countries", "premium", and "support"
       ns: NAMESPACES,
       defaultNS: "common",
-      // --- REPLACE START: include premium in fallbackNS to reduce raw-key UI ---
-      fallbackNS: ["common", "translation", "premium"],
+      // --- REPLACE START: include support+premium in fallbackNS to reduce raw-key UI ---
+      fallbackNS: ["common", "translation", "support", "premium"],
       // --- REPLACE END ---
 
-      // ↓ Preload English so /locales/en/countries.json (and other ns) is fetched immediately
+      // ↓ Preload English so /locales/en/*.json is fetched immediately
       preload: ["en"],
 
       load: "currentOnly",

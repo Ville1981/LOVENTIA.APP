@@ -1,0 +1,31 @@
+{
+  "title": "Support - Frequently Asked Questions",
+  "faq": {
+    "forgotPassword": {
+      "q": "I forgot my password. What should I do?",
+      "a1": "Go to the login page and select",
+      "linkText": "Forgot Password",
+      "a2": ". Enter your email address and follow the instructions to reset your password."
+    },
+    "updateProfile": {
+      "q": "How can I update my profile information?",
+      "a1": "Navigate to your",
+      "profileText": "Profile",
+      "a2": "page and select",
+      "editText": "Edit Profile",
+      "a3": ". From there, you can update your details, photos, and preferences."
+    },
+    "matches": {
+      "q": "Why can't I see my matches?",
+      "a": "Matches only appear when both users have shown mutual interest. Make sure your profile is complete and that you are actively engaging with other users to increase your chances of matching."
+    },
+    "visibility": {
+      "q": "How do I hide or unhide my profile?",
+      "a1": "Go to",
+      "settingsText": "Settings",
+      "a2": "and toggle the visibility option. You can hide your profile temporarily or make it visible again at any time."
+    }
+  }
+}
+
+

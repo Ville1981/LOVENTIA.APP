@@ -26,9 +26,29 @@
   },
   "auth": {
     "username": "Käyttäjänimi",
-    "username_placeholder": "Syötä käyttäjätunnus"
+    "username_placeholder": "Syötä käyttäjätunnus",
+    "register": {
+      "title": "Create account",
+      "usernamePlaceholder": "Username",
+      "usernameAria": "Username",
+      "emailPlaceholder": "Email",
+      "emailAria": "Email",
+      "passwordPlaceholder": "Password",
+      "passwordAria": "Password",
+      "confirmPasswordPlaceholder": "Confirm password",
+      "confirmPasswordAria": "Confirm password",
+      "creating": "Creating…",
+      "submit": "Create account",
+      "checkEmailTitle": "Check your email",
+      "checkEmailBody": "We have sent a verification link to your email. Please open it to verify your address before you continue.",
+      "sentTo": "We tried to send the email to {{email}}.",
+      "goToDiscover": "Go to Discover",
+      "goToHome": "Back to Home",
+      "checkEmailHint": "If you do not see the email, check your spam folder or try again later from Settings → Email verification."
+    }
   },
   "blog": "Blogi",
+  "blockButtonLabel": "Block",
   "buttons": {
     "back": "Takaisin",
     "cancel": "Peruuta",
@@ -69,7 +89,10 @@
   "conditions": "Ehdot",
   "contact": "Yhteystiedot",
   "conversationCard": {
-    "avatarAlt": "User avatar"
+    "avatarAlt": "User avatar",
+    "unknownUser": "Unknown user",
+    "noTime": "",
+    "unreadCount": "Unread messages"
   },
   "cookies": "Evästeet",
   "countries": {
@@ -147,15 +170,18 @@
     "heroOtsikko": "Tervetuloa Loventia.siteen",
     "heroTeksti": "Löydä merkityksellisiä yhteyksiä helposti ja turvallisesti.",
     "heroTekstit": [
-      "Löydä kestävä rakkaus.",
-      "Tapaa arvojasi jakavia ihmisiä.",
-      "Seuraava osuma on yhden klikkauksen päässä."
+      "Find love that lasts.",
+      "Meet people who share your values.",
+      "Your next match is one click away."
     ],
     "katso_kayttajat": "Katso käyttäjiä",
     "kuvaus": "Löydä seuraa, ystäviä tai rakkautta helposti ja turvallisesti.",
     "lue_lisaa": "Lue lisää",
     "tervetuloa": "Tervetuloa Loventia.siteen!"
   },
+  "etusivu.heroTekstit.0": "Find love that lasts.",
+  "etusivu.heroTekstit.1": "Meet people who share your values.",
+  "etusivu.heroTekstit.2": "Your next match is one click away.",
   "follow": "Seuraa meitä",
   "health": "Terveyskäytäntö",
   "hero": {
@@ -164,10 +190,16 @@
     "2": "Seuraava osuma on yhden klikkauksen päässä.",
     "title": "Meet kind singles near you"
   },
+  "home.title": "Welcome to Loventia.site!",
+  "home.subtitle": "Find meaningful connections easily and safely.",
   "home": {
     "title": "Löydä aitoja yhteyksiä",
     "subtitle": "Vähemmän swippausta, parempia osumia — liity merkitykselliseen yhteisöön.",
-    "texts": "__TODO: translate__"
+    "texts": [
+      "Löydä kestävä rakkaus.",
+      "Tapaa arvojasi jakavia ihmisiä.",
+      "Seuraava osuma on yhden klikkauksen päässä."
+    ]
   },
   "impressum": "Julkaisija",
   "lifestyle": {
@@ -254,6 +286,9 @@
     "superlikeReceived": "{{username}} superliked you"
   },
   "overview": {
+    "title": "Conversations",
+    "loading": "Loading conversations…",
+    "empty": "No conversations yet. When you match and start messaging, your conversations will appear here.",
     "error": "Failed to load conversations"
   },
   "politics": {
@@ -288,7 +323,7 @@
     "basicEducation": "Peruskoulu",
     "bi": "Biseksuaali",
     "bodyType": {
-      "_legacy": "Body type  // TODO: translate",
+      "_legacy": "Body type",
       "athletic": "Urheilullinen",
       "normal": "Normaali",
       "obese": "Lihava",

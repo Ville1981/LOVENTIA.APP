@@ -6,11 +6,14 @@ import "./i18n"; // load i18n once; DO NOT also import "./i18n/config"
 import React, { Suspense } from "react";
 import ReactDOM from "react-dom/client";
 
-/* --- REPLACE START: load Tailwind utilities BEFORE other CSS so utility classes exist --- */
-import "./index.css";   // <- Tailwind entry (@tailwind base/components/utilities)
+/* --- REPLACE START: load Tailwind BEFORE other CSS so utilities exist (Tailwind v4 entry) --- */
+import "./index.css"; // Tailwind entry (v4): @import "tailwindcss";
 /* --- REPLACE END --- */
 
-import "./global.css";
+/* --- REPLACE START: global custom styles (must NOT contain @tailwind directives) --- */
+import "./global.css"; // Custom global styles only (no @tailwind base/components/utilities)
+/* --- REPLACE END --- */
+
 // import "./i18n/config"; // (removed – duplicated init would override nsSeparator)
 import "leaflet/dist/leaflet.css";
 import "./styles/ads.css";
@@ -58,6 +61,11 @@ const queryClient = new QueryClient();
  */
 function applyDevOverlayFix() {
   if (!import.meta.env.DEV) return;
+
+  // --- REPLACE START: avoid injecting duplicate <style> tags during HMR ---
+  if (document.querySelector('style[data-dev-overlay-fix="true"]')) return;
+  // --- REPLACE END ---
+
   const css = `
   /* Dev-only overlay guard */
   .ad-header, .ad, .promo, .hero-overlay {
@@ -134,3 +142,5 @@ if (import.meta.env.DEV && enableMSW) {
   bootstrapReactApp();
 }
 // --- REPLACE END ---
+
+

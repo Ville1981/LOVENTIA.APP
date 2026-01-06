@@ -18,39 +18,57 @@
 /* --- REPLACE END --- */
 
 /* ────────── VERTICAL ADS (left / right) ────────── */
+/* --- REPLACE START: side ads sizing + breakpoint fix (Tailwind lg starts at 1024px) --- */
+/*
+  Why this change:
+  - Your layout uses Tailwind: `hidden lg:flex` so side columns appear at >= 1024px.
+  - This CSS previously hid the columns at `max-width: 1024px`, which *also* includes 1024px.
+    That creates a 1024px "dead zone" / mismatch where Tailwind tries to show while CSS hides.
+  - We change the cutoff to 1023px to match Tailwind's lg breakpoint behavior.
+  - We also align .ad-side sizing with AdColumn's 300x600 design and keep CLS stable.
+*/
 .ad-side {
-  max-width: 200px;
-  max-height: 300px;
   width: 100%;
+  max-width: 300px;            /* match typical sidebar width */
   height: auto;
-  object-fit: contain;
+  max-height: none;            /* allow full creative height */
+  object-fit: cover;           /* fill nicely inside reserved space */
+  object-position: center;
   border-radius: 8px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
+  display: block;
 }
+/* --- REPLACE END --- */
 
-/* ─── AD COLUMN (stack for vertical ads) ─── */
+/* ────────── AD COLUMN (stack for vertical ads) ────────── */
+/* --- REPLACE START: ad-column must NOT override Tailwind display utilities (hidden/lg:flex) --- */
 .ad-column {
-  display: flex;
+  /* NOTE: Do not set `display` here.
+     Tailwind controls visibility: `hidden lg:flex`.
+     If we set display:flex here, it overrides `.hidden` and breaks the grid. */
   flex-direction: column;
   justify-content: flex-start;
   gap: 20px;
   margin-top: 40px;
 }
+/* --- REPLACE END --- */
 
 /* Alignments for side columns */
 .ad-column.left { align-items: flex-start; }
 .ad-column.right { align-items: flex-end; }
 
-/* Hide side ad columns on narrow screens (< 1024px) */
-@media (max-width: 1024px) {
+/* --- REPLACE START: breakpoint fix (match Tailwind `lg:`) --- */
+/* Hide side ad columns on narrow screens (< 1024px). Use 1023px to avoid the 1024px mismatch. */
+@media (max-width: 1023px) {
   .ad-side,
   .ad-column.left,
   .ad-column.right {
     display: none;
   }
 }
+/* --- REPLACE END --- */
 
 /* Placeholder block used in layouts */
 .ad-placeholder {
@@ -60,7 +78,7 @@
   border-radius: 8px;
 }
 
-/* ─── CENTERED FORM CONTAINER ─── */
+/* ────────── CENTERED FORM CONTAINER ────────── */
 .form-container {
   max-width: 800px;
   margin: 0 auto;
@@ -72,3 +90,4 @@
 
 /* Ensure the form spans the main content column */
 main .form-container { width: 100%; }
+

@@ -72,24 +72,14 @@
   "instructions": "Refine your search using the filters below.",
   "ageRange": "الفئة العمرية",
   "username": "اسم المستخدم",
-  "gender": {
-    "label": "Gender"
-  },
-  "orientation": {
-    "label": "❤️ Orientation"
-  },
-  "location": {
-    "country": "🌍 Country",
-    "region": "🗺 Region/State",
-    "city": "🏩 City"
-  },
-  "education": {
-    "label": "🎓 Education"
-  },
+  "gender.label": "Gender",
+  "orientation.label": "❤️ Orientation",
+  "location.country": "🌍 Country",
+  "location.region": "🗺 Region/State",
+  "location.city": "🏩 City",
+  "education.label": "🎓 Education",
   "profession": "المهنة",
-  "religion": {
-    "label": "🕊 Religion"
-  },
+  "religion.label": "🕊 Religion",
   "religionImportance": "أهمية الدين",
   "politicalIdeology": "الأيديولوجيا السياسية",
   "children": "👶 Children",
@@ -120,5 +110,23 @@
   "state": {
     "noResults": "No matching profiles found.",
     "loading": "Loading…"
+  },
+  "error": "Failed to load profiles. Please log in again and try once more.",
+  "gender": {
+    "label": "Gender"
+  },
+  "orientation": {
+    "label": "❤️ Orientation"
+  },
+  "location": {
+    "country": "🌍 Country",
+    "region": "🗺 Region/State",
+    "city": "🏩 City"
+  },
+  "education": {
+    "label": "🎓 Education"
+  },
+  "religion": {
+    "label": "🕊 Religion"
   }
 }

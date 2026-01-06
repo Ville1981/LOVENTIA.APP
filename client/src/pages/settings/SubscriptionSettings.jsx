@@ -424,7 +424,15 @@ const SubscriptionSettings = () => {
         syncClickLockRef.current = false;
       }
     },
-    [isLoggedIn, navigate, friendlyError, safeRefreshUser, busy, t, syncBillingWithContext]
+    [
+      isLoggedIn,
+      navigate,
+      friendlyError,
+      safeRefreshUser,
+      busy,
+      t,
+      syncBillingWithContext,
+    ]
   );
   // --- REPLACE END ---
 
@@ -549,12 +557,14 @@ const SubscriptionSettings = () => {
 
   return (
     <div className="max-w-4xl mx-auto p-6">
+      {/* --- REPLACE START: remove duplicate i18n call (prevents double-rendered title) --- */}
       <h1 className="text-3xl font-bold mb-2">
-        {t("subscriptionSettingsTitle", "Subscription Settings")}
         {t("subscriptionSettingsTitle", {
           defaultValue: "Subscription Settings",
         })}
       </h1>
+      {/* --- REPLACE END --- */}
+
       <p className="text-sm text-gray-600 mb-6">
         {t(
           "subscriptionSettingsIntro",
@@ -595,10 +605,11 @@ const SubscriptionSettings = () => {
             <span
               data-testid="premium-badge"
               className="inline-flex items-center px-2 py-0.5 text-xs rounded-full bg-emerald-100 border border-emerald-300"
-              title={t("subscriptionPremiumBadgeTitle", "Premium active")}
+              // --- REPLACE START: remove duplicate JSX attribute (fixes Vite/esbuild warning) ---
               title={t("subscriptionPremiumBadgeTitle", {
                 defaultValue: "Premium active",
               })}
+              // --- REPLACE END ---
             >
               {planLabel}
             </span>
@@ -705,16 +716,14 @@ const SubscriptionSettings = () => {
           </button>
         </div>
 
+        {/* --- REPLACE START: remove duplicate i18n call (prevents double-rendered note) --- */}
         <p className="mt-2 text-xs text-gray-500">
-          {t(
-            "subscriptionRedirectNote",
-            "You’ll be redirected to secure checkout / portal for changes. We never store your card details on our servers."
-          )}
           {t("subscriptionRedirectNote", {
             defaultValue:
               "You’ll be redirected to secure checkout / portal for changes. We never store your card details on our servers.",
           })}
         </p>
+        {/* --- REPLACE END --- */}
       </Row>
 
       <button
@@ -730,6 +739,5 @@ const SubscriptionSettings = () => {
 
 export default SubscriptionSettings;
 // --- REPLACE END ---
-
 
 

@@ -1,9 +1,10 @@
-// PATH: client/vite.config.js
+﻿// PATH: client/vite.config.js
 
 import path from "path";
 
 import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv } from "vite";
+import { visualizer } from "rollup-plugin-visualizer";
 
 export default defineConfig(({ mode }) => {
   // --- REPLACE START: ensure env resolution is scoped to the client dir (prevents accidental ../../package.json lookups) ---
@@ -34,7 +35,21 @@ export default defineConfig(({ mode }) => {
       // --- REPLACE END ---
     },
 
-    plugins: [react()],
+    plugins: [
+      react(),
+      ...(ANALYZE
+        ? [
+            visualizer({
+              filename: path.resolve(__dirname, "dist", "stats.html"),
+              json: true,
+              template: "treemap",
+              gzipSize: true,
+              brotliSize: true,
+              open: false
+            })
+          ]
+        : [])
+    ],
 
     optimizeDeps: {
       // Prebundle MSW so that its ESM exports resolve properly
@@ -77,6 +92,7 @@ export default defineConfig(({ mode }) => {
     },
   };
 });
+
 
 
 

@@ -1,6 +1,7 @@
 {
   "appName": "Loventia",
   "select": "Bitte wählen",
+  "selectCountry": "Select country",
   "all": "Alle",
   "other": "Andere",
   "filter": "Filtern",
@@ -9,6 +10,10 @@
   "cancel": "Abbrechen",
   "update": "Aktualisieren",
   "close": "Schließen",
+  "continue": "Continue",
+  "common": {
+    "continue": "Continue"
+  },
   "language": "Sprache",
   "fixErrors": "Bitte beheben Sie die markierten Felder.",
   "home": {
@@ -84,5 +89,80 @@
     "middleEast": "🌍 MIDDLE EAST",
     "eastAsia": "🌏 EAST ASIA",
     "africa": "🌍 AFRICA"
+  },
+  "premium": {
+    "updating": "Updating premium status...",
+    "successTitle": "Premium subscription successful",
+    "successMessage": "Premium is now active ✅",
+    "errorMessage": "Could not update premium right now. Please try again.",
+    "cancelTitle": "Checkout cancelled",
+    "cancelMessage": "Checkout was cancelled. Your subscription status did not change.",
+    "goToSubscriptions": "Go to subscription settings",
+    "superLike": {
+      "buttonLabelWithQuota": "Super Like {{remaining}}/{{limit}}",
+      "buttonLabel": "Super Like",
+      "sent": "Super Like sent ✨",
+      "sentCompact": "Sent.",
+      "premiumRequired": "Premium required to use Super Likes.",
+      "quotaPremiumExhausted": "You have used all your Super Likes for this week. They reset on Monday.",
+      "quotaFreeExhausted": "You have used your weekly Super Like. Upgrade to Premium for more.",
+      "failed": "Failed to send Super Like.",
+      "networkError": "Network error.",
+      "ariaLabel": "Send Super Like",
+      "buttonCompactLabel": "Super",
+      "counterLabel": "({{used}}/{{limit}} this week)",
+      "premiumRequiredTitle": "Premium required",
+      "premiumCtaLabel": "Super Like (Premium)"
+    },
+    "likes": {
+      "quotaLabel": "You have used {{used}} / {{limit}} likes today.",
+      "quotaResetHint": "Resets at midnight (Europe/Helsinki)."
+    }
+  },
+  "report": {
+    "title": "Report",
+    "link": "Report",
+    "linkFull": "Report this user",
+    "helpText": "Select a reason and optionally describe what happened. We use reports to improve safety, but we do not contact every reporter.",
+    "reasonLabel": "Reason",
+    "detailsLabel": "Details (optional)",
+    "detailsHint": "Do not include passwords or full payment details here. If you already sent money or card details, contact your bank or card issuer.",
+    "reason": {
+      "spam": "Spam or unwanted ads",
+      "scam": "Scam or asking for money / financial help",
+      "abuse": "Harassment, threats, or hate speech",
+      "fake_profile": "Fake, stolen, or misleading profile",
+      "underage": "I believe this user may be underage",
+      "other": "Something else"
+    },
+    "thanks": "Thank you. Your report has been received. We may review it as part of our safety checks.",
+    "error": "We could not send your report right now. Please try again later.",
+    "submitting": "Sending…",
+    "submit": "Send report"
+  },
+  "settings": {
+    "dealbreakersTitle": "Discover dealbreakers",
+    "dealbreakersDescription": "Configure hard filters for matches. This is a Premium feature and will apply to Discover.",
+    "subscriptionTitle": "Subscription Settings",
+    "subscriptionDescription": "Manage your Premium plan from here. You can start, manage, or cancel from the dedicated page.",
+    "currentPlanTitle": "Current plan indicator",
+    "currentPlanLabel": "Current plan:",
+    "currentPlanPremium": "Premium",
+    "currentPlanFree": "Free",
+    "manageSubscriptionTitle": "Open the subscription settings page",
+    "manageSubscriptionButton": "Manage Subscription",
+    "viewPremiumBenefitsTitle": "View all Premium benefits",
+    "viewPremiumBenefitsButton": "View Premium benefits",
+    "subscriptionSecurityNote": "The next page uses our secure billing backend (Stripe). We never store your card details.",
+    "sessionsTitle": "Sessions and security",
+    "sessionsDescription": "If you suspect someone else may have access to your account, you can log out from all devices. This will invalidate refresh tokens and require sign-in again everywhere.",
+    "sessionsLogoutAllButton": "Log out from all devices",
+    "sessionsLogoutAllHint": "Your current session may also be logged out shortly after this action.",
+    "sessionsLogoutAllInfoSuccessDefault": "Logout from all devices requested. This device has been logged out.",
+    "sessionsLogoutAllErrorDefault": "Failed to log out from all devices."
+  },
+  "ads": {
+    "sponsoredHeadline": "Sponsored",
+    "removeAdsBody": "Upgrade to Premium to remove all ads."
   }
 }

@@ -1,9 +1,9 @@
-// File: client/src/pages/ConversationsOverview.jsx
+// PATH: client/src/pages/ConversationsOverview.jsx
 
 // --- REPLACE START: test-safe imports (no top-level network/socket init) ---
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-// NOTE: avoid importing axiosInstance at top-level in tests to prevent side effects
+// NOTE: avoid importing axiosInstance at top-level to prevent side effects in tests
 import Avatar from "../components/Avatar";
 import absolutizeImage from "../utils/absolutizeImage";
 // --- REPLACE END ---
@@ -60,42 +60,23 @@ export default function ConversationsOverview() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // --- REPLACE START: guard network side-effects in tests + lazy import axiosInstance ---
+  // --- REPLACE START: always fetch (tests mock axios), keep lazy import to avoid top-level side effects ---
   useEffect(() => {
     let isMounted = true;
-    const isTest =
-      (typeof import.meta !== "undefined" &&
-        import.meta.env &&
-        import.meta.env.MODE === "test") ||
-      typeof globalThis.__VITEST__ !== "undefined";
 
-    // In test mode, skip network entirely to avoid jsdom/web-runner timeouts
-    // and let the component render a stable "no conversations" empty state.
-    if (isTest) {
-      if (isMounted) {
-        setConversations([]);
-        setLoading(false);
-      }
-      return () => {
-        isMounted = false;
-      };
-    }
-
-    // Lazy-load axiosInstance only in runtime (dev/prod) to avoid top-level side effects
+    // Always run the fetch in tests too:
+    // tests mock ../utils/axiosInstance and expect the list/error branches to be reachable.
     import("../utils/axiosInstance")
-      .then(({ default: axios }) =>
-        axios.get("/api/messages/overview").then((res) => {
-          if (isMounted) {
-            setConversations(res?.data || []);
-            setLoading(false);
-          }
-        })
-      )
+      .then(({ default: axios }) => axios.get("/api/messages/overview"))
+      .then((res) => {
+        if (!isMounted) return;
+        setConversations(res?.data || []);
+        setLoading(false);
+      })
       .catch((err) => {
-        if (isMounted) {
-          setError(err);
-          setLoading(false);
-        }
+        if (!isMounted) return;
+        setError(err);
+        setLoading(false);
       });
 
     return () => {
@@ -107,14 +88,9 @@ export default function ConversationsOverview() {
   // Loading state
   if (loading) {
     return (
-      <section
-        className="flex justify-center items-center h-full"
-        aria-busy="true"
-      >
+      <section className="flex justify-center items-center h-full" aria-busy="true">
         <span className="spinner" />
-        <p className="sr-only">
-          {t("chat:overview.loading", "Loading conversations…")}
-        </p>
+        <p className="sr-only">{t("chat:overview.loading", "Loading conversations…")}</p>
       </section>
     );
   }
@@ -137,7 +113,7 @@ export default function ConversationsOverview() {
       >
         <div className="mb-4">
           <Avatar
-            // Let Avatar use its internal default image; no bunny/demo assets
+            // Let Avatar use its internal default image; no demo assets here
             src={undefined}
             alt={t(
               "chat:overview.emptyAvatarAlt",
@@ -169,9 +145,7 @@ export default function ConversationsOverview() {
       aria-live="polite"
     >
       {/* Visually hidden heading for screen readers */}
-      <h2 className="sr-only">
-        {t("chat:overview.title", "Conversations")}
-      </h2>
+      <h2 className="sr-only">{t("chat:overview.title", "Conversations")}</h2>
 
       {conversations.map((conv) => {
         const id = conv.userId || conv.partnerId || conv.peerId || conv.id;
@@ -198,22 +172,16 @@ export default function ConversationsOverview() {
           conv.timestamp ||
           Date.now();
 
-        const lastDate =
-          lastTime instanceof Date ? lastTime : new Date(lastTime);
-
+        const lastDate = lastTime instanceof Date ? lastTime : new Date(lastTime);
         const relativeTime = formatDistanceToNow(lastDate);
 
         const snippet =
-          conv.snippet ||
-          conv.lastMessage ||
-          conv.lastMessageSnippet ||
-          "";
+          conv.snippet || conv.lastMessage || conv.lastMessageSnippet || "";
 
         const snippetId = id ? `conversation-${id}-snippet` : undefined;
 
         const ariaLabel = t("chat:overview.conversationItemAriaLabel", {
-          defaultValue:
-            "Conversation with {{name}}, last active {{relativeTime}} ago.",
+          defaultValue: "Conversation with {{name}}, last active {{relativeTime}} ago.",
           name,
           relativeTime,
         });
@@ -242,23 +210,16 @@ export default function ConversationsOverview() {
             onClick={handleActivate}
             onKeyDown={handleKeyDown}
           >
-            {/* --- REPLACE START: unified Avatar usage instead of bunny <img> --- */}
             <div className="mr-4">
               <Avatar src={avatarSrc} alt={avatarAlt} size={48} />
             </div>
-            {/* --- REPLACE END --- */}
 
             <div className="flex-1 overflow-hidden">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold truncate">{name}</h3>
-                <span className="text-sm text-gray-400">
-                  {relativeTime}
-                </span>
+                <span className="text-sm text-gray-400">{relativeTime}</span>
               </div>
-              <p
-                className="text-sm text-gray-500 truncate"
-                id={snippetId}
-              >
+              <p className="text-sm text-gray-500 truncate" id={snippetId}>
                 {snippet}
               </p>
             </div>
@@ -278,7 +239,6 @@ export default function ConversationsOverview() {
   // --- REPLACE END ---
 }
 
-// The replacement regions are marked between
+// The replacement region is marked between
 // --- REPLACE START and // --- REPLACE END
 // so you can verify exactly what changed.
-

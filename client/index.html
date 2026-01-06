@@ -5,9 +5,24 @@
     <meta charset="UTF-8" />
     <link rel="icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- --- REPLACE START: preload LCP hero image (mobile) so fetch starts before React mounts --- -->
+    <!-- NOTE: Use imagesrcset/imagesizes so the browser can pick the right AVIF variant (LH mobile uses hero-768.avif) -->
+    <link
+      rel="preload"
+      as="image"
+      href="/hero-768.avif"
+      type="image/avif"
+      fetchpriority="high"
+      imagesrcset="/hero-480.avif 480w, /hero-768.avif 768w, /hero-1024.avif 1024w, /hero-1280.avif 1280w, /hero-1536.avif 1536w, /hero-1920.avif 1920w"
+      imagesizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 1100px"
+    />
+    <!-- --- REPLACE END --- -->
+
     <!-- --- REPLACE START: SPA base path for router --- -->
     <base href="/" />
     <!-- --- REPLACE END --- -->
+
     <title>Loventia.app</title>
   </head>
   <body class="direction-ltr">

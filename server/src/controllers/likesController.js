@@ -1,5 +1,4 @@
 // PATH: server/src/controllers/likesController.js
-// --- REPLACE START: robust likes controller with idempotency + daily quota (Helsinki) ---
 // =================================================================================================
 // Likes Controller (ESM)
 // -------------------------------------------------------------------------------------------------
@@ -561,11 +560,12 @@ export async function listOutgoingLikes(req, res) {
       return res.status(200).json(filtered);
     }
 
+    // --- REPLACE START: remove email from likes list payloads ---
+    // Security: never expose email in likes/matches list payloads.
     const users = await Users.find({ _id: { $in: targetIds } })
       .project({
         _id: 1,
         username: 1,
-        email: 1,
         age: 1,
         gender: 1,
         city: 1,
@@ -573,6 +573,7 @@ export async function listOutgoingLikes(req, res) {
         photos: 1,
       })
       .toArray();
+    // --- REPLACE END ---
 
     const payload = {
       ok: true,
@@ -626,11 +627,12 @@ export async function listIncomingLikes(req, res) {
       return res.status(200).json(filtered);
     }
 
+    // --- REPLACE START: remove email from likes list payloads ---
+    // Security: never expose email in likes/matches list payloads.
     const users = await Users.find({ _id: { $in: likerIds } })
       .project({
         _id: 1,
         username: 1,
-        email: 1,
         age: 1,
         gender: 1,
         city: 1,
@@ -638,6 +640,7 @@ export async function listIncomingLikes(req, res) {
         photos: 1,
       })
       .toArray();
+    // --- REPLACE END ---
 
     const payload = {
       ok: true,
@@ -722,11 +725,12 @@ export async function listMatches(req, res) {
       return res.status(200).json(filtered);
     }
 
+    // --- REPLACE START: remove email from likes list payloads ---
+    // Security: never expose email in likes/matches list payloads.
     const users = await Users.find({ _id: { $in: matchIds } })
       .project({
         _id: 1,
         username: 1,
-        email: 1,
         age: 1,
         gender: 1,
         city: 1,
@@ -734,6 +738,7 @@ export async function listMatches(req, res) {
         photos: 1,
       })
       .toArray();
+    // --- REPLACE END ---
 
     const payload = {
       ok: true,
@@ -787,7 +792,3 @@ try {
 } catch {
   // no-op
 }
-// --- REPLACE END ---
-
-
-

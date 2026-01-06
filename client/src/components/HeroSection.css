@@ -1,22 +1,21 @@
+/* PATH: client/src/components/HeroSection.css */
+
+/* --- REPLACE START: reduce LCP render-delay by disabling first-paint fade on mobile + fix comment encoding --- */
 .hero-section-container {
-  max-width: 1400px; /* leveämpi kuin header-mainos */
+  max-width: 1400px; /* Wider than the header ad */
   width: 100%;
   margin: 0 auto;
   height: auto;
 }
 
-
-
 .hero-section {
   position: relative;
   width: 100%;
-  height: 860px; /* 🔼 Suurempi korkeus */
+  height: 860px; /* Taller hero on desktop */
   overflow: hidden;
   border-radius: 8px;
   box-shadow: 0 0 12px rgba(0, 0, 0, 0.2);
 }
-
-
 
 .hero-slide {
   position: absolute;
@@ -29,6 +28,17 @@
   opacity: 0;
   transition: opacity 1.5s ease-in-out;
   z-index: 0;
+}
+
+/**
+ * IMPORTANT (Performance / LCP)
+ * -----------------------------
+ * Opacity transitions can delay LCP because the element is considered "fully painted"
+ * only after the fade completes. We keep the fade effect for the slideshow, BUT
+ * disable it on the very first paint via the "no-fade" class (set in HeroSection.jsx).
+ */
+.hero-slide.no-fade {
+  transition: none !important;
 }
 
 .hero-slide.active {
@@ -65,10 +75,21 @@
   direction: rtl;
 }
 
-/* Responsiivisuus */
+/* Responsiveness */
 @media (max-width: 768px) {
   .hero-section {
     height: 300px;
+  }
+
+  /**
+   * MOBILE LCP GUARANTEE
+   * --------------------
+   * Even if the JSX forgets to add "no-fade", we must NOT fade the hero image on mobile,
+   * otherwise LCP can be delayed until the opacity transition finishes.
+   * This keeps slideshow fade on desktop, but removes first-paint fade on mobile.
+   */
+  .hero-slide {
+    transition: none !important;
   }
 
   .hero-overlay.left,
@@ -79,3 +100,13 @@
     right: 5%;
   }
 }
+
+/* Respect reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .hero-slide {
+    transition: none !important;
+  }
+}
+/* --- REPLACE END --- */
+
+

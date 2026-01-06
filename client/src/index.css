@@ -2,13 +2,24 @@
 
 /* stylelint-disable at-rule-no-unknown */
 
-/* --- REPLACE START: Tailwind v4 entry (replaces @tailwind base/components/utilities) --- */
+/* --- REPLACE START: Tailwind v4 entry (single source) --- */
 @import "tailwindcss";
+/*
+  IMPORTANT (avoid duplicates):
+  - Custom @layer styles are defined in: client/src/global.css
+  - main.jsx imports BOTH index.css + global.css
+  - Therefore, keep this file as the Tailwind entry ONLY.
+
+  The previous custom blocks are kept below as a COMMENT for reference so the file
+  history stays visible, but they must NOT be active here.
+*/
 /* --- REPLACE END --- */
 
-/* ====================================
+/* --- REPLACE START: previously duplicated custom layers (now kept disabled to prevent double-apply) --- */
+/*
+====================================
    Custom base styles on top of Tailwind
-   ==================================== */
+====================================
 @layer base {
   html,
   body,
@@ -32,10 +43,10 @@
   }
 }
 
-/* ====================================
+====================================
    Container component for centering
    NOTE: Use raw media queries to avoid relying on theme.screens.
-   ==================================== */
+====================================
 @layer components {
   .container {
     margin-left: auto;
@@ -45,19 +56,17 @@
   }
 }
 
-/* --- REPLACE START: breakpoints via media queries (md/lg) --- */
 @media (min-width: 768px) {
-  .container { max-width: 36rem; } /* md */
+  .container { max-width: 36rem; }
 }
 @media (min-width: 1024px) {
-  .container { max-width: 42rem; } /* lg */
+  .container { max-width: 42rem; }
 }
-/* --- REPLACE END --- */
 
-/* ====================================
+====================================
    Unified form control styling
    (exclude file inputs so hidden utility works)
-   ==================================== */
+====================================
 @layer components {
   form input:not([type="file"]),
   form button,
@@ -79,9 +88,9 @@
   }
 }
 
-/* ====================================
+====================================
    Base image utility
-   ==================================== */
+====================================
 @layer utilities {
   img {
     max-width: 100%;
@@ -90,9 +99,9 @@
   }
 }
 
-/* ====================================
+====================================
    Slick carousel fixes
-   ==================================== */
+====================================
 @layer utilities {
   .slick-slide:focus,
   .slick-slide *:focus,
@@ -107,5 +116,8 @@
     overflow-anchor: none !important;
   }
 }
+*/
+/* --- REPLACE END --- */
+
 
 

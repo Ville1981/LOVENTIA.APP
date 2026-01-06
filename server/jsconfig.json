@@ -1,7 +1,10 @@
 {
   "compilerOptions": {
     "allowJs": true,
-    "checkJs": false
+    "checkJs": false,
+    "skipLibCheck": true,
+    "noImplicitAny": false,
+    "noEmit": true
   },
   "include": ["**/*.cjs", "jest.config.js"]
 }

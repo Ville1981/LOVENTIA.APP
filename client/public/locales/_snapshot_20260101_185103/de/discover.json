@@ -1,0 +1,133 @@
+﻿{
+  "labels": {
+    "header": "Entdecken",
+    "title": "Entdecken",
+    "ageRange": "Altersbereich",
+    "username": "Benutzername",
+    "gender": "Geschlecht",
+    "orientation": "Orientierung",
+    "education": "Bildung",
+    "profession": "Beruf",
+    "religion": "Religion",
+    "height": "GrÃ¶ÃŸe",
+    "weight": "Gewicht",
+    "aboutMe": "Ãœber mich",
+    "lookingFor": "Wonach ich suche"
+  },
+  "placeholders": {
+    "select": "Bitte wÃ¤hlen"
+  },
+  "options": {
+    "gender": {
+      "male": "MÃ¤nnlich",
+      "female": "Weiblich",
+      "nonbinary": "Nicht-binÃ¤r",
+      "other": "Andere",
+      "preferNot": "MÃ¶chte ich nicht angeben"
+    },
+    "orientation": {
+      "straight": "Hetero",
+      "gay": "Schwul",
+      "lesbian": "Lesbisch",
+      "bisexual": "Bisexuell",
+      "asexual": "Asexuell",
+      "pansexual": "Pansexuell",
+      "queer": "Queer",
+      "questioning": "Unsicher",
+      "other": "Andere"
+    },
+    "education": {
+      "highschool": "Abitur / Gymnasium",
+      "vocational": "Berufsausbildung",
+      "bachelor": "Bachelor",
+      "master": "Master",
+      "doctorate": "Doktor",
+      "other": "Andere"
+    },
+    "religion": {
+      "agnostic": "Agnostiker",
+      "atheist": "Atheist",
+      "buddhist": "Buddhist",
+      "christian": "Christ",
+      "hindu": "Hindu",
+      "jewish": "Jude",
+      "muslim": "Muslim",
+      "spiritual": "Spirituell",
+      "other": "Andere",
+      "preferNot": "MÃ¶chte ich nicht angeben"
+    },
+    "profession": {
+      "student": "Student",
+      "it": "IT / Software",
+      "engineering": "Ingenieurwesen",
+      "healthcare": "Gesundheitswesen",
+      "education": "Bildung",
+      "business": "Business / Finanzen",
+      "service": "Service / Einzelhandel",
+      "creative": "Kreativ / Medien",
+      "public": "Ã–ffentlicher Dienst",
+      "other": "Andere"
+    }
+  },
+  "instructions": "WÃ¤hle Filter, um passende Profile zu finden",
+  "ageRange": "Altersbereich",
+  "username": "Benutzername",
+  "gender.label": "Gender",
+  "orientation.label": "â¤ï¸ Orientation",
+  "location.country": "ðŸŒ Country",
+  "location.region": "ðŸ—º Region/State",
+  "location.city": "ðŸ© City",
+  "education.label": "ðŸŽ“ Education",
+  "profession": "ðŸ’¼ Beruf",
+  "religion.label": "ðŸ•Š Religion",
+  "religionImportance": "Wichtigkeit der Religion",
+  "politicalIdeology": "ðŸ—³ Politische Einstellung",
+  "children": "ðŸ‘¶ Kinder",
+  "pets": "ðŸ¾ Haustiere",
+  "lifestyle": "Lebensstil",
+  "smoke": "Rauchen",
+  "drink": "Alkohol",
+  "drugs": "Drogen",
+  "diet": "ErnÃ¤hrung",
+  "exercise": "Bewegung",
+  "aboutMe": "ðŸ“„ Ãœber mich",
+  "goals": "ðŸŽ¯ Ziele",
+  "lookingFor": "ðŸ” Wonach ich suche",
+  "height": "GrÃ¶ÃŸe",
+  "weight": "Gewicht",
+  "cm": "cm",
+  "kg": "kg",
+  "filters": {
+    "professionCategory": "ðŸ’¼ Berufskategorie",
+    "politicalIdeology": "ðŸ—³ Politische Einstellung",
+    "pets": "ðŸ¾ Haustiere"
+  },
+  "professionCategory": "ðŸ’¼ Berufskategorie",
+  "actions": {
+    "apply": "Filter anwenden",
+    "clear": "Filter zurÃ¼cksetzen"
+  },
+  "state": {
+    "noResults": "Keine passenden Profile gefunden.",
+    "loading": "Ladenâ€¦"
+  },
+  "error": "Failed to load profiles. Please log in again and try once more.",
+  "gender": {
+    "label": "Geschlecht"
+  },
+  "orientation": {
+    "label": "â¤ï¸ Orientierung"
+  },
+  "location": {
+    "country": "ðŸŒ Land",
+    "region": "ðŸ—º Region/Bundesland",
+    "city": "ðŸ© Stadt"
+  },
+  "education": {
+    "label": "ðŸŽ“ Bildung"
+  },
+  "religion": {
+    "label": "ðŸ•Š Religion"
+  }
+}
+

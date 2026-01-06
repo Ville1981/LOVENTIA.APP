@@ -49,14 +49,34 @@ jobs:
         uses: actions/checkout@v4
 
       # -------------------------------------------------------------
-      # Node.js toolchain + dependency cache
+      # Preflight: verify lockfile(s) exist in the runner checkout
+      # This runs at repo root (NOT client/) so we can see the real paths.
+      # -------------------------------------------------------------
+      - name: Preflight (lockfiles)
+        shell: bash
+        working-directory: .
+        run: |
+          echo "GITHUB_WORKSPACE: ${GITHUB_WORKSPACE}"
+          echo "PWD: $(pwd)"
+          echo "Top-level files:"
+          ls -la
+          echo ""
+          echo "Searching for package-lock.json (max depth 4):"
+          find . -maxdepth 4 -name "package-lock.json" -print
+
+      # -------------------------------------------------------------
+      # Node.js toolchain
+      # IMPORTANT: Disable npm cache for now to avoid the setup-node failure:
+      # "Some specified paths were not resolved, unable to cache dependencies."
+      # We can re-enable cache once the lockfile path in the runner is confirmed.
       # -------------------------------------------------------------
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-          cache-dependency-path: client/package-lock.json
+          # TEMP: disable npm cache to avoid "cache-dependency-path not resolved" failure
+          # cache: npm
+          # cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -189,22 +209,4 @@ jobs:
           echo "S3 bucket: ${{ steps.bucket.outputs.value }}"
           echo "CloudFront: ${{ steps.cf.outputs.id }}"
 # --- REPLACE END ---
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

@@ -1,0 +1,273 @@
+﻿{
+  "labels": {
+    "header": "Profile",
+    "age": "Age",
+    "username": "Username",
+    "gender": "Gender",
+    "orientation": "Orientation",
+    "height": "Height",
+    "weight": "Weight",
+    "bodyType": "Body type",
+    "country": "Country",
+    "region": "Region/State",
+    "city": "City",
+    "education": "Education",
+    "professionCategory": "ðŸ’¼ Profession category",
+    "profession": "Profession",
+    "religion": "Religion",
+    "religionImportance": "Religion importance",
+    "politicalIdeology": "Political ideology",
+    "children": "Children",
+    "pets": "Pets",
+    "lifestyle": "Lifestyle",
+    "smoke": "Smoke",
+    "drink": "Alcohol",
+    "drugs": "Drugs",
+    "diet": "Diet",
+    "exercise": "Exercise",
+    "aboutMe": "About me",
+    "goals": "Goals",
+    "lookingFor": "Looking for",
+    "childrenPets": "ðŸ¾ Pets"
+  },
+  "placeholders": {
+    "select": "Please select"
+  },
+  "options": {
+    "gender": {
+      "male": "Male",
+      "female": "Female",
+      "nonbinary": "Non-binary",
+      "other": "Other",
+      "preferNot": "Prefer not to say"
+    },
+    "orientation": {
+      "straight": "Straight",
+      "gay": "Gay",
+      "lesbian": "Lesbian",
+      "bisexual": "Bisexual",
+      "asexual": "Asexual",
+      "pansexual": "Pansexual",
+      "queer": "Queer",
+      "questioning": "Questioning",
+      "other": "Other"
+    },
+    "education": {
+      "highschool": "High school",
+      "vocational": "Vocational training",
+      "bachelor": "Bachelor",
+      "master": "Master",
+      "doctorate": "Doctorate",
+      "other": "Other"
+    },
+    "religion": {
+      "agnostic": "Agnostic",
+      "atheist": "Atheist",
+      "buddhist": "Buddhist",
+      "christian": "Christian",
+      "hindu": "Hindu",
+      "jewish": "Jewish",
+      "muslim": "Muslim",
+      "spiritual": "Spiritual",
+      "other": "Other",
+      "preferNot": "Prefer not to say"
+    },
+    "professionCategory": {
+      "administration": "Administration",
+      "finance": "Finance",
+      "military": "Military",
+      "technical": "Technical",
+      "healthcare": "Healthcare",
+      "education": "Education",
+      "entrepreneur": "Entrepreneur",
+      "law": "Law / Justice",
+      "farmerForestWorker": "Farmer/Forest worker",
+      "theologianPriest": "Theologian/Priest",
+      "service": "Service",
+      "artist": "Artist",
+      "divineServant": "Divine servant",
+      "homeparent": "Home parent",
+      "foodIndustry": "Food industry",
+      "retail": "Retail",
+      "arts": "Arts",
+      "government": "Government",
+      "retired": "Retired",
+      "athlete": "Athlete",
+      "other": "Other"
+    },
+    "politicalIdeology": {
+      "left": "Left",
+      "centre": "Centre",
+      "right": "Right",
+      "conservatism": "Conservatism",
+      "liberalism": "Liberalism",
+      "socialism": "Socialism",
+      "communism": "Communism",
+      "fascism": "Fascism",
+      "environmentalism": "Environmentalism",
+      "anarchism": "Anarchism",
+      "nationalism": "Nationalism",
+      "populism": "Populism",
+      "progressivism": "Progressivism",
+      "libertarianism": "Libertarianism",
+      "democracy": "Democracy",
+      "other": "Other"
+    },
+    "pets": {
+      "cat": "Cat",
+      "dog": "Dog",
+      "both": "Both",
+      "none": "None"
+    }
+  },
+  "age": "YaÅŸ",
+  "username": "KullanÄ±cÄ± adÄ±",
+  "email": "E-posta",
+  "gender.label": "Gender",
+  "orientation.label": "â¤ï¸ Orientation",
+  "height": {
+    "label": "Height"
+  },
+  "height.label": "Height",
+  "heightUnit": "cm",
+  "cm": "cm",
+  "weight": {
+    "label": "Weight"
+  },
+  "weight.label": "Weight",
+  "weightUnit": "kg",
+  "kg": "kg",
+  "bodyType.label": "Body type",
+  "location.country": "ðŸŒ Country",
+  "location.region": "ðŸ—º Region/State",
+  "location.city": "ðŸ© City",
+  "education.label": "ðŸŽ“ Education",
+  "professionCategory": {
+    "label": "ðŸ’¼ Profession category"
+  },
+  "professionCategory.label": "ðŸ’¼ Profession category",
+  "profession": "Meslek",
+  "professionPlaceholder": "Enter professionâ€¦",
+  "religion.label": "ðŸ•Š Religion",
+  "religionImportance": {
+    "label": "Religion importance",
+    "notImportant": "Not important",
+    "somewhatImportant": "Somewhat important",
+    "veryImportant": "Very important",
+    "essential": "Essential"
+  },
+  "politicalIdeology": "Siyasi ideoloji",
+  "children": "Ã‡ocuklar",
+  "pets": "Evcil hayvanlar",
+  "lifestyle": "Lifestyle",
+  "smoke": "Smoke",
+  "drink": "Alcohol",
+  "drugs": "Drugs",
+  "diet": "Diet",
+  "exercise": "Exercise",
+  "aboutMe": "ðŸ“„ About me",
+  "goals": "Hedefler",
+  "lookingFor": "ArÄ±yor",
+  "male": "Male",
+  "female": "Female",
+  "other": "Other",
+  "education": {
+    "label": "Education",
+    "secondary": "High school",
+    "vocational": "Vocational training",
+    "higher": "University",
+    "phd": "PhD / Research"
+  },
+  "religion": {
+    "label": "Religion",
+    "christianity": "Christianity",
+    "islam": "Islam",
+    "hinduism": "Hinduism",
+    "buddhism": "Buddhism",
+    "folk": "Folk religion",
+    "none": "None",
+    "other": "Other",
+    "atheism": "Atheism"
+  },
+  "common": {
+    "other": "Other"
+  },
+  "interests": {
+    "movies": "Movies",
+    "music": "Music",
+    "reading": "Reading",
+    "sports": "Sports",
+    "travel": "Travel"
+  },
+  "profile": {
+    "bi": "Bi",
+    "female": "Female",
+    "gender": "Gender",
+    "hetero": "Hetero",
+    "homo": "Homosexual",
+    "male": "Male",
+    "orientation": "Orientation",
+    "other": "Other",
+    "religion": "Religion"
+  },
+  "searchingFor": "ArÄ±yor",
+  "looking": {
+    "friendship": "Friendship",
+    "gettingToKnow": "Getting to know",
+    "dating": "Dating",
+    "dates": "Dates",
+    "longTerm": "Long-term relationship",
+    "marriage": "Marriage",
+    "chatOnly": "Chat only",
+    "casual": "Casual",
+    "undecided": "Undecided"
+  },
+  "bodyType": {
+    "slim": "Slim",
+    "normal": "Normal",
+    "athletic": "Athletic",
+    "overweight": "Overweight",
+    "obese": "Obese",
+    "label": "Body type"
+  },
+  "childrenYes": "Yes",
+  "childrenNo": "No",
+  "childrenAdult": "Adult children",
+  "fields": {
+    "professionCategory": "ðŸ’¼ Profession category",
+    "politicalIdeology": "ðŸ—³ Political ideology",
+    "pets": "ðŸ¾ Pets"
+  },
+  "sections": {
+    "professionCategory": "ðŸ’¼ Profession category",
+    "politicalIdeology": "ðŸ—³ Political ideology",
+    "pets": "ðŸ¾ Pets"
+  },
+  "form": {
+    "professionCategory": "ðŸ’¼ Profession category",
+    "politicalIdeology": "ðŸ—³ Political ideology",
+    "pets": "ðŸ¾ Pets"
+  },
+  "headings": {
+    "professionCategory": "ðŸ’¼ Profession category",
+    "politicalIdeology": "ðŸ—³ Political ideology",
+    "pets": "ðŸ¾ Pets"
+  },
+  "hubTitle": "Profile",
+  "emailVerifiedBadge": "Email verified",
+  "managePhotos": "Manage photos",
+  "save": "Kaydet",
+  "saveSuccess": "Profile saved.",
+  "gender": {
+    "label": "Gender"
+  },
+  "orientation": {
+    "label": "â¤ï¸ Orientation"
+  },
+  "location": {
+    "country": "Ãœlke",
+    "region": "BÃ¶lge",
+    "city": "Åžehir"
+  }
+}
+

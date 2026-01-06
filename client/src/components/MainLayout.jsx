@@ -1,16 +1,26 @@
 ﻿// PATH: client/src/components/MainLayout.jsx
 
-// --- REPLACE START: remove HeaderAdSlot completely; keep interstitial trigger and existing layout ---
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
-import AdColumn from "../components/AdColumn";
 import Footer from "../components/Footer";
-import HeroSection from "../components/HeroSection";
+// --- REPLACE START: lazy-load HeroSection so it is not bundled/parsed on non-home routes ---
+/**
+ * PERF NOTE
+ * ---------
+ * HeroSection is only used on Home ("/"). By lazy-loading it, we avoid downloading/parsing
+ * the HeroSection code on routes that do not render the hero. This is a safe change because:
+ * - isHome gate already prevents rendering on other routes
+ * - Suspense fallback is null (no visual change), and we still reserve HERO_MIN_HEIGHT for CLS
+ *
+ * IMPORTANT: This does NOT change the hero image loading behavior by itself.
+ * The image-fetch reduction is handled inside HeroSection.jsx.
+ */
+const HeroSection = lazy(() => import("../components/HeroSection"));
+// --- REPLACE END ---
 import Navbar from "../components/Navbar";
 import FeatureGate from "./FeatureGate";
-import AdGate from "../components/AdGate";
 import RouteInterstitial from "../components/RouteInterstitial";
 import "../styles/ads.css";
 
@@ -18,19 +28,30 @@ import "../styles/ads.css";
  * MainLayout
  * – Renders the Navbar at the top
  * – (HeaderAdSlot removed)  <-- global banner under navbar has been removed entirely
- * – Lays out 3 columns: left ad, main content, right ad
  * – Renders routed page via <Outlet />
  * – Renders Footer at the bottom
  *
  * Accessibility:
  * – Provides a “Skip to content” link for keyboard users.
- * – Uses i18n-backed aria-labels for landmarks and ad regions.
+ * – Uses i18n-backed aria-labels for landmarks.
  */
 const MainLayout = () => {
   const { t } = useTranslation();
   const location = useLocation();
   const isHome = location.pathname === "/";
-  const isDiscover = location.pathname.startsWith("/discover");
+
+  // --- REPLACE START: stabilize layout + allow routed pages to use flex/scroll without 100vh hacks ---
+  // Reserve predictable space for parts that may change height due to image loading or async content.
+  // This reduces cumulative layout shift (CLS), especially on mobile and slower connections.
+  const NAVBAR_MIN_HEIGHT = 64; // px (typical navbar height)
+  const FOOTER_MIN_HEIGHT = 120; // px (typical footer height)
+  const HERO_MIN_HEIGHT = "clamp(260px, 45vh, 520px)"; // responsive hero space reservation
+
+  // IMPORTANT:
+  // We make the middle "content" section flex-1 + min-h-0 so pages like Chat/Map can use
+  // internal scrolling (overflow-y-auto) without relying on h-screen/100vh, which causes
+  // overflow when combined with Navbar + Footer.
+  // --- REPLACE END ---
 
   // i18n-backed strings (leaf keys only; provide English defaults)
   const skipToContentText = t("common:a11y.skipToContent", {
@@ -44,15 +65,6 @@ const MainLayout = () => {
   });
   const footerAriaLabel = t("layout:landmarks.footer", {
     defaultValue: "Site footer",
-  });
-  const leftAdsAriaLabel = t("layout:ads.left", {
-    defaultValue: "Left advertisements",
-  });
-  const rightAdsAriaLabel = t("layout:ads.right", {
-    defaultValue: "Right advertisements",
-  });
-  const headerAdAlt = t("layout:ads.headerAlt", {
-    defaultValue: "Main header ad",
   });
 
   return (
@@ -73,7 +85,10 @@ const MainLayout = () => {
 
       {/* NAVBAR (wrapped in header landmark) */}
       <header aria-label={headerAriaLabel}>
-        <Navbar />
+        {/* reserve navbar height to reduce CLS during hydration/font/image load */}
+        <div style={{ minHeight: NAVBAR_MIN_HEIGHT }}>
+          <Navbar />
+        </div>
         {/* NOTE: HeaderAdSlot has been removed on purpose */}
       </header>
 
@@ -82,70 +97,52 @@ const MainLayout = () => {
         <RouteInterstitial
           debug
           delayMs={100}
-          ariaLabel={t("layout:ads.interstitial", { defaultValue: "Advertisement" })}
+          ariaLabel={t("layout:ads.interstitial", {
+            defaultValue: "Advertisement",
+          })}
         />
       </FeatureGate>
 
       {/* HEADER AD REMOVED (Home & Discover) — intentionally omitted to comply with global removal */}
 
-      {/* MAIN 3-COLUMN LAYOUT */}
-      <div className="w-full flex justify-center bg-[#f9f9f9]">
-        <div className="w-full max-w-[1400px] grid grid-cols-12 gap-4 px-2 py-6">
-          {/* LEFT AD COLUMN (hidden on small screens, gated by noAds and AdGate) */}
-          <aside
-            className="hidden lg:flex col-span-2 ad-column left"
-            aria-label={leftAdsAriaLabel}
-          >
-            <FeatureGate feature="noAds" invert>
-              <AdGate type="inline" debug>
-                <AdColumn side="left" />
-              </AdGate>
-            </FeatureGate>
-          </aside>
-
+      {/* --- REPLACE START: make routed content section flex-1 + min-h-0 for correct internal scrolling --- */}
+      <div className="w-full flex justify-center bg-[#f9f9f9] flex-1 min-h-0">
+        <div className="w-full max-w-[1400px] px-2 py-6 flex flex-col min-h-0">
           {/* CENTER CONTENT (main landmark with target id for skip link) */}
-          <main id="main-content" className="col-span-12 lg:col-span-8" aria-label={mainAriaLabel}>
-            {/* Hero only on Home */}
-            {isHome && <HeroSection />}
+          <main
+            id="main-content"
+            aria-label={mainAriaLabel}
+            className="flex-1 min-h-0"
+          >
+            {/* reserve hero space (Home only) to reduce CLS */}
+            {isHome && (
+              <div style={{ minHeight: HERO_MIN_HEIGHT }}>
+                {/* --- REPLACE START: render lazy hero with Suspense (no visual change, keeps CLS reservation) --- */}
+                <Suspense fallback={null}>
+                  <HeroSection />
+                </Suspense>
+                {/* --- REPLACE END --- */}
+              </div>
+            )}
+
             {/* Routed page contents */}
             <Outlet />
           </main>
-
-          {/* RIGHT AD COLUMN (hidden on small screens, gated by noAds and AdGate) */}
-          <aside
-            className="hidden lg:flex col-span-2 ad-column right"
-            aria-label={rightAdsAriaLabel}
-          >
-            <FeatureGate feature="noAds" invert>
-              <AdGate type="inline" debug>
-                <AdColumn side="right" />
-              </AdGate>
-            </FeatureGate>
-          </aside>
         </div>
       </div>
+      {/* --- REPLACE END --- */}
 
       {/* FOOTER (wrapped in footer landmark) */}
       <footer aria-label={footerAriaLabel}>
-        <Footer />
+        {/* reserve footer height to reduce CLS during hydration/font load */}
+        <div style={{ minHeight: FOOTER_MIN_HEIGHT }}>
+          <Footer />
+        </div>
       </footer>
     </div>
   );
 };
 
 export default MainLayout;
-// --- REPLACE END ---
-
-
-
-
-
-
-
-
-
-
-
-
 
 

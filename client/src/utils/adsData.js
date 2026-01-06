@@ -1,34 +1,54 @@
-// ✅ File: src/utils/adsData.js
+// File: client/src/utils/adsData.js
 
-// 🔹 Etusivun taustakuvat (hero section)
+// --- REPLACE START: avoid mobile eager-fetch of hero1..3 by keeping metadata but removing direct image URLs (HeroSection owns hero assets) ---
+/**
+ * adsData.js
+ *
+ * IMPORTANT (Performance / Lighthouse)
+ * -----------------------------------
+ * Lighthouse mobile runs showed /hero1.jpg .. /hero4.jpg being fetched immediately.
+ * We already fixed HeroSection to NOT render the slideshow images on mobile.
+ *
+ * However, adsData previously referenced /hero1.jpg.. as "heroAds.image". If any component
+ * accidentally renders these images (or preloads them), the browser will fetch them again.
+ *
+ * To make this robust:
+ * - Keep the heroAds array (title/text) for any UI that uses the copy.
+ * - Remove direct image URLs for heroAds so nothing can accidentally <img src="/heroX.jpg">.
+ * - HeroSection is the single owner of hero background assets now.
+ *
+ * NOTE:
+ * - We intentionally keep the rest (headerAds/leftAds/rightAds) unchanged.
+ * - Keep comments in English to match project convention.
+ */
+
+// 🔹 Homepage hero texts (HeroSection owns the hero images)
 export const heroAds = [
   {
-    image: "/hero1.jpg",
+    image: null,
     title: "Love Awaits",
     text: "Start your journey with a meaningful match.",
   },
   {
-    image: "/hero2.jpg",
+    image: null,
     title: "Welcome to DateSite!",
     text: "Find meaningful connections easily and safely.",
   },
   {
-    image: "/hero3.jpg",
+    image: null,
     title: "Real People. Real Stories.",
     text: "Your story begins here.",
   },
 ];
 
-// 🔹 Discover & Profile -sivujen ylämainokset
-
+// 🔹 Discover & Profile header ads
 export const headerAds = [
   { image: "/ads/header1.png" },
   { image: "/ads/header2.png" },
   { image: "/ads/header3.png" },
 ];
 
-// src/utils/adsData.js
-
+// 🔹 Side ads
 export const leftAds = [
   {
     src: "/ads/ad-left1.png",
@@ -64,3 +84,5 @@ export const rightAds = [
     alt: "Right Ad 3",
   },
 ];
+// --- REPLACE END ---
+

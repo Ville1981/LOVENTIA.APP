@@ -1,0 +1,78 @@
+{
+  "title": "Asetukset",
+  "sections": {
+    "account": "Tili",
+    "profile": "Profiili",
+    "notifications": "Ilmoitukset",
+    "security": "Tietoturva"
+  },
+
+  "verifyEmailTitle": "Vahvista sähköpostiosoitteesi",
+  "verifyEmailDescription": "Suojausta ja parempaa käyttökokemusta varten, vahvista sähköpostiosoitteesi. Lähetämme vahvistuslinkin tiliisi liitettyyn sähköpostiin.",
+  "resendVerificationButton": "Lähetä vahvistusviesti uudelleen",
+  "verifyEmailShort": "Vahvista sähköposti",
+
+  "emailVerifiedBadge": "Sähköpostiosoitteesi on vahvistettu",
+  "emailVerifiedBadgeDescription": "Käytämme vahvistettua sähköpostiasi tilin palautukseen, tärkeisiin tietoturvailmoituksiin ja laskutukseen liittyviin viesteihin.",
+  "verifyEmailButtonTitle": "Lähetä uusi vahvistussähköposti",
+  "verificationRequestSent": "Vahvistussähköpostin pyyntö on lähetetty.",
+  "verificationRequestFailed": "Vahvistussähköpostin lähetys epäonnistui.",
+
+  "save": "Tallenna asetukset",
+  "saveSuccess": "Asetukset on tallennettu.",
+  "saveError": "Asetusten tallentaminen epäonnistui. Yritä uudelleen.",
+
+  "verifyEmailMissingToken": "Vahvistuslinkki on virheellinen. Puuttuva tunniste (token) tai id.",
+  "verifyEmailSuccess": "Sähköpostisi on vahvistettu. Voit jatkaa Loventian käyttöä.",
+  "verifyEmailGenericError": "Sähköpostin vahvistus epäonnistui. Linkki voi olla virheellinen tai vanhentunut.",
+  "verifyEmailPageTitleVerifying": "Vahvistetaan sähköpostia…",
+  "verifyEmailPageTitleSuccess": "Sähköposti vahvistettu",
+  "verifyEmailPageTitleError": "Sähköpostin vahvistuksessa ongelma",
+  "verifyEmailPageVerifyingMessage": "Odota hetki, vahvistamme sähköpostiosoitettasi Loventiassa.",
+  "verifyEmailGoToDiscover": "Siirry Discover-sivulle",
+  "verifyEmailBackToHome": "Takaisin etusivulle",
+  "verifyEmailAlreadyVerifiedHint": "Jos tämä linkki on käytetty aiemmin, saatat nähdä viestin, että sähköpostisi on jo vahvistettu. Tämä on normaalia.",
+
+  "sessionsTitle": "Istunnot ja tietoturva",
+  "sessionsDescription": "Jos epäilet, että joku muu voi käyttää tiliäsi, voit kirjautua ulos kaikilta laitteilta. Tämä mitätöi kirjautumistunnisteet ja vaatii sisäänkirjautumisen uudelleen kaikkialla.",
+  "sessionsLoggingOut": "Kirjataan ulos…",
+  "sessionsLogoutAllButton": "Kirjaudu ulos kaikilta laitteilta",
+  "sessionsLogoutHint": "Myös tämä laite voidaan kirjata ulos pian tämän toiminnon jälkeen.",
+  "sessionsLogoutSuccess": "Uloskirjautuminen kaikilta laitteilta on pyydetty. Tämä laite on kirjattu ulos.",
+  "sessionsLogoutError": "Uloskirjautuminen kaikilta laitteilta epäonnistui.",
+
+  "hideTitle": "Piilota tili",
+  "hideDescription": "Piilota profiilisi väliaikaisesti Discoverista, hauista ja ehdotuksista. Voit poistaa piilotuksen milloin tahansa.",
+  "hideDurationLabel": "Kesto",
+  "hideIndefinite": "Toistaiseksi",
+  "hideIndefiniteHint": "Profiilisi pysyy piilotettuna, kunnes poistat piilotuksen itse.",
+  "resumeOnLoginLabel": "Näytä profiili automaattisesti seuraavalla kirjautumisella (kun piilotusjakso on ohi).",
+  "currentlyHidden": "Tällä hetkellä piilotettu",
+  "currentlyVisible": "Tällä hetkellä näkyvissä",
+  "hideNowButton": "Piilota nyt",
+  "hidingNow": "Piilotetaan…",
+  "unhideButton": "Poista piilotus",
+  "unhiding": "Poistetaan piilotusta…",
+  "hideSuccess": "Profiilisi on nyt piilotettu.",
+  "hideError": "Profiilin piilottaminen epäonnistui.",
+  "unhideSuccess": "Profiilisi on jälleen näkyvissä.",
+  "unhideError": "Profiilin piilotuksen poistaminen epäonnistui.",
+
+  "dealbreakersTitle": "Discoverin kynnyskohdat",
+  "dealbreakersDescription": "Määritä tiukat suodattimet osumille. Tämä on Premium-ominaisuus ja vaikuttaa Discover-näkymään.",
+
+  "subscriptionTitle": "Tilauksen asetukset",
+  "subscriptionDescription": "Hallinnoi Premium-tilaustasi täältä. Voit aloittaa, hallita tai perua tilauksen erilliseltä sivulta.",
+  "currentPlanTitle": "Nykyisen tilauksen tila",
+  "currentPlanLabel": "Nykyinen tila:",
+  "currentPlanPremium": "Premium",
+  "currentPlanFree": "Ilmainen",
+  "manageSubscriptionTitle": "Avaa tilauksen hallintasivu",
+  "manageSubscriptionButton": "Hallinnoi tilausta",
+  "viewPremiumBenefitsTitle": "Näytä kaikki Premium-edut",
+  "viewPremiumBenefitsButton": "Näytä Premium-edut",
+  "subscriptionSecurityNote": "Seuraava sivu käyttää turvallista laskutusratkaisuamme (Stripe). Emme koskaan tallenna korttitietojasi.",
+
+  "dangerTitle": "Vaaravyöhyke",
+  "dangerDescription": "Kun poistat tilisi, kaikki tietosi poistetaan pysyvästi."
+}

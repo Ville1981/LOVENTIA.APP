@@ -1,0 +1,88 @@
+{
+  "benefits": {
+    "badgeDescription": "Show a small Premium badge on your profile and messages.",
+    "badgeTitle": "Premium badge",
+    "dealbreakersDescription": "Use hard filters in Discover to only see matches that fit your must-haves.",
+    "dealbreakersTitle": "Dealbreaker filters",
+    "introsDescription": "Send a first message even before you match (where allowed).",
+    "introsTitle": "Intro messages",
+    "noAdsDescription": "No banner ads across Loventia.",
+    "noAdsTitle": "Ad-free experience",
+    "unlimitedLikesDescription": "Like as many profiles as you want every day.",
+    "unlimitedLikesTitle": "Unlimited Likes",
+    "unlimitedRewindsDescription": "Go back to the previous profile if you swiped too fast.",
+    "unlimitedRewindsTitle": "Unlimited Rewinds",
+    "weeklySuperLikesDescription": "Highlight yourself with Super Likes each week.",
+    "weeklySuperLikesDescriptionWithCount": "You currently get {{count}} Super Likes per week.",
+    "weeklySuperLikesTitle": "Weekly Super Likes",
+    "whoLikedMeDescription": "Open the Likes overview to see who already liked you.",
+    "whoLikedMeTitle": "See who liked you"
+  },
+  "hub": {
+    "activeHint": "Premium активен. Большинство преимуществ ниже уже должны быть разблокированы.",
+    "benefitsDescription": "Краткий обзор того, что даёт Premium. Активные преимущества подсвечены, заблокированные показаны серым цветом.",
+    "benefitsTitle": "Преимущества Premium",
+    "currentPlanDescription": "Эта страница показывает ваш текущий статус Premium и активные преимущества в аккаунте.",
+    "currentPlanTitle": "Ваш текущий план",
+    "freeHint": "Сейчас у вас бесплатный план. Перейдите на Premium, чтобы открыть все преимущества.",
+    "manageSubscription": "Управлять подпиской",
+    "note": "Некоторые преимущества могут зависеть от местного законодательства или правил безопасности. Со временем мы можем добавлять новые функции Premium.",
+    "planLabel": "Текущий план:",
+    "syncHint": "Если что‑то выглядит устаревшим, откройте настройки подписки и нажмите «Синхронизация». Будут загружены самые свежие данные из биллинга.",
+    "title": "Центр Premium",
+    "upgradeNow": "Перейти на Premium",
+    "planPremium": "Premium",
+    "planFree": "Бесплатный",
+    "benefits": {
+      "noAds": {
+        "title": "Без рекламы",
+        "description": "Никаких баннеров и боковой рекламы на Loventia."
+      },
+      "unlimitedLikes": {
+        "title": "Неограниченные лайки",
+        "description": "Ставьте лайки скольким угодно анкетам каждый день."
+      },
+      "unlimitedRewinds": {
+        "title": "Неограниченные возвраты",
+        "description": "Возвращайтесь к предыдущему профилю, если пролистали его слишком быстро."
+      },
+      "whoLikedMe": {
+        "title": "Кто поставил вам лайк",
+        "description": "Откройте раздел лайков, чтобы сразу увидеть, кто уже лайкнул ваш профиль."
+      },
+      "superLikesPerWeek": {
+        "title": "Еженедельные Супер‑лайки",
+        "descriptionWithCount": "Сейчас вы получаете {{count}} Супер‑лайков в неделю.",
+        "description": "Выделяйте себя с помощью нескольких Супер‑лайков каждую неделю."
+      },
+      "intros": {
+        "title": "Вступительные сообщения",
+        "description": "Отправляйте первое сообщение ещё до совпадения (там, где это разрешено)."
+      },
+      "dealbreakers": {
+        "title": "Жёсткие фильтры",
+        "description": "Используйте строгие фильтры в разделе «Обзор», чтобы видеть только анкеты, соответствующие вашим обязательным критериям."
+      },
+      "badge": {
+        "title": "Значок Premium",
+        "description": "Показывайте маленький значок Premium в своём профиле и в сообщениях."
+      }
+    }
+  },
+  "upgradeCheckingSessionTitle": "Checking your session…",
+  "upgradeCheckingSessionBody": "Please wait a moment.",
+  "upgradeSignInRequiredTitle": "Sign in required",
+  "upgradeSignInRequiredBody": "To view Premium benefits and upgrade your account, please sign in.",
+  "upgradeGoToLogin": "Go to Login",
+  "upgradeTitle": "Перейти на Premium",
+  "upgradeContinueButton": "Перейти к подписке",
+  "upgradeFooterNote": "You’ll be redirected to your subscription settings. Payment is handled by your configured provider (e.g., Stripe).",
+  "benefitSeeWhoLikedYou": "Посмотреть, кому вы понравились",
+  "benefitSuperLikes": "Еженедельные Super Likes",
+  "benefitQAVisibility": "Откройте полный доступ к вопросам и ответам",
+  "benefitUnlimitedLikes": "Неограниченное количество лайков",
+  "benefitDealbreakers": "Фильтры по важным критериям",
+  "benefitUnlimitedRewinds": "Неограниченные возвраты",
+  "benefitIntrosMessaging": "Откройте вступительные сообщения",
+  "benefitNoAds": "Без рекламы"
+}
